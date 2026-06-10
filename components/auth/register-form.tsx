@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 export function RegisterForm() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
@@ -49,6 +50,7 @@ export function RegisterForm() {
           .insert({
             id: authData.user.id,
             full_name: `${firstName} ${lastName}`,
+            username: username,
             email: email,
             role: "user",
           });
@@ -89,6 +91,16 @@ export function RegisterForm() {
             placeholder="Last Name"
           />
         </div>
+      </div>
+
+      <div>
+        <Input
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+          placeholder="Username"
+        />
       </div>
 
       <div>
