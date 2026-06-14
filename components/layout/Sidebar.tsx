@@ -11,7 +11,7 @@ interface SidebarProps {
 export default function Sidebar({ userName }: SidebarProps) {
   const pathname = usePathname();
 
-  const isActive = (page: "dashboard" | "journal" | "history" | "insights" | "analysis") => {
+  const isActive = (page: "dashboard" | "journal" | "history" | "insights" | "analysis" | "profile" | "settings" | "support") => {
     switch (page) {
       case "dashboard":
         return pathname === "/dashboard";
@@ -23,6 +23,12 @@ export default function Sidebar({ userName }: SidebarProps) {
         return pathname === "/insights";
       case "analysis":
         return pathname === "/analysis";
+      case "profile":
+        return pathname === "/profile";
+      case "settings":
+        return pathname === "/settings";
+      case "support":
+        return pathname === "/support";
       default:
         return false;
     }
@@ -96,18 +102,35 @@ export default function Sidebar({ userName }: SidebarProps) {
       </nav>
 
       <div className="pt-6 border-t border-light-gray space-y-2 mb-8">
-        <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl text-dark-text text-sm font-poppins font-medium hover:bg-light-gray">
+        <Link
+          href="/settings"
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
+            isActive("settings")
+              ? "bg-primary-blue/10 text-primary-blue font-semibold"
+              : "text-dark-text hover:bg-light-gray"
+          }`}
+        >
           <span className="text-xl">⚙️</span>
           Settings
         </Link>
-        <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl text-dark-text text-sm font-poppins font-medium hover:bg-light-gray">
+        <Link
+          href="/profile"
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
+            isActive("profile")
+              ? "bg-primary-blue/10 text-primary-blue font-semibold"
+              : "text-dark-text hover:bg-light-gray"
+          }`}
+        >
           <span className="text-xl">👤</span>
           Profile
         </Link>
       </div>
 
       <div className="space-y-3">
-        <Link href="#" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-success-green/20 text-dark-text text-sm font-poppins font-semibold">
+        <Link
+          href="/support"
+          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-soft-red/10 text-soft-red text-sm font-poppins font-semibold hover:bg-soft-red/20 transition-all"
+        >
           <span className="text-xl">🆘</span>
           Get Help Now
         </Link>
