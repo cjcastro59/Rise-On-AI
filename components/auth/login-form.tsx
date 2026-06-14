@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -12,6 +12,19 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const supabase = createClient();
+
+  // Check if user is already logged in on component mount
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.push("/dashboard");
+        router.refresh();
+      }
+    };
+    checkSession();
+  }, [router, supabase]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,14 +32,20 @@ export function LoginForm() {
     setError("");
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) {
-        setError(error.message);
-      } else {
+        // Handle rate limit errors with a friendly message
+        if (error.message.toLowerCase().includes("rate limit") || error.message.toLowerCase().includes("too many")) {
+          setError("Too many login attempts! Please wait a few minutes and try again.");
+        } else {
+          setError(error.message);
+        }
+      } else if (data.session) {
+        // Redirect to dashboard after successful login
         router.push("/dashboard");
         router.refresh();
       }
