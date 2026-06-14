@@ -42,7 +42,10 @@ export async function middleware(request: NextRequest) {
     (request.nextUrl.pathname.startsWith("/dashboard") ||
       request.nextUrl.pathname.startsWith("/journal") ||
       request.nextUrl.pathname.startsWith("/insights") ||
-      request.nextUrl.pathname.startsWith("/analysis"))
+      request.nextUrl.pathname.startsWith("/analysis") ||
+      request.nextUrl.pathname.startsWith("/profile") ||
+      request.nextUrl.pathname.startsWith("/settings") ||
+      request.nextUrl.pathname.startsWith("/support"))
   ) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
@@ -59,5 +62,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/journal/:path*", "/insights/:path*", "/analysis/:path*", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/journal/:path*", "/insights/:path*", "/analysis/:path*", "/profile/:path*", "/settings/:path*", "/support/:path*", "/login", "/register"],
 };
