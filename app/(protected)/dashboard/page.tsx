@@ -4,17 +4,11 @@ import { Card } from "@/components/ui/card";
 import { MoodCard } from "@/components/dashboard/mood-card";
 import { InsightCard } from "@/components/dashboard/insight-card";
 import { JournalEditor } from "@/components/journal/journal-editor";
-import ProtectedLayout from "@/components/layout/ProtectedLayout";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function DashboardPage() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
-  // Should never happen because of middleware
-  if (!user) {
-    return null;
-  }
 
   const { data: profile } = await supabase
     .from("user_profiles")
@@ -25,7 +19,7 @@ export default async function DashboardPage() {
   const userName = profile?.first_name || profile?.username || user.email?.split("@")[0] || "Friend";
 
   return (
-    <ProtectedLayout activePage="dashboard">
+    <>
       {/* Top Header */}
       <header className="flex items-center justify-between mb-8 bg-white rounded-2xl px-6 py-4 shadow-sm border border-light-gray">
         <nav className="flex items-center gap-4">
@@ -35,7 +29,7 @@ export default async function DashboardPage() {
           <Link href="/journal/history" className="text-dark-text/60 text-sm font-poppins font-medium hover:text-primary-blue">History</Link>
         </nav>
         <div className="flex items-center gap-4">
-          <button className="px-4 py-2 bg-pink-100 text-pink-600 rounded-full text-xs font-poppins font-semibold flex items-center gap-2">
+          <button className="px-4 py-2 bg-pink-100 text-pink-60 rounded-full text-xs font-poppins font-semibold flex items-center gap-2">
             <span className="text-lg">🎉</span>
             Crisis Support
           </button>
@@ -159,6 +153,6 @@ export default async function DashboardPage() {
           icon="💡"
         />
       </div>
-    </ProtectedLayout>
+    </>
   );
 }

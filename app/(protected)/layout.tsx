@@ -4,10 +4,8 @@ import { redirect } from "next/navigation";
 
 export default async function ProtectedLayout({
   children,
-  activePage,
 }: {
   children: React.ReactNode;
-  activePage?: "dashboard" | "journal" | "history" | "insights" | "analysis";
 }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -26,8 +24,7 @@ export default async function ProtectedLayout({
 
   return (
     <div className="min-h-screen bg-white flex">
-      <Sidebar activePage={activePage} userName={userName} />
-      {/* Main Content */}
+      <Sidebar userName={userName} />
       <main className="flex-1 bg-gradient-to-br from-header-bg to-white p-8 overflow-y-auto">
         {children}
       </main>

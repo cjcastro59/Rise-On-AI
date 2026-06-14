@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import ProtectedLayout from "@/components/layout/ProtectedLayout";
-import { createClient } from "@/lib/supabase/server";
 
 // Mock journal entries data
 const mockEntries = [
@@ -36,16 +34,8 @@ const mockEntries = [
 ];
 
 export default async function JournalHistoryPage() {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  // Should never happen because of middleware
-  if (!user) {
-    return null;
-  }
-
   return (
-    <ProtectedLayout activePage="history">
+    <>
       {/* Page Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-dm-serif text-dark-text mb-2">My Journal</h1>
@@ -109,6 +99,6 @@ export default async function JournalHistoryPage() {
           </Link>
         </div>
       )}
-    </ProtectedLayout>
+    </>
   );
 }
