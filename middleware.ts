@@ -40,27 +40,58 @@ export async function middleware(request: NextRequest) {
   if (
     !user &&
     (request.nextUrl.pathname.startsWith("/dashboard") ||
-      request.nextUrl.pathname.startsWith("/journal") ||
-      request.nextUrl.pathname.startsWith("/insights") ||
-      request.nextUrl.pathname.startsWith("/analysis") ||
-      request.nextUrl.pathname.startsWith("/profile") ||
-      request.nextUrl.pathname.startsWith("/settings") ||
-      request.nextUrl.pathname.startsWith("/support"))
+    request.nextUrl.pathname.startsWith("/journal") ||
+    request.nextUrl.pathname.startsWith("/insights") ||
+    request.nextUrl.pathname.startsWith("/analysis") ||
+    request.nextUrl.pathname.startsWith("/profile") ||
+    request.nextUrl.pathname.startsWith("/settings") ||
+    request.nextUrl.pathname.startsWith("/support") ||
+    request.nextUrl.pathname.startsWith("/admin"))
   ) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // If user is signed in and trying to access login/register, redirect to dashboard
+  // If user is signed in and trying to access login/register, redirect based on role
   if (
     user &&
     (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/register")
   ) {
+    // Get user profile to check role
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    // Redirect admin/owner to admin dashboard, regular users to regular dashboard
+    if (profile && ["admin", "owner"].includes(profile.role)) {
+      return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+    }
     return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Check if user is trying to access admin routes
+  if (request.nextUrl.pathname.startsWith("/admin")) {
+    if (!user) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    // Get user profile to check role
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    // If not admin/owner, redirect to regular dashboard
+    if (!profile || !["admin", "owner"].includes(profile.role)) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/journal/:path*", "/insights/:path*", "/analysis/:path*", "/profile/:path*", "/settings/:path*", "/support/:path*", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/journal/:path*", "/insights/:path*", "/analysis/:path*", "/profile/:path*", "/settings/:path*", "/support/:path*", "/admin/:path*", "/login", "/register"],
 };

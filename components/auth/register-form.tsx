@@ -106,12 +106,24 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
     setError("");
 
     try {
+      // First, let's store the profile data in localStorage in case we need it after email confirmation!
+      localStorage.setItem('pendingProfileData', JSON.stringify(formData));
+
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
+        options: {
+          // Optional: disable email confirmation in Supabase dashboard for dev!
+          data: {
+            // We can put some data here but full profile needs to be in user_profiles
+          }
+        }
       });
 
+      console.log('Auth signUp response:', { authData, authError });
+
       if (authError) {
+        localStorage.removeItem('pendingProfileData');
         // Handle rate limit errors with a friendly message
         if (authError.message.toLowerCase().includes("rate limit") || authError.message.toLowerCase().includes("too many")) {
           setError("Too many signups! Please wait a few minutes or log in. For development, you can disable email confirmation in your Supabase dashboard (Authentication → Providers → Email).");
@@ -122,46 +134,67 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       }
 
       if (authData.user) {
-        // Prepare profile data with optional columns
-        const profileData: any = {
-          id: authData.user.id,
-          username: formData.username,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          role: "user",
-        };
+        console.log('User created! Now inserting/updating complete profile...');
         
-        // Add optional columns (will be ignored if they don't exist in the table yet)
-        if (formData.age) profileData.age = parseInt(formData.age);
-        if (formData.gender) profileData.gender = formData.gender;
-        if (formData.country) profileData.country = formData.country;
-        if (formData.moodBaseline) profileData.mood_baseline = formData.moodBaseline;
-        if (formData.goals.length > 0) profileData.goals = formData.goals;
-        if (formData.language) profileData.language = formData.language;
+        // Prepare ALL profile data
+        const profileData: any = {
+            id: authData.user.id,
+            username: formData.username,
+            email: formData.email,
+            role: 'user',
+            full_name: `${formData.firstName} ${formData.lastName}`,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            age: parseInt(formData.age),
+            gender: formData.gender,
+            country: formData.country,
+            mood_baseline: formData.moodBaseline,
+            goals: formData.goals,
+            language: formData.language,
+        };
 
-        // Try to insert profile - if it already exists, do an upsert (update instead)
-        try {
-          const { error: profileError } = await (supabase
-            .from("user_profiles") as any)
-            .upsert(profileData, {
-              onConflict: "id", // If the ID already exists, update instead of inserting
-            });
+        console.log('Full profile data:', profileData);
 
-          if (profileError) {
-            console.warn("Profile creation/update failed:", profileError);
-            // Still continue - user is authenticated
-          }
-        } catch (err) {
-          console.warn("Profile insert failed:", err);
-          // Ignore errors - user is already authenticated
+        // First try to update (since trigger might have created a row already!)
+        console.log('Trying to UPDATE profile first...');
+        const { error: updateError } = await supabase
+            .from('user_profiles')
+            .update(profileData)
+            .eq('id', authData.user.id)
+            .select();
+
+        if (updateError) {
+            console.warn('Update failed, trying to INSERT instead...', updateError);
+            const { error: insertError } = await supabase
+                .from('user_profiles')
+                .insert(profileData)
+                .select();
+
+            if (insertError) {
+                console.error('Both insert and update failed!', insertError);
+                setError(`Profile setup failed: ${insertError.message}`);
+                localStorage.removeItem('pendingProfileData');
+                return;
+            }
         }
 
-        // Always redirect to dashboard after successful auth
-        router.push("/dashboard");
+        localStorage.removeItem('pendingProfileData');
+        console.log('Profile setup complete!');
+
+        // Redirect immediately
+        router.push('/dashboard');
         router.refresh();
+      } else if (authData.session) {
+        // If user is auto-confirmed (email confirmation off), we should have a user
+        console.log('Session exists but no user?');
+      } else {
+        // Email confirmation is enabled - user needs to confirm first!
+        setError('Please check your email to confirm your account! We saved your profile info.');
+        // We can keep pendingProfileData in localStorage for after confirmation
+        updateStep(1); // Or show a message
       }
     } catch (err) {
+      console.error('Unexpected error in handleRegister:', err);
       setError("An unexpected error occurred.");
     } finally {
       setLoading(false);
