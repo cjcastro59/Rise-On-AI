@@ -134,7 +134,7 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       }
 
       if (authData.user) {
-        console.log('User created! Now inserting/updating complete profile...');
+        console.log('User created! Now upserting complete profile...');
         
         // Prepare ALL profile data
         const profileData: any = {
@@ -155,27 +155,17 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
 
         console.log('Full profile data:', profileData);
 
-        // First try to update (since trigger might have created a row already!)
-        console.log('Trying to UPDATE profile first...');
-        const { error: updateError } = await supabase
+        // Use UPSERT! This will insert or update if the row already exists (from the trigger!)
+        const { error: upsertError } = await supabase
             .from('user_profiles')
-            .update(profileData)
-            .eq('id', authData.user.id)
+            .upsert(profileData, { onConflict: 'id' })
             .select();
 
-        if (updateError) {
-            console.warn('Update failed, trying to INSERT instead...', updateError);
-            const { error: insertError } = await supabase
-                .from('user_profiles')
-                .insert(profileData)
-                .select();
-
-            if (insertError) {
-                console.error('Both insert and update failed!', insertError);
-                setError(`Profile setup failed: ${insertError.message}`);
-                localStorage.removeItem('pendingProfileData');
-                return;
-            }
+        if (upsertError) {
+            console.error('Upsert failed!', upsertError);
+            setError(`Profile setup failed: ${upsertError.message}`);
+            localStorage.removeItem('pendingProfileData');
+            return;
         }
 
         localStorage.removeItem('pendingProfileData');

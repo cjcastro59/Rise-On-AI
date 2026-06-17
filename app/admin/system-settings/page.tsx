@@ -68,7 +68,7 @@ export default function AdminSystemSettingsPage() {
               </thead>
               <tbody>
                 <tr>
-                  <td><span className="badge-success">Super Admin</span></td>
+                  <td><span className="badge-success">Owner</span></td>
                   <td><span className="text-success-green">✅</span></td>
                   <td><span className="text-success-green">✅</span></td>
                   <td><span className="text-success-green">✅</span></td>
@@ -77,7 +77,7 @@ export default function AdminSystemSettingsPage() {
                   <td><span className="text-success-green">✅</span></td>
                 </tr>
                 <tr>
-                  <td><span className="badge-info">Guidance Counselor</span></td>
+                  <td><span className="badge-info">Admin</span></td>
                   <td><span className="text-success-green">✅</span></td>
                   <td><span className="text-primary-blue">RAI-Only</span></td>
                   <td><span className="text-primary-blue">Aggregated</span></td>
@@ -93,6 +93,15 @@ export default function AdminSystemSettingsPage() {
                   <td><span className="text-error-red">❌</span></td>
                   <td><span className="text-error-red">❌</span></td>
                   <td><span className="text-primary-blue">Anonymous</span></td>
+                </tr>
+                <tr>
+                  <td><span className="badge">User</span></td>
+                  <td><span className="text-success-green">✅</span></td>
+                  <td><span className="text-error-red">❌</span></td>
+                  <td><span className="text-error-red">❌</span></td>
+                  <td><span className="text-error-red">❌</span></td>
+                  <td><span className="text-error-red">❌</span></td>
+                  <td><span className="text-error-red">❌</span></td>
                 </tr>
               </tbody>
             </table>
