@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   return (
@@ -26,7 +27,7 @@ export default function LoginPage() {
               <Card className="p-4 bg-white/90 flex items-center gap-3">
                 <span className="text-2xl">⭐</span>
                 <div>
-                  <p className="text-xs font-poppins font-semibold text-dark-text">Today&apos;s Vibe</p>
+                  <p className="text-xs font-poppins font-semibold text-dark-text">Today's Vibe</p>
                   <p className="text-xs font-inter text-dark-text/70">Just checking in ✨</p>
                 </div>
               </Card>
@@ -36,6 +37,15 @@ export default function LoginPage() {
         
         {/* Right Section */}
         <div className="md:w-1/2 p-8 md:p-12">
+          {/* Back to Landing Button */}
+          <div className="mb-6">
+            <Link href="/">
+              <Button variant="ghost" className="text-sm flex items-center gap-2">
+                ← Return to Landing Page
+              </Button>
+            </Link>
+          </div>
+          
           <div className="mb-8">
             <h2 className="text-3xl font-dm-serif text-dark-text mb-1">Log in</h2>
             <p className="text-dark-text/80 text-sm font-inter">Sign in to continue your wellness journey.</p>
@@ -61,7 +71,7 @@ export default function LoginPage() {
           </div>
 
           <p className="mt-4 text-center text-sm font-inter text-dark-text/80">
-            Don&apos;t have an account?{" "}
+            Don't have an account?{" "}
             <Link href="/register" className="font-poppins font-semibold text-lavender hover:text-lavender/80">
               Sign up
             </Link>

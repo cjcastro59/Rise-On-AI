@@ -14,11 +14,54 @@ export function LoginForm() {
   const router = useRouter();
   const supabase = createClient();
 
+  // Function to apply pending profile data
+  const applyPendingProfileData = async (userId: string) => {
+    const pendingDataStr = localStorage.getItem('pendingProfileData');
+    if (!pendingDataStr) return;
+
+    try {
+      const formData = JSON.parse(pendingDataStr);
+      const profileData = {
+        username: formData.username,
+        email: formData.email,
+        role: 'user',
+        full_name: `${formData.firstName} ${formData.lastName}`,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        age: parseInt(formData.age),
+        gender: formData.gender,
+        country: formData.country,
+        mood_baseline: formData.moodBaseline,
+        goals: formData.goals,
+        language: formData.language,
+      };
+
+      console.log('Applying pending profile data:', profileData);
+      
+      const { error: updateError } = await supabase
+        .from('user_profiles')
+        .update(profileData)
+        .eq('id', userId)
+        .select();
+
+      if (updateError) {
+        console.error('Failed to update pending profile:', updateError);
+      } else {
+        console.log('Pending profile applied successfully!');
+        localStorage.removeItem('pendingProfileData');
+      }
+    } catch (err) {
+      console.error('Error parsing pending profile data:', err);
+      localStorage.removeItem('pendingProfileData');
+    }
+  };
+
   // Check if user is already logged in on component mount
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
+        await applyPendingProfileData(session.user.id);
         router.push("/dashboard");
         router.refresh();
       }
@@ -45,6 +88,7 @@ export function LoginForm() {
           setError(error.message);
         }
       } else if (data.session) {
+        await applyPendingProfileData(data.session.user.id);
         // Redirect to dashboard after successful login
         router.push("/dashboard");
         router.refresh();

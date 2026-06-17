@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { RegisterForm } from "@/components/auth/register-form";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 export default function RegisterPage() {
@@ -69,6 +70,15 @@ export default function RegisterPage() {
         
         {/* Right Section - Form */}
         <div className="md:w-1/2 p-8 md:p-12">
+          {/* Back to Landing Button */}
+          <div className="mb-6">
+            <Link href="/">
+              <Button variant="ghost" className="text-sm flex items-center gap-2">
+                ← Return to Landing Page
+              </Button>
+            </Link>
+          </div>
+          
           <div className="mb-8">
             <h2 className="text-3xl font-dm-serif text-dark-text mb-1">Create your account</h2>
             <p className="text-dark-text/80 text-sm font-inter">Join thousands of students and adults on their wellness journey.</p>
