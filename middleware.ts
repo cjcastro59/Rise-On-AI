@@ -51,11 +51,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // If user is signed in and trying to access login/register, redirect based on role
-  if (
-    user &&
-    (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/register")
-  ) {
+  // If user is signed in, check their role for all protected routes
+  if (user) {
     // Get user profile to check role
     const { data: profile } = await supabase
       .from("user_profiles")
@@ -63,29 +60,25 @@ export async function middleware(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    // Redirect admin/owner to admin dashboard, regular users to regular dashboard
-    if (profile && ["admin", "owner"].includes(profile.role)) {
+    // If user is trying to access login/register, redirect based on role
+    if (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/register") {
+      if (profile && ["admin", "owner", "researcher"].includes(profile.role)) {
+        return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+      }
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+
+    // If user is trying to access regular dashboard but is admin/owner/researcher, redirect to admin dashboard
+    if (request.nextUrl.pathname === "/dashboard" && profile && ["admin", "owner", "researcher"].includes(profile.role)) {
       return NextResponse.redirect(new URL("/admin/dashboard", request.url));
     }
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
 
-  // Check if user is trying to access admin routes
-  if (request.nextUrl.pathname.startsWith("/admin")) {
-    if (!user) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-
-    // Get user profile to check role
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    // If not admin/owner, redirect to regular dashboard
-    if (!profile || !["admin", "owner"].includes(profile.role)) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+    // Check if user is trying to access admin routes
+    if (request.nextUrl.pathname.startsWith("/admin")) {
+      // If not admin/owner/researcher, redirect to regular dashboard
+      if (!profile || !["admin", "owner", "researcher"].includes(profile.role)) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
     }
   }
 

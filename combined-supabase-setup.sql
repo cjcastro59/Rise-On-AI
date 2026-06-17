@@ -15,21 +15,21 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- user_profiles table
 CREATE TABLE IF NOT EXISTS public.user_profiles (
-    id UUID NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    username TEXT,
-    full_name TEXT,
-    first_name TEXT,
-    last_name TEXT,
-    email TEXT,
-    role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin', 'owner')),
-    age INTEGER,
-    gender TEXT,
-    country TEXT,
-    mood_baseline TEXT,
-    goals TEXT[],
-    language TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  id UUID NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  username TEXT,
+  full_name TEXT,
+  first_name TEXT,
+  last_name TEXT,
+  email TEXT,
+  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'researcher', 'admin', 'owner')),
+  age INTEGER,
+  gender TEXT,
+  country TEXT,
+  mood_baseline TEXT,
+  goals TEXT[],
+  language TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- journal_entries table
@@ -117,6 +117,67 @@ ALTER TABLE public.user_profiles ALTER COLUMN role SET DEFAULT 'user';
 -- 4. Create Functions & Triggers
 -- ------------------------------
 
+-- Helper function to check if user is owner ONLY (SAFE, avoids recursion!)
+DROP FUNCTION IF EXISTS public.is_current_user_owner();
+CREATE OR REPLACE FUNCTION public.is_current_user_owner() 
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_role TEXT;
+BEGIN
+    SELECT role INTO v_role
+    FROM public.user_profiles
+    WHERE id = auth.uid()
+    LIMIT 1;
+    
+    RETURN v_role = 'owner';
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Helper function to check if user is admin/owner/researcher (SAFE, avoids recursion!)
+DROP FUNCTION IF EXISTS public.is_current_user_admin_or_owner();
+CREATE OR REPLACE FUNCTION public.is_current_user_admin_or_owner() 
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_role TEXT;
+BEGIN
+  SELECT role INTO v_role
+  FROM public.user_profiles
+  WHERE id = auth.uid()
+  LIMIT 1;
+  
+  RETURN v_role IN ('admin', 'owner', 'researcher');
+EXCEPTION
+  WHEN OTHERS THEN
+    RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger function to prevent non-owners from changing user roles
+DROP FUNCTION IF EXISTS public.prevent_role_change_by_non_owner();
+CREATE OR REPLACE FUNCTION public.prevent_role_change_by_non_owner()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Check if role is being changed
+    IF NEW.role <> OLD.role THEN
+        -- Only allow owners to change roles
+        IF NOT public.is_current_user_owner() THEN
+            RAISE EXCEPTION 'Only owners can change user roles';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger on user_profiles table
+DROP TRIGGER IF EXISTS prevent_role_change_trigger ON public.user_profiles;
+CREATE OR REPLACE TRIGGER prevent_role_change_trigger
+BEFORE UPDATE ON public.user_profiles
+FOR EACH ROW
+EXECUTE FUNCTION public.prevent_role_change_by_non_owner();
+
 -- handle_new_user function (creates user profile when new user registers)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS public.handle_new_user();
@@ -170,66 +231,48 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 -- ------------------------------
 -- 6. RLS Policies for user_profiles (safe create using DO blocks)
 -- ------------------------------
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'user_profiles' AND policyname = 'Users can view their own profile') THEN
-        CREATE POLICY "Users can view their own profile" 
-            ON public.user_profiles 
-            FOR SELECT 
-            USING (auth.uid() = id);
-    END IF;
-END
-$$;
+-- First, DROP ALL existing policies for user_profiles to start fresh!
+DROP POLICY IF EXISTS "Users can view their own profile" ON public.user_profiles;
+DROP POLICY IF EXISTS "Users can update their own profile" ON public.user_profiles;
+DROP POLICY IF EXISTS "Users can insert their own profile" ON public.user_profiles;
+DROP POLICY IF EXISTS "Admins/owners can view all profiles" ON public.user_profiles;
+DROP POLICY IF EXISTS "Admins/owners can update user roles" ON public.user_profiles;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.user_profiles;
+DROP POLICY IF EXISTS "Enable insert for users based on user_id" ON public.user_profiles;
+DROP POLICY IF EXISTS "Enable update for users based on user_id" ON public.user_profiles;
+DROP POLICY IF EXISTS "Users can view their own profile or admins can view all" ON public.user_profiles;
+DROP POLICY IF EXISTS "Users can update their own profile or admins can update all" ON public.user_profiles;
+DROP POLICY IF EXISTS "Admins can delete profiles" ON public.user_profiles;
+DROP POLICY IF EXISTS "Users can update their own profile (no role)" ON public.user_profiles;
+DROP POLICY IF EXISTS "Admins/owners can update non-role fields" ON public.user_profiles;
+DROP POLICY IF EXISTS "Only owners can update role field" ON public.user_profiles;
+DROP POLICY IF EXISTS "Only owners can delete profiles" ON public.user_profiles;
 
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'user_profiles' AND policyname = 'Users can update their own profile') THEN
-        CREATE POLICY "Users can update their own profile" 
-            ON public.user_profiles 
-            FOR UPDATE 
-            USING (auth.uid() = id);
-    END IF;
-END
-$$;
+-- Now create ALL necessary policies explicitly!
+-- Policy 1: Users can view their own profile OR admins/owners can view all
+CREATE POLICY "Users can view their own profile or admins can view all"
+    ON public.user_profiles
+    FOR SELECT
+    USING (auth.uid() = id OR public.is_current_user_admin_or_owner());
 
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'user_profiles' AND policyname = 'Users can insert their own profile') THEN
-        CREATE POLICY "Users can insert their own profile" 
-            ON public.user_profiles 
-            FOR INSERT 
-            WITH CHECK (auth.uid() = id);
-    END IF;
-END
-$$;
+-- Policy 2: Users can insert their own profile
+CREATE POLICY "Users can insert their own profile"
+    ON public.user_profiles
+    FOR INSERT
+    WITH CHECK (auth.uid() = id);
 
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'user_profiles' AND policyname = 'Admins/owners can view all profiles') THEN
-        CREATE POLICY "Admins/owners can view all profiles" 
-            ON public.user_profiles 
-            FOR SELECT 
-            USING (EXISTS (
-                SELECT 1 FROM public.user_profiles 
-                WHERE id = auth.uid() AND role IN ('admin', 'owner')
-            ));
-    END IF;
-END
-$$;
+-- Policy 3: Users can update their own profile OR admins/owners can update any profile (role changes protected by trigger!)
+CREATE POLICY "Users can update their own profile or admins can update all"
+    ON public.user_profiles
+    FOR UPDATE
+    USING (auth.uid() = id OR public.is_current_user_admin_or_owner())
+    WITH CHECK (auth.uid() = id OR public.is_current_user_admin_or_owner());
 
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'user_profiles' AND policyname = 'Admins/owners can update user roles') THEN
-        CREATE POLICY "Admins/owners can update user roles" 
-            ON public.user_profiles 
-            FOR UPDATE 
-            USING (EXISTS (
-                SELECT 1 FROM public.user_profiles 
-                WHERE id = auth.uid() AND role IN ('admin', 'owner')
-            ));
-    END IF;
-END
-$$;
+-- Policy 4: Only owners can delete profiles
+CREATE POLICY "Only owners can delete profiles"
+    ON public.user_profiles
+    FOR DELETE
+    USING (public.is_current_user_owner());
 
 -- ------------------------------
 -- 7. RLS Policies for Other Tables (safe create)
@@ -372,31 +415,42 @@ BEGIN
 END
 $$;
 
--- audit_logs (Admin only)
+-- audit_logs (Admin/Owner only)
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'audit_logs' AND policyname = 'Admins/owners can view audit logs') THEN
-        CREATE POLICY "Admins/owners can view audit logs" 
-            ON public.audit_logs 
-            FOR SELECT 
-            USING (EXISTS (
-                SELECT 1 FROM public.user_profiles 
-                WHERE id = auth.uid() AND role IN ('admin', 'owner')
-            ));
-    END IF;
+    DROP POLICY IF EXISTS "Admins/owners can view audit logs" ON public.audit_logs;
+    DROP POLICY IF EXISTS "Admins/owners can insert audit logs" ON public.audit_logs;
 END
 $$;
 
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'audit_logs' AND policyname = 'Admins/owners can insert audit logs') THEN
-        CREATE POLICY "Admins/owners can insert audit logs" 
-            ON public.audit_logs 
-            FOR INSERT 
-            WITH CHECK (EXISTS (
-                SELECT 1 FROM public.user_profiles 
-                WHERE id = auth.uid() AND role IN ('admin', 'owner')
-            ));
-    END IF;
-END
-$$;
+CREATE POLICY "Admins/owners can view audit logs"
+    ON public.audit_logs
+    FOR SELECT
+    USING (public.is_current_user_admin_or_owner());
+
+CREATE POLICY "Admins/owners can insert audit logs"
+    ON public.audit_logs
+    FOR INSERT
+    WITH CHECK (public.is_current_user_admin_or_owner());
+
+-- ------------------------------
+-- 8. GRANT PERMISSIONS TO ROLES
+-- ------------------------------
+-- Grant usage on schema public
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+
+-- Grant all privileges on all tables in public schema (for service role)
+GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+
+-- Grant specific privileges to authenticated and anon roles
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
+
+-- Grant privileges on sequences
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+
+-- Set default privileges for future tables
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO anon;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO anon, authenticated, service_role;
