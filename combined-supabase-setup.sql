@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   first_name TEXT,
   last_name TEXT,
   email TEXT,
-  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'researcher', 'admin', 'owner')),
+  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'researcher', 'counselor', 'admin', 'owner')),
   age INTEGER,
   gender TEXT,
   country TEXT,
@@ -118,7 +118,7 @@ ALTER TABLE public.user_profiles ALTER COLUMN role SET DEFAULT 'user';
 -- ------------------------------
 
 -- Helper function to check if user is owner ONLY (SAFE, avoids recursion!)
-DROP FUNCTION IF EXISTS public.is_current_user_owner();
+DROP FUNCTION IF EXISTS public.is_current_user_owner() CASCADE;
 CREATE OR REPLACE FUNCTION public.is_current_user_owner() 
 RETURNS BOOLEAN AS $$
 DECLARE
@@ -136,8 +136,8 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Helper function to check if user is admin/owner/researcher (SAFE, avoids recursion!)
-DROP FUNCTION IF EXISTS public.is_current_user_admin_or_owner();
+-- Helper function to check if user is admin/owner/researcher/counselor (SAFE, avoids recursion!)
+DROP FUNCTION IF EXISTS public.is_current_user_admin_or_owner() CASCADE;
 CREATE OR REPLACE FUNCTION public.is_current_user_admin_or_owner() 
 RETURNS BOOLEAN AS $$
 DECLARE
@@ -148,7 +148,7 @@ BEGIN
   WHERE id = auth.uid()
   LIMIT 1;
   
-  RETURN v_role IN ('admin', 'owner', 'researcher');
+  RETURN v_role IN ('admin', 'owner', 'researcher', 'counselor');
 EXCEPTION
   WHEN OTHERS THEN
     RETURN FALSE;
@@ -156,7 +156,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Trigger function to prevent non-owners from changing user roles
-DROP FUNCTION IF EXISTS public.prevent_role_change_by_non_owner();
+DROP FUNCTION IF EXISTS public.prevent_role_change_by_non_owner() CASCADE;
 CREATE OR REPLACE FUNCTION public.prevent_role_change_by_non_owner()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -180,7 +180,7 @@ EXECUTE FUNCTION public.prevent_role_change_by_non_owner();
 
 -- handle_new_user function (creates user profile when new user registers)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-DROP FUNCTION IF EXISTS public.handle_new_user();
+DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
 
 CREATE OR REPLACE FUNCTION public.handle_new_user() 
 RETURNS TRIGGER AS $$
@@ -198,7 +198,7 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
 -- update_updated_at function (auto-updates updated_at column)
 DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON public.user_profiles;
 DROP TRIGGER IF EXISTS update_journal_entries_updated_at ON public.journal_entries;
-DROP FUNCTION IF EXISTS public.update_updated_at();
+DROP FUNCTION IF EXISTS public.update_updated_at() CASCADE;
 
 CREATE OR REPLACE FUNCTION public.update_updated_at() 
 RETURNS TRIGGER AS $$

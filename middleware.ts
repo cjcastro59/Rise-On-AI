@@ -62,21 +62,21 @@ export async function middleware(request: NextRequest) {
 
     // If user is trying to access login/register, redirect based on role
     if (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/register") {
-      if (profile && ["admin", "owner", "researcher"].includes(profile.role)) {
+      if (profile && ["admin", "owner", "researcher", "counselor"].includes(profile.role)) {
         return NextResponse.redirect(new URL("/admin/dashboard", request.url));
       }
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
-    // If user is trying to access regular dashboard but is admin/owner/researcher, redirect to admin dashboard
-    if (request.nextUrl.pathname === "/dashboard" && profile && ["admin", "owner", "researcher"].includes(profile.role)) {
+    // If user is trying to access regular dashboard but is admin/owner/researcher/counselor, redirect to admin dashboard
+    if (request.nextUrl.pathname === "/dashboard" && profile && ["admin", "owner", "researcher", "counselor"].includes(profile.role)) {
       return NextResponse.redirect(new URL("/admin/dashboard", request.url));
     }
 
     // Check if user is trying to access admin routes
     if (request.nextUrl.pathname.startsWith("/admin")) {
-      // If not admin/owner/researcher, redirect to regular dashboard
-      if (!profile || !["admin", "owner", "researcher"].includes(profile.role)) {
+      // If not admin/owner/researcher/counselor, redirect to regular dashboard
+      if (!profile || !["admin", "owner", "researcher", "counselor"].includes(profile.role)) {
         return NextResponse.redirect(new URL("/dashboard", request.url));
       }
     }

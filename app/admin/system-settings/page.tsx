@@ -86,6 +86,15 @@ export default function AdminSystemSettingsPage() {
                   <td><span className="text-primary-blue">Limited</span></td>
                 </tr>
                 <tr>
+                  <td><span className="badge-warning">Counselor</span></td>
+                  <td><span className="text-success-green">✅</span></td>
+                  <td><span className="text-primary-blue">RAI-Only</span></td>
+                  <td><span className="text-primary-blue">Aggregated</span></td>
+                  <td><span className="text-success-green">✅</span></td>
+                  <td><span className="text-error-red">❌</span></td>
+                  <td><span className="text-primary-blue">Limited</span></td>
+                </tr>
+                <tr>
                   <td><span className="badge-warning">Researcher</span></td>
                   <td><span className="text-success-green">✅</span></td>
                   <td><span className="text-error-red">❌</span></td>
