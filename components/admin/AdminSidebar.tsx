@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export default function AdminSidebar() {
   const pathname = usePathname();
@@ -118,7 +119,7 @@ export default function AdminSidebar() {
       </div>
 
       <div className="mt-auto">
-        <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+        <div className="p-4 bg-white/5 rounded-xl border border-white/10 mb-3">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full flex items-center justify-center text-[#1E293B] font-bold font-poppins">
               Ad
@@ -129,6 +130,12 @@ export default function AdminSidebar() {
             </div>
           </div>
         </div>
+        <form action="/api/auth/signout" method="post">
+          <Button variant="secondary" className="w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
+            <span className="text-xl">🚪</span>
+            Log Out
+          </Button>
+        </form>
       </div>
     </aside>
   );

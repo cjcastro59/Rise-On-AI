@@ -175,15 +175,16 @@ export default function AIAnalysisPage() {
           </Card>
 
           {/* Emotional Complexity Score */}
-          <Card className="p-6 text-center">
-            <h3 className="text-xs font-poppins uppercase tracking-wider text-[#4F4F4F]/60 mb-6">
+          <Card className="p-8 text-center">
+            <h3 className="text-sm font-poppins uppercase tracking-wider text-[#4F4F4F]/60 mb-8 flex items-center gap-2 justify-center">
+              <span>🧠</span>
               Emotional Complexity Score
             </h3>
-            <div className="relative w-32 h-32 mx-auto mb-4">
+            <div className="relative w-48 h-48 mx-auto mb-8">
               {/* Progress Circle */}
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="45" fill="none" stroke="#F5F5F5" strokeWidth="6" />
-                <circle cx="50" cy="50" r="45" fill="none" stroke="url(#gradient)" strokeWidth="6" strokeDasharray="283" strokeDashoffset="74" strokeLinecap="round" />
+                <circle cx="50" cy="50" r="45" fill="none" stroke="#F5F5F5" strokeWidth="10" />
+                <circle cx="50" cy="50" r="45" fill="none" stroke="url(#gradient)" strokeWidth="10" strokeDasharray="283" strokeDashoffset="74" strokeLinecap="round" />
                 <defs>
                   <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stopColor="#A8DADC" />
@@ -192,23 +193,28 @@ export default function AIAnalysisPage() {
                 </defs>
               </svg>
               <div className="absolute inset-0 flex items-center justify-center flex-col">
-                <span className="text-3xl font-dm-serif text-[#4F4F4F]">7.4</span>
-                <span className="text-xs font-inter text-[#4F4F4F]/60">out of 10</span>
+                <span className="text-5xl font-dm-serif text-[#4F4F4F]">7.4</span>
+                <span className="text-base font-inter text-[#A8DADC]">out of 10</span>
               </div>
             </div>
-            <p className="text-xs font-inter text-[#4F4F4F]/70">Emotional Wellness Score</p>
+            <p className="text-base font-inter text-[#4F4F4F]/70">Emotional Wellness Score</p>
           </Card>
         </div>
       </div>
 
       {/* Bottom Actions */}
-      <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-        <Button className="flex-1 max-w-xs">
-          View Mood Trends →
-        </Button>
-        <Button variant="secondary" className="flex-1 max-w-xs">
-          Save & Return
-        </Button>
+      <div className="mt-8 flex flex-col items-center gap-4">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-3xl">
+          <button className="flex-1 max-w-xs py-4 rounded-full bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] text-[#4F4F4F] font-poppins font-medium text-base transition-opacity hover:opacity-90">
+            View Mood Trends →
+          </button>
+          <button className="flex-1 max-w-xs py-4 rounded-full border border-[#A8DADC] text-[#4F4F4F] font-poppins font-medium text-base bg-white transition-colors hover:bg-[#F5F5F5]">
+            Save & Return
+          </button>
+        </div>
+        <p className="text-[#F4A6A6] font-inter text-sm mt-2 flex items-center gap-2">
+          Feeling distressed? <span className="text-[#F4A6A6] font-semibold">🆘 Get immediate support</span>
+        </p>
       </div>
     </>
   );
