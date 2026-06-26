@@ -8,18 +8,22 @@ import { Card } from "@/components/ui/card";
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState({
-    firstName: "Juan",
-    lastName: "dela Cruz",
-    email: "juan@example.com",
-    username: "juandelacruz",
+    firstName: "CJ",
+    lastName: "Castro",
+    email: "cjcastro@gmail.com",
+    username: "cjcastro",
     bio: "Psychology student passionate about mental health awareness. Using journaling to grow every day.",
-    age: 21,
+    age: 22,
     gender: "Male",
     country: "Philippines",
-    university: "University of the Philippines",
-    course: "BS Psychology",
-    yearLevel: "3rd Year",
-    studentId: "2021-12345",
+    moodBaseline: "Calm",
+    goals: ["Reduce stress", "Improve mood"],
+    language: "English",
+    moodReminderEnabled: true,
+    moodReminderTime: "09:00",
+    emergencyContactName: "Maria Castro",
+    emergencyContactPhone: "+63 917 123 4567",
+    emergencyContactRelation: "Mother",
     joinDate: "January 2026",
     totalEntries: 47,
     streak: 12,
@@ -41,9 +45,6 @@ export default function ProfilePage() {
               </h1>
               <p className="text-sm text-dark-text/60 font-poppins">
                 @{profile.username} • {profile.country}
-              </p>
-              <p className="text-xs text-dark-text/50 font-poppins mt-1">
-                {profile.university} • {profile.yearLevel} • {profile.course}
               </p>
               <div className="flex gap-4 mt-2">
                 <span className="px-3 py-1 bg-success-green/20 rounded-full text-xs font-poppins text-success-dark">
@@ -76,8 +77,8 @@ export default function ProfilePage() {
         </div>
       </div>
 
+      {/* Personal Information */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Personal Info Card */}
         <Card className="p-6">
           <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
             <span>👤</span>
@@ -151,93 +152,79 @@ export default function ProfilePage() {
           </div>
         </Card>
 
-        {/* Academic Info Card */}
+        {/* Mood Preferences */}
         <Card className="p-6">
           <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
-            <span>🎓</span>
-            Academic Information
+            <span>⏰</span>
+            Mood Preferences
           </h3>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">University / School</label>
+              <label className="text-xs font-poppins text-dark-text/60">Enable Mood Reminders</label>
               {isEditing ? (
-                <input
-                  type="text"
-                  value={profile.university}
-                  onChange={(e) => setProfile({ ...profile, university: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
-                />
-              ) : (
-                <div className="px-3 py-2 bg-light-gray/50 rounded-lg text-sm font-inter text-dark-text">
-                  {profile.university}
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={profile.moodReminderEnabled}
+                    onChange={(e) => setProfile({ ...profile, moodReminderEnabled: e.target.checked })}
+                    className="w-5 h-5 accent-primary-blue"
+                  />
+                  <span className="text-sm font-inter text-dark-text">
+                    {profile.moodReminderEnabled ? "Enabled" : "Disabled"}
+                  </span>
                 </div>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Program / Course</label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={profile.course}
-                  onChange={(e) => setProfile({ ...profile, course: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
-                />
               ) : (
-                <div className="px-3 py-2 bg-light-gray/50 rounded-lg text-sm font-inter text-dark-text">
-                  {profile.course}
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">Year Level</label>
-                {isEditing ? (
-                  <select
-                    value={profile.yearLevel}
-                    onChange={(e) => setProfile({ ...profile, yearLevel: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
-                  >
-                    <option value="1st Year">1st Year</option>
-                    <option value="2nd Year">2nd Year</option>
-                    <option value="3rd Year">3rd Year</option>
-                    <option value="4th Year">4th Year</option>
-                    <option value="Graduate">Graduate</option>
-                  </select>
-                ) : (
-                  <div className="px-3 py-2 bg-light-gray/50 rounded-lg text-sm font-inter text-dark-text">
-                    {profile.yearLevel}
+                <div className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded ${profile.moodReminderEnabled ? "bg-primary-blue" : "bg-light-gray"} flex items-center justify-center text-white`}>
+                    {profile.moodReminderEnabled && "✓"}
                   </div>
-                )}
-              </div>
+                  <span className="text-sm font-inter text-dark-text">
+                    {profile.moodReminderEnabled ? "Enabled" : "Disabled"}
+                  </span>
+                </div>
+              )}
+            </div>
+            {profile.moodReminderEnabled && (
               <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">Student ID</label>
+                <label className="text-xs font-poppins text-dark-text/60">Reminder Time</label>
                 {isEditing ? (
                   <input
-                    type="text"
-                    value={profile.studentId}
-                    onChange={(e) => setProfile({ ...profile, studentId: e.target.value })}
+                    type="time"
+                    value={profile.moodReminderTime}
+                    onChange={(e) => setProfile({ ...profile, moodReminderTime: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
                   />
                 ) : (
                   <div className="px-3 py-2 bg-light-gray/50 rounded-lg text-sm font-inter text-dark-text">
-                    {profile.studentId}
+                    {profile.moodReminderTime}
                   </div>
                 )}
               </div>
-            </div>
-
-            {isEditing && (
-              <div className="flex justify-end">
-                <Button>Update Academic Info</Button>
-              </div>
             )}
+            <div className="space-y-1">
+              <label className="text-xs font-poppins text-dark-text/60">Current Mood Baseline</label>
+              {isEditing ? (
+                <select
+                  value={profile.moodBaseline}
+                  onChange={(e) => setProfile({ ...profile, moodBaseline: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
+                >
+                  <option value="Happy">Happy</option>
+                  <option value="Calm">Calm</option>
+                  <option value="Anxious">Anxious</option>
+                  <option value="Sad">Sad</option>
+                </select>
+              ) : (
+                <div className="px-3 py-2 bg-light-gray/50 rounded-lg text-sm font-inter text-dark-text">
+                  {profile.moodBaseline}
+                </div>
+              )}
+            </div>
           </div>
         </Card>
       </div>
 
-      {/* Stats Overview */}
+      {/* My Wellness Journey */}
       <Card className="p-6">
         <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
           <span>📊</span>
@@ -259,6 +246,129 @@ export default function ProfilePage() {
           <div className="bg-lavender/30 p-4 rounded-xl text-center">
             <div className="text-2xl font-dm-serif text-dark-text">{profile.joinDate}</div>
             <div className="text-xs font-poppins text-dark-text/60 uppercase">Member Since</div>
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Wellness Goals */}
+        <Card className="p-6">
+          <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
+            <span>🎯</span>
+            Wellness Goals
+          </h3>
+          <div className="space-y-3">
+            {[
+              "Reduce stress",
+              "Improve mood",
+              "Build gratitude",
+              "Track emotions",
+              "Better sleep",
+              "Self-reflection",
+            ].map((goal) => (
+              <div
+                key={goal}
+                className={`flex items-center gap-3 p-3 rounded-lg ${
+                  profile.goals.includes(goal)
+                    ? "bg-primary-blue/10 border border-primary-blue/30"
+                    : "bg-light-gray/50 opacity-60"
+                }`}
+              >
+                <div className={`w-5 h-5 rounded flex items-center justify-center ${
+                  profile.goals.includes(goal)
+                    ? "bg-primary-blue text-white"
+                    : "bg-light-gray"
+                }`}>
+                  {profile.goals.includes(goal) && "✓"}
+                </div>
+                <span className="text-sm font-inter text-dark-text">{goal}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Recent Activity */}
+        <Card className="p-6">
+          <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
+            <span>📝</span>
+            Recent Activity
+          </h3>
+          <div className="space-y-3">
+            {[
+              { title: "Morning Journal", date: "Today", mood: "😊 Positive" },
+              { title: "Evening Reflection", date: "Yesterday", mood: "😌 Calm" },
+              { title: "Weekly Check-in", date: "3 days ago", mood: "😐 Neutral" },
+            ].map((activity, index) => (
+              <div key={index} className="flex items-center justify-between p-3 bg-light-gray/30 rounded-lg">
+                <div className="space-y-1">
+                  <p className="text-sm font-inter text-dark-text">{activity.title}</p>
+                  <p className="text-xs font-poppins text-dark-text/60">{activity.date}</p>
+                </div>
+                <span className="text-sm font-poppins">{activity.mood}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Emergency Support */}
+      <Card className="p-6 bg-red-50 border-2 border-red-100">
+        <h3 className="text-xs font-poppins uppercase tracking-wider text-red-800/80 mb-4 flex items-center gap-2">
+          <span>🚨</span>
+          Emergency Support
+        </h3>
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-poppins text-red-800/60">Contact Name</label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={profile.emergencyContactName}
+                  onChange={(e) => setProfile({ ...profile, emergencyContactName: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-red-200 focus:outline-none focus:ring-2 focus:ring-red-300 text-sm font-inter"
+                />
+              ) : (
+                <div className="px-3 py-2 bg-white rounded-lg text-sm font-inter text-dark-text">
+                  {profile.emergencyContactName}
+                </div>
+              )}
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-poppins text-red-800/60">Relation</label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={profile.emergencyContactRelation}
+                  onChange={(e) => setProfile({ ...profile, emergencyContactRelation: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-red-200 focus:outline-none focus:ring-2 focus:ring-red-300 text-sm font-inter"
+                />
+              ) : (
+                <div className="px-3 py-2 bg-white rounded-lg text-sm font-inter text-dark-text">
+                  {profile.emergencyContactRelation}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-poppins text-red-800/60">Phone Number</label>
+            {isEditing ? (
+              <input
+                type="tel"
+                value={profile.emergencyContactPhone}
+                onChange={(e) => setProfile({ ...profile, emergencyContactPhone: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg border border-red-200 focus:outline-none focus:ring-2 focus:ring-red-300 text-sm font-inter"
+              />
+            ) : (
+              <div className="px-3 py-2 bg-white rounded-lg text-sm font-inter text-dark-text">
+                {profile.emergencyContactPhone}
+              </div>
+            )}
+          </div>
+          <div className="pt-2">
+            <Button className="w-full bg-red-600 hover:bg-red-700 text-white">
+              📞 Call Emergency Contact
+            </Button>
           </div>
         </div>
       </Card>

@@ -21,7 +21,7 @@ export function LoginForm() {
 
     try {
       const formData = JSON.parse(pendingDataStr);
-      const profileData = {
+      const profileData: any = {
         username: formData.username,
         email: formData.email,
         role: 'user',
@@ -34,6 +34,11 @@ export function LoginForm() {
         mood_baseline: formData.moodBaseline,
         goals: formData.goals,
         language: formData.language,
+        mood_reminder_enabled: formData.moodReminderEnabled,
+        mood_reminder_time: formData.moodReminderTime,
+        emergency_contact_name: formData.emergencyContactName,
+        emergency_contact_phone: formData.emergencyContactPhone,
+        emergency_contact_relation: formData.emergencyContactRelation,
       };
 
       console.log('Applying pending profile data:', profileData);
