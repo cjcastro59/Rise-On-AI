@@ -28,6 +28,13 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   mood_baseline TEXT,
   goals TEXT[],
   language TEXT,
+  -- Mood preferences
+  mood_reminder_enabled BOOLEAN DEFAULT false,
+  mood_reminder_time TIME,
+  -- Emergency support
+  emergency_contact_name TEXT,
+  emergency_contact_phone TEXT,
+  emergency_contact_relation TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

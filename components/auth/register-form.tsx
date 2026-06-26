@@ -30,6 +30,11 @@ interface FormData {
   confirmPassword: string;
   goals: string[];
   language: string;
+  moodReminderEnabled: boolean;
+  moodReminderTime: string;
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+  emergencyContactRelation: string;
 }
 
 interface RegisterFormProps {
@@ -51,6 +56,11 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
     confirmPassword: "",
     goals: [],
     language: "English",
+    moodReminderEnabled: true,
+    moodReminderTime: "09:00",
+    emergencyContactName: "",
+    emergencyContactPhone: "",
+    emergencyContactRelation: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -151,6 +161,11 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
             mood_baseline: formData.moodBaseline,
             goals: formData.goals,
             language: formData.language,
+            mood_reminder_enabled: formData.moodReminderEnabled,
+            mood_reminder_time: formData.moodReminderTime,
+            emergency_contact_name: formData.emergencyContactName,
+            emergency_contact_phone: formData.emergencyContactPhone,
+            emergency_contact_relation: formData.emergencyContactRelation,
         };
 
         console.log('Full profile data:', profileData);
