@@ -35,6 +35,9 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   emergency_contact_name TEXT,
   emergency_contact_phone TEXT,
   emergency_contact_relation TEXT,
+  -- 2FA
+  two_factor_enabled BOOLEAN DEFAULT false,
+  two_factor_secret TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -116,6 +119,9 @@ ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS mood_baseline TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS goals TEXT[];
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS language TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+-- 2FA columns
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT false;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS two_factor_secret TEXT;
 
 -- Ensure role has default value
 ALTER TABLE public.user_profiles ALTER COLUMN role SET DEFAULT 'user';

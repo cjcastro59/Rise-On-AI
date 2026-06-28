@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
 import { Card } from "@/components/ui/card";
@@ -53,23 +55,6 @@ export default function LoginPage() {
           
           <LoginForm />
 
-          <div className="my-8 flex items-center gap-4">
-            <div className="flex-1 h-px bg-light-gray" />
-            <span className="text-xs font-poppins text-dark-text/60">Or sign in with</span>
-            <div className="flex-1 h-px bg-light-gray" />
-          </div>
-
-          <button className="w-full py-3 border border-light-gray bg-light-gray rounded-xl flex items-center justify-center gap-2 text-sm font-poppins text-dark-text hover:opacity-90 mb-4">
-            <span className="text-xl">🔵</span>
-            Log in with Google
-          </button>
-          
-          <div className="flex items-center justify-between">
-            <Link href="#" className="text-xs font-poppins text-dark-text/60 hover:text-primary-blue">
-              Forgot password?
-            </Link>
-          </div>
-
           <p className="mt-4 text-center text-sm font-inter text-dark-text/80">
             Don't have an account?{" "}
             <Link href="/register" className="font-poppins font-semibold text-lavender hover:text-lavender/80">
@@ -77,10 +62,10 @@ export default function LoginPage() {
             </Link>
           </p>
           
-          <div className="mt-6 bg-error-red/10 border border-error-red/30 rounded-xl p-4 flex items-center gap-2">
+          <Link href="/support" className="mt-6 block bg-error-red/10 border border-error-red/30 rounded-xl p-4 flex items-center gap-2 hover:bg-error-red/20 transition">
             <span className="text-base">🆘</span>
             <p className="text-xs font-inter text-error-red">Need immediate help? Reach out.</p>
-          </div>
+          </Link>
         </div>
       </div>
     </div>

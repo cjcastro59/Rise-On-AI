@@ -16,6 +16,8 @@ export interface Database {
           email: string | null;
           role: string;
           created_at: string;
+          two_factor_enabled: boolean;
+          two_factor_secret: string | null;
         };
         Insert: {
           id: string;
@@ -23,6 +25,8 @@ export interface Database {
           email?: string | null;
           role?: string;
           created_at?: string;
+          two_factor_enabled?: boolean;
+          two_factor_secret?: string | null;
         };
         Update: {
           id?: string;
@@ -30,6 +34,8 @@ export interface Database {
           email?: string | null;
           role?: string;
           created_at?: string;
+          two_factor_enabled?: boolean;
+          two_factor_secret?: string | null;
         };
       };
     };
