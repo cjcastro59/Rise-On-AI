@@ -22,19 +22,10 @@ interface FormData {
   lastName: string;
   username: string;
   email: string;
-  age: string;
-  gender: string;
-  country: string;
-  moodBaseline: string;
   password: string;
   confirmPassword: string;
   goals: string[];
   language: string;
-  moodReminderEnabled: boolean;
-  moodReminderTime: string;
-  emergencyContactName: string;
-  emergencyContactPhone: string;
-  emergencyContactRelation: string;
 }
 
 interface RegisterFormProps {
@@ -48,19 +39,10 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
     lastName: "",
     username: "",
     email: "",
-    age: "",
-    gender: "",
-    country: "",
-    moodBaseline: "",
     password: "",
     confirmPassword: "",
     goals: [],
     language: "English",
-    moodReminderEnabled: true,
-    moodReminderTime: "09:00",
-    emergencyContactName: "",
-    emergencyContactPhone: "",
-    emergencyContactRelation: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -86,7 +68,7 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
   const doPasswordsMatch = formData.password === formData.confirmPassword && formData.confirmPassword.length > 0;
 
   const validateStep1 = () => {
-    if (!formData.firstName || !formData.lastName || !formData.username || !formData.email || !formData.age || !formData.gender || !formData.country || !formData.moodBaseline) {
+    if (!formData.firstName || !formData.lastName || !formData.username || !formData.email) {
       setError("Please fill out all fields.");
       return false;
     }
@@ -155,17 +137,10 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
             full_name: `${formData.firstName} ${formData.lastName}`,
             first_name: formData.firstName,
             last_name: formData.lastName,
-            age: parseInt(formData.age),
-            gender: formData.gender,
-            country: formData.country,
-            mood_baseline: formData.moodBaseline,
             goals: formData.goals,
             language: formData.language,
-            mood_reminder_enabled: formData.moodReminderEnabled,
-            mood_reminder_time: formData.moodReminderTime,
-            emergency_contact_name: formData.emergencyContactName,
-            emergency_contact_phone: formData.emergencyContactPhone,
-            emergency_contact_relation: formData.emergencyContactRelation,
+            two_factor_enabled: false,
+            two_factor_secret: null,
         };
 
         console.log('Full profile data:', profileData);
@@ -186,8 +161,8 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
         localStorage.removeItem('pendingProfileData');
         console.log('Profile setup complete!');
 
-        // Redirect immediately
-        router.push('/dashboard');
+        // Redirect to 2FA setup
+        router.push('/setup-2fa');
         router.refresh();
       } else if (authData.session) {
         // If user is auto-confirmed (email confirmation off), we should have a user
@@ -257,58 +232,6 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
           required
           placeholder="Email Address"
         />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Input
-            type="number"
-            value={formData.age}
-            onChange={(e) => setFormData(prev => ({ ...prev, age: e.target.value }))}
-            required
-            placeholder="Age"
-          />
-        </div>
-        <div>
-          <select
-            value={formData.gender}
-            onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value }))}
-            className="w-full px-4 py-3 bg-light-gray border border-transparent rounded-lg text-sm font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue"
-          >
-            <option value="">Gender</option>
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <select
-            value={formData.country}
-            onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
-            className="w-full px-4 py-3 bg-light-gray border border-transparent rounded-lg text-sm font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue"
-          >
-            <option value="">Country</option>
-            <option value="philippines">Philippines</option>
-            <option value="usa">USA</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-        <div>
-          <select
-            value={formData.moodBaseline}
-            onChange={(e) => setFormData(prev => ({ ...prev, moodBaseline: e.target.value }))}
-            className="w-full px-4 py-3 bg-light-gray border border-transparent rounded-lg text-sm font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue"
-          >
-            <option value="">Current Mood Baseline</option>
-            <option value="happy">Happy</option>
-            <option value="calm">Calm</option>
-            <option value="anxious">Anxious</option>
-            <option value="sad">Sad</option>
-          </select>
-        </div>
       </div>
 
       <div className="space-y-2">
@@ -384,15 +307,24 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       </div>
 
       <div>
-        <h3 className="text-lg font-poppins font-semibold text-dark-text mb-3">Select your language</h3>
-        <select
-          value={formData.language}
-          onChange={(e) => setFormData(prev => ({ ...prev, language: e.target.value }))}
-          className="w-full px-4 py-3 bg-light-gray border border-transparent rounded-lg text-sm font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue"
-        >
-          <option value="English">English</option>
-          <option value="Taglish">Taglish</option>
-        </select>
+        <h3 className="text-lg font-poppins font-semibold text-dark-text mb-3">Language Preference</h3>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            {["English", "Taglish"].map((lang) => (
+              <div
+                key={lang}
+                onClick={() => setFormData(prev => ({ ...prev, language: lang }))}
+                className={`p-4 rounded-xl border-2 cursor-pointer transition-all text-center ${
+                  formData.language === lang
+                    ? "border-primary-blue bg-primary-blue/10"
+                    : "border-light-gray hover:border-primary-blue/50"
+                }`}
+              >
+                <p className="text-sm font-poppins text-dark-text">{lang}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

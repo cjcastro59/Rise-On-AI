@@ -46,19 +46,39 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/profile") ||
     request.nextUrl.pathname.startsWith("/settings") ||
     request.nextUrl.pathname.startsWith("/support") ||
-    request.nextUrl.pathname.startsWith("/admin"))
+    request.nextUrl.pathname.startsWith("/admin") ||
+    request.nextUrl.pathname.startsWith("/setup-2fa"))
   ) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // If user is signed in, check their role for all protected routes
+  // If user is signed in
   if (user) {
-    // Get user profile to check role
+    // Get user profile to check role and 2FA status
     const { data: profile } = await supabase
       .from("user_profiles")
-      .select("role")
+      .select("role, two_factor_enabled")
       .eq("id", user.id)
       .single();
+
+    // Check if user needs to set up 2FA
+    const needs2FASetup = !profile || profile.two_factor_enabled === false;
+    const isOnSetupPage = request.nextUrl.pathname === "/setup-2fa";
+
+    // Redirect to setup-2fa if needed (and not already there)
+    if (needs2FASetup && !isOnSetupPage && 
+        !request.nextUrl.pathname.startsWith("/login") && 
+        !request.nextUrl.pathname.startsWith("/register")) {
+      return NextResponse.redirect(new URL("/setup-2fa", request.url));
+    }
+
+    // If already on setup-2fa and doesn't need it, redirect to dashboard
+    if (!needs2FASetup && isOnSetupPage) {
+      if (profile && ["admin", "owner", "researcher", "counselor"].includes(profile.role)) {
+        return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+      }
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
 
     // If user is trying to access login/register, redirect based on role
     if (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/register") {
@@ -86,5 +106,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/journal/:path*", "/insights/:path*", "/analysis/:path*", "/profile/:path*", "/settings/:path*", "/support/:path*", "/admin/:path*", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/journal/:path*", "/insights/:path*", "/analysis/:path*", "/profile/:path*", "/settings/:path*", "/support/:path*", "/admin/:path*", "/login", "/register", "/setup-2fa", "/forgot-password", "/reset-password"],
 };

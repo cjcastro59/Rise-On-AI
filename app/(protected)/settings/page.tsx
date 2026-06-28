@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 type SettingSection = "notifications" | "privacy" | "language" | "security" | "data" | "account";
 
@@ -20,6 +23,107 @@ export default function SettingsPage() {
     profileVisibility: "private"
   });
   const [language, setLanguage] = useState("English");
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [showSetup2FA, setShowSetup2FA] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [secret, setSecret] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const { user } = useAuth();
+  const supabase = createClient();
+
+  useEffect(() => {
+    if (user) {
+      check2FAStatus();
+    }
+  }, [user]);
+
+  const check2FAStatus = async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('two_factor_enabled')
+      .eq('id', user.id)
+      .single();
+    if (data) {
+      setTwoFactorEnabled(data.two_factor_enabled);
+    }
+  };
+
+  const startSetup2FA = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const speakeasy = require('speakeasy');
+      const qrcode = require('qrcode');
+      const generatedSecret = speakeasy.generateSecret({
+        name: 'Rise On AI',
+      });
+      const url = await qrcode.toDataURL(generatedSecret.otpauth_url);
+      setSecret(generatedSecret.base32);
+      setQrCodeUrl(url);
+      setShowSetup2FA(true);
+    } catch (err) {
+      setError("Failed to setup 2FA");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyAndEnable2FA = async () => {
+    if (!user) return;
+    try {
+      setLoading(true);
+      setError("");
+      const speakeasy = require('speakeasy');
+      const verified = speakeasy.totp.verify({
+        secret: secret,
+        encoding: 'base32',
+        token: verificationCode
+      });
+
+      if (verified) {
+        await supabase
+          .from('user_profiles')
+          .update({
+            two_factor_enabled: true,
+            two_factor_secret: secret
+          })
+          .eq('id', user.id);
+        setTwoFactorEnabled(true);
+        setShowSetup2FA(false);
+        setSuccess("Two-factor authentication enabled successfully!");
+      } else {
+        setError("Invalid verification code");
+      }
+    } catch (err) {
+      setError("Failed to verify code");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const disable2FA = async () => {
+    if (!user) return;
+    try {
+      setLoading(true);
+      await supabase
+        .from('user_profiles')
+        .update({
+          two_factor_enabled: false,
+          two_factor_secret: null
+        })
+        .eq('id', user.id);
+      setTwoFactorEnabled(false);
+      setSuccess("Two-factor authentication disabled");
+    } catch (err) {
+      setError("Failed to disable 2FA");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const renderSettingsContent = () => {
     switch (activeSection) {
@@ -191,9 +295,58 @@ export default function SettingsPage() {
                 Manage your password and login security.
               </p>
             </div>
+            {error && (
+              <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="text-green-600 text-xs bg-green-100 p-3 rounded-lg font-poppins">
+                {success}
+              </div>
+            )}
             <div className="space-y-3">
               <Button variant="secondary">Change Password</Button>
-              <Button variant="ghost">Enable Two-Factor Authentication</Button>
+              {!twoFactorEnabled ? (
+                <div>
+                  {!showSetup2FA ? (
+                    <Button variant="ghost" onClick={startSetup2FA} disabled={loading}>
+                      {loading ? "Setting up..." : "Enable Two-Factor Authentication"}
+                    </Button>
+                  ) : (
+                    <div className="p-4 bg-light-gray/30 rounded-xl space-y-4">
+                      <h4 className="text-sm font-semibold font-poppins text-dark-text">Scan QR Code</h4>
+                      <p className="text-xs text-dark-text/60 font-inter">
+                        Scan this QR code with Google Authenticator or Authy
+                      </p>
+                      {qrCodeUrl && (
+                        <div className="flex justify-center">
+                          <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
+                        </div>
+                      )}
+                      <div>
+                        <Input
+                          type="text"
+                          placeholder="Enter verification code"
+                          value={verificationCode}
+                          onChange={(e) => setVerificationCode(e.target.value)}
+                          maxLength={6}
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" onClick={() => setShowSetup2FA(false)}>Cancel</Button>
+                        <Button onClick={verifyAndEnable2FA} disabled={loading}>
+                          {loading ? "Verifying..." : "Verify & Enable"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Button variant="ghost" className="text-soft-red" onClick={disable2FA} disabled={loading}>
+                  {loading ? "Disabling..." : "Disable Two-Factor Authentication"}
+                </Button>
+              )}
             </div>
           </div>
         );
