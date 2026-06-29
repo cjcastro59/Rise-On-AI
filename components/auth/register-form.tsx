@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -272,7 +273,10 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       <div className="flex items-start gap-2">
         <input type="checkbox" className="mt-1 accent-primary-blue" required />
         <p className="text-xs font-inter text-dark-text/70">
-          I agree to the Privacy Policy. My mental health data is encrypted and never shared without consent.
+          I agree to the{" "}
+          <Link href="/privacy-policy" className="text-primary-blue font-semibold hover:underline">
+            Privacy Policy
+          </Link>. My mental health data is encrypted and never shared without consent.
         </p>
       </div>
     </div>

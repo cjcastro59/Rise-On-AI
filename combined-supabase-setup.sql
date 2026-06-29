@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
 CREATE TABLE IF NOT EXISTS public.journal_entries (
     id UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    title TEXT,
     content TEXT,
     mood TEXT,
     emotions TEXT[],
@@ -125,6 +126,9 @@ ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS two_factor_secret TEXT
 
 -- Ensure role has default value
 ALTER TABLE public.user_profiles ALTER COLUMN role SET DEFAULT 'user';
+
+-- Add title column to journal_entries if missing
+ALTER TABLE public.journal_entries ADD COLUMN IF NOT EXISTS title TEXT;
 
 -- ------------------------------
 -- 4. Create Functions & Triggers

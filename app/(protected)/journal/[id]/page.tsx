@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
@@ -39,55 +39,28 @@ const prompts = [
   "What did you learn about yourself today?"
 ];
 
-export default function JournalEntryPage() {
+export default function JournalEditorPage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [currentPrompt, setCurrentPrompt] = useState("");
   const [loading, setLoading] = useState(false);
-  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [fetching, setFetching] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const maxWords = 10000;
   const wordCount = content.trim().split(/\s+/).filter(word => word.length > 0).length;
   const { user } = useAuth();
   const router = useRouter();
+  const params = useParams();
   const supabase = createClient();
+  const entryId = params.id as string;
   const editorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setCurrentPrompt(prompts[Math.floor(Math.random() * prompts.length)]);
-  }, []);
-
-  // Auto-save draft to localStorage
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (title || content || selectedMood) {
-        localStorage.setItem("journal_draft", JSON.stringify({
-          title,
-          content,
-          selectedMood,
-          timestamp: Date.now()
-        }));
-        setAutoSaveStatus("saved");
-      }
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [title, content, selectedMood]);
-
-  // Load draft from localStorage on mount
-  useEffect(() => {
-    const savedDraft = localStorage.getItem("journal_draft");
-    if (savedDraft) {
-      const draft = JSON.parse(savedDraft);
-      const now = Date.now();
-      const draftAge = now - draft.timestamp;
-      if (draftAge < 1000 * 60 * 60 * 24) { // Only load if less than 24h old
-        setTitle(draft.title);
-        setContent(draft.content);
-        setSelectedMood(draft.selectedMood);
-      }
-    }
   }, []);
 
   // Close emoji picker when clicking outside
@@ -105,40 +78,85 @@ export default function JournalEntryPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (user && entryId) {
+      fetchEntry();
+    }
+  }, [user, entryId]);
+
+  const fetchEntry = async () => {
+    try {
+      setFetching(true);
+      const { data, error } = await supabase
+        .from("journal_entries")
+        .select("*")
+        .eq("id", entryId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching entry:", error);
+        router.push("/journal/history");
+        return;
+      }
+
+      if (data) {
+        setTitle(data.title || "");
+        setContent(data.content || "");
+        setSelectedMood(data.mood);
+      }
+    } catch (error) {
+      console.error("Error fetching entry:", error);
+    } finally {
+      setFetching(false);
+    }
+  };
+
   const saveEntry = async () => {
     if (!user) return;
     try {
-      setLoading(true);
-      const { data, error } = await supabase
+      setSaving(true);
+      const { error } = await supabase
         .from("journal_entries")
-        .insert({
-          user_id: user.id,
+        .update({
           title: title || null,
           content: content || null,
           mood: selectedMood,
+          updated_at: new Date().toISOString()
         })
-        .select();
+        .eq("id", entryId);
 
       if (error) {
         console.error("Error saving entry:", error);
         return;
       }
 
-      localStorage.removeItem("journal_draft");
       router.push("/journal/history");
     } catch (error) {
       console.error("Error saving entry:", error);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const discardDraft = () => {
-    if (confirm("Discard this draft?")) {
-      localStorage.removeItem("journal_draft");
-      setTitle("");
-      setContent("");
-      setSelectedMood(null);
+  const deleteEntry = async () => {
+    if (!user) return;
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from("journal_entries")
+        .delete()
+        .eq("id", entryId);
+
+      if (error) {
+        console.error("Error deleting entry:", error);
+        return;
+      }
+
+      router.push("/journal/history");
+    } catch (error) {
+      console.error("Error deleting entry:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -151,26 +169,67 @@ export default function JournalEntryPage() {
     setShowEmojiPicker(false);
   };
 
+  if (fetching) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <p className="text-dark-text/70">Loading entry...</p>
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <Link href="/journal/history">
           <Button variant="secondary" size="sm">
-            ← Back to History
+            ← Back
           </Button>
         </Link>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-xs text-dark-text/70">
             <span>{autoSaveStatus === "saving" ? "⏳" : autoSaveStatus === "saved" ? "✅" : "🔵"}</span>
-            <span>{autoSaveStatus === "saving" ? "Saving..." : autoSaveStatus === "saved" ? "Draft saved" : "Auto-save"}</span>
+            <span>{autoSaveStatus === "saving" ? "Saving..." : autoSaveStatus === "saved" ? "Saved" : "Auto-save"}</span>
           </div>
           <div className="flex items-center gap-2 text-xs text-dark-text/70">
             <span>🔒</span>
             <span>Private</span>
           </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="text-error-red border-error-red"
+          >
+            Delete
+          </Button>
+          <Button size="sm" onClick={saveEntry} disabled={saving}>
+            {saving ? "Saving..." : "Save"}
+          </Button>
         </div>
       </div>
+
+      {/* Delete Confirmation */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="p-6 max-w-sm w-full mx-4">
+            <h3 className="text-lg font-poppins text-dark-text mb-2">Delete this entry?</h3>
+            <p className="text-sm font-inter text-dark-text/70 mb-6">This action cannot be undone.</p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={deleteEntry}
+                className="bg-error-red hover:bg-error-red/90"
+                disabled={loading}
+              >
+                {loading ? "Deleting..." : "Delete"}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Date */}
       <div className="text-xs text-dark-text/70 mb-4">
@@ -301,11 +360,11 @@ export default function JournalEntryPage() {
           {wordCount} / {maxWords} words
         </span>
         <div className="flex items-center gap-3">
-          <Button variant="secondary" size="sm" onClick={discardDraft}>
-            Discard Draft
+          <Button variant="secondary" size="sm" onClick={() => router.push("/journal/history")}>
+            Discard Changes
           </Button>
-          <Button size="sm" onClick={saveEntry} disabled={loading}>
-            {loading ? "Saving..." : "Save Entry"}
+          <Button size="sm" onClick={saveEntry} disabled={saving}>
+            {saving ? "Saving..." : "Save Entry"}
           </Button>
         </div>
       </div>
