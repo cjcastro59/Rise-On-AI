@@ -1,4 +1,5 @@
 import Sidebar from "@/components/layout/Sidebar";
+import ProtectedContentWrapper from "@/components/layout/ProtectedContentWrapper";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -26,7 +27,9 @@ export default async function ProtectedLayout({
     <div className="min-h-screen bg-white flex">
       <Sidebar userName={userName} />
       <main className="flex-1 bg-gradient-to-br from-header-bg to-white p-8 overflow-y-auto">
-        {children}
+        <ProtectedContentWrapper userName={userName}>
+          {children}
+        </ProtectedContentWrapper>
       </main>
     </div>
   );

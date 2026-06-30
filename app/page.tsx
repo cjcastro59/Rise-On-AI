@@ -9,9 +9,11 @@ export default function LandingPage() {
       <header className="bg-header-bg">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-r from-primary-blue to-lavender rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">🌻</span>
-            </div>
+            <img
+              src="/logo/Without Text.png"
+              alt="Rise On Logo"
+              className="w-10 h-10 object-contain"
+            />
             <span className="font-poppins font-bold text-dark-text text-xl">Rise On</span>
           </div>
           <nav className="hidden md:flex items-center gap-8">

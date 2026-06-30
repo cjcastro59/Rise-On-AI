@@ -38,11 +38,39 @@ export default function Setup2FAPage() {
       setLoading(true);
 
       // Check if user already has 2FA enabled or already has a secret set
-      const { data: profile } = await supabase
+      let { data: profile, error: fetchError } = await supabase
         .from("user_profiles")
         .select("two_factor_enabled, two_factor_secret")
         .eq("id", user.id)
         .single();
+      
+      // If no profile exists, create one!
+      if (fetchError || !profile) {
+        console.log("Creating new user profile...");
+        const { error: insertError } = await supabase
+          .from("user_profiles")
+          .insert({
+            id: user.id,
+            email: user.email,
+            role: "user",
+            two_factor_enabled: false,
+            two_factor_secret: null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+          
+        if (insertError) {
+          console.error("Error creating profile:", insertError);
+        }
+        
+        // Fetch the new profile
+        const { data: newProfile } = await supabase
+          .from("user_profiles")
+          .select("two_factor_enabled, two_factor_secret")
+          .eq("id", user.id)
+          .single();
+        profile = newProfile;
+      }
 
       if (profile?.two_factor_enabled) {
         router.push("/dashboard");

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card } from "../ui/card";
 
 interface InsightCardProps {
@@ -14,9 +15,9 @@ export function InsightCard({ title, content, icon }: InsightCardProps) {
         <div>
           <h3 className="font-poppins font-semibold text-dark-text mb-2">{title}</h3>
           <p className="font-inter text-dark-text/70 text-sm mb-4">{content}</p>
-          <button className="text-xs font-poppins font-semibold text-primary-blue hover:text-lavender">
+          <Link href="/insights" className="text-xs font-poppins font-semibold text-primary-blue hover:text-lavender">
             View Full Report →
-          </button>
+          </Link>
         </div>
       </div>
     </Card>
