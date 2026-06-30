@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   age INTEGER,
   gender TEXT,
   country TEXT,
+  bio TEXT,
+  avatar_url TEXT,
   mood_baseline TEXT,
   goals TEXT[],
   language TEXT,
@@ -116,6 +118,8 @@ ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS last_name TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS age INTEGER;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS gender TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS country TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS bio TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS mood_baseline TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS goals TEXT[];
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS language TEXT;
@@ -466,8 +470,49 @@ GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
 -- Grant privileges on sequences
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
 
+-- ------------------------------
+-- 9. Storage Buckets for Profile Pictures
+-- ------------------------------
+-- Create storage bucket for avatars if it doesn't exist
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('avatars', 'avatars', TRUE, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+ON CONFLICT (id) DO NOTHING;
+
+-- Allow public access to the avatars bucket
+CREATE POLICY "Public Access"
+  ON storage.objects FOR SELECT
+  USING ( bucket_id = 'avatars' );
+
+-- Allow authenticated users can upload their own avatars
+CREATE POLICY "Users can upload their own avatars"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'avatars' 
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- Allow authenticated users can update their own avatars
+CREATE POLICY "Users can update their own avatars"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'avatars'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- Allow authenticated users can delete their own avatars
+CREATE POLICY "Users can delete their own avatars"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'avatars'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
 -- Set default privileges for future tables
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO authenticated;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO anon;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO anon, authenticated, service_role;
+
+ALTER TABLE user_profiles 
+ADD COLUMN IF NOT EXISTS two_factor_enabled boolean DEFAULT false,
+ADD COLUMN IF NOT EXISTS two_factor_secret text;

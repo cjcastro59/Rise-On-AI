@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Poppins, DM_Serif_Display } from "next/font/google";
+import ClientLayout from "@/components/layout/ClientLayout";
 import "../styles/globals.css";
 
 const inter = Inter({
@@ -35,7 +36,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${poppins.variable} ${dmSerifDisplay.variable} antialiased`}>
-        {children}
+        <ClientLayout>
+          {children}
+        </ClientLayout>
       </body>
     </html>
   );

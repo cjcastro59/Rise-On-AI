@@ -8,6 +8,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { analyzeSentiment, getSentimentFromMood } from "@/lib/sentiment";
+import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 
 type JournalEntry = {
   id: string;
@@ -33,11 +35,11 @@ export default function JournalHistoryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sentimentFilter, setSentimentFilter] = useState("All");
   const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { user } = useAuth();
   const router = useRouter();
   const supabase = createClient();
+  const { openConfirmation } = useConfirmation();
 
   useEffect(() => {
     if (user) {
@@ -70,6 +72,39 @@ export default function JournalHistoryPage() {
     }
   };
 
+  const deleteEntry = (id: string, e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation to entry
+    
+    openConfirmation({
+      title: "Delete Entry",
+      message: "Are you sure you want to delete this entry? This action cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      isDangerous: true,
+      onConfirm: async () => {
+        try {
+          setDeletingId(id);
+          const { error } = await supabase
+            .from("journal_entries")
+            .delete()
+            .eq("id", id);
+
+          if (error) {
+            console.error("Error deleting entry:", error);
+            return;
+          }
+
+          // Update local state to remove the deleted entry
+          setEntries(entries.filter(entry => entry.id !== id));
+        } catch (error) {
+          console.error("Error deleting entry:", error);
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    });
+  };
+
   const applyFilters = () => {
     let result = [...entries];
 
@@ -83,22 +118,27 @@ export default function JournalHistoryPage() {
     }
 
     if (sentimentFilter !== "All") {
-      result = result.filter((entry) => getSentiment(entry.mood) === sentimentFilter);
+      result = result.filter((entry) => getSentiment(entry.mood, entry.content) === sentimentFilter);
     }
 
     setFilteredEntries(result);
   };
 
-  const getSentiment = (mood: string | null): string => {
-    const positiveMoods = ["Happy", "Calm", "Excited"];
-    const negativeMoods = ["Anxious", "Sad", "Frustrated", "Overwhelmed"];
-    if (!mood) return "Neutral";
-    if (positiveMoods.includes(mood)) return "Positive";
-    if (negativeMoods.includes(mood)) return "Negative";
-    return "Neutral";
+  const getSentiment = (mood: string | null, content: string | null): string => {
+    // First check mood if available
+    if (mood) {
+      const moodSentiment = getSentimentFromMood(mood);
+      if (moodSentiment !== "neutral") {
+        return moodSentiment.charAt(0).toUpperCase() + moodSentiment.slice(1);
+      }
+    }
+    
+    // If no mood or mood is neutral, analyze text content
+    const textSentiment = analyzeSentiment(content);
+    return textSentiment.charAt(0).toUpperCase() + textSentiment.slice(1);
   };
 
-  const getMoodEmoji = (mood: string | null) => {
+  const getMoodEmoji = (mood: string | null): string => {
     const moodMap: Record<string, string> = {
       "Happy": "😊",
       "Calm": "😌",
@@ -112,7 +152,7 @@ export default function JournalHistoryPage() {
     return mood ? (moodMap[mood] || "😐") : "😐";
   };
 
-  const getSentimentColor = (sentiment: string) => {
+  const getSentimentColor = (sentiment: string): string => {
     switch (sentiment) {
       case "Positive":
         return "bg-green-100 text-green-800";
@@ -123,18 +163,18 @@ export default function JournalHistoryPage() {
     }
   };
 
-  const getWordCount = (content: string | null) => {
+  const getWordCount = (content: string | null): number => {
     if (!content) return 0;
     return content.trim().split(/\s+/).filter((word) => word.length > 0).length;
   };
 
-  const getExcerpt = (content: string | null) => {
+  const getExcerpt = (content: string | null): string => {
     if (!content) return "";
     const words = content.split(/\s+/).slice(0, 20);
     return words.join(" ") + (content.split(/\s+/).length > 20 ? "..." : "");
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
@@ -167,9 +207,6 @@ export default function JournalHistoryPage() {
   };
 
   const monthGroups = groupEntriesByMonth(filteredEntries);
-  const totalPages = Math.ceil(filteredEntries.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
 
   if (loading) {
     return (
@@ -230,9 +267,9 @@ export default function JournalHistoryPage() {
               {!collapsedMonths.has(group.monthKey) && (
                 <div className="space-y-3 pl-6">
                   {group.entries.map((entry) => (
-                    <Link key={entry.id} href={`/journal/${entry.id}`}>
-                      <Card className="p-6 hover:shadow-md transition-shadow cursor-pointer">
-                        <div className="flex items-start justify-between gap-4">
+                    <Card key={entry.id} className="p-6 hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between gap-4">
+                        <Link href={`/journal/${entry.id}`} className="flex-1 cursor-pointer">
                           <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                               <span className="text-2xl">{getMoodEmoji(entry.mood)}</span>
@@ -243,10 +280,10 @@ export default function JournalHistoryPage() {
                                   </h3>
                                   <span
                                     className={`px-2 py-0.5 rounded-full text-xs font-medium ${getSentimentColor(
-                                      getSentiment(entry.mood)
+                                      getSentiment(entry.mood, entry.content)
                                     )}`}
                                   >
-                                    {getSentiment(entry.mood)}
+                                    {getSentiment(entry.mood, entry.content)}
                                   </span>
                                 </div>
                                 <p className="text-xs font-inter text-dark-text/60">
@@ -258,39 +295,23 @@ export default function JournalHistoryPage() {
                               {getExcerpt(entry.content)}
                             </p>
                           </div>
-                        </div>
-                      </Card>
-                    </Link>
+                        </Link>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={(e) => deleteEntry(entry.id, e)}
+                          disabled={deletingId === entry.id}
+                          className="text-soft-red border-soft-red hover:bg-soft-red/10"
+                        >
+                          {deletingId === entry.id ? "Deleting..." : "Delete"}
+                        </Button>
+                      </div>
+                    </Card>
                   ))}
                 </div>
               )}
             </div>
           ))}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-8">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-              <span className="text-sm font-inter text-dark-text/70">
-                Page {currentPage} of {totalPages}
-              </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </Button>
-            </div>
-          )}
         </div>
       ) : (
         <div className="text-center py-16">

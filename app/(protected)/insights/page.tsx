@@ -1,12 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { analyzeSentiment, getSentimentFromMood } from "@/lib/sentiment";
+
+type JournalEntry = {
+  id: string;
+  content: string | null;
+  mood: string | null;
+  emotions: string[] | null;
+  created_at: string;
+};
 
 export default function MoodInsightsPage() {
   const [timeRange, setTimeRange] = useState("Week");
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const supabase = createClient();
+
+  // Mood options for scoring
+  const moodOptions = [
+    { label: "Happy", icon: "😊", score: 10 },
+    { label: "Calm", icon: "😌", score: 8 },
+    { label: "Excited", icon: "🎉", score: 9 },
+    { label: "Confused", icon: "😕", score: 5 },
+    { label: "Anxious", icon: "😰", score: 3 },
+    { label: "Sad", icon: "😢", score: 2 },
+    { label: "Frustrated", icon: "😤", score: 4 },
+    { label: "Overwhelmed", icon: "😵", score: 1 },
+  ];
 
   const moodColors = {
     "Joy & Hope": "#A8DADC",
@@ -15,20 +42,226 @@ export default function MoodInsightsPage() {
     "Anxiety / Stress": "#F4A6A6"
   };
 
-  const topKeywords = [
-    { word: "hope", color: "#B7E4C7" },
-    { word: "school", color: "#A8DADC" },
-    { word: "grateful", color: "#CDB4DB" },
-    { word: "pagod", color: "#B8E0D2" },
-    { word: "friends", color: "#A8DADC" },
-    { word: "stress", color: "#F4A6A6" },
-    { word: "family", color: "#B7E4C7" },
-    { word: "tired", color: "#CDB4DB" },
-    { word: "kaya ko", color: "#A8DADC" },
-    { word: "rest", color: "#B7E4C7" },
-    { word: "overwhelmed", color: "#CDB4DB" },
-    { word: "growth", color: "#A8DADC" },
-  ];
+  // Fetch entries on mount
+  useEffect(() => {
+    if (user) {
+      fetchEntries();
+    }
+  }, [user]);
+
+  const fetchEntries = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("journal_entries")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching entries:", error);
+        return;
+      }
+
+      setEntries(data || []);
+    } catch (error) {
+      console.error("Error fetching entries:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Calculate streak
+  const calculateStreak = (): number => {
+    if (entries.length === 0) return 0;
+    
+    const sortedDates = entries.map(entry => 
+      new Date(entry.created_at).toDateString()
+    ).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+    
+    const uniqueDates = [...new Set(sortedDates)];
+    let streak = 0;
+    let currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+
+    for (const dateStr of uniqueDates) {
+      const entryDate = new Date(dateStr);
+      entryDate.setHours(0, 0, 0, 0);
+      
+      const dayDiff = Math.floor((currentDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (dayDiff === streak) {
+        streak++;
+      } else if (dayDiff > streak) {
+        break;
+      }
+    }
+    return streak;
+  };
+
+  // Filter entries by time range
+  const getFilteredEntries = (): JournalEntry[] => {
+    const now = new Date();
+    let cutoff = new Date();
+    
+    switch (timeRange) {
+      case "Week":
+        cutoff.setDate(now.getDate() - 7);
+        break;
+      case "Month":
+        cutoff.setMonth(now.getMonth() - 1);
+        break;
+      case "3 Months":
+        cutoff.setMonth(now.getMonth() - 3);
+        break;
+      default:
+        return entries; // All Time
+    }
+    
+    return entries.filter(entry => new Date(entry.created_at) >= cutoff);
+  };
+
+  // Get sentiment of an entry
+  const getEntrySentiment = (entry: JournalEntry): "positive" | "neutral" | "negative" => {
+    let sentiment = analyzeSentiment(entry.content);
+    if (sentiment === "neutral" && entry.mood) {
+      sentiment = getSentimentFromMood(entry.mood);
+    }
+    return sentiment;
+  };
+
+  // Get emotion category for an entry
+  const getEmotionCategory = (entry: JournalEntry): keyof typeof moodColors => {
+    const sentiment = getEntrySentiment(entry);
+    const mood = entry.mood;
+    
+    if (sentiment === "positive") {
+      return "Joy & Hope";
+    } else if (sentiment === "negative") {
+      if (mood === "Anxious" || mood === "Overwhelmed") {
+        return "Anxiety / Stress";
+      }
+      return "Uncertainty";
+    }
+    return "Calm & Neutral";
+  };
+
+  // Calculate statistics
+  const filteredEntries = getFilteredEntries();
+  const totalEntries = filteredEntries.length;
+  
+  // Positive percentage
+  const positiveCount = filteredEntries.filter(entry => getEntrySentiment(entry) === "positive").length;
+  const positivePercentage = totalEntries > 0 ? Math.round((positiveCount / totalEntries) * 100) : 0;
+  
+  // Streak
+  const currentStreak = calculateStreak();
+  
+  // Mood trend (simplified)
+  const now = new Date();
+  const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const lastWeekEntries = entries.filter(entry => new Date(entry.created_at) >= lastWeek);
+  const avgScoreLastWeek = lastWeekEntries.length > 0 
+    ? lastWeekEntries.reduce((sum, entry) => {
+        let score = 5; // default neutral
+        if (entry.mood) {
+          const moodOption = moodOptions.find(m => m.label === entry.mood);
+          if (moodOption) score = moodOption.score;
+        } else {
+          const sentiment = getEntrySentiment(entry);
+          if (sentiment === "positive") score = 8;
+          if (sentiment === "negative") score = 2;
+        }
+        return sum + score;
+      }, 0) / lastWeekEntries.length 
+    : 5;
+  const moodGrowth = Math.round((avgScoreLastWeek - 5) * 10);
+  
+  // Emotion distribution
+  const emotionDistribution: Record<string, number> = {
+    "Joy & Hope": 0,
+    "Calm & Neutral": 0,
+    "Uncertainty": 0,
+    "Anxiety / Stress": 0
+  };
+  
+  filteredEntries.forEach(entry => {
+    const category = getEmotionCategory(entry);
+    emotionDistribution[category]++;
+  });
+
+  // Mood trend data for chart
+  const getMoodTrendData = () => {
+    const data = [];
+    const days = timeRange === "Week" ? 7 : timeRange === "Month" ? 30 : 90;
+    
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+      const nextDate = new Date(date);
+      nextDate.setDate(date.getDate() + 1);
+      
+      const dayEntries = entries.filter(entry => {
+        const entryDate = new Date(entry.created_at);
+        return entryDate >= date && entryDate < nextDate;
+      });
+      
+      let avgScore = 5;
+      if (dayEntries.length > 0) {
+        avgScore = dayEntries.reduce((sum, entry) => {
+          let score = 5;
+          if (entry.mood) {
+            const moodOption = moodOptions.find(m => m.label === entry.mood);
+            if (moodOption) score = moodOption.score;
+          } else {
+            const sentiment = getEntrySentiment(entry);
+            if (sentiment === "positive") score = 8;
+            if (sentiment === "negative") score = 2;
+          }
+          return sum + score;
+        }, 0) / dayEntries.length;
+      }
+      
+      data.push({ date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }), score: avgScore });
+    }
+    return data;
+  };
+
+  const moodTrendData = getMoodTrendData();
+  
+  // Top keywords (simplified)
+  const extractKeywords = () => {
+    const stopWords = ["the", "a", "and", "of", "to", "in", "for", "is", "are", "on", "with", "that", "this"];
+    const wordCount: Record<string, number> = {};
+    
+    filteredEntries.forEach(entry => {
+      if (entry.content) {
+        const words = entry.content.toLowerCase().split(/\W+/).filter(word => word.length > 2 && !stopWords.includes(word));
+        words.forEach(word => {
+          wordCount[word] = (wordCount[word] || 0) + 1;
+        });
+      }
+    });
+    
+    return Object.entries(wordCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12)
+      .map(([word]) => ({
+        word,
+        color: ["#A8DADC", "#CDB4DB", "#B8E0D2", "#B7E4C7", "#F4A6A6"][Math.floor(Math.random() * 5)]
+      }));
+  };
+
+  const topKeywords = extractKeywords();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <p className="text-dark-text/70">Loading your insights...</p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -61,7 +294,7 @@ export default function MoodInsightsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[#4F4F4F]/60 text-xs font-poppins mb-1">Total Entries</p>
-              <p className="text-2xl font-bold text-[#4F4F4F]">47</p>
+              <p className="text-2xl font-bold text-[#4F4F4F]">{totalEntries}</p>
             </div>
             <div className="w-10 h-10 bg-[#A8DADC]/30 rounded-full flex items-center justify-center">
               <span className="text-lg">📝</span>
@@ -72,7 +305,7 @@ export default function MoodInsightsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[#4F4F4F]/60 text-xs font-poppins mb-1">Positive Entries</p>
-              <p className="text-2xl font-bold text-[#4F4F4F]">62%</p>
+              <p className="text-2xl font-bold text-[#4F4F4F]">{positivePercentage}%</p>
             </div>
             <div className="w-10 h-10 bg-[#B7E4C7]/40 rounded-full flex items-center justify-center">
               <span className="text-lg">😊</span>
@@ -83,7 +316,7 @@ export default function MoodInsightsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[#4F4F4F]/60 text-xs font-poppins mb-1">Current Streak</p>
-              <p className="text-2xl font-bold text-[#4F4F4F]">12</p>
+              <p className="text-2xl font-bold text-[#4F4F4F]">{currentStreak}</p>
             </div>
             <div className="w-10 h-10 bg-[#FFE8A1]/40 rounded-full flex items-center justify-center">
               <span className="text-lg">🔥</span>
@@ -94,7 +327,9 @@ export default function MoodInsightsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[#4F4F4F]/60 text-xs font-poppins mb-1">Mood Growth</p>
-              <p className="text-2xl font-bold text-[#4F4F4F]">+18%</p>
+              <p className="text-2xl font-bold text-[#4F4F4F]">
+                {moodGrowth > 0 ? "+" : ""}{moodGrowth}%
+              </p>
             </div>
             <div className="w-10 h-10 bg-[#CDB4DB]/30 rounded-full flex items-center justify-center">
               <span className="text-lg">📈</span>
@@ -110,7 +345,7 @@ export default function MoodInsightsPage() {
           {/* Mood Trajectory Chart */}
           <Card className="p-6">
             <h3 className="text-xs font-poppins uppercase tracking-wider text-[#4F4F4F]/60 mb-6">
-              Mood Trajectory — This Month
+              Mood Trajectory — This {timeRange}
             </h3>
             <div className="relative h-48 w-full">
               {/* Chart Grid Lines */}
@@ -122,43 +357,35 @@ export default function MoodInsightsPage() {
               </div>
               {/* X-Axis Labels */}
               <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[10px] font-inter text-[#4F4F4F]/60 px-2 pb-1">
-                <span>May 1</span>
-                <span>May 7</span>
-                <span>May 14</span>
-                <span>May 21</span>
-                <span>May 28</span>
+                {moodTrendData.slice(0, Math.min(moodTrendData.length, 5)).map((data, i) => (
+                  <span key={i}>{data.date}</span>
+                ))}
               </div>
-              {/* Area Chart */}
-              <svg className="w-full h-full" viewBox="0 0 400 150" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#A8DADC" stopOpacity="0.5" />
-                    <stop offset="100%" stopColor="#CDB4DB" stopOpacity="0.1" />
-                  </linearGradient>
-                </defs>
-                <path d="M0,110 Q50,80 100,90 T200,70 T300,50 T400,40 L400,150 L0,150 Z" fill="url(#areaGradient)" />
-                <path d="M0,110 Q50,80 100,90 T200,70 T300,50 T400,40" fill="none" stroke="#A8DADC" strokeWidth="2.5" strokeLinecap="round" />
-                <path d="M0,115 Q50,90 100,100 T200,80 T300,60 T400,50" fill="none" stroke="#CDB4DB" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="4 3" />
-              </svg>
-              {/* Legend */}
-              <div className="absolute bottom-6 left-2 flex items-center gap-4">
-                <div className="flex items-center gap-1.5 text-[10px] font-inter text-[#4F4F4F]">
-                  <div className="w-3 h-1 bg-[#A8DADC] rounded-full"></div>
-                  <span>Positive</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[10px] font-inter text-[#4F4F4F]/70">
-                  <div className="w-3 h-1 bg-[#CDB4DB] rounded-full"></div>
-                  <span>Negative</span>
-                </div>
+              {/* Simple Bar Chart */}
+              <div className="absolute inset-0 flex items-end justify-around px-4 pb-6">
+                {moodTrendData.slice(0, Math.min(moodTrendData.length, 6)).map((data, i) => (
+                  <div
+                    key={i}
+                    className="w-8 rounded-t-lg transition-all duration-300"
+                    style={{
+                      height: `${(data.score / 10) * 100}%`,
+                      background: data.score > 7
+                        ? "linear-gradient(to top, #10b981, #34d399)"
+                        : data.score > 4
+                        ? "linear-gradient(to top, #8b5cf6, #a78bfa)"
+                        : "linear-gradient(to top, #ef4444, #f87171)"
+                    }}
+                  ></div>
+                ))}
               </div>
             </div>
           </Card>
 
-          {/* Journaling Calendar */}
+          {/* Journaling Calendar (simplified) */}
           <Card className="p-6">
             <h3 className="text-xs font-poppins uppercase tracking-wider text-[#4F4F4F]/60 mb-4 flex items-center gap-2">
               <span>🗓️</span>
-              Journaling Calendar — May 2026
+              Journaling Calendar — {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </h3>
             <div className="mb-4 grid grid-cols-7 gap-1">
               {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
@@ -169,20 +396,39 @@ export default function MoodInsightsPage() {
             </div>
             <div className="grid grid-cols-7 gap-1">
               {Array.from({ length: 35 }).map((_, i) => {
-                let date = i - 3;
-                let color;
-                if (date < 1 || date > 31) {
-                  color = "bg-transparent";
-                } else if ([1, 2, 5, 8, 9, 12, 13, 17, 18, 22, 23, 24, 25, 27, 28].includes(date)) {
-                  color = "bg-[#A8DADC]";
-                } else if ([3, 10, 19, 20, 26].includes(date)) {
-                  color = "bg-[#CDB4DB]";
-                } else if ([11].includes(date)) {
-                  color = "bg-[#F4A6A6]";
-                } else if ([4, 7, 14, 15, 16, 21, 29, 30, 31].includes(date)) {
-                  color = "bg-[#F5F5F5]";
-                } else {
-                  color = "bg-white border border-[#F5F5F5]";
+                const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getDay();
+                let date = i - firstDayOfMonth + 1;
+                let color = "bg-white border border-[#F5F5F5]";
+                
+                // Check if this date has an entry
+                const currentYear = new Date().getFullYear();
+                const currentMonth = new Date().getMonth();
+                const entryDate = new Date(currentYear, currentMonth, date);
+                
+                const hasEntry = entries.some(entry => {
+                  const eDate = new Date(entry.created_at);
+                  return eDate.toDateString() === entryDate.toDateString();
+                });
+                
+                if (date < 1 || date > new Date(currentYear, currentMonth + 1, 0).getDate()) {
+                  color = "bg-transparent border-none";
+                } else if (hasEntry) {
+                  // Get sentiment for that day
+                  const dayEntries = entries.filter(entry => {
+                    const eDate = new Date(entry.created_at);
+                    return eDate.toDateString() === entryDate.toDateString();
+                  });
+                  
+                  if (dayEntries.length > 0) {
+                    const sentiment = getEntrySentiment(dayEntries[0]);
+                    if (sentiment === "positive") {
+                      color = "bg-[#A8DADC]";
+                    } else if (sentiment === "negative") {
+                      color = "bg-[#F4A6A6]";
+                    } else {
+                      color = "bg-[#CDB4DB]";
+                    }
+                  }
                 }
                 
                 return (
@@ -190,17 +436,10 @@ export default function MoodInsightsPage() {
                     key={i}
                     className={`aspect-square rounded-sm flex items-center justify-center text-[10px] font-inter text-[#4F4F4F] ${color}`}
                   >
-                    {date >= 1 && date <= 31 ? date : ""}
+                    {date >= 1 && date <= new Date(currentYear, currentMonth + 1, 0).getDate() ? date : ""}
                   </div>
                 );
               })}
-            </div>
-            <div className="mt-4 flex items-center gap-3 text-[10px] font-inter text-[#4F4F4F]/60">
-              <span>Less</span>
-              <div className="w-3 h-3 bg-[#CDB4DB] rounded-sm"></div>
-              <div className="w-3 h-3 bg-[#A8DADC] rounded-sm"></div>
-              <div className="w-3 h-3 bg-[#B8E0D2] rounded-sm"></div>
-              <span>More positive</span>
             </div>
           </Card>
         </div>
@@ -217,35 +456,26 @@ export default function MoodInsightsPage() {
               {/* Pie Chart */}
               <div className="relative w-32 h-32">
                 <svg className="w-full h-full" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" fill="none" stroke={moodColors["Joy & Hope"]} strokeWidth="12" strokeDasharray="201 251" transform="rotate(-90 50 50)" />
-                  <circle cx="50" cy="50" r="40" fill="none" stroke={moodColors["Calm & Neutral"]} strokeWidth="12" strokeDasharray="63 251" strokeDashoffset="-201" transform="rotate(-90 50 50)" />
-                  <circle cx="50" cy="50" r="40" fill="none" stroke={moodColors["Uncertainty"]} strokeWidth="12" strokeDasharray="50 251" strokeDashoffset="-264" transform="rotate(-90 50 50)" />
-                  <circle cx="50" cy="50" r="40" fill="none" stroke={moodColors["Anxiety / Stress"]} strokeWidth="12" strokeDasharray="38 251" strokeDashoffset="-314" transform="rotate(-90 50 50)" />
                   <circle cx="50" cy="50" r="25" fill="white" />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
-                    <p className="text-xl font-dm-serif text-[#4F4F4F]">62%</p>
+                    <p className="text-xl font-dm-serif text-[#4F4F4F]">{positivePercentage}%</p>
                     <p className="text-[10px] font-inter text-[#4F4F4F]/60">Positive</p>
                   </div>
                 </div>
               </div>
               {/* Legend */}
               <div className="flex-1 space-y-2">
-                {Object.entries(moodColors).map(([label, color], i) => {
-                  let percentage;
-                  if (i === 0) percentage = "62%";
-                  else if (i === 1) percentage = "18%";
-                  else if (i === 2) percentage = "14%";
-                  else percentage = "8%";
-
+                {Object.entries(emotionDistribution).map(([label, count]) => {
+                  const percentage = totalEntries > 0 ? Math.round((count / totalEntries) * 100) : 0;
                   return (
                     <div key={label} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }}></div>
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: moodColors[label as keyof typeof moodColors] }}></div>
                         <span className="text-xs font-inter text-[#4F4F4F]">{label}</span>
                       </div>
-                      <span className="text-xs font-poppins text-[#4F4F4F]/70">{percentage}</span>
+                      <span className="text-xs font-poppins text-[#4F4F4F]/70">{percentage}%</span>
                     </div>
                   );
                 })}
@@ -281,19 +511,23 @@ export default function MoodInsightsPage() {
                 <div>
                   <div className="flex justify-between text-xs font-inter text-[#4F4F4F] mb-1">
                     <span>Positivity trend</span>
-                    <span className="text-[#A8DADC]">↑ Growing</span>
+                    <span className={positivePercentage >= 50 ? "text-[#A8DADC]" : "text-[#F4A6A6]"}>
+                      {positivePercentage >= 50 ? "↑ Growing" : "↓ Decreasing"}
+                    </span>
                   </div>
                   <div className="h-2 bg-[#F5F5F5] rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-[#A8DADC] to-[#B7E4C7] rounded-full" style={{ width: "78%" }}></div>
+                    <div className="h-full bg-gradient-to-r from-[#A8DADC] to-[#B7E4C7] rounded-full" style={{ width: `${positivePercentage}%` }}></div>
                   </div>
                 </div>
                 <div>
                   <div className="flex justify-between text-xs font-inter text-[#4F4F4F] mb-1">
                     <span>Stress levels</span>
-                    <span className="text-[#F4A6A6]">↓ Decreasing</span>
+                    <span className="text-[#F4A6A6]">
+                      {positivePercentage >= 50 ? "↓ Decreasing" : "↑ Increasing"}
+                    </span>
                   </div>
                   <div className="h-2 bg-[#F5F5F5] rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-[#F4A6A6] to-[#FFE8A1] rounded-full" style={{ width: "35%" }}></div>
+                    <div className="h-full bg-gradient-to-r from-[#F4A6A6] to-[#FFE8A1] rounded-full" style={{ width: `${100 - positivePercentage}%` }}></div>
                   </div>
                 </div>
               </div>

@@ -1,15 +1,36 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface SidebarProps {
   userName: string;
 }
 
 export default function Sidebar({ userName }: SidebarProps) {
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const pathname = usePathname();
+  const { user } = useAuth();
+  const supabase = createClient();
+  
+  useEffect(() => {
+    if (user) {
+      supabase
+        .from("user_profiles")
+        .select("avatar_url")
+        .eq("id", user.id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            setAvatarUrl(data.avatar_url);
+          }
+        });
+    }
+  }, [user, supabase]);
 
   const isActive = (page: "dashboard" | "journal" | "history" | "insights" | "analysis" | "profile" | "settings" | "support") => {
     switch (page) {
@@ -37,9 +58,11 @@ export default function Sidebar({ userName }: SidebarProps) {
   return (
     <aside className="w-64 bg-white border-r border-light-gray p-6 hidden md:block">
       <div className="flex items-center gap-2 mb-10">
-        <div className="w-10 h-10 bg-gradient-to-r from-primary-blue to-lavender rounded-lg flex items-center justify-center">
-          <span className="text-white text-xl">🌻</span>
-        </div>
+        <img
+          src="/logo/Without Text.png"
+          alt="Rise On Logo"
+          className="w-10 h-10 object-contain"
+        />
         <span className="font-poppins font-bold text-dark-text text-xl">Rise On</span>
       </div>
 
@@ -121,7 +144,11 @@ export default function Sidebar({ userName }: SidebarProps) {
               : "text-dark-text hover:bg-light-gray"
           }`}
         >
-          <span className="text-xl">👤</span>
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Profile" className="w-8 h-8 rounded-full object-cover" />
+          ) : (
+            <span className="text-xl">👤</span>
+          )}
           Profile
         </Link>
       </div>
