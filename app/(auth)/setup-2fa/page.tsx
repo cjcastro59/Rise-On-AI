@@ -43,7 +43,7 @@ export default function Setup2FAPage() {
         .select("two_factor_enabled, two_factor_secret")
         .eq("id", user.id)
         .single();
-      
+
       // If no profile exists, create one!
       if (fetchError || !profile) {
         console.log("Creating new user profile...");
@@ -58,11 +58,11 @@ export default function Setup2FAPage() {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });
-          
+
         if (insertError) {
           console.error("Error creating profile:", insertError);
         }
-        
+
         // Fetch the new profile
         const { data: newProfile } = await supabase
           .from("user_profiles")
@@ -78,11 +78,11 @@ export default function Setup2FAPage() {
       }
 
       let currentSecret = profile?.two_factor_secret;
-      
+
       // If no secret exists yet, generate and save one!
       if (!currentSecret) {
         currentSecret = authenticator.generateSecret();
-        
+
         // Save the secret to the database right away!
         const { error: saveError } = await supabase
           .from("user_profiles")
@@ -90,12 +90,12 @@ export default function Setup2FAPage() {
             two_factor_secret: currentSecret
           })
           .eq("id", user.id);
-          
+
         if (saveError) {
           console.error("Error saving secret:", saveError);
         }
       }
-      
+
       // Generate QR code URL — first param empty so it just says "Rise On AI"
       const newOtpAuthUrl = authenticator.keyuri("", "Rise On AI", currentSecret);
       setSecret(currentSecret);
@@ -113,27 +113,27 @@ export default function Setup2FAPage() {
     try {
       setLoading(true);
       setError("");
-      
+
       // First get the saved secret from the database to make sure!
       const { data: profile } = await supabase
         .from("user_profiles")
         .select("two_factor_secret")
         .eq("id", user.id)
         .single();
-        
+
       console.log("📝 Profile from DB:", profile);
       console.log("🔑 Secret being used:", profile?.two_factor_secret);
       console.log("🔢 Verification code entered:", verificationCode);
-      
+
       if (!profile?.two_factor_secret) {
         setError("Secret not found, please refresh the page!");
         return;
       }
-      
+
       const verified = authenticator.verify({
         secret: profile.two_factor_secret,
         token: verificationCode,
-        window: 2
+        window: 2 as any,
       });
 
       console.log("✅ Verification result:", verified);
@@ -146,7 +146,7 @@ export default function Setup2FAPage() {
             two_factor_enabled: true
           })
           .eq("id", user.id);
-        
+
         setStep(2);
         setSuccess("Two-Factor Authentication set up successfully!");
       } else {
@@ -169,7 +169,7 @@ export default function Setup2FAPage() {
       .select("id")
       .eq("id", user.id)
       .single();
-    
+
     if (!profile) {
       // Create basic profile if it doesn't exist
       await supabase.from("user_profiles").insert({

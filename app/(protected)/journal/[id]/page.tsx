@@ -55,7 +55,7 @@ export default function JournalEditorPage() {
   const { user } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const supabase = createClient();
+  const supabase = createClient() as any;
   const entryId = params.id as string;
   const editorRef = useRef<HTMLDivElement>(null);
 
@@ -221,7 +221,7 @@ export default function JournalEditorPage() {
               </Button>
               <Button
                 onClick={deleteEntry}
-                className="bg-error-red hover:bg-error-red/90"
+                className="bg-error-red text-dark-text hover:bg-error-red/90"
                 disabled={loading}
               >
                 {loading ? "Deleting..." : "Delete"}
@@ -255,11 +255,10 @@ export default function JournalEditorPage() {
             <button
               key={mood.label}
               onClick={() => setSelectedMood(selectedMood === mood.label ? null : mood.label)}
-              className={`px-3 py-1.5 rounded-full text-xs font-poppins flex items-center gap-1.5 transition-all ${
-                selectedMood === mood.label
-                  ? "bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] text-white shadow-md"
-                  : "bg-white text-dark-text border border-gray-100 hover:border-[#A8DADC]"
-              }`}
+              className={`px-3 py-1.5 rounded-full text-xs font-poppins flex items-center gap-1.5 transition-all ${selectedMood === mood.label
+                ? "bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] text-white shadow-md"
+                : "bg-white text-dark-text border border-gray-100 hover:border-[#A8DADC]"
+                }`}
             >
               <span className="text-base">{mood.emoji}</span>
               <span>{mood.label}</span>

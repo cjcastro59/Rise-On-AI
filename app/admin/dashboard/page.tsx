@@ -1,8 +1,73 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/client";
 
 export default function AdminDashboardPage() {
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalEntries: 0,
+    positiveRate: 0,
+    activeAlerts: 0,
+  });
+  const [recentAlerts, setRecentAlerts] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = useMemo(() => createClient() as any, []);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+
+        const [{ count: userCount }, { count: entryCount }, { data: alertsData }, { data: activityData }] = await Promise.all([
+          supabase.from("user_profiles").select("id", { count: "exact", head: true }),
+          supabase.from("journal_entries").select("id", { count: "exact", head: true }),
+          supabase.from("distress_logs").select("id, severity, trigger, notes, created_at").order("created_at", { ascending: false }).limit(3),
+          supabase.from("audit_logs").select("id, action, details, created_at").order("created_at", { ascending: false }).limit(2),
+        ]);
+
+        const entries = await supabase.from("journal_entries").select("mood, content").order("created_at", { ascending: false });
+        const positiveEntries = (entries.data || []).filter((entry: any) => {
+          const text = (entry.content || "").toLowerCase();
+          const mood = (entry.mood || "").toLowerCase();
+          const positiveKeywords = ["happy", "calm", "excited", "grateful", "peaceful", "content", "hopeful", "optimistic", "proud", "glad", "joy", "love"];
+          const negativeKeywords = ["sad", "anxious", "frustrated", "overwhelmed", "angry", "worried", "stress", "depressed", "lonely", "hopeless", "afraid", "tired"];
+          const hasPositive = positiveKeywords.some((word) => text.includes(word) || mood.includes(word));
+          const hasNegative = negativeKeywords.some((word) => text.includes(word) || mood.includes(word));
+          return hasPositive && !hasNegative;
+        });
+
+        setStats({
+          totalUsers: userCount || 0,
+          totalEntries: entryCount || 0,
+          positiveRate: entryCount ? Math.round((positiveEntries.length / entryCount) * 100) : 0,
+          activeAlerts: alertsData?.length || 0,
+        });
+        setRecentAlerts(alertsData || []);
+        setRecentActivity(activityData || []);
+      } catch (error) {
+        console.error("Error loading admin dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [supabase]);
+
+  const formatTime = (value?: string) => {
+    if (!value) return "just now";
+    const date = new Date(value);
+    const diffMins = Math.max(1, Math.round((Date.now() - date.getTime()) / 60000));
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.round(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.round(diffHours / 24);
+    return `${diffDays}d ago`;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -35,8 +100,8 @@ export default function AdminDashboardPage() {
             <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">👥</div>
             <div className="text-right">
               <p className="text-xs text-[#4F4F4F]/60 font-poppins">TOTAL USERS</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">2,418</p>
-              <p className="text-xs text-[#52B788] font-poppins">↑ 8% last week</p>
+              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : stats.totalUsers}</p>
+              <p className="text-xs text-[#52B788] font-poppins">Live from user profiles</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-purple-500 via-blue-400 to-cyan-300 rounded-full"></div>
@@ -47,8 +112,8 @@ export default function AdminDashboardPage() {
             <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">📝</div>
             <div className="text-right">
               <p className="text-xs text-[#4F4F4F]/60 font-poppins">TOTAL ENTRIES</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">12,304</p>
-              <p className="text-xs text-[#52B788] font-poppins">↑ 15% today</p>
+              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : stats.totalEntries}</p>
+              <p className="text-xs text-[#52B788] font-poppins">Live from journal entries</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-green-400 to-emerald-300 rounded-full"></div>
@@ -59,8 +124,8 @@ export default function AdminDashboardPage() {
             <div className="w-10 h-10 bg-[#FFE8A1]/30 rounded-lg flex items-center justify-center text-2xl">💖</div>
             <div className="text-right">
               <p className="text-xs text-[#4F4F4F]/60 font-poppins">AVG POSITIVE RATE</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">68%</p>
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">↑ 4% vs last mo</p>
+              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : `${stats.positiveRate}%`}</p>
+              <p className="text-xs text-[#4F4F4F]/60 font-poppins">Based on current journal mood/text</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-yellow-400 to-orange-300 rounded-full"></div>
@@ -71,8 +136,8 @@ export default function AdminDashboardPage() {
             <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">⚠️</div>
             <div className="text-right">
               <p className="text-xs text-[#4F4F4F]/60 font-poppins">ACTIVE ALERTS</p>
-              <p className="text-2xl font-dm-serif text-[#F4A6A6]">14</p>
-              <p className="text-xs text-[#F4A6A6] font-poppins">↑ 3 today</p>
+              <p className="text-2xl font-dm-serif text-[#F4A6A6]">{loading ? "—" : stats.activeAlerts}</p>
+              <p className="text-xs text-[#F4A6A6] font-poppins">Live from distress logs</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-red-400 to-pink-300 rounded-full"></div>
@@ -108,31 +173,31 @@ export default function AdminDashboardPage() {
           </div>
           <div className="h-48 flex items-end justify-between gap-2 px-4 pb-4">
             <div className="w-1/7 flex flex-col items-center gap-2">
-              <div className="w-full bg-gradient-to-t from-[#A8DADC] to-[#4F4F4F]/10 rounded-t-lg" style={{height: '45%'}}></div>
+              <div className="w-full bg-gradient-to-t from-[#A8DADC] to-[#4F4F4F]/10 rounded-t-lg" style={{ height: '45%' }}></div>
               <span className="text-xs text-[#4F4F4F]/60 font-poppins">Mon</span>
             </div>
             <div className="w-1/7 flex flex-col items-center gap-2">
-              <div className="w-full bg-gradient-to-t from-[#A8DADC] to-[#4F4F4F]/10 rounded-t-lg" style={{height: '65%'}}></div>
+              <div className="w-full bg-gradient-to-t from-[#A8DADC] to-[#4F4F4F]/10 rounded-t-lg" style={{ height: '65%' }}></div>
               <span className="text-xs text-[#4F4F4F]/60 font-poppins">Tue</span>
             </div>
             <div className="w-1/7 flex flex-col items-center gap-2">
-              <div className="w-full bg-gradient-to-t from-[#A8DADC] to-[#4F4F4F]/10 rounded-t-lg" style={{height: '50%'}}></div>
+              <div className="w-full bg-gradient-to-t from-[#A8DADC] to-[#4F4F4F]/10 rounded-t-lg" style={{ height: '50%' }}></div>
               <span className="text-xs text-[#4F4F4F]/60 font-poppins">Wed</span>
             </div>
             <div className="w-1/7 flex flex-col items-center gap-2">
-              <div className="w-full bg-gradient-to-t from-[#CDB4DB] to-[#4F4F4F]/10 rounded-t-lg" style={{height: '70%'}}></div>
+              <div className="w-full bg-gradient-to-t from-[#CDB4DB] to-[#4F4F4F]/10 rounded-t-lg" style={{ height: '70%' }}></div>
               <span className="text-xs text-[#4F4F4F]/60 font-poppins">Thu</span>
             </div>
             <div className="w-1/7 flex flex-col items-center gap-2">
-              <div className="w-full bg-gradient-to-t from-[#A8DADC] to-[#4F4F4F]/10 rounded-t-lg" style={{height: '85%'}}></div>
+              <div className="w-full bg-gradient-to-t from-[#A8DADC] to-[#4F4F4F]/10 rounded-t-lg" style={{ height: '85%' }}></div>
               <span className="text-xs text-[#4F4F4F]/60 font-poppins">Fri</span>
             </div>
             <div className="w-1/7 flex flex-col items-center gap-2">
-              <div className="w-full bg-gradient-to-t from-[#52B788] to-[#4F4F4F]/10 rounded-t-lg" style={{height: '60%'}}></div>
+              <div className="w-full bg-gradient-to-t from-[#52B788] to-[#4F4F4F]/10 rounded-t-lg" style={{ height: '60%' }}></div>
               <span className="text-xs text-[#4F4F4F]/60 font-poppins">Sat</span>
             </div>
             <div className="w-1/7 flex flex-col items-center gap-2">
-              <div className="w-full bg-gradient-to-t from-[#52B788]/70 to-[#4F4F4F]/10 rounded-t-lg" style={{height: '40%'}}></div>
+              <div className="w-full bg-gradient-to-t from-[#52B788]/70 to-[#4F4F4F]/10 rounded-t-lg" style={{ height: '40%' }}></div>
               <span className="text-xs text-[#4F4F4F]/60 font-poppins">Sun</span>
             </div>
           </div>
@@ -193,27 +258,19 @@ export default function AdminDashboardPage() {
             <button className="text-xs font-poppins text-[#A8DADC] hover:underline">View All →</button>
           </div>
           <div className="space-y-3">
-            <div className="p-3 bg-[#F4A6A6]/10 rounded-xl border border-[#F4A6A6]/30 flex justify-between items-center">
-              <div>
-                <p className="text-sm font-semibold font-poppins text-[#4F4F4F]">High-distress entry detected — RAI-0247</p>
-                <p className="text-xs text-[#4F4F4F]/60 font-inter">Keyword: "hopeless"; "taking pills"; Score: 9/10 negative, 12 mins ago</p>
+            {loading ? (
+              <p className="text-sm text-[#4F4F4F]/60 font-inter">Loading alerts…</p>
+            ) : recentAlerts.length === 0 ? (
+              <p className="text-sm text-[#4F4F4F]/60 font-inter">No distress alerts found yet.</p>
+            ) : recentAlerts.map((alert, index) => (
+              <div key={alert.id || index} className="p-3 bg-[#F4A6A6]/10 rounded-xl border border-[#F4A6A6]/30 flex justify-between items-center">
+                <div>
+                  <p className="text-sm font-semibold font-poppins text-[#4F4F4F]">{alert.trigger || "Distress alert"}</p>
+                  <p className="text-xs text-[#4F4F4F]/60 font-inter">{alert.notes || alert.severity || "Recent alert"} • {formatTime(alert.created_at)}</p>
+                </div>
+                <button className="px-3 py-1 bg-[#F4A6A6]/30 text-[#F4A6A6] rounded-full text-xs font-semibold font-poppins">Review</button>
               </div>
-              <button className="px-3 py-1 bg-[#F4A6A6]/30 text-[#F4A6A6] rounded-full text-xs font-semibold font-poppins">Review</button>
-            </div>
-            <div className="p-3 bg-[#FFE8A1]/20 rounded-xl border border-[#FFE8A1]/50 flex justify-between items-center">
-              <div>
-                <p className="text-sm font-semibold font-poppins text-[#4F4F4F]">Repeated negative entries — RAI-0082</p>
-                <p className="text-xs text-[#4F4F4F]/60 font-inter">4 consecutive negative entries in 48hrs; 1 hr ago</p>
-              </div>
-              <button className="px-3 py-1 bg-[#FFE8A1]/40 text-[#FFB700] rounded-full text-xs font-semibold font-poppins">Review</button>
-            </div>
-            <div className="p-3 bg-[#CDB4DB]/10 rounded-xl border border-[#CDB4DB]/30 flex justify-between items-center">
-              <div>
-                <p className="text-sm font-semibold font-poppins text-[#4F4F4F]">Mood drop pattern — RAI-0089</p>
-                <p className="text-xs text-[#4F4F4F]/60 font-inter">Mood score dropped 40% in 7 days; 3 hrs ago</p>
-              </div>
-              <button className="px-3 py-1 bg-[#CDB4DB]/40 text-[#8B5CF6] rounded-full text-xs font-semibold font-poppins">Review</button>
-            </div>
+            ))}
           </div>
         </Card>
 
@@ -279,14 +336,16 @@ export default function AdminDashboardPage() {
           <Card className="p-5">
             <p className="text-xs font-poppins text-[#4F4F4F]/60 mb-3">RECENT ADMIN ACTIVITY</p>
             <div className="space-y-3">
-              <div className="flex justify-between items-center text-xs">
-                <p className="font-poppins text-[#4F4F4F]">admin@rise.ai exported mood report</p>
-                <p className="text-[#4F4F4F]/60 font-inter">8m ago</p>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <p className="font-poppins text-[#4F4F4F]">guidance@cpu.edu.ph reviewed alert RAI-0207</p>
-                <p className="text-[#4F4F4F]/60 font-inter">1hr ago</p>
-              </div>
+              {loading ? (
+                <p className="text-sm text-[#4F4F4F]/60 font-inter">Loading activity…</p>
+              ) : recentActivity.length === 0 ? (
+                <p className="text-sm text-[#4F4F4F]/60 font-inter">No admin activity recorded yet.</p>
+              ) : recentActivity.map((item) => (
+                <div key={item.id} className="flex justify-between items-center text-xs gap-2">
+                  <p className="font-poppins text-[#4F4F4F] flex-1">{item.action || item.details || "Admin activity"}</p>
+                  <p className="text-[#4F4F4F]/60 font-inter whitespace-nowrap">{formatTime(item.created_at)}</p>
+                </div>
+              ))}
             </div>
           </Card>
         </div>

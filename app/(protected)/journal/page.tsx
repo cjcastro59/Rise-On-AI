@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
@@ -51,12 +51,20 @@ export default function JournalEntryPage() {
   const wordCount = content.trim().split(/\s+/).filter(word => word.length > 0).length;
   const { user } = useAuth();
   const router = useRouter();
-  const supabase = createClient();
+  const searchParams = useSearchParams();
+  const supabase = createClient() as any;
   const editorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setCurrentPrompt(prompts[Math.floor(Math.random() * prompts.length)]);
   }, []);
+
+  useEffect(() => {
+    const moodParam = searchParams?.get("mood");
+    if (moodParam) {
+      setSelectedMood(moodParam);
+    }
+  }, [searchParams]);
 
   // Auto-save draft to localStorage
   useEffect(() => {
@@ -196,11 +204,10 @@ export default function JournalEntryPage() {
             <button
               key={mood.label}
               onClick={() => setSelectedMood(selectedMood === mood.label ? null : mood.label)}
-              className={`px-3 py-1.5 rounded-full text-xs font-poppins flex items-center gap-1.5 transition-all ${
-                selectedMood === mood.label
+              className={`px-3 py-1.5 rounded-full text-xs font-poppins flex items-center gap-1.5 transition-all ${selectedMood === mood.label
                   ? "bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] text-white shadow-md"
                   : "bg-white text-dark-text border border-gray-100 hover:border-[#A8DADC]"
-              }`}
+                }`}
             >
               <span className="text-base">{mood.emoji}</span>
               <span>{mood.label}</span>
