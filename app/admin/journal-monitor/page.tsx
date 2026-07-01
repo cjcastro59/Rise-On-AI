@@ -1,58 +1,148 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/client";
 
-const mockEntries = [
-  {
-    id: "ENTRY-001",
-    userId: "RAI-0001",
-    timestamp: "May 28, 9:24 AM",
-    wordCount: 342,
-    language: "Taglish",
-    moodTag: "Calm",
-    sentimentScore: "78% Positive",
-    aiProcessed: "Done",
-  },
-  {
-    id: "ENTRY-002",
-    userId: "RAI-0089",
-    timestamp: "May 28, 8:48 AM",
-    wordCount: 189,
-    language: "Tagalog",
-    moodTag: "Sad",
-    sentimentScore: "91% Negative",
-    aiProcessed: "Done",
-  },
-  {
-    id: "ENTRY-003",
-    userId: "RAI-0052",
-    timestamp: "May 28, 8:00 AM",
-    wordCount: 214,
-    language: "English",
-    moodTag: "Anxious",
-    sentimentScore: "76% Negative",
-    aiProcessed: "Done",
-  },
-  {
-    id: "ENTRY-004",
-    userId: "RAI-0064",
-    timestamp: "May 27, 11:30 PM",
-    wordCount: 518,
-    language: "Taglish",
-    moodTag: "Happy",
-    sentimentScore: "89% Positive",
-    aiProcessed: "Done",
-  },
-];
+interface JournalEntryRow {
+  id: string;
+  user_id: string;
+  created_at: string;
+  mood: string | null;
+  content: string | null;
+  emotions: string[] | null;
+}
+
+const positiveWords = ["happy", "calm", "hopeful", "grateful", "peaceful", "joy", "love", "content", "safe", "good", "better", "relieved", "excited", "optimistic"];
+const negativeWords = ["sad", "anxious", "angry", "stress", "stressed", "worried", "overwhelmed", "lonely", "depressed", "frustrated", "hurt", "afraid", "panic", "tired"];
+const distressWords = ["panic", "suicidal", "hurt", "unsafe", "hopeless", "worthless", "afraid", "overwhelmed"];
+
+function getWordCount(content: string | null) {
+  if (!content) return 0;
+  return content.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function getLanguage(content: string | null) {
+  const text = (content || "").toLowerCase();
+  const hasTagalog = /ako|kaya|ngayon|kahit|naman|gusto|hindi|mabuti|pagod|masaya|nalulungkot/.test(text);
+  const hasEnglish = /the|and|but|today|feel|feelings|because|really|very|happy|sad|stress|worried/.test(text);
+
+  if (hasTagalog && hasEnglish) return "Taglish";
+  if (hasTagalog) return "Tagalog";
+  return "English";
+}
+
+function getMoodTag(content: string | null, mood: string | null, emotions: string[] | null) {
+  const combined = `${mood || ""} ${content || ""} ${emotions?.join(" ") || ""}`.toLowerCase();
+  let score = 0;
+
+  positiveWords.forEach((word) => {
+    if (combined.includes(word)) score += 1;
+  });
+  negativeWords.forEach((word) => {
+    if (combined.includes(word)) score -= 1;
+  });
+
+  if (score > 0) return "Positive";
+  if (score < 0) return "Negative";
+  return "Neutral";
+}
+
+function getSentimentPercent(content: string | null, mood: string | null, emotions: string[] | null) {
+  const combined = `${mood || ""} ${content || ""} ${emotions?.join(" ") || ""}`.toLowerCase();
+  let score = 0;
+  positiveWords.forEach((word) => {
+    if (combined.includes(word)) score += 1;
+  });
+  negativeWords.forEach((word) => {
+    if (combined.includes(word)) score -= 1;
+  });
+
+  if (score > 0) return { label: "Positive", percent: 75 + Math.min(score * 5, 20) };
+  if (score < 0) return { label: "Negative", percent: 70 + Math.min(Math.abs(score) * 5, 20) };
+  return { label: "Neutral", percent: 60 };
+}
+
+function isSameDay(dateString: string, target: Date) {
+  const date = new Date(dateString);
+  return date.getFullYear() === target.getFullYear() && date.getMonth() === target.getMonth() && date.getDate() === target.getDate();
+}
+
+function getHoursDistribution(entries: JournalEntryRow[]) {
+  const buckets = [0, 0, 0, 0];
+  entries.forEach((entry) => {
+    const hour = new Date(entry.created_at).getHours();
+    if (hour >= 6 && hour < 12) buckets[0] += 1;
+    else if (hour >= 12 && hour < 18) buckets[1] += 1;
+    else if (hour >= 18 && hour < 22) buckets[2] += 1;
+    else buckets[3] += 1;
+  });
+
+  const total = entries.length || 1;
+  return buckets.map((value) => Math.round((value / total) * 100));
+}
 
 export default function AdminJournalMonitorPage() {
+  const [entries, setEntries] = useState<JournalEntryRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    const loadEntries = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from("journal_entries")
+          .select("id, user_id, created_at, mood, content, emotions")
+          .order("created_at", { ascending: false });
+
+        if (!error) {
+          setEntries((data as JournalEntryRow[]) || []);
+        }
+      } catch (error) {
+        console.error("Error loading journal monitoring data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEntries();
+  }, [supabase]);
+
+  const totalEntries = entries.length;
+  const todaysEntries = entries.filter((entry) => isSameDay(entry.created_at, new Date())).length;
+  const averageWords = totalEntries > 0 ? Math.round(entries.reduce((sum, entry) => sum + getWordCount(entry.content), 0) / totalEntries) : 0;
+  const lastSevenDays = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - index));
+    return date;
+  });
+  const volumeByDay = lastSevenDays.map((day) => entries.filter((entry) => isSameDay(entry.created_at, day)).length);
+  const maxVolume = Math.max(...volumeByDay, 1);
+  const hoursDistribution = getHoursDistribution(entries);
+  const languageCounts = entries.reduce(
+    (acc, entry) => {
+      const language = getLanguage(entry.content);
+      acc[language] = (acc[language] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+  const topLanguages = Object.entries(languageCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+  const recentEntries = entries.slice(0, 8);
+  const distressSignals = entries.filter((entry) => {
+    const combined = `${entry.mood || ""} ${entry.content || ""} ${entry.emotions?.join(" ") || ""}`.toLowerCase();
+    return distressWords.some((word) => combined.includes(word));
+  }).length;
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center pb-4 border-b border-gray-200">
         <div>
           <h1 className="text-2xl font-dm-serif text-[#4F4F4F] mb-1">Journal Monitoring</h1>
-          <p className="text-sm text-[#4F4F4F]/60 font-poppins">Anonymized entry analytics; No content displayed</p>
+          <p className="text-sm text-[#4F4F4F]/60 font-poppins">Anonymized entry analytics; no content displayed</p>
         </div>
         <div className="flex gap-3">
           <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-[#4F4F4F] hover:bg-gray-50">
@@ -61,21 +151,19 @@ export default function AdminJournalMonitorPage() {
         </div>
       </div>
 
-      {/* Alert Banner */}
       <div className="p-4 bg-gradient-to-r from-[#A8DADC]/20 to-[#CDB4DB]/20 rounded-xl border-l-4 border-l-[#A8DADC]">
         <p className="text-sm font-poppins text-[#4F4F4F] flex items-center gap-2">
-          <span>🔒</span> Privacy Protected: Journal entry content is never accessible to admins. Only metadata (entry count, timestamp, sentiment score, word count) is visible.
+          <span>🔒</span> Privacy Protected: journal content remains hidden. Only metadata and aggregated signals are visible.
         </p>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-5">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">📝</div>
             <div className="text-right">
               <p className="text-xs text-[#4F4F4F]/60 font-poppins">TOTAL ENTRIES</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">12,304</p>
+              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : totalEntries}</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-purple-500 via-blue-400 to-cyan-300 rounded-full"></div>
@@ -85,8 +173,8 @@ export default function AdminJournalMonitorPage() {
             <div className="w-10 h-10 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center text-2xl">📊</div>
             <div className="text-right">
               <p className="text-xs text-[#4F4F4F]/60 font-poppins">ENTRIES TODAY</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">847</p>
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">Peak: 9-10 AM</p>
+              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : todaysEntries}</p>
+              <p className="text-xs text-[#4F4F4F]/60 font-poppins">Recent activity shown live</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-purple-400 to-pink-300 rounded-full"></div>
@@ -96,24 +184,23 @@ export default function AdminJournalMonitorPage() {
             <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">📄</div>
             <div className="text-right">
               <p className="text-xs text-[#4F4F4F]/60 font-poppins">AVG WORDS/ENTRY</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">284</p>
+              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : averageWords}</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-green-400 to-emerald-300 rounded-full"></div>
         </Card>
         <Card className="p-5">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#FFE8A1]/30 rounded-lg flex items-center justify-center text-2xl">🔥</div>
+            <div className="w-10 h-10 bg-[#FFE8A1]/30 rounded-lg flex items-center justify-center text-2xl">⚠️</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">7-DAY STREAK</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">68%</p>
+              <p className="text-xs text-[#4F4F4F]/60 font-poppins">DISTRESS SIGNALS</p>
+              <p className="text-2xl font-dm-serif text-[#F4A6A6]">{loading ? "—" : distressSignals}</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-yellow-400 to-orange-300 rounded-full"></div>
         </Card>
       </div>
 
-      {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-6">
@@ -121,34 +208,12 @@ export default function AdminJournalMonitorPage() {
             <p className="text-xs font-poppins text-[#4F4F4F]/60">ENTRY VOLUME - LAST 7 DAYS</p>
           </div>
           <div className="h-40 flex items-end justify-between gap-2 px-4">
-            <div className="w-1/7 flex flex-col items-center gap-1">
-              <div className="w-full bg-[#A8DADC] rounded-t-lg" style={{ height: "70%" }}></div>
-              <span className="text-xs text-[#4F4F4F]/60 font-poppins">Mon</span>
-            </div>
-            <div className="w-1/7 flex flex-col items-center gap-1">
-              <div className="w-full bg-[#4F4F4F]/40 rounded-t-lg" style={{ height: "90%" }}></div>
-              <span className="text-xs text-[#4F4F4F]/60 font-poppins">Tue</span>
-            </div>
-            <div className="w-1/7 flex flex-col items-center gap-1">
-              <div className="w-full bg-[#A8DADC] rounded-t-lg" style={{ height: "60%" }}></div>
-              <span className="text-xs text-[#4F4F4F]/60 font-poppins">Wed</span>
-            </div>
-            <div className="w-1/7 flex flex-col items-center gap-1">
-              <div className="w-full bg-[#CDB4DB] rounded-t-lg" style={{ height: "80%" }}></div>
-              <span className="text-xs text-[#4F4F4F]/60 font-poppins">Thu</span>
-            </div>
-            <div className="w-1/7 flex flex-col items-center gap-1">
-              <div className="w-full bg-[#4F4F4F]/40 rounded-t-lg" style={{ height: "100%" }}></div>
-              <span className="text-xs text-[#4F4F4F]/60 font-poppins">Fri</span>
-            </div>
-            <div className="w-1/7 flex flex-col items-center gap-1">
-              <div className="w-full bg-[#52B788] rounded-t-lg" style={{ height: "50%" }}></div>
-              <span className="text-xs text-[#4F4F4F]/60 font-poppins">Sat</span>
-            </div>
-            <div className="w-1/7 flex flex-col items-center gap-1">
-              <div className="w-full bg-[#52B788]/70 rounded-t-lg" style={{ height: "40%" }}></div>
-              <span className="text-xs text-[#4F4F4F]/60 font-poppins">Sun</span>
-            </div>
+            {volumeByDay.map((value, index) => (
+              <div key={`${value}-${index}`} className="flex-1 flex flex-col items-center gap-1">
+                <div className="w-full bg-[#A8DADC] rounded-t-lg" style={{ height: `${(value / maxVolume) * 100}%` }}></div>
+                <span className="text-xs text-[#4F4F4F]/60 font-poppins">{lastSevenDays[index].toLocaleDateString("en", { weekday: "short" })}</span>
+              </div>
+            ))}
           </div>
         </Card>
 
@@ -158,55 +223,34 @@ export default function AdminJournalMonitorPage() {
             <p className="text-xs font-poppins text-[#4F4F4F]/60">PEAK WRITING HOURS</p>
           </div>
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-poppins text-[#4F4F4F]">Morning (6-12 AM)</p>
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-inter text-[#4F4F4F]/60">34%</p>
-                <div className="w-40 h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full w-[34%] bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB]"></div>
+            {[
+              { label: "Morning (6-12 AM)", value: hoursDistribution[0] },
+              { label: "Afternoon (12-6 PM)", value: hoursDistribution[1] },
+              { label: "Evening (6-10 PM)", value: hoursDistribution[2] },
+              { label: "Night (10 PM-6 AM)", value: hoursDistribution[3] },
+            ].map((segment) => (
+              <div key={segment.label} className="flex items-center justify-between">
+                <p className="text-sm font-poppins text-[#4F4F4F]">{segment.label}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-inter text-[#4F4F4F]/60">{segment.value}%</p>
+                  <div className="w-40 h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB]" style={{ width: `${segment.value}%` }}></div>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-poppins text-[#4F4F4F]">Afternoon (12-6 PM)</p>
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-inter text-[#4F4F4F]/60">28%</p>
-                <div className="w-40 h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full w-[28%] bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB]"></div>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-poppins text-[#4F4F4F]">Evening (6-10 PM)</p>
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-inter text-[#4F4F4F]/60">29%</p>
-                <div className="w-40 h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full w-[29%] bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB]"></div>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-poppins text-[#4F4F4F]">Night (10 PM-6 AM)</p>
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-inter text-[#4F4F4F]/60">9%</p>
-                <div className="w-40 h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full w-[9%] bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB]"></div>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
           <div className="mt-6 pt-4 border-t border-gray-100">
             <p className="text-xs font-poppins text-[#4F4F4F]/60 mb-3">LANGUAGE USED</p>
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-[#A8DADC]/30 rounded-full text-xs font-poppins text-[#4F4F4F]">Taglish 61%</span>
-              <span className="px-3 py-1 bg-[#CDB4DB]/20 rounded-full text-xs font-poppins text-[#4F4F4F]">English 29%</span>
-              <span className="px-3 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-poppins text-[#4F4F4F]">Tagalog 10%</span>
+            <div className="flex flex-wrap items-center gap-3">
+              {topLanguages.length > 0 ? topLanguages.map(([language, count]) => (
+                <span key={language} className="px-3 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-poppins text-[#4F4F4F]">{language} {Math.round((count / Math.max(totalEntries, 1)) * 100)}%</span>
+              )) : <span className="text-sm text-[#4F4F4F]/60">No entries yet</span>}
             </div>
           </div>
         </Card>
       </div>
 
-      {/* Entries Table */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
           <p className="text-xs font-poppins text-[#4F4F4F]/60">RECENT ENTRY METADATA (ANONYMIZED)</p>
@@ -231,37 +275,44 @@ export default function AdminJournalMonitorPage() {
               </tr>
             </thead>
             <tbody>
-              {mockEntries.map((entry) => (
-                <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-4 px-3">
-                    <p className="font-poppins font-mono text-sm text-[#A8DADC] font-semibold">{entry.id}</p>
-                  </td>
-                  <td className="py-4 px-3">
-                    <p className="text-sm font-inter text-[#4F4F4F]/60">{entry.timestamp}</p>
-                  </td>
-                  <td className="py-4 px-3">
-                    <p className="text-sm font-poppins text-[#4F4F4F]">{entry.wordCount}</p>
-                  </td>
-                  <td className="py-4 px-3">
-                    <span className="px-2 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-semibold font-poppins text-[#4F4F4F]">{entry.language}</span>
-                  </td>
-                  <td className="py-4 px-3">
-                    <p className="text-sm font-poppins text-[#4F4F4F]">{entry.moodTag}</p>
-                  </td>
-                  <td className="py-4 px-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      entry.sentimentScore.includes("Positive") ? "bg-[#52B788]/20 text-[#52B788]" : "bg-[#F4A6A6]/20 text-[#F4A6A6]"
-                    }`}>
-                      {entry.sentimentScore}
-                    </span>
-                  </td>
-                  <td className="py-4 px-3">
-                    <span className="px-2 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-semibold font-poppins text-[#4F4F4F]">
-                      {entry.aiProcessed}
-                    </span>
-                  </td>
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="py-6 text-center text-sm text-[#4F4F4F]/60 font-inter">Loading entry analytics…</td>
                 </tr>
-              ))}
+              ) : recentEntries.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-6 text-center text-sm text-[#4F4F4F]/60 font-inter">No journal entries found yet.</td>
+                </tr>
+              ) : recentEntries.map((entry) => {
+                const sentiment = getSentimentPercent(entry.content, entry.mood, entry.emotions);
+                return (
+                  <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="py-4 px-3">
+                      <p className="font-poppins font-mono text-sm text-[#A8DADC] font-semibold">ENTRY-{String(entry.id).slice(0, 4).toUpperCase()}</p>
+                    </td>
+                    <td className="py-4 px-3">
+                      <p className="text-sm font-inter text-[#4F4F4F]/60">{new Date(entry.created_at).toLocaleString()}</p>
+                    </td>
+                    <td className="py-4 px-3">
+                      <p className="text-sm font-poppins text-[#4F4F4F]">{getWordCount(entry.content)}</p>
+                    </td>
+                    <td className="py-4 px-3">
+                      <span className="px-2 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-semibold font-poppins text-[#4F4F4F]">{getLanguage(entry.content)}</span>
+                    </td>
+                    <td className="py-4 px-3">
+                      <p className="text-sm font-poppins text-[#4F4F4F]">{getMoodTag(entry.content, entry.mood, entry.emotions)}</p>
+                    </td>
+                    <td className="py-4 px-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${sentiment.label === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : "bg-[#52B788]/20 text-[#52B788]"}`}>
+                        {sentiment.percent}% {sentiment.label}
+                      </span>
+                    </td>
+                    <td className="py-4 px-3">
+                      <span className="px-2 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-semibold font-poppins text-[#4F4F4F]">Done</span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

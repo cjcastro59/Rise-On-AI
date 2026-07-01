@@ -78,7 +78,7 @@ const mockUsers = [
 
 export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [users, setUsers] = useState(mockUsers);
+  const [users] = useState(mockUsers);
 
   const filteredUsers = users.filter(
     (user) =>
@@ -235,23 +235,12 @@ export default function AdminUsersPage() {
                     <p className="text-sm font-poppins text-[#4F4F4F]">{user.avgMood}</p>
                   </td>
                   <td className="py-4 px-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      user.sentiment === "Positive" ? "bg-[#52B788]/20 text-[#52B788]" :
-                      user.sentiment === "Mixed" ? "bg-[#A8DADC]/30 text-[#4F4F4F]/80" :
-                      user.sentiment === "Declining" ? "bg-[#FFE8A1]/30 text-[#FFB700]" :
-                      user.sentiment === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" :
-                      "bg-gray-100 text-[#4F4F4F]/60"
-                    }`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.sentiment === "Positive" ? "bg-[#52B788]/20 text-[#52B788]" : user.sentiment === "Mixed" ? "bg-[#A8DADC]/30 text-[#4F4F4F]/80" : user.sentiment === "Declining" ? "bg-[#FFE8A1]/30 text-[#FFB700]" : user.sentiment === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : "bg-gray-100 text-[#4F4F4F]/60"}`}>
                       {user.sentiment}
                     </span>
                   </td>
                   <td className="py-4 px-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      user.status === "Active" ? "bg-[#52B788]/20 text-[#52B788]" :
-                      user.status === "At Risk" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" :
-                      user.status === "Flagged" ? "bg-[#FFE8A1]/30 text-[#FFB700]" :
-                      "bg-gray-100 text-[#4F4F4F]/60"
-                    }`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.status === "Active" ? "bg-[#52B788]/20 text-[#52B788]" : user.status === "At Risk" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : user.status === "Flagged" ? "bg-[#FFE8A1]/30 text-[#FFB700]" : "bg-gray-100 text-[#4F4F4F]/60"}`}>
                       {user.status}
                     </span>
                   </td>

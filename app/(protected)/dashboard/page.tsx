@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { MoodCard } from "@/components/dashboard/mood-card";
 import { InsightCard } from "@/components/dashboard/insight-card";
 import { createClient } from "@/lib/supabase/client";
@@ -17,7 +16,7 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState("Friend");
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [todayMood, setTodayMood] = useState<string | null>(null);
-  const [quickJournal, setQuickJournal] = useState("");
+  const [todayEntryPreview, setTodayEntryPreview] = useState<any | null>(null);
   const [stats, setStats] = useState({
     streak: 0,
     totalEntries: 0,
@@ -27,7 +26,7 @@ export default function DashboardPage() {
   const [weekData, setWeekData] = useState<any[]>([]);
   const { user } = useAuth();
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = createClient() as any;
 
   const moodOptions = [
     { label: "Happy", icon: "😊", score: 10 },
@@ -47,15 +46,20 @@ export default function DashboardPage() {
   }, [user]);
 
   const fetchDashboardData = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-    
+
     // Fetch user profile
     const { data: profile } = await supabase
       .from("user_profiles")
       .select("*")
       .eq("id", user.id)
       .single();
-    
+
     if (profile) {
       setUserName(profile?.first_name || profile?.username || user.email?.split("@")[0] || "Friend");
     }
@@ -70,24 +74,29 @@ export default function DashboardPage() {
     // Calculate stats
     const calculatedStats = calculateStats(entries || []);
     setStats(calculatedStats);
-    
-    // Get today's mood from today's entry or mood log
+
+    // Get today's mood and the latest entry from today
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    const todayEntry = (entries || []).find(entry => {
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const todayEntry = (entries || []).find((entry: any) => {
       const entryDate = new Date(entry.created_at);
-      return entryDate >= todayStart;
+      return entryDate >= todayStart && entryDate <= todayEnd;
     });
-    
+
     if (todayEntry?.mood) {
       setTodayMood(todayEntry.mood);
       setSelectedMood(todayEntry.mood);
     }
 
+    setTodayEntryPreview(todayEntry || null);
+
     // Prepare week data for chart
     const week = calculateWeekData(entries || []);
     setWeekData(week);
-    
+
     setLoading(false);
   };
 
@@ -122,7 +131,7 @@ export default function DashboardPage() {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const thisWeekEntries = entries.filter(entry => new Date(entry.created_at) >= weekAgo);
-    
+
     let positiveCount = 0;
     thisWeekEntries.forEach(entry => {
       // Always analyze text first, then use mood as backup!
@@ -147,11 +156,11 @@ export default function DashboardPage() {
 
   const calculateStreak = (entries: any[]) => {
     if (entries.length === 0) return 0;
-    
-    const sortedDates = entries.map(entry => 
+
+    const sortedDates = entries.map(entry =>
       new Date(entry.created_at).toDateString()
     ).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-    
+
     const uniqueDates = [...new Set(sortedDates)];
     let streak = 0;
     let currentDate = new Date();
@@ -160,9 +169,9 @@ export default function DashboardPage() {
     for (const dateStr of uniqueDates) {
       const entryDate = new Date(dateStr);
       entryDate.setHours(0, 0, 0, 0);
-      
+
       const dayDiff = Math.floor((currentDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       if (dayDiff === streak) {
         streak++;
       } else if (dayDiff > streak) {
@@ -175,7 +184,7 @@ export default function DashboardPage() {
   const calculateWeekData = (entries: any[]) => {
     const week = [];
     const now = new Date();
-    
+
     for (let i = 6; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(now.getDate() - i);
@@ -213,7 +222,7 @@ export default function DashboardPage() {
         });
         avgScore = count > 0 ? totalScore / count : 0;
       }
-      
+
       week.push({
         date: date.toLocaleDateString(undefined, { weekday: 'short' }),
         score: avgScore
@@ -222,59 +231,10 @@ export default function DashboardPage() {
     return week;
   };
 
-  const handleSaveMood = async (mood: string) => {
+  const handleSaveMood = (mood: string) => {
     setSelectedMood(mood);
-    
-    // Check if there's already an entry today
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-    
-    const { data: todayEntry } = await supabase
-      .from("journal_entries")
-      .select("id")
-      .eq("user_id", user.id)
-      .gte("created_at", todayStart.toISOString())
-      .lte("created_at", todayEnd.toISOString())
-      .single();
-
-    if (todayEntry) {
-      await supabase
-        .from("journal_entries")
-        .update({ mood })
-        .eq("id", todayEntry.id);
-    } else {
-      await supabase
-        .from("journal_entries")
-        .insert({
-          user_id: user.id,
-          mood,
-          content: null,
-          title: null
-        });
-    }
-    
     setTodayMood(mood);
-    fetchDashboardData();
-  };
-
-  const handleSaveQuickJournal = async () => {
-    if (!quickJournal.trim()) return;
-
-    const { error } = await supabase
-      .from("journal_entries")
-      .insert({
-        user_id: user.id,
-        content: quickJournal,
-        title: null,
-        mood: selectedMood || null
-      });
-
-    if (!error) {
-      setQuickJournal("");
-      fetchDashboardData();
-    }
+    router.push(`/journal?mood=${encodeURIComponent(mood)}`);
   };
 
   const getGreeting = () => {
@@ -386,35 +346,40 @@ export default function DashboardPage() {
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Quick Journal */}
+        {/* Today's Journal Preview */}
         <Card className="p-6 bg-white">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-poppins font-semibold text-dark-text">Today's Journal</h3>
-            <span className="text-xs font-poppins text-dark-text/60">What's on your mind?</span>
+            <span className="text-xs font-poppins text-dark-text/60">Tap to open</span>
           </div>
-          <textarea
-            value={quickJournal}
-            onChange={(e) => setQuickJournal(e.target.value)}
-            placeholder="Write something..."
-            className="w-full min-h-[120px] p-4 bg-light-gray border border-transparent rounded-xl font-inter text-sm text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue resize-none mb-4"
-          />
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {todayMood && (
-                <Button variant="secondary" size="sm">
-                  {moodOptions.find(m => m.label === todayMood)?.icon} {todayMood}
-                </Button>
-              )}
+
+          {todayEntryPreview ? (
+            <button
+              type="button"
+              onClick={() => router.push(`/journal/${todayEntryPreview.id}`)}
+              className="w-full text-left rounded-xl border border-light-gray bg-light-gray/40 p-4 transition-all hover:border-primary-blue/40 hover:bg-primary-blue/10"
+            >
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <p className="text-sm font-poppins font-semibold text-dark-text">
+                  {todayEntryPreview.title || "Untitled Entry"}
+                </p>
+                {todayEntryPreview.mood && (
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-poppins text-dark-text shadow-sm">
+                    {todayEntryPreview.mood}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm font-inter text-dark-text/70 leading-relaxed whitespace-pre-wrap line-clamp-5">
+                {todayEntryPreview.content?.trim() || "Open this entry to read or continue writing."}
+              </p>
+              <p className="mt-3 text-xs font-poppins text-primary-blue">Open entry →</p>
+            </button>
+          ) : (
+            <div className="rounded-xl border border-dashed border-light-gray bg-light-gray/40 p-6 text-center">
+              <p className="text-sm font-poppins font-semibold text-dark-text">No entries made yet today</p>
+              <p className="mt-2 text-sm font-inter text-dark-text/70">Choose an emotion to start a new journal entry.</p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="secondary" size="sm" onClick={() => setQuickJournal("")}>
-                Clear
-              </Button>
-              <Button size="sm" onClick={handleSaveQuickJournal} disabled={!quickJournal.trim()}>
-                Save Entry →
-              </Button>
-            </div>
-          </div>
+          )}
         </Card>
 
         {/* Mood Chart */}
@@ -430,8 +395,8 @@ export default function DashboardPage() {
                     background: day.score > 7
                       ? 'linear-gradient(to top, #10b981, #34d399)'
                       : day.score > 4
-                      ? 'linear-gradient(to top, #8b5cf6, #a78bfa)'
-                      : 'linear-gradient(to top, #ef4444, #f87171)'
+                        ? 'linear-gradient(to top, #8b5cf6, #a78bfa)'
+                        : 'linear-gradient(to top, #ef4444, #f87171)'
                   }}
                 />
                 <span className="text-xs font-inter text-dark-text/60">{day.date}</span>
@@ -444,8 +409,8 @@ export default function DashboardPage() {
         <InsightCard
           title="Daily Insight"
           content={
-            stats.totalEntries > 0 
-              ? "You've been consistent with your journaling! Keep up the great work — it helps with self-reflection and emotional awareness." 
+            stats.totalEntries > 0
+              ? "You've been consistent with your journaling! Keep up the great work — it helps with self-reflection and emotional awareness."
               : "Start your journaling journey today! Write about your thoughts and feelings."
           }
           icon="💡"
