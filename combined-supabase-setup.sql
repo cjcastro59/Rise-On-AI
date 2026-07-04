@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   first_name TEXT,
   last_name TEXT,
   email TEXT,
-  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'researcher', 'counselor', 'admin', 'owner')),
+  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'counselor', 'admin', 'owner')),
   age INTEGER,
   gender TEXT,
   country TEXT,
@@ -121,6 +121,22 @@ ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS country TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS bio TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS mood_baseline TEXT;
+
+-- Ensure role check constraint
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'user_profiles_role_check') THEN
+    ALTER TABLE public.user_profiles ADD CONSTRAINT user_profiles_role_check CHECK (role IN ('user', 'counselor', 'admin', 'owner'));
+  END IF;
+EXCEPTION
+  WHEN duplicate_object THEN
+    NULL;
+END $$;
+
+-- Update any existing researcher role to counselor or user
+UPDATE public.user_profiles SET role = 'counselor' WHERE role = 'researcher';
+UPDATE public.user_profiles SET role = 'user' WHERE role NOT IN ('user', 'counselor', 'admin', 'owner');
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS goals TEXT[];
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS language TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
@@ -478,10 +494,16 @@ INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_typ
 VALUES ('avatars', 'avatars', TRUE, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 ON CONFLICT (id) DO NOTHING;
 
+-- Drop existing policies first to avoid conflict
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload their own avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Users can update their own avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Users can delete their own avatars" ON storage.objects;
+
 -- Allow public access to the avatars bucket
 CREATE POLICY "Public Access"
   ON storage.objects FOR SELECT
-  USING ( bucket_id = 'avatars' );
+  USING (bucket_id = 'avatars');
 
 -- Allow authenticated users can upload their own avatars
 CREATE POLICY "Users can upload their own avatars"
