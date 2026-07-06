@@ -63,8 +63,7 @@ export default function AdminAuditLogsPage() {
 
       if (error) {
         console.error("Error fetching audit logs:", error);
-        // Fallback to mock data if no data exists
-        setLogs(getMockData());
+        setLogs([]);
       } else if (data && data.length > 0) {
         setLogs(data.map(log => ({
           ...log,
@@ -72,11 +71,11 @@ export default function AdminAuditLogsPage() {
           role: log.user_profiles?.role || "Automated"
         })));
       } else {
-        setLogs(getMockData());
+        setLogs([]);
       }
     } catch (error) {
       console.error("Error fetching audit logs:", error);
-      setLogs(getMockData());
+      setLogs([]);
     } finally {
       setLoading(false);
     }
@@ -340,108 +339,108 @@ export default function AdminAuditLogsPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>TIMESTAMP</th>
-                <th>ADMIN</th>
-                <th>ROLE</th>
-                <th>ACTION</th>
-                <th>DETAILS</th>
-                <th>IP ADDRESS</th>
-                <th>STATUS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedLogs.map((log) => (
-                <tr 
-                  key={log.id} 
-                  className={`${
-                    isSuspicious(log) ? "bg-red-50 hover:bg-red-100" : ""
-                  } transition-colors`}
-                >
-                  <td><p className="text-sm font-inter text-dark-text/60">{formatTimestamp(log.created_at)}</p></td>
-                  <td><p className="text-sm font-poppins text-dark-text">{log.admin}</p></td>
-                  <td>
-                    <span className={`badge ${getRolePillClass(log.role)}`}>
-                      {log.role?.charAt(0).toUpperCase() + log.role?.slice(1) || "Unknown"}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      {log.action === "Export Data" && <span>📥</span>}
-                      {log.action === "Alert Review" && <span>👁️</span>}
-                      {log.action === "Settings Change" && <span>⚙️</span>}
-                      {log.action === "Report View" && <span>📊</span>}
-                      {log.action === "Database Backup" && <span>💾</span>}
-                      {log.action === "Login" && <span>🔐</span>}
-                      <p className="text-sm font-inter text-dark-text">{log.action}</p>
-                    </div>
-                  </td>
-                  <td><p className="text-sm font-mono text-dark-text">{log.details || "-"}</p></td>
-                  <td><p className="text-sm font-mono text-dark-text/60">{log.ip_address || "-"}</p></td>
-                  <td>
-                    <span className={`badge ${
-                      log.status === "Success" ? "badge-success" : "badge-error"
-                    }`}>
-                      {log.status || "Unknown"}
-                    </span>
-                  </td>
+          {filteredLogs.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-dark-text/60 font-poppins">No audit logs yet.</p>
+              <p className="text-xs text-dark-text/40 font-inter mt-2">Audit logs will appear here when administrative actions are performed.</p>
+            </div>
+          ) : (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>TIMESTAMP</th>
+                  <th>ADMIN</th>
+                  <th>ROLE</th>
+                  <th>ACTION</th>
+                  <th>DETAILS</th>
+                  <th>IP ADDRESS</th>
+                  <th>STATUS</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {paginatedLogs.map((log) => (
+                  <tr 
+                    key={log.id} 
+                    className={`${
+                      isSuspicious(log) ? "bg-red-50 hover:bg-red-100" : ""
+                    } transition-colors`}
+                  >
+                    <td><p className="text-sm font-inter text-dark-text/60">{formatTimestamp(log.created_at)}</p></td>
+                    <td><p className="text-sm font-poppins text-dark-text">{log.admin}</p></td>
+                    <td>
+                      <span className={`badge ${getRolePillClass(log.role)}`}>
+                        {log.role?.charAt(0).toUpperCase() + log.role?.slice(1) || "Unknown"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        {log.action === "Export Data" && <span>📥</span>}
+                        {log.action === "Alert Review" && <span>👁️</span>}
+                        {log.action === "Settings Change" && <span>⚙️</span>}
+                        {log.action === "Report View" && <span>📊</span>}
+                        {log.action === "Database Backup" && <span>💾</span>}
+                        {log.action === "Login" && <span>🔐</span>}
+                        <p className="text-sm font-inter text-dark-text">{log.action}</p>
+                      </div>
+                    </td>
+                    <td><p className="text-sm font-mono text-dark-text">{log.details || "-"}</p></td>
+                    <td><p className="text-sm font-mono text-dark-text/60">{log.ip_address || "-"}</p></td>
+                    <td>
+                      <span className={`badge ${
+                        log.status === "Success" ? "badge-success" : "badge-error"
+                      }`}>
+                        {log.status || "Unknown"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between mt-6">
-          <p className="text-sm text-dark-text/60 font-inter">
-            Showing {startIndex + 1}-{Math.min(startIndex + PAGE_SIZE, filteredLogs.length)} of {filteredLogs.length} entries
-          </p>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
-              className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-sm font-poppins text-dark-text/60 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              ← Prev
-            </button>
-            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-              const page = i + 1;
-              return (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-semibold font-poppins ${
-                    currentPage === page 
-                      ? "bg-gradient-to-r from-primary-blue to-lavender text-dark-text" 
-                      : "border border-gray-200 text-dark-text hover:bg-gray-50"
-                  }`}
-                >
-                  {page}
-                </button>
-              );
-            })}
-            {totalPages > 5 && (
-              <>
-                <span className="text-sm font-poppins text-dark-text/60">...</span>
-                <button
-                  onClick={() => setCurrentPage(totalPages)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-sm font-poppins text-dark-text hover:bg-gray-50"
-                >
-                  {totalPages}
-                </button>
-              </>
-            )}
-            <button 
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages || totalPages === 0}
-              className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-sm font-poppins text-dark-text hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next →
-            </button>
+        {filteredLogs.length > 0 && (
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+            <p className="text-sm text-dark-text/60 font-poppins">
+              Showing {startIndex + 1}-{Math.min(startIndex + PAGE_SIZE, filteredLogs.length)} of {filteredLogs.length} entries
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed text-dark-text"
+              >
+                ←
+              </button>
+              
+              {/* Page Numbers */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm font-poppins transition-colors ${
+                      currentPage === page
+                        ? "bg-gradient-to-r from-primary-blue to-lavender text-white"
+                        : "text-dark-text hover:bg-gray-100"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed text-dark-text"
+              >
+                →
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </Card>
     </div>
   );

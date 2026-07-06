@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
@@ -13,20 +14,50 @@ export default function AdminDashboardPage() {
   });
   const [recentAlerts, setRecentAlerts] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [firstUserDate, setFirstUserDate] = useState<string | null>(null);
+  const [currentDate, setCurrentDate] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient() as any, []);
 
+  // Format date as "Thursday, May 28, 2026"
+  const formatFullDate = (date: Date) => {
+    return date.toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    });
+  };
+
   useEffect(() => {
+    setCurrentDate(formatFullDate(new Date()));
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
     const loadData = async () => {
       try {
         setLoading(true);
 
-        const [{ count: userCount }, { count: entryCount }, { data: alertsData }, { data: activityData }] = await Promise.all([
+        const [
+          { count: userCount }, 
+          { count: entryCount }, 
+          { data: alertsData }, 
+          { data: activityData },
+          { data: firstUsers }
+        ] = await Promise.all([
           supabase.from("user_profiles").select("id", { count: "exact", head: true }),
           supabase.from("journal_entries").select("id", { count: "exact", head: true }),
           supabase.from("distress_logs").select("id, severity, trigger, notes, created_at").order("created_at", { ascending: false }).limit(3),
           supabase.from("audit_logs").select("id, action, details, created_at").order("created_at", { ascending: false }).limit(2),
+          supabase.from("user_profiles").select("created_at").order("created_at", { ascending: true }).limit(1)
         ]);
+
+        if (firstUsers && firstUsers.length > 0) {
+          setFirstUserDate(firstUsers[0].created_at);
+        }
 
         const entries = await supabase.from("journal_entries").select("mood, content").order("created_at", { ascending: false });
         const positiveEntries = (entries.data || []).filter((entry: any) => {
@@ -55,7 +86,7 @@ export default function AdminDashboardPage() {
     };
 
     loadData();
-  }, [supabase]);
+  }, [supabase, currentUser]);
 
   const formatTime = (value?: string) => {
     if (!value) return "just now";
@@ -74,7 +105,9 @@ export default function AdminDashboardPage() {
       <div className="flex justify-between items-center pb-4 border-b border-gray-200">
         <div>
           <h1 className="text-2xl font-dm-serif text-[#4F4F4F] mb-1">Dashboard Overview</h1>
-          <p className="text-sm text-[#4F4F4F]/60 font-poppins">Thursday, May 28, 2026 - Last updated 2 mins ago</p>
+          <p className="text-sm text-[#4F4F4F]/60 font-poppins">
+            {currentDate} - {firstUserDate ? `First user registered: ${formatFullDate(new Date(firstUserDate))}` : "No users yet"}
+          </p>
         </div>
         <div className="flex gap-3">
           <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-[#4F4F4F] hover:bg-gray-50">
@@ -89,7 +122,7 @@ export default function AdminDashboardPage() {
       {/* Alert Banner */}
       <div className="p-4 bg-gradient-to-r from-[#A8DADC]/20 to-[#CDB4DB]/20 rounded-xl border-l-4 border-l-[#A8DADC]">
         <p className="text-sm font-poppins text-[#4F4F4F] flex items-center gap-2">
-          <span>🔒</span> All data displayed uses anonymized IDs (RAI-###). No personal journal content is accessible from this panel.
+          <span>🔒</span> All data displayed uses user full names (Owner/Admin only).
         </p>
       </div>
 
