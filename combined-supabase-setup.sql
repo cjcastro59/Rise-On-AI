@@ -40,6 +40,8 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   -- 2FA
   two_factor_enabled BOOLEAN DEFAULT false,
   two_factor_secret TEXT,
+  -- Account status
+  is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -106,6 +108,14 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
     details TEXT,
     ip_address TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- system_settings table
+CREATE TABLE IF NOT EXISTS public.system_settings (
+    id UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
+    key TEXT NOT NULL UNIQUE,
+    value JSONB NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ------------------------------
@@ -316,12 +326,44 @@ CREATE POLICY "Only owners can delete profiles"
 -- ------------------------------
 
 -- journal_entries
+-- First, drop existing select policy to replace it
+DROP POLICY IF EXISTS "Users can view their own journal entries" ON public.journal_entries;
+
+-- New policy: users can view their own OR admins/owners/counselors can view all
+CREATE POLICY "Users can view their own or admins can view all journal entries" 
+    ON public.journal_entries 
+    FOR SELECT 
+    USING (auth.uid() = user_id OR public.is_current_user_admin_or_owner());
+
+-- Insert, update, delete policies remain the same (only own entries)
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'journal_entries' AND policyname = 'Users can view their own journal entries') THEN
-        CREATE POLICY "Users can view their own journal entries" 
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'journal_entries' AND policyname = 'Users can insert their own journal entries') THEN
+        CREATE POLICY "Users can insert their own journal entries" 
             ON public.journal_entries 
-            FOR SELECT 
+            FOR INSERT 
+            WITH CHECK (auth.uid() = user_id);
+    END IF;
+END
+$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'journal_entries' AND policyname = 'Users can update their own journal entries') THEN
+        CREATE POLICY "Users can update their own journal entries" 
+            ON public.journal_entries 
+            FOR UPDATE 
+            USING (auth.uid() = user_id);
+    END IF;
+END
+$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'journal_entries' AND policyname = 'Users can delete their own journal entries') THEN
+        CREATE POLICY "Users can delete their own journal entries" 
+            ON public.journal_entries 
+            FOR DELETE 
             USING (auth.uid() = user_id);
     END IF;
 END
@@ -361,16 +403,12 @@ END
 $$;
 
 -- mood_logs
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'mood_logs' AND policyname = 'Users can view their own mood logs') THEN
-        CREATE POLICY "Users can view their own mood logs" 
-            ON public.mood_logs 
-            FOR SELECT 
-            USING (auth.uid() = user_id);
-    END IF;
-END
-$$;
+-- Update select policy for admins
+DROP POLICY IF EXISTS "Users can view their own mood logs" ON public.mood_logs;
+CREATE POLICY "Users can view their own or admins can view all mood logs" 
+    ON public.mood_logs 
+    FOR SELECT 
+    USING (auth.uid() = user_id OR public.is_current_user_admin_or_owner());
 
 DO $$
 BEGIN
@@ -384,16 +422,12 @@ END
 $$;
 
 -- distress_logs
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'distress_logs' AND policyname = 'Users can view their own distress logs') THEN
-        CREATE POLICY "Users can view their own distress logs" 
-            ON public.distress_logs 
-            FOR SELECT 
-            USING (auth.uid() = user_id);
-    END IF;
-END
-$$;
+-- Update select policy for admins
+DROP POLICY IF EXISTS "Users can view their own distress logs" ON public.distress_logs;
+CREATE POLICY "Users can view their own or admins can view all distress logs" 
+    ON public.distress_logs 
+    FOR SELECT 
+    USING (auth.uid() = user_id OR public.is_current_user_admin_or_owner());
 
 DO $$
 BEGIN
@@ -407,16 +441,12 @@ END
 $$;
 
 -- activity_logs
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'activity_logs' AND policyname = 'Users can view their own activity logs') THEN
-        CREATE POLICY "Users can view their own activity logs" 
-            ON public.activity_logs 
-            FOR SELECT 
-            USING (auth.uid() = user_id);
-    END IF;
-END
-$$;
+-- Update select policy for admins
+DROP POLICY IF EXISTS "Users can view their own activity logs" ON public.activity_logs;
+CREATE POLICY "Users can view their own or admins can view all activity logs" 
+    ON public.activity_logs 
+    FOR SELECT 
+    USING (auth.uid() = user_id OR public.is_current_user_admin_or_owner());
 
 DO $$
 BEGIN
@@ -430,16 +460,12 @@ END
 $$;
 
 -- mood_analytics
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'mood_analytics' AND policyname = 'Users can view their own mood analytics') THEN
-        CREATE POLICY "Users can view their own mood analytics" 
-            ON public.mood_analytics 
-            FOR SELECT 
-            USING (auth.uid() = user_id);
-    END IF;
-END
-$$;
+-- Update select policy for admins
+DROP POLICY IF EXISTS "Users can view their own mood analytics" ON public.mood_analytics;
+CREATE POLICY "Users can view their own or admins can view all mood analytics" 
+    ON public.mood_analytics 
+    FOR SELECT 
+    USING (auth.uid() = user_id OR public.is_current_user_admin_or_owner());
 
 DO $$
 BEGIN
@@ -469,6 +495,31 @@ CREATE POLICY "Admins/owners can insert audit logs"
     ON public.audit_logs
     FOR INSERT
     WITH CHECK (public.is_current_user_admin_or_owner());
+
+-- system_settings (Owner only)
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Only owners can view system settings" ON public.system_settings;
+    DROP POLICY IF EXISTS "Only owners can update system settings" ON public.system_settings;
+    DROP POLICY IF EXISTS "Only owners can insert system settings" ON public.system_settings;
+END
+$$;
+
+CREATE POLICY "Only owners can view system settings"
+    ON public.system_settings
+    FOR SELECT
+    USING (public.is_current_user_owner());
+
+CREATE POLICY "Only owners can update system settings"
+    ON public.system_settings
+    FOR UPDATE
+    USING (public.is_current_user_owner())
+    WITH CHECK (public.is_current_user_owner());
+
+CREATE POLICY "Only owners can insert system settings"
+    ON public.system_settings
+    FOR INSERT
+    WITH CHECK (public.is_current_user_owner());
 
 -- ------------------------------
 -- 8. GRANT PERMISSIONS TO ROLES

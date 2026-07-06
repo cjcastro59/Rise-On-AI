@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface JournalEntryRow {
   id: string;
@@ -85,29 +86,41 @@ function getHoursDistribution(entries: JournalEntryRow[]) {
 export default function AdminJournalMonitorPage() {
   const [entries, setEntries] = useState<JournalEntryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const entriesPerPage = 10;
+  const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
+    if (!currentUser) return;
+
     const loadEntries = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        setError(null);
+        const { data, error: fetchError } = await supabase
           .from("journal_entries")
           .select("id, user_id, created_at, mood, content, emotions")
           .order("created_at", { ascending: false });
 
-        if (!error) {
+        if (fetchError) {
+          console.error("Error fetching entries:", fetchError);
+          setError(fetchError.message);
+          setEntries([]);
+        } else {
           setEntries((data as JournalEntryRow[]) || []);
         }
-      } catch (error) {
-        console.error("Error loading journal monitoring data:", error);
+      } catch (err) {
+        console.error("Error loading journal monitoring data:", err);
+        setError("An unexpected error occurred");
       } finally {
         setLoading(false);
       }
     };
 
     loadEntries();
-  }, [supabase]);
+  }, [supabase, currentUser]);
 
   const totalEntries = entries.length;
   const todaysEntries = entries.filter((entry) => isSameDay(entry.created_at, new Date())).length;
@@ -131,11 +144,17 @@ export default function AdminJournalMonitorPage() {
   const topLanguages = Object.entries(languageCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
-  const recentEntries = entries.slice(0, 8);
+  
   const distressSignals = entries.filter((entry) => {
     const combined = `${entry.mood || ""} ${entry.content || ""} ${entry.emotions?.join(" ") || ""}`.toLowerCase();
     return distressWords.some((word) => combined.includes(word));
   }).length;
+
+  // Pagination calculations
+  const totalPages = Math.ceil(entries.length / entriesPerPage);
+  const indexOfLastEntry = currentPage * entriesPerPage;
+  const indexOfFirstEntry = indexOfLastEntry - entriesPerPage;
+  const currentEntries = entries.slice(indexOfFirstEntry, indexOfLastEntry);
 
   return (
     <div className="space-y-6">
@@ -150,6 +169,15 @@ export default function AdminJournalMonitorPage() {
           </button>
         </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="p-4 bg-red-50 border-l-4 border-red-400 rounded-xl">
+          <p className="text-sm font-poppins text-red-700 flex items-center gap-2">
+            <span>⚠️</span> {error}
+          </p>
+        </div>
+      )}
 
       <div className="p-4 bg-gradient-to-r from-[#A8DADC]/20 to-[#CDB4DB]/20 rounded-xl border-l-4 border-l-[#A8DADC]">
         <p className="text-sm font-poppins text-[#4F4F4F] flex items-center gap-2">
@@ -279,11 +307,11 @@ export default function AdminJournalMonitorPage() {
                 <tr>
                   <td colSpan={7} className="py-6 text-center text-sm text-[#4F4F4F]/60 font-inter">Loading entry analytics…</td>
                 </tr>
-              ) : recentEntries.length === 0 ? (
+              ) : currentEntries.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-6 text-center text-sm text-[#4F4F4F]/60 font-inter">No journal entries found yet.</td>
                 </tr>
-              ) : recentEntries.map((entry) => {
+              ) : currentEntries.map((entry) => {
                 const sentiment = getSentimentPercent(entry.content, entry.mood, entry.emotions);
                 return (
                   <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
@@ -303,7 +331,7 @@ export default function AdminJournalMonitorPage() {
                       <p className="text-sm font-poppins text-[#4F4F4F]">{getMoodTag(entry.content, entry.mood, entry.emotions)}</p>
                     </td>
                     <td className="py-4 px-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${sentiment.label === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : "bg-[#52B788]/20 text-[#52B788]"}`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${sentiment.label === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : "bg-[#52B788]/20 text-[#52B788]" }`}>
                         {sentiment.percent}% {sentiment.label}
                       </span>
                     </td>
@@ -316,6 +344,49 @@ export default function AdminJournalMonitorPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {!loading && entries.length > 0 && (
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+            <p className="text-sm text-[#4F4F4F]/60 font-poppins">
+              Showing {indexOfFirstEntry + 1}–{Math.min(indexOfLastEntry, entries.length)} of {entries.length} entries
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed text-[#4F4F4F]"
+              >
+                ←
+              </button>
+              
+              {/* Page Numbers */}
+              <div className="flex items-center gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm font-poppins transition-colors ${
+                      currentPage === page
+                        ? "bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] text-white"
+                        : "text-[#4F4F4F] hover:bg-gray-100"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed text-[#4F4F4F]"
+              >
+                →
+              </button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

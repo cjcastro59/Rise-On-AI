@@ -3,15 +3,75 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
+import Image from "next/image";
+
+interface UserProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  full_name: string | null;
+  username: string | null;
+  role: string;
+  avatar_url: string | null;
+}
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const { user: currentUser } = useAuth();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const fetchUserProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_profiles")
+          .select("id, first_name, last_name, full_name, username, role, avatar_url")
+          .eq("id", currentUser.id)
+          .single();
+        
+        if (!error && data) {
+          setUserProfile(data);
+        }
+      } catch (err) {
+        console.error("Error fetching user profile:", err);
+      }
+    };
+
+    fetchUserProfile();
+  }, [currentUser, supabase]);
+
+  const getDisplayName = () => {
+    if (!userProfile) return "User";
+    if (userProfile.first_name && userProfile.last_name) {
+      return `${userProfile.first_name} ${userProfile.last_name}`;
+    }
+    if (userProfile.full_name) return userProfile.full_name;
+    if (userProfile.username) return userProfile.username;
+    return "User";
+  };
+
+  const getInitials = () => {
+    const name = getDisplayName();
+    return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+  };
 
   return (
     <aside className="w-72 bg-[#1E293B] text-white p-6 flex flex-col min-h-screen">
       <div className="mb-10">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">🌻</span>
+          <Image 
+            src="/logo/Without Text.png" 
+            alt="Rise On AI Logo" 
+            width={36} 
+            height={36}
+            className="rounded-lg"
+          />
           <h2 className="text-lg font-poppins font-semibold">Rise On AI</h2>
         </div>
         <p className="text-xs text-white/50 font-poppins mt-1">Admin Panel</p>
@@ -121,12 +181,24 @@ export default function AdminSidebar() {
       <div className="mt-auto">
         <div className="p-4 bg-white/5 rounded-xl border border-white/10 mb-3">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full flex items-center justify-center text-[#1E293B] font-bold font-poppins">
-              Ad
-            </div>
+            {userProfile?.avatar_url ? (
+              <Image
+                src={userProfile.avatar_url}
+                alt="Profile"
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-10 h-10 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full flex items-center justify-center text-[#1E293B] font-bold font-poppins">
+                {getInitials()}
+              </div>
+            )}
             <div>
-              <p className="text-sm font-poppins text-white">Admin</p>
-              <p className="text-xs text-white/50 font-poppins">Super Admin</p>
+              <p className="text-sm font-poppins text-white">{getDisplayName()}</p>
+              <p className="text-xs text-white/50 font-poppins">
+                {userProfile?.role?.charAt(0).toUpperCase() + userProfile?.role?.slice(1) || "User"}
+              </p>
             </div>
           </div>
         </div>
