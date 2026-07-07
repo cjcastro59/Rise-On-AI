@@ -20,9 +20,9 @@ const config: Config = {
         "header-bg": "#EAF7F8"
       },
       fontFamily: {
-        inter: ["var(--font-inter)"],
-        poppins: ["var(--font-poppins)"],
-        "dm-serif": ["var(--font-dm-serif-display)"],
+        inter: ["var(--font-inter)", "system-ui", "sans-serif"],
+        poppins: ["var(--font-poppins)", "system-ui", "sans-serif"],
+        "dm-serif": ["var(--font-dm-serif-display)", "Georgia", "serif"],
       }
     },
   },

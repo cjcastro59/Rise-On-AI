@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,12 +7,28 @@
 :root {
   --background: #ffffff;
   --foreground: #4F4F4F;
+  /* Use next/font/google variables first, fall back to Google Fonts direct */
+  --font-inter: var(--font-inter, 'Inter'), system-ui, sans-serif;
+  --font-poppins: var(--font-poppins, 'Poppins'), system-ui, sans-serif;
+  --font-dm-serif-display: var(--font-dm-serif-display, 'DM Serif Display'), Georgia, serif;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-inter);
+}
+
+.font-inter {
+  font-family: var(--font-inter);
+}
+
+.font-poppins {
+  font-family: var(--font-poppins);
+}
+
+.font-dm-serif {
+  font-family: var(--font-dm-serif-display);
 }
 
 @layer components {
