@@ -118,6 +118,17 @@ CREATE TABLE IF NOT EXISTS public.system_settings (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- announcements table
+CREATE TABLE IF NOT EXISTS public.announcements (
+    id UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_by UUID REFERENCES public.user_profiles(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- ------------------------------
 -- 3. Add Missing Columns to user_profiles
 -- ------------------------------
@@ -520,6 +531,27 @@ CREATE POLICY "Only owners can insert system settings"
     ON public.system_settings
     FOR INSERT
     WITH CHECK (public.is_current_user_owner());
+
+-- announcements table
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Everyone can view active announcements" ON public.announcements;
+    DROP POLICY IF EXISTS "Admins/owners can manage announcements" ON public.announcements;
+END
+$$;
+
+-- Everyone can view active announcements
+CREATE POLICY "Everyone can view active announcements"
+    ON public.announcements
+    FOR SELECT
+    USING (is_active = true);
+
+-- Admins/owners can manage all announcements
+CREATE POLICY "Admins/owners can manage announcements"
+    ON public.announcements
+    FOR ALL
+    USING (public.is_current_user_admin_or_owner())
+    WITH CHECK (public.is_current_user_admin_or_owner());
 
 -- ------------------------------
 -- 8. GRANT PERMISSIONS TO ROLES

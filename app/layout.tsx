@@ -3,9 +3,11 @@ import { Inter, Poppins, DM_Serif_Display } from "next/font/google";
 import ClientLayout from "@/components/layout/ClientLayout";
 import "../styles/globals.css";
 
+// Keep next/font/google for optimization
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
