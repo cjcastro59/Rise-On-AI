@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authenticator } from "@otplib/preset-default";
+import ReCAPTCHA from "react-google-recaptcha";
 
 type LoginStep = "credentials" | "2fa";
 
@@ -18,8 +19,11 @@ export function LoginForm() {
   const [error, setError] = useState("");
   const [step, setStep] = useState<LoginStep>("credentials");
   const [userId, setUserId] = useState<string | null>(null);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
   const router = useRouter();
   const supabase = createClient();
+  const recaptchaKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
   // Function to apply pending profile data
   const applyPendingProfileData = async (userId: string) => {
@@ -80,9 +84,26 @@ export function LoginForm() {
     setError("");
 
     try {
+      // Execute reCAPTCHA
+      if (!recaptchaToken) {
+        if (recaptchaRef.current) {
+          const token = await recaptchaRef.current.executeAsync();
+          setRecaptchaToken(token);
+        }
+      }
+
+      if (!recaptchaToken) {
+        setError("Please complete the reCAPTCHA");
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: {
+          captchaToken: recaptchaToken,
+        },
       });
 
       if (error) {
@@ -211,6 +232,16 @@ export function LoginForm() {
             required
             placeholder="Password"
           />
+        </div>
+        {/* reCAPTCHA v2 */}
+        <div className="flex justify-center">
+          {recaptchaKey && (
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={recaptchaKey}
+              onChange={(token) => setRecaptchaToken(token)}
+            />
+          )}
         </div>
         {error && (
           <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins">

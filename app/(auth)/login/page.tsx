@@ -62,10 +62,7 @@ export default function LoginPage() {
             </Link>
           </p>
           
-          <Link href="/support" className="mt-6 block bg-error-red/10 border border-error-red/30 rounded-xl p-4 flex items-center gap-2 hover:bg-error-red/20 transition">
-            <span className="text-base">🆘</span>
-            <p className="text-xs font-inter text-error-red">Need immediate help? Reach out.</p>
-          </Link>
+
         </div>
       </div>
     </div>

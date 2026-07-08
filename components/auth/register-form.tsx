@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { COUNTRIES } from "@/lib/constants";
+import ReCAPTCHA from "react-google-recaptcha";
+import { PrivacyPolicyModal } from "@/components/PrivacyPolicyModal";
 
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
 
@@ -50,8 +51,12 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
   const router = useRouter();
   const supabase = createClient();
+  const recaptchaKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
   const updateStep = (newStep: number) => {
     setStepLocal(newStep);
@@ -102,6 +107,20 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
     setError("");
 
     try {
+      // Execute reCAPTCHA
+      if (!recaptchaToken) {
+        if (recaptchaRef.current) {
+          const token = await recaptchaRef.current.executeAsync();
+          setRecaptchaToken(token);
+        }
+      }
+
+      if (!recaptchaToken) {
+        setError("Please complete the reCAPTCHA");
+        setLoading(false);
+        return;
+      }
+
       // First, let's store the profile data in localStorage in case we need it after email confirmation!
       localStorage.setItem('pendingProfileData', JSON.stringify(formData));
 
@@ -112,7 +131,8 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
           // Optional: disable email confirmation in Supabase dashboard for dev!
           data: {
             // We can put some data here but full profile needs to be in user_profiles
-          }
+          },
+          captchaToken: recaptchaToken,
         }
       });
 
@@ -278,10 +298,25 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
         <input type="checkbox" className="mt-1 accent-primary-blue" required />
         <p className="text-xs font-inter text-dark-text/70">
           I agree to the{" "}
-          <Link href="/privacy-policy" className="text-primary-blue font-semibold hover:underline">
+          <button 
+            type="button"
+            className="text-primary-blue font-semibold hover:underline"
+            onClick={() => setShowPrivacyPolicy(true)}
+          >
             Privacy Policy
-          </Link>. My mental health data is encrypted and never shared without consent.
+          </button>. My mental health data is encrypted and never shared without consent.
         </p>
+      </div>
+
+      {/* reCAPTCHA v2 */}
+      <div className="flex justify-center">
+        {recaptchaKey && (
+          <ReCAPTCHA
+            ref={recaptchaRef}
+            sitekey={recaptchaKey}
+            onChange={(token) => setRecaptchaToken(token)}
+          />
+        )}
       </div>
     </div>
   );
@@ -368,54 +403,57 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
   );
 
   return (
-    <div className="space-y-4 w-full">
-      {step === 1 && renderStep1()}
-      {step === 2 && renderStep2()}
-      {step === 3 && renderStep3()}
+    <>
+      <div className="space-y-4 w-full">
+        {step === 1 && renderStep1()}
+        {step === 2 && renderStep2()}
+        {step === 3 && renderStep3()}
 
-      {error && (
-        <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins">
-          {error}
+        {error && (
+          <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins">
+            {error}
+          </div>
+        )}
+
+        <div className="flex gap-3 pt-2">
+          {step > 1 && (
+            <Button
+              type="button"
+              variant="secondary"
+              className="flex-1"
+              onClick={() => updateStep(step - 1)}
+            >
+              Back
+            </Button>
+          )}
+          {step < 3 && (
+            <Button
+              type="button"
+              className="flex-1"
+              onClick={() => {
+                if (step === 1 && validateStep1()) {
+                  updateStep(2);
+                } else if (step === 2 && validateStep2()) {
+                  updateStep(3);
+                }
+              }}
+            >
+              {step === 2 ? "Continue" : "Next"}
+            </Button>
+          )}
+          {step === 3 && (
+            <Button
+              type="button"
+              className="flex-1"
+              disabled={loading}
+              onClick={handleRegister}
+            >
+              {loading ? "Creating account..." : "Complete Setup"}
+            </Button>
+          )}
         </div>
-      )}
-
-      <div className="flex gap-3 pt-2">
-        {step > 1 && (
-          <Button
-            type="button"
-            variant="secondary"
-            className="flex-1"
-            onClick={() => updateStep(step - 1)}
-          >
-            Back
-          </Button>
-        )}
-        {step < 3 && (
-          <Button
-            type="button"
-            className="flex-1"
-            onClick={() => {
-              if (step === 1 && validateStep1()) {
-                updateStep(2);
-              } else if (step === 2 && validateStep2()) {
-                updateStep(3);
-              }
-            }}
-          >
-            {step === 2 ? "Continue" : "Next"}
-          </Button>
-        )}
-        {step === 3 && (
-          <Button
-            type="button"
-            className="flex-1"
-            disabled={loading}
-            onClick={handleRegister}
-          >
-            {loading ? "Creating account..." : "Complete Setup"}
-          </Button>
-        )}
       </div>
-    </div>
+      {showPrivacyPolicy && <PrivacyPolicyModal onClose={() => setShowPrivacyPolicy(false)} />}
+    </>
   );
 }
