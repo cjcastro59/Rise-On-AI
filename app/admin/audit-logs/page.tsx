@@ -358,43 +358,55 @@ export default function AdminAuditLogsPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginatedLogs.map((log) => (
-                  <tr 
-                    key={log.id} 
-                    className={`${
-                      isSuspicious(log) ? "bg-red-50 hover:bg-red-100" : ""
-                    } transition-colors`}
-                  >
-                    <td><p className="text-sm font-inter text-dark-text/60">{formatTimestamp(log.created_at)}</p></td>
-                    <td><p className="text-sm font-poppins text-dark-text">{log.admin}</p></td>
-                    <td>
-                      <span className={`badge ${getRolePillClass(log.role)}`}>
-                        {log.role?.charAt(0).toUpperCase() + log.role?.slice(1) || "Unknown"}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        {log.action === "Export Data" && <span>📥</span>}
-                        {log.action === "Alert Review" && <span>👁️</span>}
-                        {log.action === "Settings Change" && <span>⚙️</span>}
-                        {log.action === "Report View" && <span>📊</span>}
-                        {log.action === "Database Backup" && <span>💾</span>}
-                        {log.action === "Login" && <span>🔐</span>}
-                        <p className="text-sm font-inter text-dark-text">{log.action}</p>
-                      </div>
-                    </td>
-                    <td><p className="text-sm font-mono text-dark-text">{log.details || "-"}</p></td>
-                    <td><p className="text-sm font-mono text-dark-text/60">{log.ip_address || "-"}</p></td>
-                    <td>
-                      <span className={`badge ${
-                        log.status === "Success" ? "badge-success" : "badge-error"
-                      }`}>
-                        {log.status || "Unknown"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
+              {paginatedLogs.map((log) => (
+                <tr 
+                  key={log.id} 
+                  className={`${
+                    isSuspicious(log) ? "bg-red-50 hover:bg-red-100" : ""
+                  } transition-colors`}
+                >
+                  <td><p className="text-sm font-inter text-dark-text/60">{formatTimestamp(log.created_at)}</p></td>
+                  <td><p className="text-sm font-poppins text-dark-text">{log.admin}</p></td>
+                  <td>
+                    <span className={`badge ${getRolePillClass(log.role)}`}>
+                      {log.role?.charAt(0).toUpperCase() + log.role?.slice(1) || "Unknown"}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      {log.action === "Export Data" && <span>📥</span>}
+                      {log.action === "Alert Review" && <span>👁️</span>}
+                      {log.action === "Settings Change" && <span>⚙️</span>}
+                      {log.action === "Report View" && <span>📊</span>}
+                      {log.action === "Database Backup" && <span>💾</span>}
+                      {log.action === "Login" && <span>🔐</span>}
+                      <p className="text-sm font-inter text-dark-text">{log.action}</p>
+                    </div>
+                  </td>
+                  <td><p className="text-sm font-mono text-dark-text">{log.details || "-"}</p></td>
+                  <td><p className="text-sm font-mono text-dark-text/60">{log.ip_address || "-"}</p></td>
+                  <td>
+                    <span className={`badge ${
+                      log.status === "Success" ? "badge-success" : "badge-error"
+                    }`}>
+                      {log.status || "Unknown"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {/* Add empty rows to maintain consistent table height */}
+              {Array.from({ length: PAGE_SIZE - paginatedLogs.length }).map((_, index) => (
+                <tr key={`empty-${index}`} className="border-b border-gray-100">
+                  <td className="py-4 px-3"></td>
+                  <td className="py-4 px-3"></td>
+                  <td className="py-4 px-3"></td>
+                  <td className="py-4 px-3"></td>
+                  <td className="py-4 px-3"></td>
+                  <td className="py-4 px-3"></td>
+                  <td className="py-4 px-3"></td>
+                </tr>
+              ))}
+            </tbody>
             </table>
           )}
         </div>

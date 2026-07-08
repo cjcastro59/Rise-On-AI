@@ -18,6 +18,17 @@ const positiveWords = ["happy", "calm", "hopeful", "grateful", "peaceful", "joy"
 const negativeWords = ["sad", "anxious", "angry", "stress", "stressed", "worried", "overwhelmed", "lonely", "depressed", "frustrated", "hurt", "afraid", "panic", "tired"];
 const distressWords = ["panic", "suicidal", "hurt", "unsafe", "hopeless", "worthless", "afraid", "overwhelmed"];
 
+const moodEmojiMap: Record<string, string> = {
+  "Happy": "😊",
+  "Anxious": "😰",
+  "Sad": "😢",
+  "Frustrated": "😤",
+  "Calm": "😌",
+  "Excited": "🎉",
+  "Confused": "😕",
+  "Overwhelmed": "😵"
+};
+
 function getWordCount(content: string | null) {
   if (!content) return 0;
   return content.trim().split(/\s+/).filter(Boolean).length;
@@ -34,7 +45,13 @@ function getLanguage(content: string | null) {
 }
 
 function getMoodTag(content: string | null, mood: string | null, emotions: string[] | null) {
-  const combined = `${mood || ""} ${content || ""} ${emotions?.join(" ") || ""}`.toLowerCase();
+  // If user selected a mood, use that with emoji
+  if (mood && moodEmojiMap[mood]) {
+    return `${moodEmojiMap[mood]} ${mood}`;
+  }
+  
+  // Otherwise, use sentiment-based tag
+  const combined = `${content || ""} ${emotions?.join(" ") || ""}`.toLowerCase();
   let score = 0;
 
   positiveWords.forEach((word) => {
@@ -44,9 +61,9 @@ function getMoodTag(content: string | null, mood: string | null, emotions: strin
     if (combined.includes(word)) score -= 1;
   });
 
-  if (score > 0) return "Positive";
-  if (score < 0) return "Negative";
-  return "Neutral";
+  if (score > 0) return "😊 Positive";
+  if (score < 0) return "😟 Negative";
+  return "😐 Neutral";
 }
 
 function getSentimentPercent(content: string | null, mood: string | null, emotions: string[] | null) {
@@ -311,36 +328,52 @@ export default function AdminJournalMonitorPage() {
                 <tr>
                   <td colSpan={7} className="py-6 text-center text-sm text-[#4F4F4F]/60 font-inter">No journal entries found yet.</td>
                 </tr>
-              ) : currentEntries.map((entry) => {
-                const sentiment = getSentimentPercent(entry.content, entry.mood, entry.emotions);
-                return (
-                  <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-4 px-3">
-                      <p className="font-poppins font-mono text-sm text-[#A8DADC] font-semibold">ENTRY-{String(entry.id).slice(0, 4).toUpperCase()}</p>
-                    </td>
-                    <td className="py-4 px-3">
-                      <p className="text-sm font-inter text-[#4F4F4F]/60">{new Date(entry.created_at).toLocaleString()}</p>
-                    </td>
-                    <td className="py-4 px-3">
-                      <p className="text-sm font-poppins text-[#4F4F4F]">{getWordCount(entry.content)}</p>
-                    </td>
-                    <td className="py-4 px-3">
-                      <span className="px-2 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-semibold font-poppins text-[#4F4F4F]">{getLanguage(entry.content)}</span>
-                    </td>
-                    <td className="py-4 px-3">
-                      <p className="text-sm font-poppins text-[#4F4F4F]">{getMoodTag(entry.content, entry.mood, entry.emotions)}</p>
-                    </td>
-                    <td className="py-4 px-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${sentiment.label === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : "bg-[#52B788]/20 text-[#52B788]" }`}>
-                        {sentiment.percent}% {sentiment.label}
-                      </span>
-                    </td>
-                    <td className="py-4 px-3">
-                      <span className="px-2 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-semibold font-poppins text-[#4F4F4F]">Done</span>
-                    </td>
-                  </tr>
-                );
-              })}
+              ) : (
+                <>
+                  {currentEntries.map((entry) => {
+                    const sentiment = getSentimentPercent(entry.content, entry.mood, entry.emotions);
+                    return (
+                      <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-4 px-3">
+                          <p className="font-poppins font-mono text-sm text-[#A8DADC] font-semibold">ENTRY-{String(entry.id).slice(0, 4).toUpperCase()}</p>
+                        </td>
+                        <td className="py-4 px-3">
+                          <p className="text-sm font-inter text-[#4F4F4F]/60">{new Date(entry.created_at).toLocaleString()}</p>
+                        </td>
+                        <td className="py-4 px-3">
+                          <p className="text-sm font-poppins text-[#4F4F4F]">{getWordCount(entry.content)}</p>
+                        </td>
+                        <td className="py-4 px-3">
+                          <span className="px-2 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-semibold font-poppins text-[#4F4F4F]">{getLanguage(entry.content)}</span>
+                        </td>
+                        <td className="py-4 px-3">
+                          <p className="text-sm font-poppins text-[#4F4F4F]">{getMoodTag(entry.content, entry.mood, entry.emotions)}</p>
+                        </td>
+                        <td className="py-4 px-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${sentiment.label === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : "bg-[#52B788]/20 text-[#52B788]" }`}>
+                            {sentiment.percent}% {sentiment.label}
+                          </span>
+                        </td>
+                        <td className="py-4 px-3">
+                          <span className="px-2 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-semibold font-poppins text-[#4F4F4F]">Done</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {/* Add empty rows to maintain consistent table height */}
+                  {Array.from({ length: entriesPerPage - currentEntries.length }).map((_, index) => (
+                    <tr key={`empty-${index}`} className="border-b border-gray-100">
+                      <td className="py-4 px-3"></td>
+                      <td className="py-4 px-3"></td>
+                      <td className="py-4 px-3"></td>
+                      <td className="py-4 px-3"></td>
+                      <td className="py-4 px-3"></td>
+                      <td className="py-4 px-3"></td>
+                      <td className="py-4 px-3"></td>
+                    </tr>
+                  ))}
+                </>
+              )}
             </tbody>
           </table>
         </div>
