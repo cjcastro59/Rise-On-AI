@@ -49,6 +49,7 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
     language: "English",
     country: "",
   });
+  const [privacyPolicyAccepted, setPrivacyPolicyAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
@@ -87,6 +88,10 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
     }
     if (!doPasswordsMatch) {
       setError("Passwords do not match.");
+      return false;
+    }
+    if (!privacyPolicyAccepted) {
+      setError("Please accept the Privacy Policy to proceed.");
       return false;
     }
     setError("");
@@ -295,7 +300,12 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       </div>
 
       <div className="flex items-start gap-2">
-        <input type="checkbox" className="mt-1 accent-primary-blue" required />
+        <input 
+          type="checkbox" 
+          className="mt-1 accent-primary-blue" 
+          checked={privacyPolicyAccepted}
+          onChange={(e) => setPrivacyPolicyAccepted(e.target.checked)}
+        />
         <p className="text-xs font-inter text-dark-text/70">
           I agree to the{" "}
           <button 

@@ -37,7 +37,6 @@ export default function MoodInsightsPage() {
 
   const moodColors = {
     "Joy & Hope": "#A8DADC",
-    "Calm & Neutral": "#B8E0D2",
     "Uncertainty": "#CDB4DB",
     "Anxiety / Stress": "#F4A6A6"
   };
@@ -123,9 +122,9 @@ export default function MoodInsightsPage() {
   };
 
   // Get sentiment of an entry
-  const getEntrySentiment = (entry: JournalEntry): "positive" | "neutral" | "negative" => {
+  const getEntrySentiment = (entry: JournalEntry): "positive" | "negative" | "distress" => {
     let sentiment = analyzeSentiment(entry.content);
-    if (sentiment === "neutral" && entry.mood) {
+    if (entry.mood) {
       sentiment = getSentimentFromMood(entry.mood);
     }
     return sentiment;
@@ -144,7 +143,11 @@ export default function MoodInsightsPage() {
       }
       return "Uncertainty";
     }
-    return "Calm & Neutral";
+    // Distress case
+    if (sentiment === "distress") {
+      return "Anxiety / Stress";
+    }
+    return "Uncertainty";
   };
 
   // Calculate statistics
@@ -181,7 +184,6 @@ export default function MoodInsightsPage() {
   // Emotion distribution
   const emotionDistribution: Record<string, number> = {
     "Joy & Hope": 0,
-    "Calm & Neutral": 0,
     "Uncertainty": 0,
     "Anxiety / Stress": 0
   };
@@ -427,7 +429,7 @@ export default function MoodInsightsPage() {
                     } else if (sentiment === "negative") {
                       color = "bg-[#F4A6A6]";
                     } else {
-                      color = "bg-[#CDB4DB]";
+                      color = "bg-[#A8DADC]";
                     }
                   }
                 }

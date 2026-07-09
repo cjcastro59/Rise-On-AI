@@ -618,6 +618,10 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE O
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO anon;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO anon, authenticated, service_role;
 
+-- Add new columns to user_profiles (for existing tables)
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS two_factor_enabled boolean DEFAULT false;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS two_factor_secret text;
+
+-- Add two_factor_skipped column to user_profiles table
 ALTER TABLE user_profiles 
-ADD COLUMN IF NOT EXISTS two_factor_enabled boolean DEFAULT false,
-ADD COLUMN IF NOT EXISTS two_factor_secret text;
+ADD COLUMN IF NOT EXISTS two_factor_skipped BOOLEAN DEFAULT FALSE;

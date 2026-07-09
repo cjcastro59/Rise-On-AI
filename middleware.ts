@@ -57,12 +57,17 @@ export async function middleware(request: NextRequest) {
     // Get user profile to check role and 2FA status
     const { data: profile } = await supabase
       .from("user_profiles")
-      .select("role, two_factor_enabled")
+      .select("role, two_factor_enabled, two_factor_skipped")
       .eq("id", user.id)
       .single();
 
-    // Check if user needs to set up 2FA
-    const needs2FASetup = !profile || profile.two_factor_enabled === false;
+    // If already on login or register - don't redirect! Let the login component handle it!
+    if (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/register") {
+      return response;
+    }
+
+    // Check if user needs to set up 2FA (only if not skipped)
+    const needs2FASetup = !profile || (profile.two_factor_enabled === false && !profile.two_factor_skipped);
     const isOnSetupPage = request.nextUrl.pathname === "/setup-2fa";
 
     // Redirect to setup-2fa if needed (and not already there)
@@ -74,14 +79,6 @@ export async function middleware(request: NextRequest) {
 
     // If already on setup-2fa and doesn't need it, redirect to dashboard
     if (!needs2FASetup && isOnSetupPage) {
-      if (profile && ["admin", "owner", "researcher", "counselor"].includes(profile.role)) {
-        return NextResponse.redirect(new URL("/admin/dashboard", request.url));
-      }
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-
-    // If user is trying to access login/register, redirect based on role
-    if (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/register") {
       if (profile && ["admin", "owner", "researcher", "counselor"].includes(profile.role)) {
         return NextResponse.redirect(new URL("/admin/dashboard", request.url));
       }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { analyzeSentiment } from "@/lib/sentiment";
 
 interface JournalEntryRow {
   id: string;
@@ -17,21 +18,11 @@ const negativeWords = ["sad", "anxious", "angry", "stress", "stressed", "worried
 const distressWords = ["panic", "suicidal", "hurt", "unsafe", "hopeless", "worthless", "afraid", "overwhelmed"];
 
 function classifyEntry(entry: JournalEntryRow) {
-  const text = `${entry.mood || ""} ${entry.content || ""} ${entry.emotions?.join(" ") || ""}`.toLowerCase();
-  let positiveScore = 0;
-  let negativeScore = 0;
-
-  positiveWords.forEach((word) => {
-    if (text.includes(word)) positiveScore += 1;
-  });
-  negativeWords.forEach((word) => {
-    if (text.includes(word)) negativeScore += 1;
-  });
-
-  if (distressWords.some((word) => text.includes(word))) return "Distress";
-  if (positiveScore > negativeScore) return "Positive";
-  if (negativeScore > positiveScore) return "Negative";
-  return "Neutral";
+  // Use our analyzeSentiment function
+  const sentiment = analyzeSentiment(entry.content);
+  if (sentiment === "distress") return "Distress";
+  if (sentiment === "positive") return "Positive";
+  return "Negative";
 }
 
 function isSameDay(dateString: string, target: Date) {
@@ -73,8 +64,8 @@ export default function AdminMoodTrendsPage() {
 
   const totalEntries = entries.length || 1;
   const positivePercent = Math.round(((categories.Positive || 0) / totalEntries) * 100);
-  const neutralPercent = Math.round(((categories.Neutral || 0) / totalEntries) * 100);
-  const mixedPercent = Math.round(((categories.Negative || 0) / totalEntries) * 100);
+  const negativePercent = Math.round(((categories.Negative || 0) / totalEntries) * 100);
+  const mixedPercent = Math.round(((categories.Mixed || 0) / totalEntries) * 100);
   const distressPercent = Math.round(((categories.Distress || 0) / totalEntries) * 100);
 
   const lastSevenDays = Array.from({ length: 7 }, (_, index) => {
@@ -126,10 +117,10 @@ export default function AdminMoodTrendsPage() {
         </Card>
         <Card className="p-5">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">😐</div>
+            <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">�</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">NEUTRAL ENTRIES</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : `${neutralPercent}%`}</p>
+              <p className="text-xs text-[#4F4F4F]/60 font-poppins">NEGATIVE ENTRIES</p>
+              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : `${negativePercent}%`}</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full"></div>

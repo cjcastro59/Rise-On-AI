@@ -74,21 +74,21 @@ export default function DashboardPage() {
     let scoreCount = 0;
     entries.forEach(entry => {
       if (entry.mood) {
-        const moodOption = moodOptions.find(m => m.label === entry.mood);
-        if (moodOption) {
-          totalScore += moodOption.score;
-          scoreCount++;
+          const moodOption = moodOptions.find(m => m.label === entry.mood);
+          if (moodOption) {
+            totalScore += moodOption.score;
+            scoreCount++;
+          }
+        } else {
+          const sentiment = analyzeSentiment(entry.content || "");
+          if (sentiment === "positive") {
+            totalScore += 8;
+            scoreCount++;
+          } else if (sentiment === "negative" || sentiment === "distress") {
+            totalScore += 2;
+            scoreCount++;
+          }
         }
-      } else {
-        const sentiment = analyzeSentiment(entry.content || "");
-        if (sentiment === "positive") {
-          totalScore += 8;
-          scoreCount++;
-        } else if (sentiment === "negative") {
-          totalScore += 2;
-          scoreCount++;
-        }
-      }
     });
     const avgMoodScore = scoreCount > 0 ? parseFloat((totalScore / scoreCount).toFixed(1)) : 0;
 
@@ -99,7 +99,7 @@ export default function DashboardPage() {
     let positiveCount = 0;
     thisWeekEntries.forEach(entry => {
       let sentiment = analyzeSentiment(entry.content || "");
-      if (sentiment === "neutral" && entry.mood) {
+      if (entry.mood) {
         sentiment = getSentimentFromMood(entry.mood);
       }
       if (sentiment === "positive") positiveCount++;
@@ -146,7 +146,7 @@ export default function DashboardPage() {
             if (sentiment === "positive") {
               totalScore += 8;
               count++;
-            } else if (sentiment === "negative") {
+            } else if (sentiment === "negative" || sentiment === "distress") {
               totalScore += 2;
               count++;
             }

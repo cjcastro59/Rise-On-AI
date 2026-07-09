@@ -18,77 +18,43 @@ export default function Setup2FAPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [step, setStep] = useState(1); // 1 = setup, 2 = complete
+  const [step, setStep] = useState(1); // 1 = intro, 2 = setup, 3 = complete
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
-  const initialize2FA = useCallback(async () => {
+  const initializeAuthenticator = useCallback(async () => {
     if (!user) return;
     try {
       setLoading(true);
 
-      // Check if user already has 2FA enabled or already has a secret set
-      let { data: profile, error: fetchError } = await supabase
+      let { data: profile } = await supabase
         .from("user_profiles")
         .select("two_factor_enabled, two_factor_secret")
         .eq("id", user.id)
         .single();
 
-      // If no profile exists, create one!
-      if (fetchError || !profile) {
-        console.log("Creating new user profile...");
-        const { error: insertError } = await supabase
-          .from("user_profiles")
-          .insert({
-            id: user.id,
-            email: user.email,
-            role: "user",
-            two_factor_enabled: false,
-            two_factor_secret: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
-
-        if (insertError) {
-          console.error("Error creating profile:", insertError);
-        }
-
-        // Fetch the new profile
-        const { data: newProfile } = await supabase
-          .from("user_profiles")
-          .select("two_factor_enabled, two_factor_secret")
-          .eq("id", user.id)
-          .single();
-        profile = newProfile;
-      }
-
-      if (profile?.two_factor_enabled) {
-        router.push("/dashboard");
-        return;
+      if (!profile) {
+        await supabase.from("user_profiles").insert({
+          id: user.id,
+          email: user.email,
+          role: "user",
+          two_factor_enabled: false,
+          two_factor_secret: null,
+        });
       }
 
       let currentSecret = profile?.two_factor_secret;
 
-      // If no secret exists yet, generate and save one!
       if (!currentSecret) {
         currentSecret = authenticator.generateSecret();
-
-        // Save the secret to the database right away!
-        const { error: saveError } = await supabase
+        await supabase
           .from("user_profiles")
-          .update({
-            two_factor_secret: currentSecret
-          })
+          .update({ two_factor_secret: currentSecret })
           .eq("id", user.id);
-
-        if (saveError) {
-          console.error("Error saving secret:", saveError);
-        }
       }
 
-      // Generate QR code URL — first param empty so it just says "Rise On AI"
-      const newOtpAuthUrl = authenticator.keyuri("", "Rise On AI", currentSecret);
+      const newOtpAuthUrl = authenticator.keyuri(user.email || "", "Rise On AI", currentSecret);
       setSecret(currentSecret);
       setOtpAuthUrl(newOtpAuthUrl);
     } catch (err) {
@@ -97,16 +63,7 @@ export default function Setup2FAPage() {
     } finally {
       setLoading(false);
     }
-  }, [router, supabase, user]);
-
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-    initialize2FA();
-  }, [authLoading, initialize2FA, router, user]);
+  }, [supabase, user]);
 
   const verifyAndEnable2FA = async () => {
     if (!user) return;
@@ -114,16 +71,11 @@ export default function Setup2FAPage() {
       setLoading(true);
       setError("");
 
-      // First get the saved secret from the database to make sure!
       const { data: profile } = await supabase
         .from("user_profiles")
         .select("two_factor_secret")
         .eq("id", user.id)
         .single();
-
-      console.log("📝 Profile from DB:", profile);
-      console.log("🔑 Secret being used:", profile?.two_factor_secret);
-      console.log("🔢 Verification code entered:", verificationCode);
 
       if (!profile?.two_factor_secret) {
         setError("Secret not found, please refresh the page!");
@@ -135,23 +87,21 @@ export default function Setup2FAPage() {
         token: verificationCode,
       });
 
-      console.log("✅ Verification result:", verified);
-
-      if (verified) {
-        // Update the user profile
-        await supabase
-          .from("user_profiles")
-          .update({
-            two_factor_enabled: true
-          })
-          .eq("id", user.id);
-
-        setStep(2);
-        setSuccess("Two-Factor Authentication set up successfully!");
-      } else {
+      if (!verified) {
         const expected = authenticator.generate(profile.two_factor_secret);
         setError(`Invalid verification code! Expected: ${expected}. Please try again.`);
+        return;
       }
+
+      await supabase
+        .from("user_profiles")
+        .update({
+          two_factor_enabled: true,
+        })
+        .eq("id", user.id);
+
+      setStep(3);
+      setSuccess("Two-Factor Authentication set up successfully!");
     } catch (err) {
       setError("Failed to enable 2FA. Please try again.");
       console.error("2FA Verify Error:", err);
@@ -162,26 +112,57 @@ export default function Setup2FAPage() {
 
   const skip2FA = async () => {
     if (!user) return;
-    // Still set the profile with 2FA disabled, but let them skip for now
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("id")
-      .eq("id", user.id)
-      .single();
+    try {
+      setLoading(true);
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("id")
+        .eq("id", user.id)
+        .single();
 
-    if (!profile) {
-      // Create basic profile if it doesn't exist
-      await supabase.from("user_profiles").insert({
-        id: user.id,
-        email: user.email,
-        role: "user",
-        two_factor_enabled: false,
-        two_factor_secret: null,
-      });
+      if (!profile) {
+        await supabase.from("user_profiles").insert({
+          id: user.id,
+          email: user.email,
+          role: "user",
+          two_factor_enabled: false,
+          two_factor_secret: null,
+          two_factor_skipped: true,
+        });
+      } else {
+        await supabase
+          .from("user_profiles")
+          .update({ two_factor_skipped: true })
+          .eq("id", user.id);
+      }
+
+      router.push("/dashboard");
+      router.refresh();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push("/login");
+      return;
     }
 
-    router.push("/dashboard");
-  };
+    const checkExisting = async () => {
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("two_factor_enabled")
+        .eq("id", user.id)
+        .single();
+      if (profile?.two_factor_enabled) {
+        router.push("/dashboard");
+      }
+    };
+
+    checkExisting();
+  }, [authLoading, router, supabase, user]);
 
   if (authLoading) {
     return (
@@ -202,7 +183,47 @@ export default function Setup2FAPage() {
                   Secure Your Account
                 </h2>
                 <p className="text-sm font-inter text-dark-text/70">
-                  Set up Two-Factor Authentication for extra security
+                  Set up Two-Factor Authentication with an authenticator app
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setStep(2);
+                    initializeAuthenticator();
+                  }}
+                  className="w-full justify-start text-left h-auto py-4 border border-light-gray"
+                >
+                  <div className="space-y-1">
+                    <div className="font-semibold font-poppins text-dark-text">
+                      Authenticator App
+                    </div>
+                    <div className="text-xs font-inter text-dark-text/60">
+                      Use Google Authenticator, Authy, or similar
+                    </div>
+                  </div>
+                </Button>
+              </div>
+
+              <Button
+                variant="ghost"
+                onClick={skip2FA}
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? "Redirecting..." : "Skip for now (not recommended)"}
+              </Button>
+            </div>
+          ) : step === 2 ? (
+            <div className="space-y-6">
+              <div className="text-center">
+                <h2 className="text-2xl font-dm-serif text-dark-text mb-2">
+                  Set Up Authenticator
+                </h2>
+                <p className="text-sm font-inter text-dark-text/70">
+                  Follow the steps below
                 </p>
               </div>
 
@@ -232,7 +253,7 @@ export default function Setup2FAPage() {
                   placeholder="Enter 6-digit code"
                   value={verificationCode}
                   onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, ''); // Only allow numbers!
+                    const value = e.target.value.replace(/\D/g, '');
                     setVerificationCode(value);
                   }}
                   maxLength={6}
@@ -255,10 +276,10 @@ export default function Setup2FAPage() {
                   </Button>
                   <Button
                     variant="ghost"
-                    onClick={skip2FA}
+                    onClick={() => setStep(1)}
                     className="w-full"
                   >
-                    Skip for now (not recommended)
+                    Back
                   </Button>
                 </div>
               </div>
