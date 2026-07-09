@@ -24,9 +24,9 @@ export default async function ProtectedLayout({
   const userName = profile?.first_name || profile?.username || user.email?.split("@")[0] || "Friend";
 
   return (
-    <div className="min-h-screen bg-white flex">
+    <div className="h-screen bg-white flex overflow-hidden">
       <Sidebar userName={userName} />
-      <main className="flex-1 bg-gradient-to-br from-header-bg to-white p-8 overflow-y-auto">
+      <main className="flex-1 min-h-0 bg-gradient-to-br from-header-bg to-white p-8 overflow-y-auto">
         <ProtectedContentWrapper userName={userName}>
           {children}
         </ProtectedContentWrapper>

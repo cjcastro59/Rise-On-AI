@@ -62,7 +62,7 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className="w-72 bg-[#1E293B] text-white p-6 flex flex-col min-h-screen">
+    <aside className="w-72 bg-[#1E293B] text-white p-6 flex flex-col h-full min-h-screen">
       <div className="mb-10">
         <div className="flex items-center gap-2">
           <Image 
@@ -87,7 +87,7 @@ export default function AdminSidebar() {
               pathname === "/admin/dashboard" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <span>📊</span> Dashboard
+            <img src="/icons/dashboard.svg" alt="Dashboard" className="w-5 h-5" /> Dashboard
           </Link>
           <Link
             href="/admin/users"
@@ -95,7 +95,7 @@ export default function AdminSidebar() {
               pathname === "/admin/users" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <span>👥</span> User Management
+            <img src="/icons/account.svg" alt="User Management" className="w-5 h-5" /> User Management
           </Link>
         </div>
       </div>
@@ -110,7 +110,7 @@ export default function AdminSidebar() {
               pathname === "/admin/journal-monitor" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <span>📝</span> Journal Monitor
+            <img src="/icons/journal.svg" alt="Journal Monitor" className="w-5 h-5" /> Journal Monitor
           </Link>
           <Link
             href="/admin/mood-trends"
@@ -118,7 +118,7 @@ export default function AdminSidebar() {
               pathname === "/admin/mood-trends" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <span>📈</span> Mood Reports
+            <img src="/icons/trends.svg" alt="Mood Reports" className="w-5 h-5" /> Mood Reports
           </Link>
           <Link
             href="/admin/sentiment-monitoring"
@@ -126,7 +126,7 @@ export default function AdminSidebar() {
               pathname === "/admin/sentiment-monitoring" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <span>🤖</span> Sentiment Monitor
+            <img src="/icons/ai-sentiment.svg" alt="Sentiment Monitor" className="w-5 h-5" /> Sentiment Monitor
           </Link>
           <Link
             href="/admin/feedback"
@@ -134,7 +134,7 @@ export default function AdminSidebar() {
               pathname === "/admin/feedback" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <span>💬</span> Feedback
+            <img src="/icons/mood.svg" alt="Feedback" className="w-5 h-5" /> Feedback
           </Link>
         </div>
       </div>
@@ -149,7 +149,7 @@ export default function AdminSidebar() {
               pathname === "/admin/distress-alerts" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <span>🚨</span> Distress Alerts
+            <img src="/icons/crisis-support.svg" alt="Distress Alerts" className="w-5 h-5" /> Distress Alerts
             <span className="ml-auto bg-[#F4A6A6] text-[#1E293B] text-[10px] px-2 py-0.5 rounded-full font-bold">9</span>
           </Link>
         </div>
@@ -165,7 +165,7 @@ export default function AdminSidebar() {
               pathname === "/admin/system-settings" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <span>⚙️</span> Settings
+            <img src="/icons/settings.svg" alt="Settings" className="w-5 h-5 filter invert brightness-200" /> Settings
           </Link>
           <Link
             href="/admin/audit-logs"
@@ -173,7 +173,7 @@ export default function AdminSidebar() {
               pathname === "/admin/audit-logs" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <span>📋</span> Audit Logs
+            <img src="/icons/data-export.svg" alt="Audit Logs" className="w-5 h-5" /> Audit Logs
           </Link>
         </div>
       </div>
@@ -204,7 +204,7 @@ export default function AdminSidebar() {
         </div>
         <form action="/api/auth/signout" method="post">
           <Button variant="secondary" className="w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
-            <span className="text-xl">🚪</span>
+            <img src="/icons/logout.svg" alt="Log Out" className="w-5 h-5" />
             Log Out
           </Button>
         </form>

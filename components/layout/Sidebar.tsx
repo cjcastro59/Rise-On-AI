@@ -13,6 +13,7 @@ interface SidebarProps {
 
 export default function Sidebar({ userName }: SidebarProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const pathname = usePathname();
   const { user } = useAuth();
   const supabase = createClient();
@@ -21,12 +22,13 @@ export default function Sidebar({ userName }: SidebarProps) {
     if (user) {
       supabase
         .from("user_profiles")
-        .select("avatar_url")
+        .select("avatar_url, role")
         .eq("id", user.id)
         .single()
         .then(({ data }) => {
           if (data) {
             setAvatarUrl(data.avatar_url);
+            setUserRole(data.role);
           }
         });
     }
@@ -56,7 +58,7 @@ export default function Sidebar({ userName }: SidebarProps) {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-light-gray p-6 hidden md:block">
+    <aside className="w-64 bg-white border-r border-light-gray p-6 hidden md:flex md:flex-col md:h-full md:min-h-screen">
       <div className="flex items-center gap-2 mb-10">
         <img
           src="/logo/Without Text.png"
@@ -66,7 +68,7 @@ export default function Sidebar({ userName }: SidebarProps) {
         <span className="font-poppins font-bold text-dark-text text-xl">Rise On</span>
       </div>
 
-      <nav className="space-y-2 mb-10">
+      <nav className="flex-1 space-y-2 mb-10">
         <Link
           href="/dashboard"
           className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
@@ -75,7 +77,7 @@ export default function Sidebar({ userName }: SidebarProps) {
               : "text-dark-text hover:bg-light-gray"
           }`}
         >
-          <span className="text-xl">📊</span>
+          <img src="/icons/dashboard.svg" alt="Dashboard" className="w-5 h-5" />
           Dashboard
         </Link>
         <Link
@@ -86,7 +88,7 @@ export default function Sidebar({ userName }: SidebarProps) {
               : "text-dark-text hover:bg-light-gray"
           }`}
         >
-          <span className="text-xl">📝</span>
+          <img src="/icons/new-entry.svg" alt="New Entry" className="w-5 h-5" />
           New Entry
         </Link>
         <Link
@@ -97,7 +99,7 @@ export default function Sidebar({ userName }: SidebarProps) {
               : "text-dark-text hover:bg-light-gray"
           }`}
         >
-          <span className="text-xl">📖</span>
+          <img src="/icons/journal.svg" alt="My Journal" className="w-5 h-5" />
           My Journal
         </Link>
         <Link
@@ -108,7 +110,7 @@ export default function Sidebar({ userName }: SidebarProps) {
               : "text-dark-text hover:bg-light-gray"
           }`}
         >
-          <span className="text-xl">📈</span>
+          <img src="/icons/mood-insights.svg" alt="Mood Insights" className="w-5 h-5" />
           Mood Insights
         </Link>
         <Link
@@ -119,7 +121,7 @@ export default function Sidebar({ userName }: SidebarProps) {
               : "text-dark-text hover:bg-light-gray"
           }`}
         >
-          <span className="text-xl">🤖</span>
+          <img src="/icons/ai-reports.svg" alt="AI Reports" className="w-5 h-5" />
           AI Reports
         </Link>
       </nav>
@@ -133,37 +135,50 @@ export default function Sidebar({ userName }: SidebarProps) {
               : "text-dark-text hover:bg-light-gray"
           }`}
         >
-          <span className="text-xl">⚙️</span>
+          <img src="/icons/settings.svg" alt="Settings" className="w-5 h-5" />
           Settings
-        </Link>
-        <Link
-          href="/profile"
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
-            isActive("profile")
-              ? "bg-primary-blue/10 text-primary-blue font-semibold"
-              : "text-dark-text hover:bg-light-gray"
-          }`}
-        >
-          {avatarUrl ? (
-            <img src={avatarUrl} alt="Profile" className="w-8 h-8 rounded-full object-cover" />
-          ) : (
-            <span className="text-xl">👤</span>
-          )}
-          Profile
         </Link>
       </div>
 
-      <div className="space-y-3">
+      <div className="mt-auto">
+        <Link
+          href="/profile"
+          className="block p-4 mb-4 bg-slate-100 rounded-xl border border-slate-200 transition-all hover:border-primary-blue/20 hover:bg-white"
+        >
+          <div className="flex items-center gap-3 mb-2">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Profile" className="w-12 h-12 rounded-full object-cover" />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-primary-blue/10 flex items-center justify-center text-primary-blue font-bold text-sm">
+                {userName
+                  .split(" ")
+                  .map((part) => part[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-semibold text-dark-text">{userName}</p>
+              <p className="text-xs text-dark-text/60">{userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : "User"}</p>
+            </div>
+          </div>
+          <p className="text-xs text-dark-text/60">Manage your profile, settings, and support access.</p>
+          <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+            <span>Edit profile</span>
+            <span className="font-semibold">→</span>
+          </div>
+        </Link>
         <Link
           href="/support"
-          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-soft-red/10 text-soft-red text-sm font-poppins font-semibold hover:bg-soft-red/20 transition-all"
+          className="flex items-center gap-3 px-3 py-2 rounded-xl bg-soft-red/10 text-soft-red text-sm font-poppins font-semibold hover:bg-soft-red/20 transition-all"
         >
-          <span className="text-xl">🆘</span>
+          <img src="/icons/crisis-report.svg" alt="Get Help Now" className="w-4 h-4" />
           Get Help Now
         </Link>
         <form action="/api/auth/signout" method="post">
-          <Button variant="secondary" className="w-full flex items-center justify-center gap-2">
-            <span className="text-xl">🚪</span>
+          <Button variant="secondary" className="w-full flex items-center justify-center gap-2 mt-3">
+            <img src="/icons/logout.svg" alt="Log Out" className="w-5 h-5" />
             Log Out
           </Button>
         </form>

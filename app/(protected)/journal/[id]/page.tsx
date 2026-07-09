@@ -338,7 +338,7 @@ export default function JournalEditorPage() {
           </button>
           <div className="flex-1"></div>
           <button className="px-2 py-1 rounded-full text-xs font-poppins bg-[#A8DADC]/30 text-dark-text flex items-center gap-1">
-            <span className="text-base">🔤</span>
+            <img src="/icons/taglish-mode.svg" alt="Taglish Mode" className="w-4 h-4" />
             Taglish Mode
           </button>
         </div>

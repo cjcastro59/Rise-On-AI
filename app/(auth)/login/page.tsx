@@ -20,17 +20,17 @@ export default function LoginPage() {
                 <p className="text-xs font-inter text-dark-text/70">Continue your journey into journaling, emotional wellness, and self-discovery.</p>
               </Card>
               <Card className="p-4 bg-white/90 flex items-center gap-3">
-                <span className="text-2xl">🌱</span>
+                <img src="/icons/platform-impact.svg" alt="Platform Impact" className="w-6 h-6" />
                 <div>
                   <p className="text-xs font-poppins font-semibold text-dark-text">Platform Impact</p>
                   <p className="text-xs font-inter text-dark-text/70">1,247+ students and young adults journaling daily</p>
                 </div>
               </Card>
               <Card className="p-4 bg-white/90 flex items-center gap-3">
-                <span className="text-2xl">⭐</span>
+                <img src="/icons/todays-vibe.svg" alt="Today's Vibe" className="w-6 h-6" />
                 <div>
                   <p className="text-xs font-poppins font-semibold text-dark-text">Today's Vibe</p>
-                  <p className="text-xs font-inter text-dark-text/70">Just checking in ✨</p>
+                  <p className="text-xs font-inter text-dark-text/70">Just checking in</p>
                 </div>
               </Card>
             </div>

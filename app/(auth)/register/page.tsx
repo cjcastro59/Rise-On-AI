@@ -18,8 +18,8 @@ export default function RegisterPage() {
               step {step} of 3
             </div>
             <h1 className="text-3xl font-dm-serif text-dark-text mb-2">Begin your journey to <span className="text-lavender italic">self-clarity</span>.</h1>
-            <p className="text-xs font-inter text-dark-text/70 mb-4 flex items-start gap-2">
-              <span className="text-lg">🔒</span>
+            <p className="text-xs font-inter text-dark-text/70 mb-4 flex items-center gap-2">
+              <img src="/icons/lock.svg" alt="Security lock" className="w-6 h-6 flex-shrink-0" />
               Your journal entries are private and encrypted. Only you and the AI can see your reflections.
             </p>
             

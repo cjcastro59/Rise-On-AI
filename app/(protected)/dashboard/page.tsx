@@ -264,7 +264,7 @@ export default function DashboardPage() {
         </nav>
         <div className="flex items-center gap-4">
           <Link href="/support" className="px-4 py-2 bg-pink-100 text-pink-60 rounded-full text-xs font-poppins font-semibold flex items-center gap-2 hover:bg-pink-200 transition-all">
-            <span className="text-lg">🎉</span>
+            <img src="/icons/crisis-report.svg" alt="Crisis Support" className="w-4 h-4" />
             Crisis Support
           </Link>
           <div className="w-10 h-10 bg-gradient-to-r from-primary-blue to-lavender rounded-full flex items-center justify-center text-white font-poppins font-semibold">
@@ -305,7 +305,7 @@ export default function DashboardPage() {
               <p className="text-2xl font-dm-serif text-dark-text">{stats.streak}</p>
             </div>
             <div className="w-12 h-12 bg-warning-yellow/30 rounded-xl flex items-center justify-center">
-              <span className="text-2xl">🔥</span>
+              <img src="/icons/streak.svg" alt="Streak" className="w-6 h-6" />
             </div>
           </div>
         </Card>
@@ -316,7 +316,7 @@ export default function DashboardPage() {
               <p className="text-2xl font-dm-serif text-dark-text">{stats.totalEntries}</p>
             </div>
             <div className="w-12 h-12 bg-primary-blue/30 rounded-xl flex items-center justify-center">
-              <span className="text-2xl">📝</span>
+              <img src="/icons/entries.svg" alt="Entries" className="w-6 h-6" />
             </div>
           </div>
         </Card>
@@ -327,7 +327,7 @@ export default function DashboardPage() {
               <p className="text-2xl font-dm-serif text-dark-text">{stats.avgMoodScore}</p>
             </div>
             <div className="w-12 h-12 bg-lavender/30 rounded-xl flex items-center justify-center">
-              <span className="text-2xl">❤️</span>
+              <img src="/icons/mood.svg" alt="Mood" className="w-6 h-6" />
             </div>
           </div>
         </Card>
@@ -338,7 +338,7 @@ export default function DashboardPage() {
               <p className="text-2xl font-dm-serif text-dark-text">{stats.positivityThisWeek}%</p>
             </div>
             <div className="w-12 h-12 bg-success-green/30 rounded-xl flex items-center justify-center">
-              <span className="text-2xl">📈</span>
+              <img src="/icons/trends.svg" alt="Trends" className="w-6 h-6" />
             </div>
           </div>
         </Card>
@@ -421,21 +421,21 @@ export default function DashboardPage() {
           <h3 className="font-poppins font-semibold text-dark-text mb-4">Quick Actions</h3>
           <div className="space-y-3">
             <Link href="/journal" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray transition-all">
-              <span className="text-xl">✍️</span>
+              <img src="/icons/new-entry.svg" alt="Write New Entry" className="w-5 h-5" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">Write New Entry</p>
                 <p className="text-xs text-dark-text/60 font-inter">Express your thoughts freely</p>
               </div>
             </Link>
             <Link href="/journal/history" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray transition-all">
-              <span className="text-xl">📚</span>
+              <img src="/icons/journal.svg" alt="View History" className="w-5 h-5" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">View History</p>
                 <p className="text-xs text-dark-text/60 font-inter">See your past entries</p>
               </div>
             </Link>
             <Link href="/insights" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray transition-all">
-              <span className="text-xl">📊</span>
+              <img src="/icons/mood-insights.svg" alt="View Insights" className="w-5 h-5" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">View Insights</p>
                 <p className="text-xs text-dark-text/60 font-inter">Analyze your mood trends</p>
