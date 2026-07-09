@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useRBAC } from "@/hooks/useRBAC";
@@ -13,67 +13,13 @@ interface PrivacyPolicyModalProps {
 
 export function PrivacyPolicyModal({ onClose }: PrivacyPolicyModalProps) {
   const { hasPermission } = useRBAC();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [privacyPolicy, setPrivacyPolicy] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [editablePolicy, setEditablePolicy] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    fetchPrivacyPolicy();
-  }, []);
-
-  const fetchPrivacyPolicy = async () => {
-    setLoading(true);
-    try {
-      // Try to fetch privacy policy from system_settings
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('value')
-        .eq('key', 'privacy_policy')
-        .single();
-
-      if (error) {
-        // If not found, use default
-        setPrivacyPolicy(getDefaultPrivacyPolicy());
-        setEditablePolicy(getDefaultPrivacyPolicy());
-      } else {
-        setPrivacyPolicy(data.value);
-        setEditablePolicy(data.value);
-      }
-    } catch (err) {
-      console.error(err);
-      setPrivacyPolicy(getDefaultPrivacyPolicy());
-      setEditablePolicy(getDefaultPrivacyPolicy());
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const savePrivacyPolicy = async () => {
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('system_settings')
-        .upsert({ key: 'privacy_policy', value: editablePolicy }, { onConflict: 'key' });
-
-      if (error) {
-        console.error(error);
-        alert('Failed to save privacy policy');
-      } else {
-        setPrivacyPolicy(editablePolicy);
-        setIsEditing(false);
-        alert('Privacy policy saved successfully!');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Failed to save privacy policy');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getDefaultPrivacyPolicy = () => `
+  const getDefaultPrivacyPolicy = useCallback(() => `
 # Privacy Policy
 
 Last updated: ${new Date().toLocaleDateString()}
@@ -128,7 +74,61 @@ We may update our privacy policy from time to time. We will notify you of any ch
 ## 8. Contact Us
 
 If you have any questions about this privacy policy, please contact us.
-  `;
+  `, []);
+
+  const fetchPrivacyPolicy = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Try to fetch privacy policy from system_settings
+      const { data, error } = await supabase
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'privacy_policy')
+        .single();
+
+      if (error) {
+        // If not found, use default
+        setPrivacyPolicy(getDefaultPrivacyPolicy());
+        setEditablePolicy(getDefaultPrivacyPolicy());
+      } else {
+        setPrivacyPolicy(data.value);
+        setEditablePolicy(data.value);
+      }
+    } catch (err) {
+      console.error(err);
+      setPrivacyPolicy(getDefaultPrivacyPolicy());
+      setEditablePolicy(getDefaultPrivacyPolicy());
+    } finally {
+      setLoading(false);
+    }
+  }, [getDefaultPrivacyPolicy, supabase]);
+
+  useEffect(() => {
+    fetchPrivacyPolicy();
+  }, [fetchPrivacyPolicy]);
+
+  const savePrivacyPolicy = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('system_settings')
+        .upsert({ key: 'privacy_policy', value: editablePolicy }, { onConflict: 'key' });
+
+      if (error) {
+        console.error(error);
+        alert('Failed to save privacy policy');
+      } else {
+        setPrivacyPolicy(editablePolicy);
+        setIsEditing(false);
+        alert('Privacy policy saved successfully!');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save privacy policy');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -136,7 +136,7 @@ If you have any questions about this privacy policy, please contact us.
         <div className="p-6 border-b border-light-gray flex justify-between items-center">
           <h2 className="text-xl font-dm-serif text-dark-text">Privacy Policy</h2>
           <div className="flex items-center gap-3">
-            {hasPermission('system_settings') && (
+            {hasPermission('settings') && (
               <Button
                 variant="secondary"
                 onClick={() => {

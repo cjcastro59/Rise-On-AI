@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -51,7 +51,7 @@ export default function AdminUsersPage() {
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const { user: currentUser } = useAuth();
   const { openConfirmation } = useConfirmation();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   // View user modal state
   const [viewModal, setViewModal] = useState<{
@@ -110,7 +110,7 @@ export default function AdminUsersPage() {
     };
 
     fetchData();
-  }, [currentUser]);
+  }, [currentUser, supabase]);
 
   // Get mock users for fallback
   const getMockUsers = () => [

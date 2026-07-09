@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -22,11 +22,11 @@ export function LoginForm() {
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const recaptchaKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
   // Function to apply pending profile data
-  const applyPendingProfileData = async (userId: string) => {
+  const applyPendingProfileData = useCallback(async (userId: string) => {
     const pendingDataStr = localStorage.getItem('pendingProfileData');
     if (!pendingDataStr) return;
 
@@ -63,7 +63,7 @@ export function LoginForm() {
       console.error('Error parsing pending profile data:', err);
       localStorage.removeItem('pendingProfileData');
     }
-  };
+  }, [supabase]);
 
   // Check if user is already logged in on component mount
   useEffect(() => {
@@ -76,7 +76,7 @@ export function LoginForm() {
       }
     };
     checkSession();
-  }, [router, supabase]);
+  }, [applyPendingProfileData, router, supabase]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,7 +154,6 @@ export function LoginForm() {
         const verified = authenticator.verify({
           secret: profile.two_factor_secret,
           token: totpCode,
-          window: 2 // Allow ±2 time steps for time drift!
         });
 
         if (verified) {
@@ -239,7 +238,7 @@ export function LoginForm() {
             <ReCAPTCHA
               ref={recaptchaRef}
               sitekey={recaptchaKey}
-              onChange={(token) => setRecaptchaToken(token)}
+              onChange={(token: string | null) => setRecaptchaToken(token)}
             />
           )}
         </div>

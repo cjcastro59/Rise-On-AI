@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,7 +48,7 @@ export default function AdminDashboardPage() {
   }, []);
 
   // Load DAU and mood distribution
-  const loadAnalyticsData = async () => {
+  const loadAnalyticsData = useCallback(async () => {
     try {
       const now = new Date();
       let startDate = new Date();
@@ -71,7 +71,7 @@ export default function AdminDashboardPage() {
 
       // Calculate DAU
       const dauMap = new Map<string, Set<string>>();
-      (journalData || []).forEach((entry) => {
+      (journalData || []).forEach((entry: { created_at: string; user_id: string }) => {
         const date = new Date(entry.created_at).toLocaleDateString("en-US", { weekday: "short" });
         if (!dauMap.has(date)) dauMap.set(date, new Set());
         dauMap.get(date)!.add(entry.user_id);
@@ -130,7 +130,7 @@ export default function AdminDashboardPage() {
     } catch (error) {
       console.error("Error loading analytics data:", error);
     }
-  };
+  }, [dauPeriod, supabase]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -187,12 +187,12 @@ export default function AdminDashboardPage() {
     };
 
     loadData();
-  }, [supabase, currentUser]);
+  }, [loadAnalyticsData, supabase, currentUser]);
 
   // Reload analytics when period changes
   useEffect(() => {
     if (currentUser) loadAnalyticsData();
-  }, [dauPeriod, currentUser]);
+  }, [loadAnalyticsData, currentUser]);
 
   const formatTime = (value?: string) => {
     if (!value) return "just now";

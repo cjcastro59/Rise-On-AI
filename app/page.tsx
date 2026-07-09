@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,10 +10,12 @@ export default function LandingPage() {
       <header className="bg-header-bg">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img
+            <Image
               src="/logo/Without Text.png"
               alt="Rise On Logo"
-              className="w-10 h-10 object-contain"
+              width={40}
+              height={40}
+              className="object-contain"
             />
             <span className="font-poppins font-bold text-dark-text text-xl">Rise On</span>
           </div>
@@ -106,7 +109,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
             <div className="text-center">
               <div className="w-14 h-14 bg-gradient-to-r from-primary-blue to-teal rounded-full flex items-center justify-center mx-auto mb-3">
-                <img src="/icons/ai-sentiment.svg" alt="AI Sentiment Analysis" className="w-8 h-8" />
+                <Image src="/icons/ai-sentiment.svg" alt="AI Sentiment Analysis" width={32} height={32} className="w-8 h-8 object-contain" />
               </div>
               <h3 className="font-poppins font-semibold text-dark-text mb-1 text-sm">AI Sentiment Analysis</h3>
               <p className="text-xs font-inter text-dark-text/70">
@@ -115,7 +118,7 @@ export default function LandingPage() {
             </div>
             <div className="text-center">
               <div className="w-14 h-14 bg-gradient-to-r from-teal to-lavender rounded-full flex items-center justify-center mx-auto mb-3">
-                <img src="/icons/mood-tracking.svg" alt="Mood Tracking" className="w-8 h-8" />
+                <Image src="/icons/mood-tracking.svg" alt="Mood Tracking" width={32} height={32} className="w-8 h-8 object-contain" />
               </div>
               <h3 className="font-poppins font-semibold text-dark-text mb-1 text-sm">Mood Tracking</h3>
               <p className="text-xs font-inter text-dark-text/70">
@@ -124,7 +127,7 @@ export default function LandingPage() {
             </div>
             <div className="text-center">
               <div className="w-14 h-14 bg-gradient-to-r from-lavender to-primary-blue rounded-full flex items-center justify-center mx-auto mb-3">
-                <img src="/icons/reflection-prompts.svg" alt="Reflection Prompts" className="w-8 h-8" />
+                <Image src="/icons/reflection-prompts.svg" alt="Reflection Prompts" width={32} height={32} className="w-8 h-8 object-contain" />
               </div>
               <h3 className="font-poppins font-semibold text-dark-text mb-1 text-sm">Reflection Prompts</h3>
               <p className="text-xs font-inter text-dark-text/70">
@@ -133,7 +136,7 @@ export default function LandingPage() {
             </div>
             <div className="text-center">
               <div className="w-14 h-14 bg-gradient-to-r from-warning-yellow to-success-green rounded-full flex items-center justify-center mx-auto mb-3">
-                <img src="/icons/crisis-support.svg" alt="Crisis Support" className="w-8 h-8" />
+                <Image src="/icons/crisis-support.svg" alt="Crisis Support" width={32} height={32} className="w-8 h-8 object-contain" />
               </div>
               <h3 className="font-poppins font-semibold text-dark-text mb-1 text-sm">Crisis Support</h3>
               <p className="text-xs font-inter text-dark-text/70">

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -66,10 +67,60 @@ export default function ProfilePage() {
     avgMood: 0,
   });
   const { user } = useAuth();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchProfileAndStats = async () => {
+  const calculateStats = useCallback((entries: any[]) => {
+    const totalEntries = entries.length;
+
+    let streak = 0;
+    const dates = new Set(
+      entries.map(entry => new Date(entry.created_at).toDateString())
+    );
+
+    for (let i = 0; i < 365; i++) {
+      const checkDate = new Date();
+      checkDate.setDate(checkDate.getDate() - i);
+      const dateStr = checkDate.toDateString();
+
+      if (dates.has(dateStr)) {
+        streak++;
+      } else if (i > 0) {
+        break;
+      }
+    }
+
+    const moodScores: Record<string, number> = {
+      "Happy": 10,
+      "Calm": 8,
+      "Anxious": 4,
+      "Sad": 2,
+      "Frustrated": 3,
+      "Excited": 9,
+      "Confused": 5,
+      "Overwhelmed": 1,
+    };
+
+    let totalMoodScore = 0;
+    let moodCount = 0;
+
+    entries.forEach(entry => {
+      if (entry.mood && moodScores[entry.mood]) {
+        totalMoodScore += moodScores[entry.mood];
+        moodCount++;
+      }
+    });
+
+    const avgMood = moodCount > 0 ? (totalMoodScore / moodCount).toFixed(1) : 0;
+
+    setStats({
+      totalEntries,
+      streak,
+      avgMood: Number(avgMood),
+    });
+  }, []);
+
+  const fetchProfileAndStats = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -103,60 +154,7 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const calculateStats = (entries: any[]) => {
-    const totalEntries = entries.length;
-    
-    // Calculate streak
-    let streak = 0;
-    const today = new Date().toDateString();
-    const dates = new Set(
-      entries.map(entry => new Date(entry.created_at).toDateString())
-    );
-    
-    for (let i = 0; i < 365; i++) {
-      const checkDate = new Date();
-      checkDate.setDate(checkDate.getDate() - i);
-      const dateStr = checkDate.toDateString();
-      
-      if (dates.has(dateStr)) {
-        streak++;
-      } else if (i > 0) { // Skip today if not present, but only if we haven't started counting
-        break;
-      }
-    }
-
-    // Calculate average mood
-    const moodScores: Record<string, number> = {
-      "Happy": 10,
-      "Calm": 8,
-      "Anxious": 4,
-      "Sad": 2,
-      "Frustrated": 3,
-      "Excited": 9,
-      "Confused": 5,
-      "Overwhelmed": 1,
-    };
-    
-    let totalMoodScore = 0;
-    let moodCount = 0;
-    
-    entries.forEach(entry => {
-      if (entry.mood && moodScores[entry.mood]) {
-        totalMoodScore += moodScores[entry.mood];
-        moodCount++;
-      }
-    });
-    
-    const avgMood = moodCount > 0 ? (totalMoodScore / moodCount).toFixed(1) : 0;
-    
-    setStats({
-      totalEntries,
-      streak,
-      avgMood: Number(avgMood),
-    });
-  };
+  }, [calculateStats, supabase, user]);
 
   const saveProfile = async () => {
     if (!user) {
@@ -195,8 +193,8 @@ export default function ProfilePage() {
           .from("user_profiles")
           .insert({
             id: user.id,
-            email: user.email,
             ...profile,
+            email: user.email,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });
@@ -290,7 +288,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     fetchProfileAndStats();
-  }, [user]);
+  }, [fetchProfileAndStats]);
 
   if (loading) {
     return (
@@ -324,9 +322,11 @@ export default function ProfilePage() {
           <div className="flex items-center gap-6">
             <div className="relative">
               {profile.avatar_url ? (
-                <img
+                <Image
                   src={profile.avatar_url}
                   alt="Profile"
+                  width={80}
+                  height={80}
                   className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md"
                 />
               ) : (

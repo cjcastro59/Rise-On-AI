@@ -314,7 +314,7 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
           <ReCAPTCHA
             ref={recaptchaRef}
             sitekey={recaptchaKey}
-            onChange={(token) => setRecaptchaToken(token)}
+            onChange={(token: string | null) => setRecaptchaToken(token)}
           />
         )}
       </div>
@@ -394,7 +394,7 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
         <span className="text-white text-4xl">🎉</span>
       </div>
       <div>
-        <h3 className="text-2xl font-dm-serif text-dark-text mb-2">You're Ready!</h3>
+        <h3 className="text-2xl font-dm-serif text-dark-text mb-2">You&apos;re Ready!</h3>
         <p className="text-sm font-inter text-dark-text/70">
           Welcome to Rise On AI! Your wellness journey starts now.
         </p>

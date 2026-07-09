@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 
 interface UserProfile {
@@ -22,7 +22,7 @@ export default function AdminSidebar() {
   const pathname = usePathname();
   const { user: currentUser } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -61,6 +61,10 @@ export default function AdminSidebar() {
     return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
   };
 
+  const roleLabel = userProfile?.role
+    ? userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1)
+    : "User";
+
   return (
     <aside className="w-72 bg-[#1E293B] text-white p-6 flex flex-col h-full min-h-screen">
       <div className="mb-10">
@@ -87,7 +91,7 @@ export default function AdminSidebar() {
               pathname === "/admin/dashboard" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <img src="/icons/dashboard.svg" alt="Dashboard" className="w-5 h-5" /> Dashboard
+            <Image src="/icons/dashboard.svg" alt="Dashboard" width={20} height={20} className="object-contain" /> Dashboard
           </Link>
           <Link
             href="/admin/users"
@@ -95,7 +99,7 @@ export default function AdminSidebar() {
               pathname === "/admin/users" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <img src="/icons/account.svg" alt="User Management" className="w-5 h-5" /> User Management
+            <Image src="/icons/account.svg" alt="User Management" width={20} height={20} className="object-contain" /> User Management
           </Link>
         </div>
       </div>
@@ -110,7 +114,7 @@ export default function AdminSidebar() {
               pathname === "/admin/journal-monitor" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <img src="/icons/journal.svg" alt="Journal Monitor" className="w-5 h-5" /> Journal Monitor
+            <Image src="/icons/journal.svg" alt="Journal Monitor" width={20} height={20} className="object-contain" /> Journal Monitor
           </Link>
           <Link
             href="/admin/mood-trends"
@@ -118,7 +122,7 @@ export default function AdminSidebar() {
               pathname === "/admin/mood-trends" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <img src="/icons/trends.svg" alt="Mood Reports" className="w-5 h-5" /> Mood Reports
+            <Image src="/icons/trends.svg" alt="Mood Reports" width={20} height={20} className="object-contain" /> Mood Reports
           </Link>
           <Link
             href="/admin/sentiment-monitoring"
@@ -126,7 +130,7 @@ export default function AdminSidebar() {
               pathname === "/admin/sentiment-monitoring" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <img src="/icons/ai-sentiment.svg" alt="Sentiment Monitor" className="w-5 h-5" /> Sentiment Monitor
+            <Image src="/icons/ai-sentiment.svg" alt="Sentiment Monitor" width={20} height={20} className="object-contain" /> Sentiment Monitor
           </Link>
           <Link
             href="/admin/feedback"
@@ -134,7 +138,7 @@ export default function AdminSidebar() {
               pathname === "/admin/feedback" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <img src="/icons/mood.svg" alt="Feedback" className="w-5 h-5" /> Feedback
+            <Image src="/icons/mood.svg" alt="Feedback" width={20} height={20} className="object-contain" /> Feedback
           </Link>
         </div>
       </div>
@@ -149,7 +153,7 @@ export default function AdminSidebar() {
               pathname === "/admin/distress-alerts" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <img src="/icons/crisis-support.svg" alt="Distress Alerts" className="w-5 h-5" /> Distress Alerts
+            <Image src="/icons/crisis-support.svg" alt="Distress Alerts" width={20} height={20} className="object-contain" /> Distress Alerts
             <span className="ml-auto bg-[#F4A6A6] text-[#1E293B] text-[10px] px-2 py-0.5 rounded-full font-bold">9</span>
           </Link>
         </div>
@@ -165,7 +169,7 @@ export default function AdminSidebar() {
               pathname === "/admin/system-settings" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <img src="/icons/settings.svg" alt="Settings" className="w-5 h-5 filter invert brightness-200" /> Settings
+            <Image src="/icons/settings.svg" alt="Settings" width={20} height={20} className="object-contain filter invert brightness-200" /> Settings
           </Link>
           <Link
             href="/admin/audit-logs"
@@ -173,7 +177,7 @@ export default function AdminSidebar() {
               pathname === "/admin/audit-logs" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
             }`}
           >
-            <img src="/icons/data-export.svg" alt="Audit Logs" className="w-5 h-5" /> Audit Logs
+            <Image src="/icons/data-export.svg" alt="Audit Logs" width={20} height={20} className="object-contain" /> Audit Logs
           </Link>
         </div>
       </div>
@@ -197,14 +201,14 @@ export default function AdminSidebar() {
             <div>
               <p className="text-sm font-poppins text-white">{getDisplayName()}</p>
               <p className="text-xs text-white/50 font-poppins">
-                {userProfile?.role?.charAt(0).toUpperCase() + userProfile?.role?.slice(1) || "User"}
+                {roleLabel}
               </p>
             </div>
           </div>
         </div>
         <form action="/api/auth/signout" method="post">
           <Button variant="secondary" className="w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
-            <img src="/icons/logout.svg" alt="Log Out" className="w-5 h-5" />
+            <Image src="/icons/logout.svg" alt="Log Out" width={20} height={20} className="object-contain" />
             Log Out
           </Button>
         </form>

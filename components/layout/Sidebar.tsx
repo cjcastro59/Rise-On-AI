@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 interface SidebarProps {
   userName: string;
+  activePage?: "dashboard" | "journal" | "history" | "insights" | "analysis";
 }
 
 export default function Sidebar({ userName }: SidebarProps) {
@@ -16,7 +18,7 @@ export default function Sidebar({ userName }: SidebarProps) {
   const [userRole, setUserRole] = useState<string | null>(null);
   const pathname = usePathname();
   const { user } = useAuth();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   
   useEffect(() => {
     if (user) {
@@ -25,7 +27,7 @@ export default function Sidebar({ userName }: SidebarProps) {
         .select("avatar_url, role")
         .eq("id", user.id)
         .single()
-        .then(({ data }) => {
+        .then(({ data }: { data: { avatar_url: string | null; role: string | null } | null }) => {
           if (data) {
             setAvatarUrl(data.avatar_url);
             setUserRole(data.role);
@@ -60,10 +62,12 @@ export default function Sidebar({ userName }: SidebarProps) {
   return (
     <aside className="w-64 bg-white border-r border-light-gray p-6 hidden md:flex md:flex-col md:h-full md:min-h-screen">
       <div className="flex items-center gap-2 mb-10">
-        <img
+        <Image
           src="/logo/Without Text.png"
           alt="Rise On Logo"
-          className="w-10 h-10 object-contain"
+          width={40}
+          height={40}
+          className="object-contain"
         />
         <span className="font-poppins font-bold text-dark-text text-xl">Rise On</span>
       </div>
@@ -77,7 +81,7 @@ export default function Sidebar({ userName }: SidebarProps) {
               : "text-dark-text hover:bg-light-gray"
           }`}
         >
-          <img src="/icons/dashboard.svg" alt="Dashboard" className="w-5 h-5" />
+          <Image src="/icons/dashboard.svg" alt="Dashboard" width={20} height={20} className="object-contain" />
           Dashboard
         </Link>
         <Link
@@ -88,7 +92,7 @@ export default function Sidebar({ userName }: SidebarProps) {
               : "text-dark-text hover:bg-light-gray"
           }`}
         >
-          <img src="/icons/new-entry.svg" alt="New Entry" className="w-5 h-5" />
+          <Image src="/icons/new-entry.svg" alt="New Entry" width={20} height={20} className="object-contain" />
           New Entry
         </Link>
         <Link
@@ -99,7 +103,7 @@ export default function Sidebar({ userName }: SidebarProps) {
               : "text-dark-text hover:bg-light-gray"
           }`}
         >
-          <img src="/icons/journal.svg" alt="My Journal" className="w-5 h-5" />
+          <Image src="/icons/journal.svg" alt="My Journal" width={20} height={20} className="object-contain" />
           My Journal
         </Link>
         <Link
@@ -110,7 +114,7 @@ export default function Sidebar({ userName }: SidebarProps) {
               : "text-dark-text hover:bg-light-gray"
           }`}
         >
-          <img src="/icons/mood-insights.svg" alt="Mood Insights" className="w-5 h-5" />
+          <Image src="/icons/mood-insights.svg" alt="Mood Insights" width={20} height={20} className="object-contain" />
           Mood Insights
         </Link>
         <Link
@@ -121,7 +125,7 @@ export default function Sidebar({ userName }: SidebarProps) {
               : "text-dark-text hover:bg-light-gray"
           }`}
         >
-          <img src="/icons/ai-reports.svg" alt="AI Reports" className="w-5 h-5" />
+          <Image src="/icons/ai-reports.svg" alt="AI Reports" width={20} height={20} className="object-contain" />
           AI Reports
         </Link>
       </nav>
@@ -135,7 +139,7 @@ export default function Sidebar({ userName }: SidebarProps) {
               : "text-dark-text hover:bg-light-gray"
           }`}
         >
-          <img src="/icons/settings.svg" alt="Settings" className="w-5 h-5" />
+          <Image src="/icons/settings.svg" alt="Settings" width={20} height={20} className="object-contain" />
           Settings
         </Link>
       </div>
@@ -147,7 +151,7 @@ export default function Sidebar({ userName }: SidebarProps) {
         >
           <div className="flex items-center gap-3 mb-2">
             {avatarUrl ? (
-              <img src={avatarUrl} alt="Profile" className="w-12 h-12 rounded-full object-cover" />
+              <Image src={avatarUrl} alt="Profile" width={48} height={48} className="rounded-full object-cover" />
             ) : (
               <div className="w-12 h-12 rounded-full bg-primary-blue/10 flex items-center justify-center text-primary-blue font-bold text-sm">
                 {userName
@@ -173,12 +177,12 @@ export default function Sidebar({ userName }: SidebarProps) {
           href="/support"
           className="flex items-center gap-3 px-3 py-2 rounded-xl bg-soft-red/10 text-soft-red text-sm font-poppins font-semibold hover:bg-soft-red/20 transition-all"
         >
-          <img src="/icons/crisis-report.svg" alt="Get Help Now" className="w-4 h-4" />
+          <Image src="/icons/crisis-report.svg" alt="Get Help Now" width={16} height={16} className="object-contain" />
           Get Help Now
         </Link>
         <form action="/api/auth/signout" method="post">
           <Button variant="secondary" className="w-full flex items-center justify-center gap-2 mt-3">
-            <img src="/icons/logout.svg" alt="Log Out" className="w-5 h-5" />
+            <Image src="/icons/logout.svg" alt="Log Out" width={20} height={20} className="object-contain" />
             Log Out
           </Button>
         </form>

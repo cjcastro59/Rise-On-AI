@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,15 +33,9 @@ export default function SettingsPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const { user } = useAuth();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
-  useEffect(() => {
-    if (user) {
-      check2FAStatus();
-    }
-  }, [user]);
-
-  const check2FAStatus = async () => {
+  const check2FAStatus = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
       .from('user_profiles')
@@ -50,7 +45,13 @@ export default function SettingsPage() {
     if (data) {
       setTwoFactorEnabled(data.two_factor_enabled);
     }
-  };
+  }, [supabase, user]);
+
+  useEffect(() => {
+    if (user) {
+      check2FAStatus();
+    }
+  }, [check2FAStatus, user]);
 
   const startSetup2FA = async () => {
     try {
@@ -321,7 +322,7 @@ export default function SettingsPage() {
                       </p>
                       {qrCodeUrl && (
                         <div className="flex justify-center">
-                          <img src={qrCodeUrl} alt="QR Code" className="w-48 h-48" />
+                          <Image src={qrCodeUrl} alt="QR Code" width={192} height={192} className="w-48 h-48 object-contain" />
                         </div>
                       )}
                       <div>
@@ -399,7 +400,7 @@ export default function SettingsPage() {
             }`}
           >
             <span className="flex items-center gap-2">
-              <img src="/icons/notifications.svg" alt="Notifications" className="w-4 h-4" /> Notifications
+              <Image src="/icons/notifications.svg" alt="Notifications" width={16} height={16} className="w-4 h-4 object-contain" /> Notifications
             </span>
           </button>
           <button
@@ -411,7 +412,7 @@ export default function SettingsPage() {
             }`}
           >
             <span className="flex items-center gap-2">
-              <img src="/icons/privacy.svg" alt="Privacy" className="w-4 h-4" /> Privacy
+              <Image src="/icons/privacy.svg" alt="Privacy" width={16} height={16} className="w-4 h-4 object-contain" /> Privacy
             </span>
           </button>
           <button
@@ -423,7 +424,7 @@ export default function SettingsPage() {
             }`}
           >
             <span className="flex items-center gap-2">
-              <img src="/icons/language.svg" alt="Language" className="w-4 h-4" /> Language
+              <Image src="/icons/language.svg" alt="Language" width={16} height={16} className="w-4 h-4 object-contain" /> Language
             </span>
           </button>
           <button
@@ -435,7 +436,7 @@ export default function SettingsPage() {
             }`}
           >
             <span className="flex items-center gap-2">
-              <img src="/icons/security.svg" alt="Security" className="w-4 h-4" /> Security
+              <Image src="/icons/security.svg" alt="Security" width={16} height={16} className="w-4 h-4 object-contain" /> Security
             </span>
           </button>
           <button
@@ -447,7 +448,7 @@ export default function SettingsPage() {
             }`}
           >
             <span className="flex items-center gap-2">
-              <img src="/icons/data-export.svg" alt="Data & Export" className="w-4 h-4" /> Data & Export
+              <Image src="/icons/data-export.svg" alt="Data & Export" width={16} height={16} className="w-4 h-4 object-contain" /> Data & Export
             </span>
           </button>
           <button
@@ -459,7 +460,7 @@ export default function SettingsPage() {
             }`}
           >
             <span className="flex items-center gap-2">
-              <img src="/icons/account.svg" alt="Account" className="w-4 h-4" /> Account
+              <Image src="/icons/account.svg" alt="Account" width={16} height={16} className="w-4 h-4 object-contain" /> Account
             </span>
           </button>
         </Card>

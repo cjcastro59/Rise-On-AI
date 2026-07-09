@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,18 +21,9 @@ export default function Setup2FAPage() {
   const [step, setStep] = useState(1); // 1 = setup, 2 = complete
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-    initialize2FA();
-  }, [user, authLoading]);
-
-  const initialize2FA = async () => {
+  const initialize2FA = useCallback(async () => {
     if (!user) return;
     try {
       setLoading(true);
@@ -106,7 +97,16 @@ export default function Setup2FAPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router, supabase, user]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    initialize2FA();
+  }, [authLoading, initialize2FA, router, user]);
 
   const verifyAndEnable2FA = async () => {
     if (!user) return;
@@ -133,7 +133,6 @@ export default function Setup2FAPage() {
       const verified = authenticator.verify({
         secret: profile.two_factor_secret,
         token: verificationCode,
-        window: 2 as any,
       });
 
       console.log("✅ Verification result:", verified);
@@ -222,7 +221,7 @@ export default function Setup2FAPage() {
                   another authenticator app.
                 </p>
                 <p className="text-xs font-inter text-dark-text/60">
-                  If you can't scan, you can also manually enter this
+                  If you can&apos;t scan, you can also manually enter this
                   secret key: <span className="font-mono font-semibold">{secret}</span>
                 </p>
               </div>

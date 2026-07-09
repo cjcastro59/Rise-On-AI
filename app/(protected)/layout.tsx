@@ -3,6 +3,11 @@ import ProtectedContentWrapper from "@/components/layout/ProtectedContentWrapper
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
+type UserProfileName = {
+  first_name: string | null;
+  username: string | null;
+};
+
 export default async function ProtectedLayout({
   children,
 }: {
@@ -15,11 +20,11 @@ export default async function ProtectedLayout({
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
+  const { data: profile } = (await supabase
     .from("user_profiles")
-    .select("*")
+    .select("first_name, username")
     .eq("id", user.id)
-    .single();
+    .single()) as { data: UserProfileName | null };
 
   const userName = profile?.first_name || profile?.username || user.email?.split("@")[0] || "Friend";
 
