@@ -89,7 +89,7 @@ export default function SupportPage() {
                 Your recent journal entry showed signs of emotional distress.
               </h2>
               <p className="text-sm font-poppins text-dark-text/70 mb-4">
-                You're not alone. Here are some resources that can help — you don't have to go through this by yourself.
+                You&apos;re not alone. Here are some resources that can help - you don&apos;t have to go through this by yourself.
               </p>
               <div className="flex flex-wrap gap-3">
                 <Button className="bg-soft-red hover:bg-soft-red/90">
@@ -249,10 +249,10 @@ export default function SupportPage() {
       {/* Footer */}
       <div className="text-center py-6">
         <p className="text-sm font-poppins text-dark-text/60 italic">
-          "Ikaw ay may halaga. Ang bawat araw ay isang bagong simula." 🌻
+          &quot;Ikaw ay may halaga. Ang bawat araw ay isang bagong simula.&quot;
         </p>
         <p className="text-xs text-dark-text/40 font-inter mt-2">
-          "You have worth. Every day is a new beginning."
+          &quot;You have worth. Every day is a new beginning.&quot;
         </p>
       </div>
     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { RegisterForm } from "@/components/auth/register-form";
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ export default function RegisterPage() {
             </div>
             <h1 className="text-3xl font-dm-serif text-dark-text mb-2">Begin your journey to <span className="text-lavender italic">self-clarity</span>.</h1>
             <p className="text-xs font-inter text-dark-text/70 mb-4 flex items-center gap-2">
-              <img src="/icons/lock.svg" alt="Security lock" className="w-6 h-6 flex-shrink-0" />
+              <Image src="/icons/lock.svg" alt="Security lock" width={24} height={24} className="w-6 h-6 flex-shrink-0 object-contain" />
               Your journal entries are private and encrypted. Only you and the AI can see your reflections.
             </p>
             
@@ -62,7 +63,7 @@ export default function RegisterPage() {
                 </div>
                 <span className={`text-sm font-poppins ${
                   step === 3 ? "text-dark-text font-semibold" : "text-dark-text/60"
-                }`}>You're Ready!</span>
+                }`}>You&apos;re Ready!</span>
               </div>
             </div>
           </div>

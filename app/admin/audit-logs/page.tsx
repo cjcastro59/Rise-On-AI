@@ -1,7 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -25,10 +25,10 @@ export default function AdminAuditLogsPage() {
   const [dateFilter, setDateFilter] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
   const { user } = useAuth();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   // Fetch logs from Supabase
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     
@@ -65,7 +65,7 @@ export default function AdminAuditLogsPage() {
         console.error("Error fetching audit logs:", error);
         setLogs([]);
       } else if (data && data.length > 0) {
-        setLogs(data.map(log => ({
+        setLogs(data.map((log: any) => ({
           ...log,
           admin: log.user_profiles?.email || "System",
           role: log.user_profiles?.role || "Automated"
@@ -79,7 +79,7 @@ export default function AdminAuditLogsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [actionFilter, dateFilter, supabase, user]);
 
   // Mock data generator for testing
   const getMockData = () => [
@@ -137,7 +137,7 @@ export default function AdminAuditLogsPage() {
 
   useEffect(() => {
     fetchLogs();
-  }, [user]);
+  }, [fetchLogs]);
 
   // Filter logs based on search and filters
   const filteredLogs = logs.filter(log => {

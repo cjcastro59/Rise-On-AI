@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -38,20 +38,10 @@ export default function JournalHistoryPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { user } = useAuth();
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const { openConfirmation } = useConfirmation();
 
-  useEffect(() => {
-    if (user) {
-      fetchEntries();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    applyFilters();
-  }, [entries, searchQuery, sentimentFilter]);
-
-  const fetchEntries = async () => {
+  const fetchEntries = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -70,7 +60,7 @@ export default function JournalHistoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
   const deleteEntry = (id: string, e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation to entry
@@ -105,7 +95,19 @@ export default function JournalHistoryPage() {
     });
   };
 
-  const applyFilters = () => {
+  const getSentiment = useCallback((mood: string | null, content: string | null): string => {
+    if (mood) {
+      const moodSentiment = getSentimentFromMood(mood);
+      if (moodSentiment !== "neutral") {
+        return moodSentiment.charAt(0).toUpperCase() + moodSentiment.slice(1);
+      }
+    }
+
+    const textSentiment = analyzeSentiment(content);
+    return textSentiment.charAt(0).toUpperCase() + textSentiment.slice(1);
+  }, []);
+
+  const applyFilters = useCallback(() => {
     let result = [...entries];
 
     if (searchQuery) {
@@ -122,21 +124,17 @@ export default function JournalHistoryPage() {
     }
 
     setFilteredEntries(result);
-  };
+  }, [entries, getSentiment, searchQuery, sentimentFilter]);
 
-  const getSentiment = (mood: string | null, content: string | null): string => {
-    // First check mood if available
-    if (mood) {
-      const moodSentiment = getSentimentFromMood(mood);
-      if (moodSentiment !== "neutral") {
-        return moodSentiment.charAt(0).toUpperCase() + moodSentiment.slice(1);
-      }
+  useEffect(() => {
+    if (user) {
+      fetchEntries();
     }
-    
-    // If no mood or mood is neutral, analyze text content
-    const textSentiment = analyzeSentiment(content);
-    return textSentiment.charAt(0).toUpperCase() + textSentiment.slice(1);
-  };
+  }, [fetchEntries, user]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [applyFilters]);
 
   const getMoodEmoji = (mood: string | null): string => {
     const moodMap: Record<string, string> = {
@@ -237,7 +235,7 @@ export default function JournalHistoryPage() {
           {["All", "Positive", "Neutral", "Negative"].map((filter) => (
             <Button
               key={filter}
-              variant={sentimentFilter === filter ? "default" : "secondary"}
+              variant={sentimentFilter === filter ? "primary" : "secondary"}
               size="sm"
               onClick={() => setSentimentFilter(filter)}
             >

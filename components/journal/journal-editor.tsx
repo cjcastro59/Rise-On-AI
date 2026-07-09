@@ -5,8 +5,8 @@ export function JournalEditor() {
   return (
     <Card className="p-6 bg-white">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-poppins font-semibold text-dark-text">Today's Journal</h3>
-        <span className="text-xs font-poppins text-dark-text/60">What's on your mind?</span>
+        <h3 className="font-poppins font-semibold text-dark-text">Today&apos;s Journal</h3>
+        <span className="text-xs font-poppins text-dark-text/60">What&apos;s on your mind?</span>
       </div>
       <textarea
         className="w-full min-h-[160px] p-4 bg-light-gray border border-transparent rounded-xl font-inter text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue resize-none"

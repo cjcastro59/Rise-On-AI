@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -26,9 +27,9 @@ export default function DashboardPage() {
   const [weekData, setWeekData] = useState<any[]>([]);
   const { user } = useAuth();
   const router = useRouter();
-  const supabase = createClient() as any;
+  const supabase = useMemo(() => createClient() as any, []);
 
-  const moodOptions = [
+  const moodOptions = useMemo(() => [
     { label: "Happy", icon: "😊", score: 10 },
     { label: "Calm", icon: "😌", score: 8 },
     { label: "Excited", icon: "🎉", score: 9 },
@@ -37,15 +38,132 @@ export default function DashboardPage() {
     { label: "Frustrated", icon: "😤", score: 4 },
     { label: "Overwhelmed", icon: "😵", score: 1 },
     { label: "Confused", icon: "😕", score: 5 },
-  ];
+  ], []);
 
-  useEffect(() => {
-    if (user) {
-      fetchDashboardData();
+  const calculateStreak = useCallback((entries: any[]) => {
+    if (entries.length === 0) return 0;
+
+    const sortedDates = entries.map(entry =>
+      new Date(entry.created_at).toDateString()
+    ).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+    const uniqueDates = [...new Set(sortedDates)];
+    let streak = 0;
+    let currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+
+    for (const dateStr of uniqueDates) {
+      const entryDate = new Date(dateStr);
+      entryDate.setHours(0, 0, 0, 0);
+
+      const dayDiff = Math.floor((currentDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (dayDiff === streak) {
+        streak++;
+      } else if (dayDiff > streak) {
+        break;
+      }
     }
-  }, [user]);
+    return streak;
+  }, []);
 
-  const fetchDashboardData = async () => {
+  const calculateStats = useCallback((entries: any[]) => {
+    const totalEntries = entries.length;
+
+    let totalScore = 0;
+    let scoreCount = 0;
+    entries.forEach(entry => {
+      if (entry.mood) {
+        const moodOption = moodOptions.find(m => m.label === entry.mood);
+        if (moodOption) {
+          totalScore += moodOption.score;
+          scoreCount++;
+        }
+      } else {
+        const sentiment = analyzeSentiment(entry.content || "");
+        if (sentiment === "positive") {
+          totalScore += 8;
+          scoreCount++;
+        } else if (sentiment === "negative") {
+          totalScore += 2;
+          scoreCount++;
+        }
+      }
+    });
+    const avgMoodScore = scoreCount > 0 ? parseFloat((totalScore / scoreCount).toFixed(1)) : 0;
+
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thisWeekEntries = entries.filter(entry => new Date(entry.created_at) >= weekAgo);
+
+    let positiveCount = 0;
+    thisWeekEntries.forEach(entry => {
+      let sentiment = analyzeSentiment(entry.content || "");
+      if (sentiment === "neutral" && entry.mood) {
+        sentiment = getSentimentFromMood(entry.mood);
+      }
+      if (sentiment === "positive") positiveCount++;
+    });
+    const positivityThisWeek = thisWeekEntries.length > 0 ? Math.round((positiveCount / thisWeekEntries.length) * 100) : 0;
+
+    return {
+      streak: calculateStreak(entries),
+      totalEntries,
+      avgMoodScore,
+      positivityThisWeek
+    };
+  }, [calculateStreak, moodOptions]);
+
+  const calculateWeekData = useCallback((entries: any[]) => {
+    const week = [];
+    const now = new Date();
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(now.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+      const nextDate = new Date(date);
+      nextDate.setDate(date.getDate() + 1);
+
+      const dayEntries = entries.filter(entry => {
+        const entryDate = new Date(entry.created_at);
+        return entryDate >= date && entryDate < nextDate;
+      });
+
+      let avgScore = 0;
+      if (dayEntries.length > 0) {
+        let totalScore = 0;
+        let count = 0;
+        dayEntries.forEach(entry => {
+          if (entry.mood) {
+            const moodOption = moodOptions.find(m => m.label === entry.mood);
+            if (moodOption) {
+              totalScore += moodOption.score;
+              count++;
+            }
+          } else {
+            const sentiment = analyzeSentiment(entry.content || "");
+            if (sentiment === "positive") {
+              totalScore += 8;
+              count++;
+            } else if (sentiment === "negative") {
+              totalScore += 2;
+              count++;
+            }
+          }
+        });
+        avgScore = count > 0 ? totalScore / count : 0;
+      }
+
+      week.push({
+        date: date.toLocaleDateString(undefined, { weekday: 'short' }),
+        score: avgScore
+      });
+    }
+    return week;
+  }, [moodOptions]);
+
+  const fetchDashboardData = useCallback(async () => {
     if (!user) {
       setLoading(false);
       return;
@@ -98,138 +216,11 @@ export default function DashboardPage() {
     setWeekData(week);
 
     setLoading(false);
-  };
+  }, [calculateStats, calculateWeekData, user, supabase]);
 
-  const calculateStats = (entries: any[]) => {
-    const totalEntries = entries.length;
-
-    // Calculate average mood score
-    let totalScore = 0;
-    let scoreCount = 0;
-    entries.forEach(entry => {
-      if (entry.mood) {
-        const moodOption = moodOptions.find(m => m.label === entry.mood);
-        if (moodOption) {
-          totalScore += moodOption.score;
-          scoreCount++;
-        }
-      } else {
-        // If no mood, calculate score based on sentiment from text
-        const sentiment = analyzeSentiment(entry.content);
-        if (sentiment === "positive") {
-          totalScore += 8;
-          scoreCount++;
-        } else if (sentiment === "negative") {
-          totalScore += 2;
-          scoreCount++;
-        }
-      }
-    });
-    const avgMoodScore = scoreCount > 0 ? parseFloat((totalScore / scoreCount).toFixed(1)) : 0;
-
-    // Calculate positivity this week
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const thisWeekEntries = entries.filter(entry => new Date(entry.created_at) >= weekAgo);
-
-    let positiveCount = 0;
-    thisWeekEntries.forEach(entry => {
-      // Always analyze text first, then use mood as backup!
-      let sentiment = analyzeSentiment(entry.content);
-      if (sentiment === "neutral" && entry.mood) {
-        sentiment = getSentimentFromMood(entry.mood);
-      }
-      if (sentiment === "positive") positiveCount++;
-    });
-    const positivityThisWeek = thisWeekEntries.length > 0 ? Math.round((positiveCount / thisWeekEntries.length) * 100) : 0;
-
-    // Calculate streak (simplified)
-    const streak = calculateStreak(entries);
-
-    return {
-      streak,
-      totalEntries,
-      avgMoodScore,
-      positivityThisWeek
-    };
-  };
-
-  const calculateStreak = (entries: any[]) => {
-    if (entries.length === 0) return 0;
-
-    const sortedDates = entries.map(entry =>
-      new Date(entry.created_at).toDateString()
-    ).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-
-    const uniqueDates = [...new Set(sortedDates)];
-    let streak = 0;
-    let currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
-
-    for (const dateStr of uniqueDates) {
-      const entryDate = new Date(dateStr);
-      entryDate.setHours(0, 0, 0, 0);
-
-      const dayDiff = Math.floor((currentDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (dayDiff === streak) {
-        streak++;
-      } else if (dayDiff > streak) {
-        break;
-      }
-    }
-    return streak;
-  };
-
-  const calculateWeekData = (entries: any[]) => {
-    const week = [];
-    const now = new Date();
-
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(now.getDate() - i);
-      date.setHours(0, 0, 0, 0);
-      const nextDate = new Date(date);
-      nextDate.setDate(date.getDate() + 1);
-
-      const dayEntries = entries.filter(entry => {
-        const entryDate = new Date(entry.created_at);
-        return entryDate >= date && entryDate < nextDate;
-      });
-
-      let avgScore = 0;
-      if (dayEntries.length > 0) {
-        let totalScore = 0;
-        let count = 0;
-        dayEntries.forEach(entry => {
-          if (entry.mood) {
-            const moodOption = moodOptions.find(m => m.label === entry.mood);
-            if (moodOption) {
-              totalScore += moodOption.score;
-              count++;
-            }
-          } else {
-            // If no mood, use text analysis to get score
-            const sentiment = analyzeSentiment(entry.content);
-            if (sentiment === "positive") {
-              totalScore += 8;
-              count++;
-            } else if (sentiment === "negative") {
-              totalScore += 2;
-              count++;
-            }
-          }
-        });
-        avgScore = count > 0 ? totalScore / count : 0;
-      }
-
-      week.push({
-        date: date.toLocaleDateString(undefined, { weekday: 'short' }),
-        score: avgScore
-      });
-    }
-    return week;
-  };
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   const handleSaveMood = (mood: string) => {
     setSelectedMood(mood);
@@ -264,7 +255,7 @@ export default function DashboardPage() {
         </nav>
         <div className="flex items-center gap-4">
           <Link href="/support" className="px-4 py-2 bg-pink-100 text-pink-60 rounded-full text-xs font-poppins font-semibold flex items-center gap-2 hover:bg-pink-200 transition-all">
-            <img src="/icons/crisis-report.svg" alt="Crisis Support" className="w-4 h-4" />
+            <Image src="/icons/crisis-report.svg" alt="Crisis Support" width={16} height={16} className="object-contain" />
             Crisis Support
           </Link>
           <div className="w-10 h-10 bg-gradient-to-r from-primary-blue to-lavender rounded-full flex items-center justify-center text-white font-poppins font-semibold">
@@ -305,7 +296,7 @@ export default function DashboardPage() {
               <p className="text-2xl font-dm-serif text-dark-text">{stats.streak}</p>
             </div>
             <div className="w-12 h-12 bg-warning-yellow/30 rounded-xl flex items-center justify-center">
-              <img src="/icons/streak.svg" alt="Streak" className="w-6 h-6" />
+              <Image src="/icons/streak.svg" alt="Streak" width={24} height={24} className="object-contain" />
             </div>
           </div>
         </Card>
@@ -316,7 +307,7 @@ export default function DashboardPage() {
               <p className="text-2xl font-dm-serif text-dark-text">{stats.totalEntries}</p>
             </div>
             <div className="w-12 h-12 bg-primary-blue/30 rounded-xl flex items-center justify-center">
-              <img src="/icons/entries.svg" alt="Entries" className="w-6 h-6" />
+              <Image src="/icons/entries.svg" alt="Entries" width={24} height={24} className="object-contain" />
             </div>
           </div>
         </Card>
@@ -327,7 +318,7 @@ export default function DashboardPage() {
               <p className="text-2xl font-dm-serif text-dark-text">{stats.avgMoodScore}</p>
             </div>
             <div className="w-12 h-12 bg-lavender/30 rounded-xl flex items-center justify-center">
-              <img src="/icons/mood.svg" alt="Mood" className="w-6 h-6" />
+              <Image src="/icons/mood.svg" alt="Mood" width={24} height={24} className="object-contain" />
             </div>
           </div>
         </Card>
@@ -338,7 +329,7 @@ export default function DashboardPage() {
               <p className="text-2xl font-dm-serif text-dark-text">{stats.positivityThisWeek}%</p>
             </div>
             <div className="w-12 h-12 bg-success-green/30 rounded-xl flex items-center justify-center">
-              <img src="/icons/trends.svg" alt="Trends" className="w-6 h-6" />
+              <Image src="/icons/trends.svg" alt="Trends" width={24} height={24} className="object-contain" />
             </div>
           </div>
         </Card>
@@ -349,7 +340,7 @@ export default function DashboardPage() {
         {/* Today's Journal Preview */}
         <Card className="p-6 bg-white">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-poppins font-semibold text-dark-text">Today's Journal</h3>
+            <h3 className="font-poppins font-semibold text-dark-text">Today&apos;s Journal</h3>
             <span className="text-xs font-poppins text-dark-text/60">Tap to open</span>
           </div>
 
@@ -421,21 +412,21 @@ export default function DashboardPage() {
           <h3 className="font-poppins font-semibold text-dark-text mb-4">Quick Actions</h3>
           <div className="space-y-3">
             <Link href="/journal" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray transition-all">
-              <img src="/icons/new-entry.svg" alt="Write New Entry" className="w-5 h-5" />
+              <Image src="/icons/new-entry.svg" alt="Write New Entry" width={20} height={20} className="object-contain" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">Write New Entry</p>
                 <p className="text-xs text-dark-text/60 font-inter">Express your thoughts freely</p>
               </div>
             </Link>
             <Link href="/journal/history" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray transition-all">
-              <img src="/icons/journal.svg" alt="View History" className="w-5 h-5" />
+              <Image src="/icons/journal.svg" alt="View History" width={20} height={20} className="object-contain" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">View History</p>
                 <p className="text-xs text-dark-text/60 font-inter">See your past entries</p>
               </div>
             </Link>
             <Link href="/insights" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray transition-all">
-              <img src="/icons/mood-insights.svg" alt="View Insights" className="w-5 h-5" />
+              <Image src="/icons/mood-insights.svg" alt="View Insights" width={20} height={20} className="object-contain" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">View Insights</p>
                 <p className="text-xs text-dark-text/60 font-inter">Analyze your mood trends</p>

@@ -116,7 +116,7 @@ export default function AIAnalysisPage() {
             </h3>
             <div className="flex flex-wrap gap-2">
               <span className="px-3 py-1.5 bg-[#EAF7F8] rounded-full text-xs font-inter text-[#4F4F4F]">
-                "Ngayon, feeling ko parang overwhelmed sa school"
+                &quot;Ngayon, feeling ko parang overwhelmed sa school&quot;
               </span>
               <span className="px-3 py-1.5 bg-[#CDB4DB]/20 rounded-full text-xs font-inter text-[#4F4F4F]">
                 pero I know I can get through it
@@ -154,7 +154,7 @@ export default function AIAnalysisPage() {
               AI Reflection
             </h3>
             <p className="text-sm font-inter text-[#4F4F4F] leading-relaxed mb-4">
-              "Your entry shows a strong emotional core — you're aware of your stress (academic pressure is real!) but you're actively choosing hope and support-seeking. That's a significant sign of emotional maturity and resilience. 💪"
+              {"\"Your entry shows a strong emotional core - you are aware of your stress (academic pressure is real!) and actively choosing hope and support-seeking. That is a significant sign of emotional maturity and resilience.\""}
             </p>
             
             <h4 className="text-xs font-poppins uppercase tracking-wider text-[#4F4F4F]/70 mb-3">Personalized Suggestions</h4>

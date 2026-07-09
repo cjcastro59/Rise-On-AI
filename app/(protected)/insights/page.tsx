@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,7 +21,7 @@ export default function MoodInsightsPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   // Mood options for scoring
   const moodOptions = [
@@ -42,14 +42,8 @@ export default function MoodInsightsPage() {
     "Anxiety / Stress": "#F4A6A6"
   };
 
-  // Fetch entries on mount
-  useEffect(() => {
-    if (user) {
-      fetchEntries();
-    }
-  }, [user]);
-
-  const fetchEntries = async () => {
+  const fetchEntries = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -69,7 +63,14 @@ export default function MoodInsightsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase, user]);
+
+  // Fetch entries on mount
+  useEffect(() => {
+    if (user) {
+      fetchEntries();
+    }
+  }, [fetchEntries, user]);
 
   // Calculate streak
   const calculateStreak = (): number => {

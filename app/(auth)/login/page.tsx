@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { LoginForm } from "@/components/auth/login-form";
 import { Card } from "@/components/ui/card";
@@ -20,16 +21,16 @@ export default function LoginPage() {
                 <p className="text-xs font-inter text-dark-text/70">Continue your journey into journaling, emotional wellness, and self-discovery.</p>
               </Card>
               <Card className="p-4 bg-white/90 flex items-center gap-3">
-                <img src="/icons/platform-impact.svg" alt="Platform Impact" className="w-6 h-6" />
+                <Image src="/icons/platform-impact.svg" alt="Platform Impact" width={24} height={24} className="w-6 h-6 object-contain" />
                 <div>
                   <p className="text-xs font-poppins font-semibold text-dark-text">Platform Impact</p>
                   <p className="text-xs font-inter text-dark-text/70">1,247+ students and young adults journaling daily</p>
                 </div>
               </Card>
               <Card className="p-4 bg-white/90 flex items-center gap-3">
-                <img src="/icons/todays-vibe.svg" alt="Today's Vibe" className="w-6 h-6" />
+                <Image src="/icons/todays-vibe.svg" alt="Today's Vibe" width={24} height={24} className="w-6 h-6 object-contain" />
                 <div>
-                  <p className="text-xs font-poppins font-semibold text-dark-text">Today's Vibe</p>
+                  <p className="text-xs font-poppins font-semibold text-dark-text">Today&apos;s Vibe</p>
                   <p className="text-xs font-inter text-dark-text/70">Just checking in</p>
                 </div>
               </Card>
@@ -56,7 +57,7 @@ export default function LoginPage() {
           <LoginForm />
 
           <p className="mt-4 text-center text-sm font-inter text-dark-text/80">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/register" className="font-poppins font-semibold text-lavender hover:text-lavender/80">
               Sign up
             </Link>

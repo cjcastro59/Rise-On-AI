@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -55,7 +56,7 @@ export default function JournalEditorPage() {
   const { user } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const supabase = createClient() as any;
+  const supabase = useMemo(() => createClient() as any, []);
   const entryId = params.id as string;
   const editorRef = useRef<HTMLDivElement>(null);
 
@@ -78,13 +79,9 @@ export default function JournalEditorPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (user && entryId) {
-      fetchEntry();
-    }
-  }, [user, entryId]);
+  const fetchEntry = useCallback(async () => {
+    if (!user || !entryId) return;
 
-  const fetchEntry = async () => {
     try {
       setFetching(true);
       const { data, error } = await supabase
@@ -109,7 +106,13 @@ export default function JournalEditorPage() {
     } finally {
       setFetching(false);
     }
-  };
+  }, [entryId, router, supabase, user]);
+
+  useEffect(() => {
+    if (user && entryId) {
+      fetchEntry();
+    }
+  }, [entryId, fetchEntry, user]);
 
   const saveEntry = async () => {
     if (!user) return;
@@ -338,7 +341,7 @@ export default function JournalEditorPage() {
           </button>
           <div className="flex-1"></div>
           <button className="px-2 py-1 rounded-full text-xs font-poppins bg-[#A8DADC]/30 text-dark-text flex items-center gap-1">
-            <img src="/icons/taglish-mode.svg" alt="Taglish Mode" className="w-4 h-4" />
+            <Image src="/icons/taglish-mode.svg" alt="Taglish Mode" width={16} height={16} className="w-4 h-4 object-contain" />
             Taglish Mode
           </button>
         </div>
