@@ -399,7 +399,7 @@ export default function SettingsPage() {
             }`}
           >
             <span className="flex items-center gap-2">
-              <span>🔔</span> Notifications
+              <img src="/icons/notifications.svg" alt="Notifications" className="w-4 h-4" /> Notifications
             </span>
           </button>
           <button
@@ -411,7 +411,7 @@ export default function SettingsPage() {
             }`}
           >
             <span className="flex items-center gap-2">
-              <span>🔒</span> Privacy
+              <img src="/icons/privacy.svg" alt="Privacy" className="w-4 h-4" /> Privacy
             </span>
           </button>
           <button
@@ -423,7 +423,7 @@ export default function SettingsPage() {
             }`}
           >
             <span className="flex items-center gap-2">
-              <span>🌐</span> Language
+              <img src="/icons/language.svg" alt="Language" className="w-4 h-4" /> Language
             </span>
           </button>
           <button
@@ -435,7 +435,7 @@ export default function SettingsPage() {
             }`}
           >
             <span className="flex items-center gap-2">
-              <span>🛡️</span> Security
+              <img src="/icons/security.svg" alt="Security" className="w-4 h-4" /> Security
             </span>
           </button>
           <button
@@ -447,7 +447,7 @@ export default function SettingsPage() {
             }`}
           >
             <span className="flex items-center gap-2">
-              <span>📦</span> Data & Export
+              <img src="/icons/data-export.svg" alt="Data & Export" className="w-4 h-4" /> Data & Export
             </span>
           </button>
           <button
@@ -459,7 +459,7 @@ export default function SettingsPage() {
             }`}
           >
             <span className="flex items-center gap-2">
-              <span>👤</span> Account
+              <img src="/icons/account.svg" alt="Account" className="w-4 h-4" /> Account
             </span>
           </button>
         </Card>

@@ -36,7 +36,7 @@ export default function LandingPage() {
       <section className="max-w-5xl mx-auto px-6 py-16 text-center">
         <div className="inline-flex items-center gap-2 bg-light-gray rounded-full px-4 py-2 mb-8">
           <span className="text-sm font-poppins font-medium text-dark-text">
-            🐾 For Students and Young Adults
+             For Students and Young Adults
           </span>
         </div>
         <h1 className="text-4xl md:text-5xl font-dm-serif text-dark-text mb-6 leading-tight">
@@ -53,7 +53,7 @@ export default function LandingPage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
           <Link href="/register">
-            <Button size="lg">✨ Start Journaling Free</Button>
+            <Button size="lg">Start Journaling Free</Button>
           </Link>
           <Button variant="secondary" size="lg">
             See How It Works →
@@ -106,7 +106,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
             <div className="text-center">
               <div className="w-14 h-14 bg-gradient-to-r from-primary-blue to-teal rounded-full flex items-center justify-center mx-auto mb-3">
-                <span className="text-2xl">🧠</span>
+                <img src="/icons/ai-sentiment.svg" alt="AI Sentiment Analysis" className="w-8 h-8" />
               </div>
               <h3 className="font-poppins font-semibold text-dark-text mb-1 text-sm">AI Sentiment Analysis</h3>
               <p className="text-xs font-inter text-dark-text/70">
@@ -115,7 +115,7 @@ export default function LandingPage() {
             </div>
             <div className="text-center">
               <div className="w-14 h-14 bg-gradient-to-r from-teal to-lavender rounded-full flex items-center justify-center mx-auto mb-3">
-                <span className="text-2xl">📊</span>
+                <img src="/icons/mood-tracking.svg" alt="Mood Tracking" className="w-8 h-8" />
               </div>
               <h3 className="font-poppins font-semibold text-dark-text mb-1 text-sm">Mood Tracking</h3>
               <p className="text-xs font-inter text-dark-text/70">
@@ -124,7 +124,7 @@ export default function LandingPage() {
             </div>
             <div className="text-center">
               <div className="w-14 h-14 bg-gradient-to-r from-lavender to-primary-blue rounded-full flex items-center justify-center mx-auto mb-3">
-                <span className="text-2xl">💬</span>
+                <img src="/icons/reflection-prompts.svg" alt="Reflection Prompts" className="w-8 h-8" />
               </div>
               <h3 className="font-poppins font-semibold text-dark-text mb-1 text-sm">Reflection Prompts</h3>
               <p className="text-xs font-inter text-dark-text/70">
@@ -133,7 +133,7 @@ export default function LandingPage() {
             </div>
             <div className="text-center">
               <div className="w-14 h-14 bg-gradient-to-r from-warning-yellow to-success-green rounded-full flex items-center justify-center mx-auto mb-3">
-                <span className="text-2xl">🆘</span>
+                <img src="/icons/crisis-support.svg" alt="Crisis Support" className="w-8 h-8" />
               </div>
               <h3 className="font-poppins font-semibold text-dark-text mb-1 text-sm">Crisis Support</h3>
               <p className="text-xs font-inter text-dark-text/70">

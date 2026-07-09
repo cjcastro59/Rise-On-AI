@@ -19,6 +19,9 @@ interface Profile {
   gender: string | null;
   country: string | null;
   mood_baseline: string | null;
+  mood_baseline_details: string | null;
+  family_background: string | null;
+  living_situation: string | null;
   goals: string[] | null;
   language: string | null;
   mood_reminder_enabled: boolean;
@@ -49,6 +52,9 @@ export default function ProfilePage() {
     language: "English",
     mood_reminder_enabled: false,
     mood_reminder_time: null,
+    family_background: null,
+    living_situation: null,
+    mood_baseline_details: null,
     emergency_contact_name: null,
     emergency_contact_relation: null,
     emergency_contact_phone: null,
@@ -521,6 +527,36 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+            <div className="space-y-1">
+              <label className="text-xs font-poppins text-dark-text/60">Family Background</label>
+              {isEditing ? (
+                <textarea
+                  value={profile.family_background || ""}
+                  onChange={(e) => setProfile({ ...profile, family_background: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
+                />
+              ) : (
+                <div className="px-3 py-2 bg-light-gray/50 rounded-lg text-sm font-inter text-dark-text">
+                  {profile.family_background || "Not shared yet"}
+                </div>
+              )}
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-poppins text-dark-text/60">Current Living Situation</label>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={profile.living_situation || ""}
+                  onChange={(e) => setProfile({ ...profile, living_situation: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
+                />
+              ) : (
+                <div className="px-3 py-2 bg-light-gray/50 rounded-lg text-sm font-inter text-dark-text">
+                  {profile.living_situation || "Not set"}
+                </div>
+              )}
+            </div>
           </div>
         </Card>
 
@@ -590,6 +626,21 @@ export default function ProfilePage() {
               ) : (
                 <div className="px-3 py-2 bg-light-gray/50 rounded-lg text-sm font-inter text-dark-text">
                   {profile.mood_baseline || "Not set"}
+                </div>
+              )}
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-poppins text-dark-text/60">Mood Baseline Details</label>
+              {isEditing ? (
+                <textarea
+                  value={profile.mood_baseline_details || ""}
+                  onChange={(e) => setProfile({ ...profile, mood_baseline_details: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 rounded-lg border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
+                />
+              ) : (
+                <div className="px-3 py-2 bg-light-gray/50 rounded-lg text-sm font-inter text-dark-text">
+                  {profile.mood_baseline_details || "Share what your typical mood feels like"}
                 </div>
               )}
             </div>
