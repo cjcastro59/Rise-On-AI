@@ -98,9 +98,7 @@ export default function JournalHistoryPage() {
   const getSentiment = useCallback((mood: string | null, content: string | null): string => {
     if (mood) {
       const moodSentiment = getSentimentFromMood(mood);
-      if (moodSentiment !== "neutral") {
-        return moodSentiment.charAt(0).toUpperCase() + moodSentiment.slice(1);
-      }
+      return moodSentiment.charAt(0).toUpperCase() + moodSentiment.slice(1);
     }
 
     const textSentiment = analyzeSentiment(content);
@@ -232,7 +230,7 @@ export default function JournalHistoryPage() {
           className="flex-1"
         />
         <div className="flex gap-2">
-          {["All", "Positive", "Neutral", "Negative"].map((filter) => (
+          {["All", "Positive", "Negative", "Distress"].map((filter) => (
             <Button
               key={filter}
               variant={sentimentFilter === filter ? "primary" : "secondary"}

@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { authenticator } from "@otplib/preset-default";
+import { QRCodeSVG } from "qrcode.react";
 
 type SettingSection = "notifications" | "privacy" | "language" | "security" | "data" | "account";
 
@@ -53,17 +55,29 @@ export default function SettingsPage() {
     }
   }, [check2FAStatus, user]);
 
-  const startSetup2FA = async () => {
+  const startSetupAuthenticator = async () => {
+    if (!user?.email) return;
     try {
       setLoading(true);
       setError("");
-      const speakeasy = require('speakeasy');
-      const qrcode = require('qrcode');
-      const generatedSecret = speakeasy.generateSecret({
-        name: 'Rise On AI',
-      });
-      const url = await qrcode.toDataURL(generatedSecret.otpauth_url);
-      setSecret(generatedSecret.base32);
+
+      let { data: profile } = await supabase
+        .from("user_profiles")
+        .select("two_factor_secret")
+        .eq("id", user.id)
+        .single();
+
+      let currentSecret = profile?.two_factor_secret;
+      if (!currentSecret) {
+        currentSecret = authenticator.generateSecret();
+        await supabase
+          .from("user_profiles")
+          .update({ two_factor_secret: currentSecret })
+          .eq("id", user.id);
+      }
+
+      const url = authenticator.keyuri(user.email, "Rise On AI", currentSecret);
+      setSecret(currentSecret);
       setQrCodeUrl(url);
       setShowSetup2FA(true);
     } catch (err) {
@@ -78,26 +92,36 @@ export default function SettingsPage() {
     try {
       setLoading(true);
       setError("");
-      const speakeasy = require('speakeasy');
-      const verified = speakeasy.totp.verify({
-        secret: secret,
-        encoding: 'base32',
-        token: verificationCode
+
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("two_factor_secret")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile?.two_factor_secret) {
+        setError("Secret not found, please try again.");
+        return;
+      }
+
+      const verified = authenticator.verify({
+        secret: profile.two_factor_secret,
+        token: verificationCode,
       });
 
       if (verified) {
         await supabase
           .from('user_profiles')
           .update({
-            two_factor_enabled: true,
-            two_factor_secret: secret
+            two_factor_enabled: true
           })
           .eq('id', user.id);
         setTwoFactorEnabled(true);
         setShowSetup2FA(false);
         setSuccess("Two-factor authentication enabled successfully!");
       } else {
-        setError("Invalid verification code");
+        const expected = authenticator.generate(profile.two_factor_secret);
+        setError(`Invalid verification code! Expected: ${expected}`);
       }
     } catch (err) {
       setError("Failed to verify code");
@@ -311,7 +335,7 @@ export default function SettingsPage() {
               {!twoFactorEnabled ? (
                 <div>
                   {!showSetup2FA ? (
-                    <Button variant="ghost" onClick={startSetup2FA} disabled={loading}>
+                    <Button variant="ghost" onClick={startSetupAuthenticator} disabled={loading}>
                       {loading ? "Setting up..." : "Enable Two-Factor Authentication"}
                     </Button>
                   ) : (
@@ -322,7 +346,9 @@ export default function SettingsPage() {
                       </p>
                       {qrCodeUrl && (
                         <div className="flex justify-center">
-                          <Image src={qrCodeUrl} alt="QR Code" width={192} height={192} className="w-48 h-48 object-contain" />
+                          <div className="p-4 bg-white border border-light-gray rounded-xl">
+                            <QRCodeSVG value={qrCodeUrl} size={192} level="H" includeMargin={true} />
+                          </div>
                         </div>
                       )}
                       <div>
@@ -330,8 +356,9 @@ export default function SettingsPage() {
                           type="text"
                           placeholder="Enter verification code"
                           value={verificationCode}
-                          onChange={(e) => setVerificationCode(e.target.value)}
+                          onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
                           maxLength={6}
+                          inputMode="numeric"
                         />
                       </div>
                       <div className="flex gap-2">

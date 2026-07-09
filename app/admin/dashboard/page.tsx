@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
+import { analyzeSentiment, getSentimentFromMood } from "@/lib/sentiment";
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
@@ -12,6 +13,8 @@ export default function AdminDashboardPage() {
     totalEntries: 0,
     positiveRate: 0,
     activeAlerts: 0,
+    totalDistressLogs: 0,
+    newUsersToday: 0,
   });
   const [recentAlerts, setRecentAlerts] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
@@ -22,10 +25,9 @@ export default function AdminDashboardPage() {
   const [dauData, setDauData] = useState<{ date: string; count: number }[]>([]);
   const [moodDistribution, setMoodDistribution] = useState<{
     positive: number;
-    neutral: number;
-    mixed: number;
+    negative: number;
     distress: number;
-  }>({ positive: 0, neutral: 0, mixed: 0, distress: 0 });
+  }>({ positive: 0, negative: 0, distress: 0 });
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const [announcementTitle, setAnnouncementTitle] = useState("");
   const [announcementContent, setAnnouncementContent] = useState("");
@@ -52,14 +54,11 @@ export default function AdminDashboardPage() {
     try {
       const now = new Date();
       let startDate = new Date();
-      let label = "";
 
       if (dauPeriod === "week") {
         startDate.setDate(now.getDate() - 6); // Last 7 days
-        label = "DAILY ACTIVE USERS — LAST 7 DAYS";
       } else {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1); // Start of current month
-        label = `DAILY ACTIVE USERS — ${now.toLocaleDateString("en-US", { month: "long", year: "numeric" })}`;
       }
 
       // Fetch journal entries for the period
@@ -79,14 +78,12 @@ export default function AdminDashboardPage() {
 
       // Build DAU array
       const dauArray: { date: string; count: number }[] = [];
-      const dateSet = new Set<string>();
 
       if (dauPeriod === "week") {
         for (let i = 6; i >= 0; i--) {
           const d = new Date(now);
           d.setDate(now.getDate() - i);
           const dateLabel = d.toLocaleDateString("en-US", { weekday: "short" });
-          dateSet.add(dateLabel);
           dauArray.push({ date: dateLabel, count: dauMap.get(dateLabel)?.size || 0 });
         }
       } else {
@@ -94,7 +91,6 @@ export default function AdminDashboardPage() {
         for (let i = 1; i <= daysInMonth; i++) {
           const d = new Date(now.getFullYear(), now.getMonth(), i);
           const dateLabel = String(i);
-          dateSet.add(dateLabel);
           dauArray.push({ date: dateLabel, count: dauMap.get(dateLabel)?.size || 0 });
         }
       }
@@ -102,27 +98,17 @@ export default function AdminDashboardPage() {
       setDauData(dauArray);
 
       // Calculate mood distribution
-      const moodCounts = { positive: 0, neutral: 0, mixed: 0, distress: 0 };
+      const moodCounts = { positive: 0, negative: 0, distress: 0 };
       const allEntries = await supabase.from("journal_entries").select("mood, content");
       
       (allEntries.data || []).forEach((entry: any) => {
-        const text = (entry.content || "").toLowerCase();
-        const mood = (entry.mood || "").toLowerCase();
-        
-        const positiveKeywords = ["happy", "calm", "excited", "grateful", "peaceful", "content", "hopeful", "optimistic", "proud", "glad", "joy", "love"];
-        const negativeKeywords = ["sad", "anxious", "frustrated", "overwhelmed", "angry", "worried", "stress", "depressed", "lonely", "hopeless", "afraid", "tired"];
-        
-        const hasPositive = positiveKeywords.some((word) => text.includes(word) || mood.includes(word));
-        const hasNegative = negativeKeywords.some((word) => text.includes(word) || mood.includes(word));
-
-        if (hasPositive && !hasNegative) {
-          moodCounts.positive++;
-        } else if (hasNegative && !hasPositive) {
+        const sentiment = analyzeSentiment(entry.content);
+        if (sentiment === "distress") {
           moodCounts.distress++;
-        } else if (hasPositive && hasNegative) {
-          moodCounts.mixed++;
+        } else if (sentiment === "positive") {
+          moodCounts.positive++;
         } else {
-          moodCounts.neutral++;
+          moodCounts.negative++;
         }
       });
 
@@ -139,18 +125,25 @@ export default function AdminDashboardPage() {
       try {
         setLoading(true);
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
         const [
           { count: userCount }, 
           { count: entryCount }, 
+          { count: distressCount }, 
           { data: alertsData }, 
           { data: activityData },
-          { data: firstUsers }
+          { data: firstUsers },
+          { count: newUsersTodayCount }
         ] = await Promise.all([
           supabase.from("user_profiles").select("id", { count: "exact", head: true }),
           supabase.from("journal_entries").select("id", { count: "exact", head: true }),
+          supabase.from("distress_logs").select("id", { count: "exact", head: true }),
           supabase.from("distress_logs").select("id, severity, trigger, notes, created_at").order("created_at", { ascending: false }).limit(3),
           supabase.from("audit_logs").select("id, action, details, created_at").order("created_at", { ascending: false }).limit(2),
-          supabase.from("user_profiles").select("created_at").order("created_at", { ascending: true }).limit(1)
+          supabase.from("user_profiles").select("created_at").order("created_at", { ascending: true }).limit(1),
+          supabase.from("user_profiles").select("id", { count: "exact", head: true }).gte("created_at", today.toISOString())
         ]);
 
         if (firstUsers && firstUsers.length > 0) {
@@ -173,6 +166,8 @@ export default function AdminDashboardPage() {
           totalEntries: entryCount || 0,
           positiveRate: entryCount ? Math.round((positiveEntries.length / entryCount) * 100) : 0,
           activeAlerts: alertsData?.length || 0,
+          totalDistressLogs: distressCount || 0,
+          newUsersToday: newUsersTodayCount || 0,
         });
         setRecentAlerts(alertsData || []);
         setRecentActivity(activityData || []);
@@ -361,10 +356,10 @@ export default function AdminDashboardPage() {
 
         <Card className="p-5 border-l-4 border-l-[#F4A6A6]">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">⚠️</div>
+            <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">🚨</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">ACTIVE ALERTS</p>
-              <p className="text-2xl font-dm-serif text-[#F4A6A6]">{loading ? "—" : stats.activeAlerts}</p>
+              <p className="text-xs text-[#4F4F4F]/60 font-poppins">TOTAL DISTRESS LOGS</p>
+              <p className="text-2xl font-dm-serif text-[#F4A6A6]">{loading ? "—" : stats.totalDistressLogs}</p>
               <p className="text-xs text-[#F4A6A6] font-poppins">Live from distress logs</p>
             </div>
           </div>
@@ -373,14 +368,14 @@ export default function AdminDashboardPage() {
 
         <Card className="p-5">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">✅</div>
+            <div className="w-10 h-10 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center text-2xl">👤</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">SYSTEM UPTIME</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">99.7%</p>
-              <p className="text-xs text-[#52B788] font-poppins">🟢 Healthy</p>
+              <p className="text-xs text-[#4F4F4F]/60 font-poppins">NEW USERS TODAY</p>
+              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : stats.newUsersToday}</p>
+              <p className="text-xs text-[#52B788] font-poppins">Live from user profiles</p>
             </div>
           </div>
-          <div className="h-1 bg-gradient-to-r from-emerald-400 to-green-300 rounded-full"></div>
+          <div className="h-1 bg-gradient-to-r from-purple-400 to-pink-300 rounded-full"></div>
         </Card>
       </div>
 
@@ -447,18 +442,16 @@ export default function AdminDashboardPage() {
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="40" fill="none" stroke="#EAEAEA" strokeWidth="10"></circle>
                 {(() => {
-                  const total = moodDistribution.positive + moodDistribution.neutral + moodDistribution.mixed + moodDistribution.distress;
+                  const total = moodDistribution.positive + moodDistribution.negative + moodDistribution.distress;
                   const circumference = 2 * Math.PI * 40;
                   let offset = 0;
 
                   const positivePercent = total ? (moodDistribution.positive / total) * 100 : 0;
-                  const neutralPercent = total ? (moodDistribution.neutral / total) * 100 : 0;
-                  const mixedPercent = total ? (moodDistribution.mixed / total) * 100 : 0;
+                  const negativePercent = total ? (moodDistribution.negative / total) * 100 : 0;
                   const distressPercent = total ? (moodDistribution.distress / total) * 100 : 0;
 
                   const positiveDash = (positivePercent / 100) * circumference;
-                  const neutralDash = (neutralPercent / 100) * circumference;
-                  const mixedDash = (mixedPercent / 100) * circumference;
+                  const negativeDash = (negativePercent / 100) * circumference;
                   const distressDash = (distressPercent / 100) * circumference;
 
                   return (
@@ -473,24 +466,14 @@ export default function AdminDashboardPage() {
                           strokeDashoffset={-offset}
                         />
                       )}
-                      {neutralDash > 0 && (
+                      {negativeDash > 0 && (
                         <circle 
                           cx="50" cy="50" r="40" 
                           fill="none" 
-                          stroke="#A8DADC" 
+                          stroke="#F4A6A6" 
                           strokeWidth="10" 
-                          strokeDasharray={`${neutralDash} ${circumference}`}
+                          strokeDasharray={`${negativeDash} ${circumference}`}
                           strokeDashoffset={-(offset += positiveDash)}
-                        />
-                      )}
-                      {mixedDash > 0 && (
-                        <circle 
-                          cx="50" cy="50" r="40" 
-                          fill="none" 
-                          stroke="#CDB4DB" 
-                          strokeWidth="10" 
-                          strokeDasharray={`${mixedDash} ${circumference}`}
-                          strokeDashoffset={-(offset += neutralDash)}
                         />
                       )}
                       {distressDash > 0 && (
@@ -500,7 +483,7 @@ export default function AdminDashboardPage() {
                           stroke="#F4A6A6" 
                           strokeWidth="10" 
                           strokeDasharray={`${distressDash} ${circumference}`}
-                          strokeDashoffset={-(offset += mixedDash)}
+                          strokeDashoffset={-(offset += negativeDash)}
                         />
                       )}
                     </>
@@ -511,7 +494,7 @@ export default function AdminDashboardPage() {
                 <div className="text-center">
                   <p className="text-lg font-dm-serif text-[#4F4F4F]">
                     {(() => {
-                      const total = moodDistribution.positive + moodDistribution.neutral + moodDistribution.mixed + moodDistribution.distress;
+                      const total = moodDistribution.positive + moodDistribution.negative + moodDistribution.distress;
                       return total ? `${Math.round((moodDistribution.positive / total) * 100)}%` : "0%";
                     })()}
                   </p>
@@ -521,10 +504,9 @@ export default function AdminDashboardPage() {
             </div>
             <div className="space-y-2">
               {(() => {
-                const total = moodDistribution.positive + moodDistribution.neutral + moodDistribution.mixed + moodDistribution.distress;
+                const total = moodDistribution.positive + moodDistribution.negative + moodDistribution.distress;
                 const p = total ? Math.round((moodDistribution.positive / total) * 100) : 0;
-                const n = total ? Math.round((moodDistribution.neutral / total) * 100) : 0;
-                const m = total ? Math.round((moodDistribution.mixed / total) * 100) : 0;
+                const n = total ? Math.round((moodDistribution.negative / total) * 100) : 0;
                 const d = total ? Math.round((moodDistribution.distress / total) * 100) : 0;
                 return (
                   <>
@@ -533,12 +515,8 @@ export default function AdminDashboardPage() {
                       <span className="text-xs font-poppins text-[#4F4F4F]">Positive {p}%</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-[#A8DADC]"></div>
-                      <span className="text-xs font-poppins text-[#4F4F4F]">Neutral {n}%</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-[#CDB4DB]"></div>
-                      <span className="text-xs font-poppins text-[#4F4F4F]">Mixed {m}%</span>
+                      <div className="w-3 h-3 rounded-full bg-[#F4A6A6]"></div>
+                      <span className="text-xs font-poppins text-[#4F4F4F]">Negative {n}%</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-[#F4A6A6]"></div>

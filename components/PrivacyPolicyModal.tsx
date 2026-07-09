@@ -20,24 +20,24 @@ export function PrivacyPolicyModal({ onClose }: PrivacyPolicyModalProps) {
   const [loading, setLoading] = useState(false);
 
   const getDefaultPrivacyPolicy = useCallback(() => `
-# Privacy Policy
+Privacy Policy
 
 Last updated: ${new Date().toLocaleDateString()}
 
-## 1. Introduction
+1. Introduction
 
 Welcome to Rise On AI. We respect your privacy and are committed to protecting your personal data. This privacy policy will inform you about how we look after your personal data when you use our application and tell you about your privacy rights and how the law protects you.
 
-## 2. Data We Collect
+2. Data We Collect
 
 We may collect the following types of information:
 
-- **Personal identification information**: Name, email address, username, and other information you provide during registration.
-- **Journal entries**: Your personal reflections and emotional data you enter into the application.
-- **Usage data**: Information about how you use our application.
-- **Device information**: Information about your device and internet connection.
+- Personal identification information: Name, email address, username, and other information you provide during registration.
+- Journal entries: Your personal reflections and emotional data you enter into the application.
+- Usage data: Information about how you use our application.
+- Device information: Information about your device and internet connection.
 
-## 3. How We Use Your Data
+3. How We Use Your Data
 
 We use your data to:
 - Provide and maintain our service
@@ -46,18 +46,18 @@ We use your data to:
 - Detect and prevent fraud
 - Comply with legal obligations
 
-## 4. Data Security
+4. Data Security
 
 We implement appropriate security measures to protect your personal data. Your journal entries are encrypted and stored securely.
 
-## 5. Data Sharing
+5. Data Sharing
 
 We do not share your personal data with third parties except:
 - With your consent
 - To comply with legal obligations
 - To protect and defend our rights and property
 
-## 6. Your Rights
+6. Your Rights
 
 You have the right to:
 - Access your personal data
@@ -67,11 +67,11 @@ You have the right to:
 - Data portability
 - Object to processing of your personal data
 
-## 7. Changes to This Policy
+7. Changes to This Policy
 
 We may update our privacy policy from time to time. We will notify you of any changes by posting the new privacy policy on this page.
 
-## 8. Contact Us
+8. Contact Us
 
 If you have any questions about this privacy policy, please contact us.
   `, []);

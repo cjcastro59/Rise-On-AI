@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { analyzeSentiment, getSentimentFromMood, getMoodCategory, MoodCategory, Sentiment } from "@/lib/sentiment";
 
 interface JournalEntryRow {
   id: string;
@@ -29,6 +30,16 @@ const moodEmojiMap: Record<string, string> = {
   "Overwhelmed": "😵"
 };
 
+const moodCategoryEmojiMap: Record<MoodCategory, string> = {
+  "happy": "😊",
+  "calm": "😌",
+  "excited": "🎉",
+  "anxious": "😰",
+  "sad": "😢",
+  "frustrated": "😤",
+  "overwhelmed": "😵"
+};
+
 function getWordCount(content: string | null) {
   if (!content) return 0;
   return content.trim().split(/\s+/).filter(Boolean).length;
@@ -50,35 +61,46 @@ function getMoodTag(content: string | null, mood: string | null, emotions: strin
     return `${moodEmojiMap[mood]} ${mood}`;
   }
   
-  // Otherwise, use sentiment-based tag
-  const combined = `${content || ""} ${emotions?.join(" ") || ""}`.toLowerCase();
-  let score = 0;
-
-  positiveWords.forEach((word) => {
-    if (combined.includes(word)) score += 1;
-  });
-  negativeWords.forEach((word) => {
-    if (combined.includes(word)) score -= 1;
-  });
-
-  if (score > 0) return "😊 Positive";
-  if (score < 0) return "😟 Negative";
-  return "😐 Neutral";
+  // Otherwise, use our new sentiment analysis
+  const sentiment = analyzeSentiment(content);
+  
+  if (sentiment === "distress") {
+    return "🚨 Distress";
+  }
+  
+  const moodCategory = getMoodCategory(content, mood);
+  
+  if (sentiment === "positive") {
+    return `${moodCategoryEmojiMap[moodCategory]} Positive`;
+  }
+  
+  if (sentiment === "negative") {
+    return `${moodCategoryEmojiMap[moodCategory]} Negative`;
+  }
+  
+  return `${moodCategoryEmojiMap[moodCategory]} Negative`;
 }
 
 function getSentimentPercent(content: string | null, mood: string | null, emotions: string[] | null) {
-  const combined = `${mood || ""} ${content || ""} ${emotions?.join(" ") || ""}`.toLowerCase();
-  let score = 0;
-  positiveWords.forEach((word) => {
-    if (combined.includes(word)) score += 1;
-  });
-  negativeWords.forEach((word) => {
-    if (combined.includes(word)) score -= 1;
-  });
-
-  if (score > 0) return { label: "Positive", percent: 75 + Math.min(score * 5, 20) };
-  if (score < 0) return { label: "Negative", percent: 70 + Math.min(Math.abs(score) * 5, 20) };
-  return { label: "Neutral", percent: 60 };
+  let sentiment = analyzeSentiment(content);
+  
+  if (mood) {
+    sentiment = getSentimentFromMood(mood);
+  }
+  
+  if (sentiment === "distress") {
+    return { label: "Distress", percent: 95, color: "bg-red-100 text-red-600" };
+  }
+  
+  if (sentiment === "negative") {
+    return { label: "Negative", percent: 70, color: "bg-[#F4A6A6]/20 text-[#F4A6A6]" };
+  }
+  
+  if (sentiment === "positive") {
+    return { label: "Positive", percent: 75, color: "bg-[#52B788]/20 text-[#52B788]" };
+  }
+  
+  return { label: "Negative", percent: 70, color: "bg-[#F4A6A6]/20 text-[#F4A6A6]" };
 }
 
 function isSameDay(dateString: string, target: Date) {
@@ -163,8 +185,7 @@ export default function AdminJournalMonitorPage() {
     .slice(0, 3);
   
   const distressSignals = entries.filter((entry) => {
-    const combined = `${entry.mood || ""} ${entry.content || ""} ${entry.emotions?.join(" ") || ""}`.toLowerCase();
-    return distressWords.some((word) => combined.includes(word));
+    return analyzeSentiment(entry.content) === "distress";
   }).length;
 
   // Pagination calculations
@@ -350,7 +371,7 @@ export default function AdminJournalMonitorPage() {
                           <p className="text-sm font-poppins text-[#4F4F4F]">{getMoodTag(entry.content, entry.mood, entry.emotions)}</p>
                         </td>
                         <td className="py-4 px-3">
-                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${sentiment.label === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : "bg-[#52B788]/20 text-[#52B788]" }`}>
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold ${sentiment.color}`}>
                             {sentiment.percent}% {sentiment.label}
                           </span>
                         </td>

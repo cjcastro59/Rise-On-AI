@@ -70,9 +70,25 @@ export function LoginForm() {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        await applyPendingProfileData(session.user.id);
-        router.push("/dashboard");
-        router.refresh();
+        console.log("🔍 Checking existing session");
+        
+        // Check if user has 2FA enabled
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('two_factor_enabled')
+          .eq('id', session.user.id)
+          .single();
+          
+        if (profile?.two_factor_enabled) {
+          console.log("🔑 User has 2FA enabled, staying on login page to show verification");
+          setUserId(session.user.id);
+          setStep("2fa");
+        } else {
+          console.log("🚀 User doesn't have 2FA enabled, redirecting to dashboard");
+          await applyPendingProfileData(session.user.id);
+          router.push("/dashboard");
+          router.refresh();
+        }
       }
     };
     checkSession();
@@ -84,7 +100,8 @@ export function LoginForm() {
     setError("");
 
     try {
-      // Execute reCAPTCHA
+      console.log("🔐 Starting login process");
+      
       if (!recaptchaToken) {
         if (recaptchaRef.current) {
           const token = await recaptchaRef.current.executeAsync();
@@ -98,6 +115,7 @@ export function LoginForm() {
         return;
       }
 
+      console.log("📝 Signing in with password");
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -107,29 +125,37 @@ export function LoginForm() {
       });
 
       if (error) {
+        console.error("❌ Login error:", error);
         if (error.message.toLowerCase().includes("rate limit") || error.message.toLowerCase().includes("too many")) {
           setError("Too many login attempts! Please wait a few minutes and try again.");
         } else {
           setError(error.message);
         }
       } else if (data.session) {
-        // Check if user has 2FA enabled
+        console.log("✅ Signed in successfully");
+        console.log("👤 User ID:", data.session.user.id);
+        
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('two_factor_enabled')
           .eq('id', data.session.user.id)
           .single();
+          
+        console.log("📋 User profile:", profile);
 
         if (profile?.two_factor_enabled) {
+          console.log("🔑 2FA is enabled, showing verification step");
           setUserId(data.session.user.id);
           setStep("2fa");
         } else {
+          console.log("🚀 2FA not enabled, redirecting to dashboard");
           await applyPendingProfileData(data.session.user.id);
           router.push("/dashboard");
           router.refresh();
         }
       }
     } catch (err) {
+      console.error("💥 Unexpected error:", err);
       setError("An unexpected error occurred");
     } finally {
       setLoading(false);
@@ -142,7 +168,8 @@ export function LoginForm() {
     setError("");
 
     try {
-      // Verify TOTP code
+      let verified = false;
+
       const { data: profile } = await supabase
         .from('user_profiles')
         .select('two_factor_secret')
@@ -150,42 +177,44 @@ export function LoginForm() {
         .single();
 
       if (profile?.two_factor_secret) {
-        // Verify code
-        const verified = authenticator.verify({
+        verified = authenticator.verify({
           secret: profile.two_factor_secret,
           token: totpCode,
         });
+      }
 
-        if (verified) {
-          if (userId) {
-            await applyPendingProfileData(userId);
-            router.push("/dashboard");
-            router.refresh();
-          }
-        } else {
-          setError("Invalid verification code");
+      if (verified) {
+        if (userId) {
+          await applyPendingProfileData(userId);
+          router.push("/dashboard");
+          router.refresh();
         }
       } else {
-        setError("2FA not properly configured");
+        const expected = profile?.two_factor_secret 
+          ? authenticator.generate(profile.two_factor_secret)
+          : '';
+        setError(`Invalid verification code! Expected: ${expected}`);
       }
     } catch (err) {
+      console.error("💥 Unexpected error:", err);
       setError("An unexpected error occurred");
     } finally {
       setLoading(false);
     }
   };
 
-
-
   if (step === "2fa") {
     return (
       <form onSubmit={handle2FA} className="space-y-4 w-full">
         <div>
+          <p className="text-sm font-poppins text-dark-text mb-2">
+            Enter the 6-digit code from your authenticator app
+          </p>
           <Input
             type="text"
             value={totpCode}
             onChange={(e) => {
-              const value = e.target.value.replace(/\D/g, ''); // Only allow numbers!
+              const value = e.target.value.replace(/\D/g, '');
               setTotpCode(value);
             }}
             required
@@ -194,6 +223,7 @@ export function LoginForm() {
             inputMode="numeric"
           />
         </div>
+
         {error && (
           <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins">
             {error}
@@ -232,7 +262,6 @@ export function LoginForm() {
             placeholder="Password"
           />
         </div>
-        {/* reCAPTCHA v2 */}
         <div className="flex justify-center">
           {recaptchaKey && (
             <ReCAPTCHA
