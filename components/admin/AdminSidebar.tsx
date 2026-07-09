@@ -23,17 +23,15 @@ export default function AdminSidebar() {
         <div className="space-y-1">
           <Link
             href="/admin/dashboard"
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              pathname === "/admin/dashboard" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${pathname === "/admin/dashboard" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
+              }`}
           >
             <span>📊</span> Dashboard
           </Link>
           <Link
             href="/admin/users"
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              pathname === "/admin/users" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${pathname === "/admin/users" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
+              }`}
           >
             <span>👥</span> User Management
           </Link>
@@ -46,33 +44,29 @@ export default function AdminSidebar() {
         <div className="space-y-1">
           <Link
             href="/admin/journal-monitor"
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              pathname === "/admin/journal-monitor" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${pathname === "/admin/journal-monitor" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
+              }`}
           >
             <span>📝</span> Journal Monitor
           </Link>
           <Link
             href="/admin/mood-trends"
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              pathname === "/admin/mood-trends" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${pathname === "/admin/mood-trends" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
+              }`}
           >
             <span>📈</span> Mood Reports
           </Link>
           <Link
             href="/admin/sentiment-monitoring"
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              pathname === "/admin/sentiment-monitoring" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${pathname === "/admin/sentiment-monitoring" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
+              }`}
           >
             <span>🤖</span> Sentiment Monitor
           </Link>
           <Link
             href="/admin/feedback"
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              pathname === "/admin/feedback" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${pathname === "/admin/feedback" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
+              }`}
           >
             <span>💬</span> Feedback
           </Link>
@@ -85,9 +79,8 @@ export default function AdminSidebar() {
         <div className="space-y-1">
           <Link
             href="/admin/distress-alerts"
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              pathname === "/admin/distress-alerts" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${pathname === "/admin/distress-alerts" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
+              }`}
           >
             <span>🚨</span> Distress Alerts
             <span className="ml-auto bg-[#F4A6A6] text-[#1E293B] text-[10px] px-2 py-0.5 rounded-full font-bold">9</span>
@@ -101,17 +94,15 @@ export default function AdminSidebar() {
         <div className="space-y-1">
           <Link
             href="/admin/system-settings"
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              pathname === "/admin/system-settings" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${pathname === "/admin/system-settings" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
+              }`}
           >
             <span>⚙️</span> Settings
           </Link>
           <Link
             href="/admin/audit-logs"
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              pathname === "/admin/audit-logs" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-            }`}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${pathname === "/admin/audit-logs" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
+              }`}
           >
             <span>📋</span> Audit Logs
           </Link>

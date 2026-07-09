@@ -142,7 +142,7 @@ export default function AdminJournalMonitorPage() {
       <div className="flex justify-between items-center pb-4 border-b border-gray-200">
         <div>
           <h1 className="text-2xl font-dm-serif text-[#4F4F4F] mb-1">Journal Monitoring</h1>
-          <p className="text-sm text-[#4F4F4F]/60 font-poppins">Anonymized entry analytics; no content displayed</p>
+          <p className="text-sm text-[#374151] font-poppins">Anonymized entry analytics; no content displayed</p>
         </div>
         <div className="flex gap-3">
           <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-[#4F4F4F] hover:bg-gray-50">
@@ -158,42 +158,42 @@ export default function AdminJournalMonitorPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-5">
+        <Card className="p-5 border-l-4 border-l-[#A8DADC]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">📝</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">TOTAL ENTRIES</p>
+              <p className="text-xs text-[#374151] font-poppins">TOTAL ENTRIES</p>
               <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : totalEntries}</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-purple-500 via-blue-400 to-cyan-300 rounded-full"></div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5 border-l-4 border-l-[#CDB4DB]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center text-2xl">📊</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">ENTRIES TODAY</p>
+              <p className="text-xs text-[#374151] font-poppins">ENTRIES TODAY</p>
               <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : todaysEntries}</p>
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">Recent activity shown live</p>
+              <p className="text-xs text-[#374151] font-poppins">Recent activity shown live</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-purple-400 to-pink-300 rounded-full"></div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5 border-l-4 border-l-[#52B788]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">📄</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">AVG WORDS/ENTRY</p>
+              <p className="text-xs text-[#374151] font-poppins">AVG WORDS/ENTRY</p>
               <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : averageWords}</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-green-400 to-emerald-300 rounded-full"></div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5 border-l-4 border-l-[#FFE8A1]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#FFE8A1]/30 rounded-lg flex items-center justify-center text-2xl">⚠️</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">DISTRESS SIGNALS</p>
+              <p className="text-xs text-[#374151] font-poppins">DISTRESS SIGNALS</p>
               <p className="text-2xl font-dm-serif text-[#F4A6A6]">{loading ? "—" : distressSignals}</p>
             </div>
           </div>
@@ -205,7 +205,7 @@ export default function AdminJournalMonitorPage() {
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📈</div>
-            <p className="text-xs font-poppins text-[#4F4F4F]/60">ENTRY VOLUME - LAST 7 DAYS</p>
+            <p className="text-xs font-poppins text-[#374151]">ENTRY VOLUME - LAST 7 DAYS</p>
           </div>
           <div className="h-40 flex items-end justify-between gap-2 px-4">
             {volumeByDay.map((value, index) => (
@@ -220,7 +220,7 @@ export default function AdminJournalMonitorPage() {
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">🕒</div>
-            <p className="text-xs font-poppins text-[#4F4F4F]/60">PEAK WRITING HOURS</p>
+            <p className="text-xs font-poppins text-[#374151]">PEAK WRITING HOURS</p>
           </div>
           <div className="space-y-3">
             {[
@@ -241,7 +241,7 @@ export default function AdminJournalMonitorPage() {
             ))}
           </div>
           <div className="mt-6 pt-4 border-t border-gray-100">
-            <p className="text-xs font-poppins text-[#4F4F4F]/60 mb-3">LANGUAGE USED</p>
+            <p className="text-xs font-poppins text-[#374151] mb-3">LANGUAGE USED</p>
             <div className="flex flex-wrap items-center gap-3">
               {topLanguages.length > 0 ? topLanguages.map(([language, count]) => (
                 <span key={language} className="px-3 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-poppins text-[#4F4F4F]">{language} {Math.round((count / Math.max(totalEntries, 1)) * 100)}%</span>
@@ -253,7 +253,7 @@ export default function AdminJournalMonitorPage() {
 
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <p className="text-xs font-poppins text-[#4F4F4F]/60">RECENT ENTRY METADATA (ANONYMIZED)</p>
+          <p className="text-xs font-poppins text-[#374151]">RECENT ENTRY METADATA (ANONYMIZED)</p>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 px-2 py-1 bg-[#A8DADC]/10 rounded-full border border-[#A8DADC]/30">
               <span className="text-xs">🤐</span>
@@ -265,13 +265,13 @@ export default function AdminJournalMonitorPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">ENTRY ID</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">TIMESTAMP</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">WORD COUNT</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">LANGUAGE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">MOOD TAG</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">SENTIMENT SCORE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">AI PROCESSED</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">ENTRY ID</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">TIMESTAMP</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">WORD COUNT</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">LANGUAGE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">MOOD TAG</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">SENTIMENT SCORE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">AI PROCESSED</th>
               </tr>
             </thead>
             <tbody>

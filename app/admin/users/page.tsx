@@ -92,7 +92,7 @@ export default function AdminUsersPage() {
       <div className="flex justify-between items-center pb-4 border-b border-gray-200">
         <div>
           <h1 className="text-2xl font-dm-serif text-[#4F4F4F] mb-1">User Management</h1>
-          <p className="text-sm text-[#4F4F4F]/60 font-poppins">2,418 total registered users; Anonymized IDs shown</p>
+          <p className="text-sm text-[#374151] font-poppins">2,418 total registered users; Anonymized IDs shown</p>
         </div>
         <div className="flex gap-3">
           <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-[#4F4F4F] hover:bg-gray-50">
@@ -113,31 +113,31 @@ export default function AdminUsersPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-5">
+        <Card className="p-5 border-l-4 border-l-[#A8DADC]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">👥</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">TOTAL USERS</p>
+              <p className="text-xs text-[#374151] font-poppins">TOTAL USERS</p>
               <p className="text-2xl font-dm-serif text-[#4F4F4F]">2,418</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-purple-500 via-blue-400 to-cyan-300 rounded-full"></div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5 border-l-4 border-l-[#52B788]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">✅</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">ACTIVE (30d)</p>
+              <p className="text-xs text-[#374151] font-poppins">ACTIVE (30d)</p>
               <p className="text-2xl font-dm-serif text-[#4F4F4F]">1,984</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-green-400 to-emerald-300 rounded-full"></div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5 border-l-4 border-l-[#CDB4DB]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center text-2xl">⏸️</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">INACTIVE</p>
+              <p className="text-xs text-[#374151] font-poppins">INACTIVE</p>
               <p className="text-2xl font-dm-serif text-[#4F4F4F]">312</p>
             </div>
           </div>
@@ -147,7 +147,7 @@ export default function AdminUsersPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">🚫</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">FLAGGED / AT RISK</p>
+              <p className="text-xs text-[#374151] font-poppins">FLAGGED / AT RISK</p>
               <p className="text-2xl font-dm-serif text-[#F4A6A6]">122</p>
             </div>
           </div>
@@ -202,15 +202,15 @@ export default function AdminUsersPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">USER ID</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">UNIVERSITY</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">YEAR</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">ENTRIES</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">LAST ACTIVE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">AVG MOOD</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">SENTIMENT</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">STATUS</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">ACTIONS</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">USER ID</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">UNIVERSITY</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">YEAR</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">ENTRIES</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">LAST ACTIVE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">AVG MOOD</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">SENTIMENT</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">STATUS</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -267,13 +267,13 @@ export default function AdminUsersPage() {
 
         {/* Pagination */}
         <div className="flex items-center justify-between mt-6">
-          <p className="text-sm text-[#4F4F4F]/60 font-inter">Showing 1-7 of 2,418 users</p>
+          <p className="text-sm text-[#374151] font-inter">Showing 1-7 of 2,418 users</p>
           <div className="flex items-center gap-2">
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-sm font-poppins text-[#4F4F4F]/60 hover:bg-gray-50">←</button>
+            <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-sm font-poppins text-[#374151] hover:bg-gray-50">←</button>
             <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] text-sm font-semibold font-poppins text-[#4F4F4F]">1</button>
             <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-sm font-poppins text-[#4F4F4F] hover:bg-gray-50">2</button>
             <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-sm font-poppins text-[#4F4F4F] hover:bg-gray-50">3</button>
-            <span className="text-sm font-poppins text-[#4F4F4F]/60">...</span>
+            <span className="text-sm font-poppins text-[#374151]">...</span>
             <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-sm font-poppins text-[#4F4F4F] hover:bg-gray-50">346</button>
             <button className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-sm font-poppins text-[#4F4F4F] hover:bg-gray-50">→</button>
           </div>

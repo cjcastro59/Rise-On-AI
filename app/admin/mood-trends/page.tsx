@@ -104,7 +104,7 @@ export default function AdminMoodTrendsPage() {
       <div className="flex justify-between items-center pb-4 border-b border-gray-200">
         <div>
           <h1 className="text-2xl font-dm-serif text-[#4F4F4F] mb-1">Mood Trend Reports</h1>
-          <p className="text-sm text-[#4F4F4F]/60 font-poppins">Platform-wide emotional analytics; aggregated and anonymized</p>
+          <p className="text-sm text-[#374151] font-poppins">Platform-wide emotional analytics; aggregated and anonymized</p>
         </div>
         <div className="flex gap-3">
           <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-[#4F4F4F] hover:bg-gray-50">
@@ -114,31 +114,31 @@ export default function AdminMoodTrendsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-5">
+        <Card className="p-5 border-l-4 border-l-[#52B788]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">😊</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">POSITIVE ENTRIES</p>
+              <p className="text-xs text-[#374151] font-poppins">POSITIVE ENTRIES</p>
               <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : `${positivePercent}%`}</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-green-400 to-emerald-300 rounded-full"></div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5 border-l-4 border-l-[#A8DADC]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">😐</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">NEUTRAL ENTRIES</p>
+              <p className="text-xs text-[#374151] font-poppins">NEUTRAL ENTRIES</p>
               <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : `${neutralPercent}%`}</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full"></div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5 border-l-4 border-l-[#CDB4DB]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center text-2xl">😕</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">MIXED / UNCERTAIN</p>
+              <p className="text-xs text-[#374151] font-poppins">MIXED / UNCERTAIN</p>
               <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : `${mixedPercent}%`}</p>
             </div>
           </div>
@@ -148,7 +148,7 @@ export default function AdminMoodTrendsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">😢</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">DISTRESS SIGNALS</p>
+              <p className="text-xs text-[#374151] font-poppins">DISTRESS SIGNALS</p>
               <p className="text-2xl font-dm-serif text-[#F4A6A6]">{loading ? "—" : `${distressPercent}%`}</p>
             </div>
           </div>
@@ -160,7 +160,7 @@ export default function AdminMoodTrendsPage() {
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📈</div>
-            <p className="text-xs font-poppins text-[#4F4F4F]/60">PLATFORM MOOD SCORE TREND - LAST 7 DAYS</p>
+            <p className="text-xs font-poppins text-[#374151]">PLATFORM MOOD SCORE TREND - LAST 7 DAYS</p>
           </div>
           <div className="h-56 flex items-end justify-between gap-2 px-2">
             {dailyScores.map((score, index) => (
@@ -185,7 +185,7 @@ export default function AdminMoodTrendsPage() {
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">🎭</div>
-            <p className="text-xs font-poppins text-[#4F4F4F]/60">TOP EMOTIONS PLATFORM-WIDE</p>
+            <p className="text-xs font-poppins text-[#374151]">TOP EMOTIONS PLATFORM-WIDE</p>
           </div>
           <div className="space-y-3">
             {topEmotions.length > 0 ? topEmotions.map(([emotion, count]) => (

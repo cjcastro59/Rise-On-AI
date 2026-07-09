@@ -39,7 +39,7 @@ export default function AdminSentimentMonitoringPage() {
       <div className="flex justify-between items-center pb-4 border-b border-gray-200">
         <div>
           <h1 className="text-2xl font-dm-serif text-[#4F4F4F] mb-1">Sentiment Analysis Monitoring</h1>
-          <p className="text-sm text-[#4F4F4F]/60 font-poppins">AI Model performance & platform-wide NLP metrics</p>
+          <p className="text-sm text-[#374151] font-poppins">AI Model performance & platform-wide NLP metrics</p>
         </div>
         <div className="flex gap-3">
           <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-[#4F4F4F] hover:bg-gray-50">
@@ -50,33 +50,33 @@ export default function AdminSentimentMonitoringPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-5">
+        <Card className="p-5 border-l-4 border-l-[#52B788]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">✅</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">AI ACCURACY</p>
+              <p className="text-xs text-[#374151] font-poppins">AI ACCURACY</p>
               <p className="text-2xl font-dm-serif text-[#4F4F4F]">97.3%</p>
               <p className="text-xs text-[#52B788] font-poppins">Model v2.1</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-green-400 to-emerald-300 rounded-full"></div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5 border-l-4 border-l-[#A8DADC]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">⚡</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">AVG PROCESS TIME</p>
+              <p className="text-xs text-[#374151] font-poppins">AVG PROCESS TIME</p>
               <p className="text-2xl font-dm-serif text-[#4F4F4F]">142ms</p>
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">↑ Fast</p>
+              <p className="text-xs text-[#374151] font-poppins">↑ Fast</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full"></div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5 border-l-4 border-l-[#CDB4DB]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center text-2xl">🌐</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">TAGALOG ENTRIES</p>
+              <p className="text-xs text-[#374151] font-poppins">TAGALOG ENTRIES</p>
               <p className="text-2xl font-dm-serif text-[#4F4F4F]">61%</p>
             </div>
           </div>
@@ -86,7 +86,7 @@ export default function AdminSentimentMonitoringPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">⚠️</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">LOW CONFIDENCE</p>
+              <p className="text-xs text-[#374151] font-poppins">LOW CONFIDENCE</p>
               <p className="text-2xl font-dm-serif text-[#F4A6A6]">2.7%</p>
               <p className="text-xs text-[#F4A6A6] font-poppins">Needs review</p>
             </div>
@@ -101,7 +101,7 @@ export default function AdminSentimentMonitoringPage() {
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📊</div>
-            <p className="text-xs font-poppins text-[#4F4F4F]/60">SENTIMENT CONFIDENCE DISTRIBUTION</p>
+            <p className="text-xs font-poppins text-[#374151]">SENTIMENT CONFIDENCE DISTRIBUTION</p>
           </div>
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -150,7 +150,7 @@ export default function AdminSentimentMonitoringPage() {
             </div>
           </div>
           <div className="mt-6 pt-4 border-t border-gray-100">
-            <p className="text-xs font-poppins text-[#4F4F4F]/60 mb-3">MODEL PERFORMANCE BY LANGUAGE</p>
+            <p className="text-xs font-poppins text-[#374151] mb-3">MODEL PERFORMANCE BY LANGUAGE</p>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 bg-[#52B788]/20 rounded-full text-xs font-semibold font-poppins text-[#52B788]">English 98.5%</span>
@@ -166,7 +166,7 @@ export default function AdminSentimentMonitoringPage() {
         <Card className="p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">📈</div>
-            <p className="text-xs font-poppins text-[#4F4F4F]/60">PLATFORM EMOTION BREAKDOWN (LAST 24 HOURS)</p>
+            <p className="text-xs font-poppins text-[#374151]">PLATFORM EMOTION BREAKDOWN (LAST 24 HOURS)</p>
           </div>
           <div className="relative w-full h-48 flex items-center justify-center">
             <svg className="w-48 h-48 transform -rotate-90" viewBox="0 0 100 100">
@@ -207,29 +207,28 @@ export default function AdminSentimentMonitoringPage() {
       {/* Review Queue */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <p className="text-xs font-poppins text-[#4F4F4F]/60">LOW CONFIDENCE QUEUE - REQUIRES MANUAL REVIEW</p>
+          <p className="text-xs font-poppins text-[#374151]">LOW CONFIDENCE QUEUE - REQUIRES MANUAL REVIEW</p>
           <div className="text-xs text-[#F4A6A6] font-poppins">2.7% of entries</div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">ENTRY ID</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">USER ID</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">TIMESTAMP</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">LANGUAGE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">AI SCORE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">CONFIDENCE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-[#4F4F4F]/60 font-poppins uppercase tracking-wider">ACTION</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">ENTRY ID</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">USER ID</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">TIMESTAMP</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">LANGUAGE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">AI SCORE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">CONFIDENCE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-[#374151] font-poppins uppercase tracking-wider">ACTION</th>
               </tr>
             </thead>
             <tbody>
               {mockQueueEntries.map((entry) => (
                 <tr
                   key={entry.id}
-                  className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-all ${
-                    selectedEntry === entry.id ? "bg-[#A8DADC]/10" : ""
-                  }`}
+                  className={`border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-all ${selectedEntry === entry.id ? "bg-[#A8DADC]/10" : ""
+                    }`}
                   onClick={() => setSelectedEntry(entry.id)}
                 >
                   <td className="py-4 px-3">
@@ -245,11 +244,10 @@ export default function AdminSentimentMonitoringPage() {
                     <span className="px-2 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-semibold font-poppins text-[#4F4F4F]">{entry.language}</span>
                   </td>
                   <td className="py-4 px-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      entry.aiScore === "Positive" ? "bg-[#52B788]/20 text-[#52B788]" :
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${entry.aiScore === "Positive" ? "bg-[#52B788]/20 text-[#52B788]" :
                       entry.aiScore === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" :
-                      "bg-[#FFE8A1]/30 text-[#FFB700]"
-                    }`}>{entry.aiScore}</span>
+                        "bg-[#FFE8A1]/30 text-[#FFB700]"
+                      }`}>{entry.aiScore}</span>
                   </td>
                   <td className="py-4 px-3">
                     <span className="px-2 py-1 bg-[#FFE8A1]/30 rounded-full text-xs font-semibold font-poppins text-[#FFB700]">{entry.confidence}</span>

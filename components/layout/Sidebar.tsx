@@ -16,7 +16,7 @@ export default function Sidebar({ userName }: SidebarProps) {
   const pathname = usePathname();
   const { user } = useAuth();
   const supabase = createClient();
-  
+
   useEffect(() => {
     if (user) {
       supabase
@@ -69,55 +69,50 @@ export default function Sidebar({ userName }: SidebarProps) {
       <nav className="space-y-2 mb-10">
         <Link
           href="/dashboard"
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
-            isActive("dashboard")
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${isActive("dashboard")
               ? "bg-primary-blue/10 text-primary-blue font-semibold"
               : "text-dark-text hover:bg-light-gray"
-          }`}
+            }`}
         >
           <span className="text-xl">📊</span>
           Dashboard
         </Link>
         <Link
           href="/journal"
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
-            isActive("journal")
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${isActive("journal")
               ? "bg-primary-blue/10 text-primary-blue font-semibold"
               : "text-dark-text hover:bg-light-gray"
-          }`}
+            }`}
         >
           <span className="text-xl">📝</span>
           New Entry
         </Link>
         <Link
           href="/journal/history"
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
-            isActive("history")
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${isActive("history")
               ? "bg-primary-blue/10 text-primary-blue font-semibold"
               : "text-dark-text hover:bg-light-gray"
-          }`}
+            }`}
         >
           <span className="text-xl">📖</span>
           My Journal
         </Link>
         <Link
           href="/insights"
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
-            isActive("insights")
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${isActive("insights")
               ? "bg-primary-blue/10 text-primary-blue font-semibold"
               : "text-dark-text hover:bg-light-gray"
-          }`}
+            }`}
         >
           <span className="text-xl">📈</span>
           Mood Insights
         </Link>
         <Link
           href="/analysis"
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
-            isActive("analysis")
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${isActive("analysis")
               ? "bg-primary-blue/10 text-primary-blue font-semibold"
               : "text-dark-text hover:bg-light-gray"
-          }`}
+            }`}
         >
           <span className="text-xl">🤖</span>
           AI Reports
@@ -127,22 +122,20 @@ export default function Sidebar({ userName }: SidebarProps) {
       <div className="pt-6 border-t border-light-gray space-y-2 mb-8">
         <Link
           href="/settings"
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
-            isActive("settings")
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${isActive("settings")
               ? "bg-primary-blue/10 text-primary-blue font-semibold"
               : "text-dark-text hover:bg-light-gray"
-          }`}
+            }`}
         >
           <span className="text-xl">⚙️</span>
           Settings
         </Link>
         <Link
           href="/profile"
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
-            isActive("profile")
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${isActive("profile")
               ? "bg-primary-blue/10 text-primary-blue font-semibold"
               : "text-dark-text hover:bg-light-gray"
-          }`}
+            }`}
         >
           {avatarUrl ? (
             <img src={avatarUrl} alt="Profile" className="w-8 h-8 rounded-full object-cover" />

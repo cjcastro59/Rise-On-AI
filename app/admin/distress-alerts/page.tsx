@@ -52,7 +52,7 @@ export default function AdminDistressAlertsPage() {
       <div className="flex justify-between items-center pb-4 border-b border-gray-200">
         <div>
           <h1 className="text-2xl font-dm-serif text-error-red mb-1">Distress Alert Monitoring</h1>
-          <p className="text-sm text-dark-text/60 font-poppins">Real-time emotional crisis detection • Anonymized IDs • Requires immediate review</p>
+          <p className="text-sm text-[#374151] font-poppins">Real-time emotional crisis detection • Anonymized IDs • Requires immediate review</p>
         </div>
         <div className="flex gap-3">
           <span className="badge-error animate-pulse">⚡ 3 Active Alerts</span>
@@ -76,7 +76,7 @@ export default function AdminDistressAlertsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-error-red/20">🔴</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">CRITICAL ALERTS</p>
+              <p className="text-xs text-[#374151] font-poppins">CRITICAL ALERTS</p>
               <p className="text-2xl font-dm-serif text-error-red">3</p>
               <p className="text-xs text-error-red font-poppins">Needs immediate review</p>
             </div>
@@ -89,7 +89,7 @@ export default function AdminDistressAlertsPage() {
             <div className="text-right">
               <p className="text-xs text-dark-text/60 font-poppins">MEDIUM ALERTS</p>
               <p className="text-2xl font-dm-serif text-dark-text">11</p>
-              <p className="text-xs text-dark-text/60 font-poppins">Monitor closely</p>
+              <p className="text-xs text-[#374151] font-poppins">Monitor closely</p>
             </div>
           </div>
           <div className="stat-card-pill bg-gradient-to-r from-yellow-400 to-orange-300"></div>
@@ -98,7 +98,7 @@ export default function AdminDistressAlertsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-success-green/30">🟢</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">RESOLVED THIS WEEK</p>
+              <p className="text-xs text-[#374151] font-poppins">RESOLVED THIS WEEK</p>
               <p className="text-2xl font-dm-serif text-dark-text">28</p>
               <p className="text-xs text-success-green font-poppins">↑ Good progress</p>
             </div>
@@ -109,7 +109,7 @@ export default function AdminDistressAlertsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-primary-blue/20">✅</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">RESPONSE RATE</p>
+              <p className="text-xs text-[#374151] font-poppins">RESPONSE RATE</p>
               <p className="text-2xl font-dm-serif text-dark-text">94%</p>
               <p className="text-xs text-dark-text/60 font-poppins">↑ Within 2hrs</p>
             </div>
@@ -135,7 +135,7 @@ export default function AdminDistressAlertsPage() {
                     <span className="badge-error">Active</span>
                   </div>
                   <p className="text-sm font-poppins font-semibold text-dark-text">{alert.trigger} — {alert.userId}</p>
-                  <p className="text-xs text-dark-text/60 font-inter">{alert.details}</p>
+                  <p className="text-xs text-[#374151] font-inter">{alert.details}</p>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
@@ -197,7 +197,7 @@ export default function AdminDistressAlertsPage() {
       <Card className="p-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-8 h-8 bg-error-red/20 rounded-lg flex items-center justify-center">📉</div>
-          <p className="text-xs font-poppins text-dark-text/60">DISTRESS ALERT TREND — LAST 30 DAYS</p>
+          <p className="text-xs font-poppins text-[#374151]">DISTRESS ALERT TREND — LAST 30 DAYS</p>
         </div>
         <div className="relative h-40">
           <div className="absolute inset-0 bg-gradient-to-t from-error-red/20 to-transparent rounded-lg"></div>
@@ -210,11 +210,11 @@ export default function AdminDistressAlertsPage() {
             />
           </svg>
           <div className="absolute bottom-0 left-0 right-0 flex justify-between px-4 pb-2">
-            <span className="text-xs text-dark-text/60 font-poppins">Apr 28</span>
-            <span className="text-xs text-dark-text/60 font-poppins">May 5</span>
-            <span className="text-xs text-dark-text/60 font-poppins">May 12</span>
-            <span className="text-xs text-dark-text/60 font-poppins">May 19</span>
-            <span className="text-xs text-dark-text/60 font-poppins">May 28</span>
+            <span className="text-xs text-[#374151] font-poppins">Apr 28</span>
+            <span className="text-xs text-[#374151] font-poppins">May 5</span>
+            <span className="text-xs text-[#374151] font-poppins">May 12</span>
+            <span className="text-xs text-[#374151] font-poppins">May 19</span>
+            <span className="text-xs text-[#374151] font-poppins">May 28</span>
           </div>
         </div>
       </Card>

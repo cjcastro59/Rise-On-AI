@@ -14,6 +14,7 @@ body {
 }
 
 @layer components {
+
   /* Card Components */
   .stat-card {
     @apply p-5 bg-white rounded-2xl shadow-sm border border-gray-100 transition-all hover:shadow-md;
