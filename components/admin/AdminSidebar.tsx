@@ -155,6 +155,21 @@ export default function AdminSidebar() {
         </div>
       </div>
 
+      {/* SUPPORT Section */}
+      <div className="mb-6">
+        <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">Support</p>
+        <div className="space-y-1">
+          <Link
+            href="/admin/support"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
+              pathname === "/admin/support" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Image src="/icons/crisis-support.svg" alt="Support Chat" width={20} height={20} className="object-contain" /> Support Chat
+          </Link>
+        </div>
+      </div>
+
       {/* SAFETY Section */}
       <div className="mb-6">
         <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">Safety</p>
