@@ -129,6 +129,30 @@ CREATE TABLE IF NOT EXISTS public.announcements (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- conversations table
+CREATE TABLE IF NOT EXISTS public.conversations (
+    id UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    counselor_id UUID REFERENCES public.user_profiles(id) ON DELETE SET NULL,
+    status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- messages table
+CREATE TABLE IF NOT EXISTS public.messages (
+    id UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
+    conversation_id UUID NOT NULL REFERENCES public.conversations(id) ON DELETE CASCADE,
+    sender_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS on both tables
+ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+
 -- ------------------------------
 -- 3. Add Missing Columns to user_profiles
 -- ------------------------------
@@ -146,10 +170,14 @@ ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS mood_baseline TEXT;
 -- Ensure role check constraint
 DO $$
 BEGIN
-  IF NOT EXISTS (
+  -- Drop existing constraint if it exists to ensure we have the correct allowed roles
+  IF EXISTS (
     SELECT 1 FROM pg_constraint WHERE conname = 'user_profiles_role_check') THEN
-    ALTER TABLE public.user_profiles ADD CONSTRAINT user_profiles_role_check CHECK (role IN ('user', 'counselor', 'admin', 'owner'));
+    ALTER TABLE public.user_profiles DROP CONSTRAINT user_profiles_role_check;
   END IF;
+  
+  -- Add the constraint with all allowed roles
+  ALTER TABLE public.user_profiles ADD CONSTRAINT user_profiles_role_check CHECK (role IN ('user', 'counselor', 'admin', 'owner'));
 EXCEPTION
   WHEN duplicate_object THEN
     NULL;
@@ -213,28 +241,95 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Trigger function to prevent non-owners from changing user roles
-DROP FUNCTION IF EXISTS public.prevent_role_change_by_non_owner() CASCADE;
-CREATE OR REPLACE FUNCTION public.prevent_role_change_by_non_owner()
+-- Trigger function to enforce single owner and role change permissions
+DROP FUNCTION IF EXISTS public.enforce_role_change_rules() CASCADE;
+CREATE OR REPLACE FUNCTION public.enforce_role_change_rules()
 RETURNS TRIGGER AS $$
+DECLARE
+    current_user_role TEXT;
+    owner_count INTEGER;
 BEGIN
+    -- Get current user's role
+    SELECT role INTO current_user_role
+    FROM public.user_profiles
+    WHERE id = auth.uid()
+    LIMIT 1;
+
     -- Check if role is being changed
     IF NEW.role <> OLD.role THEN
-        -- Only allow owners to change roles
-        IF NOT public.is_current_user_owner() THEN
-            RAISE EXCEPTION 'Only owners can change user roles';
+        -- Only allow owners or admins to change roles
+        IF current_user_role NOT IN ('owner', 'admin') THEN
+            RAISE EXCEPTION 'Only owners and admins can change user roles';
+        END IF;
+
+        -- Prevent changing role directly to 'owner' (must use transfer_ownership function)
+        IF NEW.role = 'owner' THEN
+            RAISE EXCEPTION 'Cannot set role to owner directly. Use transfer_ownership function instead.';
+        END IF;
+
+        -- Prevent changing role away from 'owner' (must use transfer_ownership function)
+        IF OLD.role = 'owner' THEN
+            RAISE EXCEPTION 'Cannot change owner role directly. Use transfer_ownership function instead.';
         END IF;
     END IF;
+
+    -- Check if is_active is being changed on the owner account
+    IF NEW.is_active <> OLD.is_active AND OLD.role = 'owner' THEN
+        -- Only allow owner to change their own active status
+        IF current_user_role != 'owner' OR auth.uid() != OLD.id THEN
+            RAISE EXCEPTION 'Only the owner can change their own active status';
+        END IF;
+    END IF;
+
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Create trigger on user_profiles table
-DROP TRIGGER IF EXISTS prevent_role_change_trigger ON public.user_profiles;
-CREATE OR REPLACE TRIGGER prevent_role_change_trigger
+-- Create trigger on user_profiles table for role change rules
+DROP TRIGGER IF EXISTS enforce_role_change_rules_trigger ON public.user_profiles;
+CREATE OR REPLACE TRIGGER enforce_role_change_rules_trigger
 BEFORE UPDATE ON public.user_profiles
 FOR EACH ROW
-EXECUTE FUNCTION public.prevent_role_change_by_non_owner();
+EXECUTE FUNCTION public.enforce_role_change_rules();
+
+-- Function to transfer ownership to another user (only callable by current owner)
+DROP FUNCTION IF EXISTS public.transfer_ownership(TEXT) CASCADE;
+CREATE OR REPLACE FUNCTION public.transfer_ownership(new_owner_id TEXT)
+RETURNS VOID AS $$
+DECLARE
+    current_owner_id TEXT;
+BEGIN
+    -- Get current owner
+    SELECT id INTO current_owner_id
+    FROM public.user_profiles
+    WHERE role = 'owner'
+    LIMIT 1;
+
+    -- Verify current user is the owner
+    IF current_owner_id <> auth.uid() THEN
+        RAISE EXCEPTION 'Only the current owner can transfer ownership';
+    END IF;
+
+    -- Verify new owner exists
+    IF NOT EXISTS (SELECT 1 FROM public.user_profiles WHERE id = new_owner_id) THEN
+        RAISE EXCEPTION 'New owner user does not exist';
+    END IF;
+
+    -- Update current owner to admin
+    UPDATE public.user_profiles
+    SET role = 'admin'
+    WHERE id = current_owner_id;
+
+    -- Update new owner to owner
+    UPDATE public.user_profiles
+    SET role = 'owner'
+    WHERE id = new_owner_id;
+
+    -- Log to audit logs
+    INSERT INTO public.audit_logs (admin_id, action, target_id, target_type, details)
+    VALUES (auth.uid(), 'Ownership Transferred', new_owner_id, 'user', 'Ownership transferred to new user');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- handle_new_user function (creates user profile when new user registers)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -554,6 +649,143 @@ CREATE POLICY "Admins/owners can manage announcements"
     WITH CHECK (public.is_current_user_admin_or_owner());
 
 -- ------------------------------
+-- RLS Policies for conversations
+-- ------------------------------
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Users can view their own conversations" ON public.conversations;
+    DROP POLICY IF EXISTS "Counselors/admins can view all conversations" ON public.conversations;
+    DROP POLICY IF EXISTS "Users can insert their own conversations" ON public.conversations;
+    DROP POLICY IF EXISTS "Counselors/admins can update conversations" ON public.conversations;
+END
+$$;
+
+CREATE POLICY "Users can view their own conversations"
+    ON public.conversations
+    FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Counselors/admins can view all conversations"
+    ON public.conversations
+    FOR SELECT
+    USING (public.is_current_user_admin_or_owner());
+
+CREATE POLICY "Users can insert their own conversations"
+    ON public.conversations
+    FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Counselors/admins can update conversations"
+    ON public.conversations
+    FOR UPDATE
+    USING (public.is_current_user_admin_or_owner())
+    WITH CHECK (public.is_current_user_admin_or_owner());
+
+-- ------------------------------
+-- RLS Policies for conversations
+-- ------------------------------
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Users can view their own conversations" ON public.conversations;
+    DROP POLICY IF EXISTS "Counselors/admins can view all conversations" ON public.conversations;
+    DROP POLICY IF EXISTS "Users can insert their own conversations" ON public.conversations;
+    DROP POLICY IF EXISTS "Counselors/admins can update conversations" ON public.conversations;
+END
+$$;
+
+CREATE POLICY "Users can view their own conversations"
+    ON public.conversations
+    FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Counselors/admins can view all conversations"
+    ON public.conversations
+    FOR SELECT
+    USING (public.is_current_user_admin_or_owner());
+
+CREATE POLICY "Users can insert their own conversations"
+    ON public.conversations
+    FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Counselors/admins can update conversations"
+    ON public.conversations
+    FOR UPDATE
+    USING (public.is_current_user_admin_or_owner())
+    WITH CHECK (public.is_current_user_admin_or_owner());
+
+-- ------------------------------
+-- RLS Policies for messages
+-- ------------------------------
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Users can view messages from their conversations" ON public.messages;
+    DROP POLICY IF EXISTS "Counselors/admins can view all messages" ON public.messages;
+    DROP POLICY IF EXISTS "Users can insert messages to their conversations" ON public.messages;
+    DROP POLICY IF EXISTS "Counselors/admins can insert messages" ON public.messages;
+END
+$$;
+
+CREATE POLICY "Users can view messages from their conversations"
+    ON public.messages
+    FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.conversations
+            WHERE public.conversations.id = public.messages.conversation_id
+            AND public.conversations.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Counselors/admins can view all messages"
+    ON public.messages
+    FOR SELECT
+    USING (public.is_current_user_admin_or_owner());
+
+CREATE POLICY "Users can insert messages to their conversations"
+    ON public.messages
+    FOR INSERT
+    WITH CHECK (
+        auth.uid() = sender_id
+        AND EXISTS (
+            SELECT 1 FROM public.conversations
+            WHERE public.conversations.id = public.messages.conversation_id
+            AND public.conversations.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Counselors/admins can insert messages"
+    ON public.messages
+    FOR INSERT
+    WITH CHECK (public.is_current_user_admin_or_owner());
+
+-- ------------------------------
+-- Triggers for updated_at
+-- ------------------------------
+DROP TRIGGER IF EXISTS update_conversations_updated_at ON public.conversations;
+CREATE OR REPLACE TRIGGER update_conversations_updated_at
+    BEFORE UPDATE ON public.conversations
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+-- Function to update conversation's updated_at when a new message is inserted
+DROP FUNCTION IF EXISTS public.update_conversation_updated_at_on_message() CASCADE;
+CREATE OR REPLACE FUNCTION public.update_conversation_updated_at_on_message() 
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE public.conversations
+    SET updated_at = NOW()
+    WHERE id = NEW.conversation_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to run the function when a message is inserted
+DROP TRIGGER IF EXISTS update_conversation_on_new_message ON public.messages;
+CREATE OR REPLACE TRIGGER update_conversation_on_new_message
+    AFTER INSERT ON public.messages
+    FOR EACH ROW EXECUTE FUNCTION public.update_conversation_updated_at_on_message();
+
+-- ------------------------------
 -- 8. GRANT PERMISSIONS TO ROLES
 -- ------------------------------
 -- Grant usage on schema public
@@ -625,3 +857,49 @@ ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS two_factor_secret text
 -- Add two_factor_skipped column to user_profiles table
 ALTER TABLE user_profiles 
 ADD COLUMN IF NOT EXISTS two_factor_skipped BOOLEAN DEFAULT FALSE;
+
+-- ==========================================
+-- Real-Time Setup
+-- ==========================================
+-- Create the supabase_realtime publication if it doesn't exist
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime'
+  ) THEN
+    CREATE PUBLICATION supabase_realtime;
+  END IF;
+END $$;
+
+-- Add conversations and messages tables to the real-time publication
+DO $$
+BEGIN
+  -- Add conversations table if not already in the publication
+  IF NOT EXISTS (
+    SELECT 1 
+    FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'conversations'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.conversations;
+  END IF;
+  
+  -- Add messages table if not already in the publication
+  IF NOT EXISTS (
+    SELECT 1 
+    FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' 
+      AND schemaname = 'public' 
+      AND tablename = 'messages'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
+  END IF;
+END $$;
+
+-- Verify which tables are in the real-time publication
+SELECT 
+  schemaname, 
+  tablename 
+FROM pg_publication_tables 
+WHERE pubname = 'supabase_realtime';
