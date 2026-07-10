@@ -94,52 +94,52 @@ export default function AdminMoodTrendsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center pb-4 border-b border-gray-200">
         <div>
-          <h1 className="text-2xl font-dm-serif text-[#4F4F4F] mb-1">Mood Trend Reports</h1>
-          <p className="text-sm text-[#4F4F4F]/60 font-poppins">Platform-wide emotional analytics; aggregated and anonymized</p>
+          <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Mood Trend Reports</h1>
+          <p className="text-sm text-dark-text/70 font-poppins">Platform-wide emotional analytics; aggregated and anonymized</p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-[#4F4F4F] hover:bg-gray-50">
+          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50">
             <span>📄</span> Export PDF
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-5">
+        <Card className="p-5 bg-[#eef3f8]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">😊</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">POSITIVE ENTRIES</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : `${positivePercent}%`}</p>
+              <p className="text-xs text-dark-text/70 font-poppins">POSITIVE ENTRIES</p>
+              <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : `${positivePercent}%`}</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-green-400 to-emerald-300 rounded-full"></div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5 bg-[#eef3f8]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">�</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">NEGATIVE ENTRIES</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : `${negativePercent}%`}</p>
+              <p className="text-xs text-dark-text/70 font-poppins">NEGATIVE ENTRIES</p>
+              <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : `${negativePercent}%`}</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full"></div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5 bg-[#eef3f8]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center text-2xl">😕</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">MIXED / UNCERTAIN</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : `${mixedPercent}%`}</p>
+              <p className="text-xs text-dark-text/70 font-poppins">MIXED / UNCERTAIN</p>
+              <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : `${mixedPercent}%`}</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-purple-400 to-pink-300 rounded-full"></div>
         </Card>
-        <Card className="p-5 border-l-4 border-l-[#F4A6A6]">
+        <Card className="p-5 border-l-4 border-l-[#F4A6A6] bg-[#eef3f8]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">😢</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">DISTRESS SIGNALS</p>
+              <p className="text-xs text-dark-text/70 font-poppins">DISTRESS SIGNALS</p>
               <p className="text-2xl font-dm-serif text-[#F4A6A6]">{loading ? "—" : `${distressPercent}%`}</p>
             </div>
           </div>
@@ -148,48 +148,48 @@ export default function AdminMoodTrendsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6">
+        <Card className="p-6 bg-[#eef3f8]">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📈</div>
-            <p className="text-xs font-poppins text-[#4F4F4F]/60">PLATFORM MOOD SCORE TREND - LAST 7 DAYS</p>
+            <p className="text-xs font-poppins text-dark-text/70">PLATFORM MOOD SCORE TREND - LAST 7 DAYS</p>
           </div>
           <div className="h-56 flex items-end justify-between gap-2 px-2">
             {dailyScores.map((score, index) => (
               <div key={`${score}-${index}`} className="flex-1 flex flex-col items-center gap-2">
                 <div className="w-full rounded-t-lg bg-[#52B788]" style={{ height: `${Math.max(score, 8)}%` }}></div>
-                <span className="text-xs text-[#4F4F4F]/60 font-poppins">{lastSevenDays[index].toLocaleDateString("en", { weekday: "short" })}</span>
+                <span className="text-xs text-dark-text/70 font-poppins">{lastSevenDays[index].toLocaleDateString("en", { weekday: "short" })}</span>
               </div>
             ))}
           </div>
           <div className="flex items-center gap-6 mt-4 px-4">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-[#52B788]"></div>
-              <span className="text-xs font-poppins text-[#4F4F4F]">Positive rate</span>
+              <span className="text-xs font-poppins text-dark-text">Positive rate</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-[#F4A6A6]"></div>
-              <span className="text-xs font-poppins text-[#4F4F4F]">Distress rate</span>
+              <span className="text-xs font-poppins text-dark-text">Distress rate</span>
             </div>
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-6 bg-[#eef3f8]">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">🎭</div>
-            <p className="text-xs font-poppins text-[#4F4F4F]/60">TOP EMOTIONS PLATFORM-WIDE</p>
+            <p className="text-xs font-poppins text-dark-text/70">TOP EMOTIONS PLATFORM-WIDE</p>
           </div>
           <div className="space-y-3">
             {topEmotions.length > 0 ? topEmotions.map(([emotion, count]) => (
               <div key={emotion} className="flex items-center justify-between">
-                <p className="text-sm font-poppins text-[#4F4F4F]">{emotion}</p>
+                <p className="text-sm font-poppins text-dark-text">{emotion}</p>
                 <div className="flex items-center gap-2">
-                  <p className="text-xs font-inter text-[#4F4F4F]/60">{Math.round((count / totalEntries) * 100)}%</p>
+                  <p className="text-xs font-inter text-dark-text/70">{Math.round((count / totalEntries) * 100)}%</p>
                   <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-[#52B788] to-[#A8DADC]" style={{ width: `${Math.round((count / totalEntries) * 100)}%` }}></div>
                   </div>
                 </div>
               </div>
-            )) : <p className="text-sm text-[#4F4F4F]/60">No emotion tags yet.</p>}
+            )) : <p className="text-sm text-dark-text/70">No emotion tags yet.</p>}
           </div>
         </Card>
       </div>

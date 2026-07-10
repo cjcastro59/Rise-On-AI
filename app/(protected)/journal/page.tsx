@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { createDistressAlertForJournalEntry } from "@/lib/distress-alerts";
 import Link from "next/link";
 
 const moods = [
@@ -125,12 +126,21 @@ export default function JournalEntryPage() {
           content: content || null,
           mood: selectedMood,
         })
-        .select();
+        .select("id")
+        .single();
 
       if (error) {
         console.error("Error saving entry:", error);
         return;
       }
+
+      await createDistressAlertForJournalEntry(supabase, {
+        userId: user.id,
+        entryId: data?.id,
+        title,
+        content,
+        mood: selectedMood,
+      });
 
       localStorage.removeItem("journal_draft");
       router.push("/journal/history");
