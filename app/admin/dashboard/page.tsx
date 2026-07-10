@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -290,20 +291,20 @@ export default function AdminDashboardPage() {
       {/* Header */}
       <div className="flex justify-between items-center pb-4 border-b border-gray-200">
         <div>
-          <h1 className="text-2xl font-dm-serif text-[#4F4F4F] mb-1">Dashboard Overview</h1>
-          <p className="text-sm text-[#4F4F4F]/60 font-poppins">
+          <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Dashboard Overview</h1>
+          <p className="text-sm text-dark-text/70 font-poppins">
             {currentDate} - {firstUserDate ? `First user registered: ${formatFullDate(new Date(firstUserDate))}` : "No users yet"}
           </p>
         </div>
         <div className="flex gap-3">
           <button 
             onClick={exportReport}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-[#4F4F4F] hover:bg-gray-50">
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50">
             <span>📊</span> Export Report
           </button>
           <button 
             onClick={() => setShowAnnouncementModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-lg text-sm font-poppins text-[#4F4F4F] font-medium">
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-lg text-sm font-poppins text-dark-text font-medium">
             <span>📢</span> New Announcement
           </button>
         </div>
@@ -311,7 +312,7 @@ export default function AdminDashboardPage() {
 
       {/* Alert Banner */}
       <div className="p-4 bg-gradient-to-r from-[#A8DADC]/20 to-[#CDB4DB]/20 rounded-xl border-l-4 border-l-[#A8DADC]">
-        <p className="text-sm font-poppins text-[#4F4F4F] flex items-center gap-2">
+        <p className="text-sm font-poppins text-dark-text flex items-center gap-2">
           <span>🔒</span> All data displayed uses user full names (Owner/Admin only).
         </p>
       </div>
@@ -322,8 +323,8 @@ export default function AdminDashboardPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">👥</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">TOTAL USERS</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : stats.totalUsers}</p>
+              <p className="text-xs text-dark-text/70 font-poppins">TOTAL USERS</p>
+              <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.totalUsers}</p>
               <p className="text-xs text-[#52B788] font-poppins">Live from user profiles</p>
             </div>
           </div>
@@ -334,8 +335,8 @@ export default function AdminDashboardPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">📝</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">TOTAL ENTRIES</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : stats.totalEntries}</p>
+              <p className="text-xs text-dark-text/70 font-poppins">TOTAL ENTRIES</p>
+              <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.totalEntries}</p>
               <p className="text-xs text-[#52B788] font-poppins">Live from journal entries</p>
             </div>
           </div>
@@ -346,9 +347,9 @@ export default function AdminDashboardPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#FFE8A1]/30 rounded-lg flex items-center justify-center text-2xl">💖</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">AVG POSITIVE RATE</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : `${stats.positiveRate}%`}</p>
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">Based on current journal mood/text</p>
+              <p className="text-xs text-dark-text/70 font-poppins">AVG POSITIVE RATE</p>
+              <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : `${stats.positiveRate}%`}</p>
+              <p className="text-xs text-dark-text/70 font-poppins">Based on current journal mood/text</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-yellow-400 to-orange-300 rounded-full"></div>
@@ -358,7 +359,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">🚨</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">TOTAL DISTRESS LOGS</p>
+              <p className="text-xs text-dark-text/70 font-poppins">TOTAL DISTRESS LOGS</p>
               <p className="text-2xl font-dm-serif text-[#F4A6A6]">{loading ? "—" : stats.totalDistressLogs}</p>
               <p className="text-xs text-[#F4A6A6] font-poppins">Live from distress logs</p>
             </div>
@@ -366,12 +367,12 @@ export default function AdminDashboardPage() {
           <div className="h-1 bg-gradient-to-r from-red-400 to-pink-300 rounded-full"></div>
         </Card>
 
-        <Card className="p-5">
+        <Card className="p-5 bg-gray-50">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center text-2xl">👤</div>
             <div className="text-right">
-              <p className="text-xs text-[#4F4F4F]/60 font-poppins">NEW USERS TODAY</p>
-              <p className="text-2xl font-dm-serif text-[#4F4F4F]">{loading ? "—" : stats.newUsersToday}</p>
+              <p className="text-xs text-dark-text/70 font-poppins">NEW USERS TODAY</p>
+              <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.newUsersToday}</p>
               <p className="text-xs text-[#52B788] font-poppins">Live from user profiles</p>
             </div>
           </div>
@@ -386,7 +387,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📈</div>
               <div>
-                <p className="text-xs font-poppins text-[#4F4F4F]/60">
+                <p className="text-xs font-poppins text-dark-text/70">
                   DAILY ACTIVE USERS — {dauPeriod === "month" ? new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "LAST 7 DAYS"}
                 </p>
               </div>
@@ -394,48 +395,48 @@ export default function AdminDashboardPage() {
             <div className="flex gap-2">
               <button 
                 onClick={() => setDauPeriod("week")}
-                className={`px-3 py-1 rounded-lg text-xs font-poppins ${dauPeriod === "week" ? "bg-[#A8DADC]/30 text-[#4F4F4F]" : "bg-gray-100 text-[#4F4F4F]/60"}`}>
+                className={`px-3 py-1 rounded-lg text-xs font-poppins ${dauPeriod === "week" ? "bg-[#A8DADC]/30 text-dark-text" : "bg-gray-100 text-dark-text/60"}`}>
                 Week
               </button>
               <button 
                 onClick={() => setDauPeriod("month")}
-                className={`px-3 py-1 rounded-lg text-xs font-poppins ${dauPeriod === "month" ? "bg-[#A8DADC]/30 text-[#4F4F4F]" : "bg-gray-100 text-[#4F4F4F]/60"}`}>
+                className={`px-3 py-1 rounded-lg text-xs font-poppins ${dauPeriod === "month" ? "bg-[#A8DADC]/30 text-dark-text" : "bg-gray-100 text-dark-text/60"}`}>
                 Month
               </button>
             </div>
           </div>
-          <div className="h-48 flex items-end justify-between gap-1 px-4 pb-4">
+          <div className="h-48 flex items-end justify-between gap-2 px-4 pb-4">
             {dauData.length > 0 ? (
               dauData.map((d, i) => {
                 const maxCount = Math.max(...dauData.map(x => x.count), 1);
                 const heightPercent = (d.count / maxCount) * 100;
-                const colors = ["#A8DADC", "#52B788", "#CDB4DB"];
+                const colors = ["#52B788", "#A8DADC", "#CDB4DB"];
                 const color = colors[i % colors.length];
                 return (
                   <div key={i} className="flex-1 flex flex-col items-center gap-2">
                     <div 
-                      className="w-full bg-gradient-to-t rounded-t-lg transition-all"
+                      className="w-full rounded-t-2xl shadow-sm"
                       style={{ 
-                        height: `${Math.max(heightPercent, 10)}%`,
-                        background: `linear-gradient(to top, ${color}, rgba(79, 79, 79, 0.1))`
+                        height: `${Math.max(heightPercent, 12)}%`,
+                        background: `linear-gradient(to top, ${color}, rgba(255,255,255,0.8))`
                       }}
                     ></div>
-                    <span className="text-xs text-[#4F4F4F]/60 font-poppins">{d.date}</span>
+                    <span className="text-xs text-dark-text/70 font-poppins">{d.date}</span>
                   </div>
                 );
               })
             ) : (
               <div className="flex items-center justify-center w-full h-full">
-                <p className="text-sm text-[#4F4F4F]/60 font-poppins">No data yet</p>
+                <p className="text-sm text-dark-text/70 font-poppins">No data yet</p>
               </div>
             )}
           </div>
         </Card>
 
-        <Card className="p-5">
+        <Card className="p-5 bg-[#eef3f8]">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">📊</div>
-            <p className="text-xs font-poppins text-[#4F4F4F]/60">PLATFORM MOOD DISTRIBUTION</p>
+            <p className="text-xs font-poppins text-dark-text/70">PLATFORM MOOD DISTRIBUTION</p>
           </div>
           <div className="flex items-center gap-8">
             <div className="relative w-32 h-32">
@@ -492,13 +493,13 @@ export default function AdminDashboardPage() {
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
-                  <p className="text-lg font-dm-serif text-[#4F4F4F]">
+                  <p className="text-lg font-dm-serif text-dark-text">
                     {(() => {
                       const total = moodDistribution.positive + moodDistribution.negative + moodDistribution.distress;
                       return total ? `${Math.round((moodDistribution.positive / total) * 100)}%` : "0%";
                     })()}
                   </p>
-                  <p className="text-xs text-[#4F4F4F]/60 font-poppins">Positive</p>
+                  <p className="text-xs text-dark-text/70 font-poppins">Positive</p>
                 </div>
               </div>
             </div>
@@ -512,15 +513,15 @@ export default function AdminDashboardPage() {
                   <>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-[#52B788]"></div>
-                      <span className="text-xs font-poppins text-[#4F4F4F]">Positive {p}%</span>
+                      <span className="text-xs font-poppins text-dark-text">Positive {p}%</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-[#F4A6A6]"></div>
-                      <span className="text-xs font-poppins text-[#4F4F4F]">Negative {n}%</span>
+                      <span className="text-xs font-poppins text-dark-text">Negative {n}%</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-[#F4A6A6]"></div>
-                      <span className="text-xs font-poppins text-[#4F4F4F]">Distress {d}%</span>
+                      <span className="text-xs font-poppins text-dark-text">Distress {d}%</span>
                     </div>
                   </>
                 );
@@ -537,22 +538,22 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center">🚨</div>
-              <p className="text-xs font-poppins text-[#4F4F4F]/60">RECENT DISTRESS ALERTS</p>
+              <p className="text-xs font-poppins text-dark-text/70">RECENT DISTRESS ALERTS</p>
             </div>
-            <button className="text-xs font-poppins text-[#A8DADC] hover:underline">View All →</button>
+            <Link href="/admin/distress-alerts" className="text-xs font-poppins text-[#A8DADC] hover:underline">View All →</Link>
           </div>
           <div className="space-y-3">
             {loading ? (
-              <p className="text-sm text-[#4F4F4F]/60 font-inter">Loading alerts…</p>
+              <p className="text-sm text-dark-text/70 font-inter">Loading alerts…</p>
             ) : recentAlerts.length === 0 ? (
-              <p className="text-sm text-[#4F4F4F]/60 font-inter">No distress alerts found yet.</p>
+              <p className="text-sm text-dark-text/70 font-inter">No distress alerts found yet.</p>
             ) : recentAlerts.map((alert, index) => (
               <div key={alert.id || index} className="p-3 bg-[#F4A6A6]/10 rounded-xl border border-[#F4A6A6]/30 flex justify-between items-center">
                 <div>
-                  <p className="text-sm font-semibold font-poppins text-[#4F4F4F]">{alert.trigger || "Distress alert"}</p>
-                  <p className="text-xs text-[#4F4F4F]/60 font-inter">{alert.notes || alert.severity || "Recent alert"} • {formatTime(alert.created_at)}</p>
+                  <p className="text-sm font-semibold font-poppins text-dark-text">{alert.trigger || "Distress alert"}</p>
+                  <p className="text-xs text-dark-text/70 font-inter">{alert.notes || alert.severity || "Recent alert"} • {formatTime(alert.created_at)}</p>
                 </div>
-                <button className="px-3 py-1 bg-[#F4A6A6]/30 text-[#F4A6A6] rounded-full text-xs font-semibold font-poppins">Review</button>
+                <Link href="/admin/distress-alerts" className="px-3 py-1 bg-[#F4A6A6]/30 text-[#F4A6A6] rounded-full text-xs font-semibold font-poppins">Review</Link>
               </div>
             ))}
           </div>
@@ -563,16 +564,16 @@ export default function AdminDashboardPage() {
           <Card className="p-5">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-[#52B788]/20 rounded-lg flex items-center justify-center">⚙️</div>
-              <p className="text-xs font-poppins text-[#4F4F4F]/60">SYSTEM HEALTH</p>
+              <p className="text-xs font-poppins text-dark-text/70">SYSTEM HEALTH</p>
             </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-[#52B788]"></span>
-                  <span className="text-sm font-poppins text-[#4F4F4F]">AI Module</span>
+                  <span className="text-sm font-poppins text-dark-text">AI Module</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#4F4F4F]/60 font-inter">Online</span>
+                  <span className="text-xs text-dark-text/70 font-inter">Online</span>
                   <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full w-full bg-gradient-to-r from-[#52B788] to-[#A8DADC]"></div>
                   </div>
@@ -581,10 +582,10 @@ export default function AdminDashboardPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-[#52B788]"></span>
-                  <span className="text-sm font-poppins text-[#4F4F4F]">Database</span>
+                  <span className="text-sm font-poppins text-dark-text">Database</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#4F4F4F]/60 font-inter">Healthy</span>
+                  <span className="text-xs text-dark-text/70 font-inter">Healthy</span>
                   <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full w-[95%] bg-gradient-to-r from-[#A8DADC] to-[#52B788]"></div>
                   </div>
@@ -593,10 +594,10 @@ export default function AdminDashboardPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-[#A8DADC]"></span>
-                  <span className="text-sm font-poppins text-[#4F4F4F]">API Response</span>
+                  <span className="text-sm font-poppins text-dark-text">API Response</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#4F4F4F]/60 font-inter">142ms</span>
+                  <span className="text-xs text-dark-text/70 font-inter">142ms</span>
                   <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full w-[80%] bg-gradient-to-r from-[#A8DADC] to-[#FFB700]"></div>
                   </div>
@@ -605,10 +606,10 @@ export default function AdminDashboardPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-[#FFB700]"></span>
-                  <span className="text-sm font-poppins text-[#4F4F4F]">Storage Usage</span>
+                  <span className="text-sm font-poppins text-dark-text">Storage Usage</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#4F4F4F]/60 font-inter">74%</span>
+                  <span className="text-xs text-dark-text/70 font-inter">74%</span>
                   <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full w-[74%] bg-gradient-to-r from-[#FFE8A1] to-[#FFB700]"></div>
                   </div>
@@ -618,16 +619,16 @@ export default function AdminDashboardPage() {
           </Card>
 
           <Card className="p-5">
-            <p className="text-xs font-poppins text-[#4F4F4F]/60 mb-3">RECENT ADMIN ACTIVITY</p>
+            <p className="text-xs font-poppins text-dark-text/70 mb-3">RECENT ADMIN ACTIVITY</p>
             <div className="space-y-3">
               {loading ? (
-                <p className="text-sm text-[#4F4F4F]/60 font-inter">Loading activity…</p>
+                <p className="text-sm text-dark-text/70 font-inter">Loading activity…</p>
               ) : recentActivity.length === 0 ? (
-                <p className="text-sm text-[#4F4F4F]/60 font-inter">No admin activity recorded yet.</p>
+                <p className="text-sm text-dark-text/70 font-inter">No admin activity recorded yet.</p>
               ) : recentActivity.map((item) => (
                 <div key={item.id} className="flex justify-between items-center text-xs gap-2">
-                  <p className="font-poppins text-[#4F4F4F] flex-1">{item.action || item.details || "Admin activity"}</p>
-                  <p className="text-[#4F4F4F]/60 font-inter whitespace-nowrap">{formatTime(item.created_at)}</p>
+                  <p className="font-poppins text-dark-text flex-1">{item.action || item.details || "Admin activity"}</p>
+                  <p className="text-dark-text/70 font-inter whitespace-nowrap">{formatTime(item.created_at)}</p>
                 </div>
               ))}
             </div>
@@ -640,7 +641,7 @@ export default function AdminDashboardPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-dm-serif text-[#4F4F4F]">Create Announcement</h3>
+              <h3 className="text-xl font-dm-serif text-dark-text">Create Announcement</h3>
               <button 
                 onClick={() => setShowAnnouncementModal(false)}
                 className="p-2 hover:bg-gray-100 rounded-lg">
@@ -649,7 +650,7 @@ export default function AdminDashboardPage() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-poppins text-[#4F4F4F]/60">Title</label>
+                <label className="text-xs font-poppins text-dark-text/70">Title</label>
                 <input 
                   type="text"
                   value={announcementTitle}
@@ -659,7 +660,7 @@ export default function AdminDashboardPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-poppins text-[#4F4F4F]/60">Content</label>
+                <label className="text-xs font-poppins text-dark-text/70">Content</label>
                 <textarea 
                   value={announcementContent}
                   onChange={(e) => setAnnouncementContent(e.target.value)}
@@ -671,12 +672,12 @@ export default function AdminDashboardPage() {
               <div className="flex gap-3 justify-end pt-4">
                 <button 
                   onClick={() => setShowAnnouncementModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-[#4F4F4F] hover:bg-gray-50">
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50">
                   Cancel
                 </button>
                 <button 
                   onClick={handleCreateAnnouncement}
-                  className="px-4 py-2 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-lg text-sm font-poppins text-[#4F4F4F] font-medium">
+                  className="px-4 py-2 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-lg text-sm font-poppins text-dark-text font-medium">
                   Create
                 </button>
               </div>

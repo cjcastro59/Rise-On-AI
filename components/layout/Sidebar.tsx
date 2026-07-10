@@ -147,13 +147,13 @@ export default function Sidebar({ userName }: SidebarProps) {
       <div className="mt-auto">
         <Link
           href="/profile"
-          className="block p-4 mb-4 bg-slate-100 rounded-xl border border-slate-200 transition-all hover:border-primary-blue/20 hover:bg-white"
+          className="block p-3 mb-4 bg-slate-100 rounded-xl border border-slate-200 transition-all hover:border-primary-blue/20 hover:bg-white"
         >
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-2 mb-2">
             {avatarUrl ? (
-              <Image src={avatarUrl} alt="Profile" width={48} height={48} className="rounded-full object-cover" />
+              <Image src={avatarUrl} alt="Profile" width={40} height={40} className="rounded-full object-cover" />
             ) : (
-              <div className="w-12 h-12 rounded-full bg-primary-blue/10 flex items-center justify-center text-primary-blue font-bold text-sm">
+              <div className="w-10 h-10 rounded-full bg-primary-blue/10 flex items-center justify-center text-primary-blue font-bold text-sm">
                 {userName
                   .split(" ")
                   .map((part) => part[0])
@@ -163,26 +163,26 @@ export default function Sidebar({ userName }: SidebarProps) {
               </div>
             )}
             <div>
-              <p className="text-sm font-semibold text-dark-text">{userName}</p>
-              <p className="text-xs text-dark-text/60">{userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : "User"}</p>
+              <p className="text-sm font-semibold text-dark-text leading-tight">{userName}</p>
+              <p className="text-[11px] text-dark-text/60 leading-snug">{userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : "User"}</p>
             </div>
           </div>
-          <p className="text-xs text-dark-text/60">Manage your profile, settings, and support access.</p>
-          <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+          <p className="text-[11px] text-dark-text/60 leading-snug">Manage your profile, settings, and support access.</p>
+          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
             <span>Edit profile</span>
             <span className="font-semibold">→</span>
           </div>
         </Link>
         <Link
           href="/support"
-          className="flex items-center gap-3 px-3 py-2 rounded-xl bg-soft-red/10 text-soft-red text-sm font-poppins font-semibold hover:bg-soft-red/20 transition-all"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#FDE8E8] text-[#b91c1c] text-sm font-poppins font-semibold hover:bg-[#F9DADA] transition-all"
         >
           <Image src="/icons/crisis-report.svg" alt="Get Help Now" width={16} height={16} className="object-contain" />
           Get Help Now
         </Link>
         <form action="/api/auth/signout" method="post">
-          <Button variant="secondary" className="w-full flex items-center justify-center gap-2 mt-3">
-            <Image src="/icons/logout.svg" alt="Log Out" width={20} height={20} className="object-contain" />
+          <Button variant="secondary" className="w-full flex items-center justify-center gap-2 mt-2 py-2">
+            <Image src="/icons/logout.svg" alt="Log Out" width={18} height={18} className="object-contain" />
             Log Out
           </Button>
         </form>

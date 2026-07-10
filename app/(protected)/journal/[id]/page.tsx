@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { createDistressAlertForJournalEntry } from "@/lib/distress-alerts";
 import Link from "next/link";
 
 const moods = [
@@ -132,6 +133,14 @@ export default function JournalEditorPage() {
         console.error("Error saving entry:", error);
         return;
       }
+
+      await createDistressAlertForJournalEntry(supabase, {
+        userId: user.id,
+        entryId,
+        title,
+        content,
+        mood: selectedMood,
+      });
 
       router.push("/journal/history");
     } catch (error) {

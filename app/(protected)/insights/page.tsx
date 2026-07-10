@@ -293,44 +293,44 @@ export default function MoodInsightsPage() {
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="p-5">
+        <Card className="p-5 bg-[#eef3f8]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[#4F4F4F]/60 text-xs font-poppins mb-1">Total Entries</p>
-              <p className="text-2xl font-bold text-[#4F4F4F]">{totalEntries}</p>
+              <p className="text-dark-text/70 text-xs font-poppins mb-1">Total Entries</p>
+              <p className="text-2xl font-bold text-dark-text">{totalEntries}</p>
             </div>
             <div className="w-10 h-10 bg-[#A8DADC]/30 rounded-full flex items-center justify-center">
               <span className="text-lg">📝</span>
             </div>
           </div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5 bg-[#eef3f8]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[#4F4F4F]/60 text-xs font-poppins mb-1">Positive Entries</p>
-              <p className="text-2xl font-bold text-[#4F4F4F]">{positivePercentage}%</p>
+              <p className="text-dark-text/70 text-xs font-poppins mb-1">Positive Entries</p>
+              <p className="text-2xl font-bold text-dark-text">{positivePercentage}%</p>
             </div>
             <div className="w-10 h-10 bg-[#B7E4C7]/40 rounded-full flex items-center justify-center">
               <span className="text-lg">😊</span>
             </div>
           </div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5 bg-[#eef3f8]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[#4F4F4F]/60 text-xs font-poppins mb-1">Current Streak</p>
-              <p className="text-2xl font-bold text-[#4F4F4F]">{currentStreak}</p>
+              <p className="text-dark-text/70 text-xs font-poppins mb-1">Current Streak</p>
+              <p className="text-2xl font-bold text-dark-text">{currentStreak}</p>
             </div>
             <div className="w-10 h-10 bg-[#FFE8A1]/40 rounded-full flex items-center justify-center">
               <span className="text-lg">🔥</span>
             </div>
           </div>
         </Card>
-        <Card className="p-5">
+        <Card className="p-5 bg-[#eef3f8]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[#4F4F4F]/60 text-xs font-poppins mb-1">Mood Growth</p>
-              <p className="text-2xl font-bold text-[#4F4F4F]">
+              <p className="text-dark-text/70 text-xs font-poppins mb-1">Mood Growth</p>
+              <p className="text-2xl font-bold text-dark-text">
                 {moodGrowth > 0 ? "+" : ""}{moodGrowth}%
               </p>
             </div>
@@ -346,14 +346,17 @@ export default function MoodInsightsPage() {
         {/* Left Column */}
         <div className="space-y-6">
           {/* Mood Trajectory Chart */}
-          <Card className="p-6">
-            <h3 className="text-xs font-poppins uppercase tracking-wider text-[#4F4F4F]/60 mb-6">
+          <Card className="p-6 bg-[#eef3f8]">
+            <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-6">
               Mood Trajectory — This {timeRange}
             </h3>
-            <div className="relative h-48 w-full">
+            <div className="relative h-52 w-full">
               {/* Chart Grid Lines */}
               <div className="absolute inset-0 flex flex-col justify-between py-2">
-                <div className="h-px bg-[#F5F5F5] w-full"></div>
+                <div className="h-px bg-[#d8e2ed] w-full"></div>
+                <div className="h-px bg-[#d8e2ed] w-full"></div>
+                <div className="h-px bg-[#d8e2ed] w-full"></div>
+                <div className="h-px bg-[#d8e2ed] w-full"></div>
                 <div className="h-px bg-[#F5F5F5] w-full"></div>
                 <div className="h-px bg-[#F5F5F5] w-full"></div>
                 <div className="h-px bg-[#F5F5F5] w-full"></div>
@@ -369,14 +372,14 @@ export default function MoodInsightsPage() {
                 {moodTrendData.slice(0, Math.min(moodTrendData.length, 6)).map((data, i) => (
                   <div
                     key={i}
-                    className="w-8 rounded-t-lg transition-all duration-300"
+                    className="w-8 rounded-t-2xl shadow-lg transition-all duration-300"
                     style={{
                       height: `${(data.score / 10) * 100}%`,
                       background: data.score > 7
-                        ? "linear-gradient(to top, #10b981, #34d399)"
+                        ? "linear-gradient(to top, #047857, #34d399)"
                         : data.score > 4
-                        ? "linear-gradient(to top, #8b5cf6, #a78bfa)"
-                        : "linear-gradient(to top, #ef4444, #f87171)"
+                        ? "linear-gradient(to top, #5b21b6, #a78bfa)"
+                        : "linear-gradient(to top, #b91c1c, #fca5a5)"
                     }}
                   ></div>
                 ))}
@@ -385,8 +388,8 @@ export default function MoodInsightsPage() {
           </Card>
 
           {/* Journaling Calendar (simplified) */}
-          <Card className="p-6">
-            <h3 className="text-xs font-poppins uppercase tracking-wider text-[#4F4F4F]/60 mb-4 flex items-center gap-2">
+          <Card className="p-6 bg-[#eef3f8]">
+            <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
               <span>🗓️</span>
               Journaling Calendar — {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
             </h3>
@@ -450,8 +453,8 @@ export default function MoodInsightsPage() {
         {/* Right Column */}
         <div className="space-y-6">
           {/* Emotion Distribution */}
-          <Card className="p-6">
-            <h3 className="text-xs font-poppins uppercase tracking-wider text-[#4F4F4F]/60 mb-6 flex items-center gap-2">
+          <Card className="p-6 bg-[#eef3f8]">
+            <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-6 flex items-center gap-2">
               <span>🎨</span>
               Emotion Distribution
             </h3>
@@ -487,8 +490,8 @@ export default function MoodInsightsPage() {
           </Card>
 
           {/* Top Emotional Keywords */}
-          <Card className="p-6">
-            <h3 className="text-xs font-poppins uppercase tracking-wider text-[#4F4F4F]/60 mb-4 flex items-center gap-2">
+          <Card className="p-6 bg-[#eef3f8]">
+            <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
               <span>🔤</span>
               Top Emotional Keywords
             </h3>
@@ -518,8 +521,8 @@ export default function MoodInsightsPage() {
                       {positivePercentage >= 50 ? "↑ Growing" : "↓ Decreasing"}
                     </span>
                   </div>
-                  <div className="h-2 bg-[#F5F5F5] rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-[#A8DADC] to-[#B7E4C7] rounded-full" style={{ width: `${positivePercentage}%` }}></div>
+                  <div className="h-2 bg-[#d8e2ed] rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-primary-blue to-success-green rounded-full" style={{ width: `${positivePercentage}%` }}></div>
                   </div>
                 </div>
                 <div>
@@ -529,8 +532,8 @@ export default function MoodInsightsPage() {
                       {positivePercentage >= 50 ? "↓ Decreasing" : "↑ Increasing"}
                     </span>
                   </div>
-                  <div className="h-2 bg-[#F5F5F5] rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-[#F4A6A6] to-[#FFE8A1] rounded-full" style={{ width: `${100 - positivePercentage}%` }}></div>
+                  <div className="h-2 bg-[#d8e2ed] rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-error-red to-warning-yellow rounded-full" style={{ width: `${100 - positivePercentage}%` }}></div>
                   </div>
                 </div>
               </div>

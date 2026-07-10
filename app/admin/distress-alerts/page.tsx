@@ -1,51 +1,175 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
-const mockCriticalAlerts = [
-  {
-    id: "A-0056",
-    userId: "RAI-0021",
-    trigger: "Severe distress keywords detected",
-    details: "Detected: \"hopeless\", \"wanting die\", \"quit kayang sumuko\" • Sentiment: 91% Negative • Score: 2.0/10 • 12 min ago",
-  },
-  {
-    id: "A-0055",
-    userId: "RAI-0102",
-    trigger: "Crisis-level negative streak",
-    details: "6 negative entries in 72 hours • Avg mood: 2.8/10 • Last active: 2 hrs ago",
-  },
-  {
-    id: "A-0054",
-    userId: "RAI-0188",
-    trigger: "Sudden mood collapse",
-    details: "Mood dropped from 8.2 to 1.5 in 48hrs • No entries since May 26",
-  },
-];
+type UserProfile = {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+};
 
-const mockMediumAlerts = [
-  {
-    id: "A-0089",
-    userId: "RAI-0051",
-    trigger: "Mood drop pattern",
-    mood: "4.1/10",
-    lastEntry: "7 days ago",
-    assignee: "guidance@cpu.edu",
-    status: "In Progress",
-  },
-  {
-    id: "A-0091",
-    userId: "RAI-0341",
-    trigger: "Anxiety keywords high",
-    mood: "4.8/10",
-    lastEntry: "Today",
-    assignee: "Unassigned",
-    status: "New",
-  },
-];
+type JournalEntry = {
+  id: string;
+  user_id: string;
+  title: string | null;
+  content: string | null;
+  mood: string | null;
+  created_at: string;
+  user_profiles?: UserProfile | null;
+};
+
+type DistressLog = {
+  id: string;
+  user_id: string;
+  severity: string | null;
+  trigger: string | null;
+  notes: string | null;
+  created_at: string;
+  user_profiles?: UserProfile | null;
+};
+
+const getUserDisplayName = (user?: UserProfile | null) => {
+  if (!user) return "Unknown user";
+  return user.full_name || user.username || user.id.slice(0, 8);
+};
+
+const getResponseStatus = (notes?: string | null) => {
+  if (!notes || !notes.trim()) return "Pending";
+  if (notes.toLowerCase().includes("resolved") || notes.toLowerCase().includes("acknowledged")) {
+    return "Acknowledged";
+  }
+  return "Responded";
+};
+
+const groupEntriesByUser = (entries: JournalEntry[]) => {
+  return entries.reduce<Record<string, JournalEntry[]>>((acc, entry) => {
+    const userId = entry.user_id;
+    acc[userId] = acc[userId] || [];
+    acc[userId].push(entry);
+    return acc;
+  }, {});
+};
 
 export default function AdminDistressAlertsPage() {
+  const [logs, setLogs] = useState<DistressLog[]>([]);
+  const [entriesByUser, setEntriesByUser] = useState<Record<string, JournalEntry[]>>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { user: currentUser } = useAuth();
+  const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let mounted = true;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const { data, error } = await supabase
+          .from("distress_logs")
+          .select("id,user_id,severity,trigger,notes,created_at")
+          .order("created_at", { ascending: false })
+          .limit(100);
+
+        if (error) throw error;
+
+        const rawLogs = (data || []) as DistressLog[];
+        const logUserIds = Array.from(new Set(rawLogs.map((log) => log.user_id).filter(Boolean))) as string[];
+        let entries: JournalEntry[] = [];
+        let profilesById: Record<string, UserProfile> = {};
+
+        if (logUserIds.length > 0) {
+          const { data: entriesData, error: entriesError } = await supabase
+            .from("journal_entries")
+            .select("id,user_id,title,content,mood,created_at")
+            .in("user_id", logUserIds)
+            .order("created_at", { ascending: false })
+            .limit(200);
+
+          if (entriesError) {
+            console.error("Error loading alert journal entries:", entriesError);
+          } else {
+            entries = (entriesData || []) as JournalEntry[];
+          }
+
+          const { data: profilesData, error: profilesError } = await supabase
+            .from("user_profiles")
+            .select("id,username,full_name")
+            .in("id", logUserIds);
+
+          if (profilesError) {
+            console.error("Error loading alert user profiles:", profilesError);
+          } else {
+            profilesById = ((profilesData || []) as UserProfile[]).reduce<Record<string, UserProfile>>((acc, profile) => {
+              acc[profile.id] = profile;
+              return acc;
+            }, {});
+          }
+        }
+
+        const fetchedLogs = rawLogs.map((log) => ({
+          ...log,
+          user_profiles: profilesById[log.user_id] || null,
+        }));
+        const entriesWithProfiles = entries.map((entry) => ({
+          ...entry,
+          user_profiles: profilesById[entry.user_id] || null,
+        }));
+        const sortedLogs = fetchedLogs.sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+
+        if (mounted) {
+          setLogs(sortedLogs);
+          setEntriesByUser(groupEntriesByUser(entriesWithProfiles));
+        }
+      } catch (err: any) {
+        setError(err.message || "Failed to load distress logs");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    load();
+    const interval = setInterval(load, 30_000);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [currentUser, supabase]);
+
+  const criticalAlerts = logs.filter((l) => (l.severity || "").toLowerCase() === "critical");
+  const mediumAlerts = logs.filter((l) => ["medium", "warning"].includes((l.severity || "").toLowerCase()));
+  const respondedLogs = logs.filter((l) => !!(l.notes && l.notes.trim()));
+  const responseRate = logs.length ? Math.round((respondedLogs.length / logs.length) * 100) : 0;
+
+  const renderEntrySnippets = (userId: string) => {
+    const entries = entriesByUser[userId] || [];
+    if (entries.length === 0) {
+      return <p className="text-sm text-dark-text/60 font-inter">No journal entries available for this user yet.</p>;
+    }
+
+    return (
+      <div className="space-y-3">
+        {entries.slice(0, 2).map((entry) => (
+          <div key={entry.id} className="rounded-2xl bg-slate-50 p-3">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <span className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">{entry.mood || "Mood unknown"}</span>
+              <span className="text-xs text-dark-text/60">{new Date(entry.created_at).toLocaleDateString()}</span>
+            </div>
+            <p className="text-sm font-inter text-dark-text/90 line-clamp-2">{entry.title || entry.content || "No text available."}</p>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -55,9 +179,9 @@ export default function AdminDistressAlertsPage() {
           <p className="text-sm text-dark-text/60 font-poppins">Real-time emotional crisis detection • Anonymized IDs • Requires immediate review</p>
         </div>
         <div className="flex gap-3">
-          <span className="badge-error animate-pulse">⚡ 3 Active Alerts</span>
-          <button className="btn-secondary flex items-center gap-2">
-            <span>📄</span> Export Log
+          <span className="badge-error animate-pulse">⚡ {criticalAlerts.length} Active Alerts</span>
+          <button className="btn-secondary flex items-center gap-2" onClick={() => window.location.reload()}>
+            <span>📄</span> Refresh
           </button>
         </div>
       </div>
@@ -74,73 +198,103 @@ export default function AdminDistressAlertsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="stat-card border-l-4 border-l-error-red">
           <div className="flex items-start gap-3 mb-3">
-            <div className="stat-card-icon bg-error-red/20">🔴</div>
+            <div className="stat-card-icon bg-error-red/30">🔴</div>
             <div className="text-right">
               <p className="text-xs text-dark-text/60 font-poppins">CRITICAL ALERTS</p>
-              <p className="text-2xl font-dm-serif text-error-red">3</p>
+              <p className="text-2xl font-dm-serif text-error-red">{criticalAlerts.length}</p>
               <p className="text-xs text-error-red font-poppins">Needs immediate review</p>
             </div>
           </div>
-          <div className="stat-card-pill bg-gradient-to-r from-red-400 to-pink-300"></div>
+          <div className="stat-card-pill bg-gradient-to-r from-red-400 to-pink-300" />
         </Card>
         <Card className="stat-card border-l-4 border-l-warning-yellow">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-warning-yellow/30">🟠</div>
             <div className="text-right">
               <p className="text-xs text-dark-text/60 font-poppins">MEDIUM ALERTS</p>
-              <p className="text-2xl font-dm-serif text-dark-text">11</p>
+              <p className="text-2xl font-dm-serif text-dark-text">{mediumAlerts.length}</p>
               <p className="text-xs text-dark-text/60 font-poppins">Monitor closely</p>
             </div>
           </div>
-          <div className="stat-card-pill bg-gradient-to-r from-yellow-400 to-orange-300"></div>
+          <div className="stat-card-pill bg-gradient-to-r from-yellow-400 to-orange-300" />
         </Card>
         <Card className="stat-card border-l-4 border-l-success-green">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-success-green/30">🟢</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">RESOLVED THIS WEEK</p>
-              <p className="text-2xl font-dm-serif text-dark-text">28</p>
-              <p className="text-xs text-success-green font-poppins">↑ Good progress</p>
+              <p className="text-xs text-dark-text/60 font-poppins">RESPONSES RECORDED</p>
+              <p className="text-2xl font-dm-serif text-dark-text">{respondedLogs.length}</p>
+              <p className="text-xs text-success-green font-poppins">Follow-up actions logged</p>
             </div>
           </div>
-          <div className="stat-card-pill bg-gradient-to-r from-green-400 to-emerald-300"></div>
+          <div className="stat-card-pill bg-gradient-to-r from-green-400 to-emerald-300" />
         </Card>
         <Card className="stat-card border-l-4 border-l-primary-blue">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-primary-blue/20">✅</div>
             <div className="text-right">
               <p className="text-xs text-dark-text/60 font-poppins">RESPONSE RATE</p>
-              <p className="text-2xl font-dm-serif text-dark-text">94%</p>
-              <p className="text-xs text-dark-text/60 font-poppins">↑ Within 2hrs</p>
+              <p className="text-2xl font-dm-serif text-dark-text">{responseRate}%</p>
+              <p className="text-xs text-dark-text/60 font-poppins">Alerts with a logged response</p>
             </div>
           </div>
-          <div className="stat-card-pill bg-gradient-to-r from-primary-blue to-teal"></div>
+          <div className="stat-card-pill bg-gradient-to-r from-primary-blue to-teal" />
         </Card>
       </div>
 
       {/* Critical Alerts */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 mb-2">
-          <span className="w-2 h-2 rounded-full bg-error-red"></span>
+          <span className="w-2 h-2 rounded-full bg-error-red" />
           <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Critical — Immediate Attention Required</h2>
         </div>
-        {mockCriticalAlerts.map((alert) => (
+        {loading && <p className="text-sm text-dark-text/60">Loading alerts…</p>}
+        {!loading && error && <p className="text-sm text-error-red">{error}</p>}
+        {!loading && criticalAlerts.length === 0 && !error && <p className="text-sm text-dark-text/60">No critical alerts at the moment.</p>}
+        {criticalAlerts.map((alert) => (
           <Card key={alert.id} className="p-5 bg-error-red/5 border border-error-red/20 rounded-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-error-red/30 flex items-center justify-center text-2xl">🩸</div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-sm font-semibold text-primary-blue">{alert.id}</span>
-                    <span className="badge-error">Active</span>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-error-red/30 flex items-center justify-center text-2xl">🩸</div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-mono text-sm font-semibold text-primary-blue">{alert.id.slice(0, 8)}</span>
+                      <span className="badge-error">Active</span>
+                    </div>
+                    <p className="text-sm font-poppins font-semibold text-dark-text">{alert.trigger || "Detected distress trigger"}</p>
+                    <p className="text-xs text-dark-text/60 font-inter">User: {getUserDisplayName(alert.user_profiles)}</p>
                   </div>
-                  <p className="text-sm font-poppins font-semibold text-dark-text">{alert.trigger} — {alert.userId}</p>
-                  <p className="text-xs text-dark-text/60 font-inter">{alert.details}</p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <button className="btn-sm bg-error-red text-white">Review Now</button>
+                  <button className="btn-sm border border-primary-blue text-primary-blue">Assign Counselor</button>
                 </div>
               </div>
-              <div className="flex flex-col gap-2">
-                <button className="btn-sm bg-error-red text-white">Review Now</button>
-                <button className="btn-sm border border-primary-blue text-primary-blue">Assign Counselor</button>
+
+              <div className="grid gap-3 md:grid-cols-3">
+                <div>
+                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">Last alert</p>
+                  <p className="mt-1 text-sm text-dark-text">{new Date(alert.created_at).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">Response status</p>
+                  <p className="mt-1 text-sm text-dark-text">{getResponseStatus(alert.notes)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">Latest entry</p>
+                  <p className="mt-1 text-sm text-dark-text">
+                    {entriesByUser[alert.user_id]?.[0]?.title || entriesByUser[alert.user_id]?.[0]?.content?.slice(0, 80) || "No entry found"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Recent journal entries</span>
+                  <span className="text-xs text-dark-text/60">({entriesByUser[alert.user_id]?.length || 0})</span>
+                </div>
+                {renderEntrySnippets(alert.user_id)}
               </div>
             </div>
           </Card>
@@ -150,35 +304,47 @@ export default function AdminDistressAlertsPage() {
       {/* Medium Alerts */}
       <div className="space-y-4 mt-8">
         <div className="flex items-center gap-2 mb-2">
-          <span className="w-2 h-2 rounded-full bg-warning-yellow"></span>
+          <span className="w-2 h-2 rounded-full bg-warning-yellow" />
           <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Medium — Monitor Closely</h2>
         </div>
         <Card className="p-6">
           <div className="overflow-x-auto">
-            <table className="admin-table">
+            <table className="admin-table w-full">
               <thead>
                 <tr>
-                  <th>USER ID</th>
+                  <th>USER</th>
                   <th>TRIGGER</th>
                   <th>MOOD SCORE</th>
                   <th>LAST ENTRY</th>
-                  <th>ASSIGNED TO</th>
+                  <th>RESPONSE</th>
                   <th>STATUS</th>
                   <th>ACTION</th>
                 </tr>
               </thead>
               <tbody>
-                {mockMediumAlerts.map((alert) => (
+                {mediumAlerts.map((alert) => (
                   <tr key={alert.id}>
-                    <td><p className="font-mono text-sm font-semibold text-primary-blue">{alert.userId}</p></td>
-                    <td><p className="text-sm font-inter text-dark-text">{alert.trigger}</p></td>
-                    <td><p className="text-sm font-poppins text-dark-text">{alert.mood}</p></td>
-                    <td><p className="text-sm font-inter text-dark-text/60">{alert.lastEntry}</p></td>
-                    <td><p className="text-sm font-inter text-dark-text/60">{alert.assignee}</p></td>
                     <td>
-                      <span className={alert.status === "In Progress" ? "badge-warning" : "badge-info"}>
-                        {alert.status}
-                      </span>
+                      <p className="font-mono text-sm font-semibold text-primary-blue">{getUserDisplayName(alert.user_profiles)}</p>
+                    </td>
+                    <td>
+                      <p className="text-sm font-inter text-dark-text">{alert.trigger || "Pending review"}</p>
+                    </td>
+                    <td>
+                      <p className="text-sm font-poppins text-dark-text">{entriesByUser[alert.user_id]?.[0]?.mood || "—"}</p>
+                    </td>
+                    <td>
+                      <p className="text-sm font-inter text-dark-text/60">
+                        {entriesByUser[alert.user_id]?.[0]
+                          ? new Date(entriesByUser[alert.user_id]?.[0].created_at).toLocaleDateString()
+                          : "No entry"}
+                      </p>
+                    </td>
+                    <td>
+                      <span className="badge-info">{getResponseStatus(alert.notes)}</span>
+                    </td>
+                    <td>
+                      <span className="badge-info">{alert.notes ? "Followed up" : "Pending"}</span>
                     </td>
                     <td>
                       <div className="flex items-center gap-2">
