@@ -130,13 +130,13 @@ export default function AdminDashboardPage() {
         today.setHours(0, 0, 0, 0);
         
         const [
-          { count: userCount }, 
-          { count: entryCount }, 
-          { count: distressCount }, 
-          { data: alertsData }, 
-          { data: activityData },
-          { data: firstUsers },
-          { count: newUsersTodayCount }
+          { count: userCount, error: userCountError }, 
+          { count: entryCount, error: entryCountError }, 
+          { count: distressCount, error: distressCountError }, 
+          { data: alertsData, error: alertsError }, 
+          { data: activityData, error: activityError },
+          { data: firstUsers, error: firstUsersError },
+          { count: newUsersTodayCount, error: newUsersError }
         ] = await Promise.all([
           supabase.from("user_profiles").select("id", { count: "exact", head: true }),
           supabase.from("journal_entries").select("id", { count: "exact", head: true }),
@@ -147,12 +147,22 @@ export default function AdminDashboardPage() {
           supabase.from("user_profiles").select("id", { count: "exact", head: true }).gte("created_at", today.toISOString())
         ]);
 
+        if (userCountError) console.error("userCountError:", userCountError);
+        if (entryCountError) console.error("entryCountError:", entryCountError);
+        if (distressCountError) console.error("distressCountError:", distressCountError);
+        if (alertsError) console.error("alertsError:", alertsError);
+        if (activityError) console.error("activityError:", activityError);
+        if (firstUsersError) console.error("firstUsersError:", firstUsersError);
+        if (newUsersError) console.error("newUsersError:", newUsersError);
+
         if (firstUsers && firstUsers.length > 0) {
           setFirstUserDate(firstUsers[0].created_at);
         }
 
-        const entries = await supabase.from("journal_entries").select("mood, content").order("created_at", { ascending: false });
-        const positiveEntries = (entries.data || []).filter((entry: any) => {
+        const { data: entries, error: entriesError } = await supabase.from("journal_entries").select("mood, content").order("created_at", { ascending: false });
+        if (entriesError) console.error("entriesError:", entriesError);
+
+        const positiveEntries = (entries || []).filter((entry: any) => {
           const text = (entry.content || "").toLowerCase();
           const mood = (entry.mood || "").toLowerCase();
           const positiveKeywords = ["happy", "calm", "excited", "grateful", "peaceful", "content", "hopeful", "optimistic", "proud", "glad", "joy", "love"];

@@ -37,6 +37,7 @@ export interface Database {
           updated_at: string;
           two_factor_enabled: boolean;
           two_factor_secret: string | null;
+          two_factor_skipped: boolean | null;
         };
         Insert: {
           id: string;
@@ -65,6 +66,7 @@ export interface Database {
           updated_at?: string;
           two_factor_enabled?: boolean;
           two_factor_secret?: string | null;
+          two_factor_skipped?: boolean | null;
         };
         Update: {
           id?: string;
@@ -93,6 +95,59 @@ export interface Database {
           updated_at?: string;
           two_factor_enabled?: boolean;
           two_factor_secret?: string | null;
+          two_factor_skipped?: boolean | null;
+        };
+      };
+      conversations: {
+        Row: {
+          id: string;
+          user_id: string;
+          counselor_id: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          counselor_id?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          counselor_id?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          sender_id: string;
+          content: string;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          sender_id: string;
+          content: string;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          conversation_id?: string;
+          sender_id?: string;
+          content?: string;
+          is_read?: boolean;
+          created_at?: string;
         };
       };
       journal_entries: {

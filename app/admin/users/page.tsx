@@ -163,7 +163,7 @@ export default function AdminUsersPage() {
 
       if (error) {
         console.error("Error updating role:", error);
-        alert("Failed to update role. Please try again.");
+        alert(`Failed to update role: ${error.message}`);
       } else {
         // Refresh user list
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
@@ -179,6 +179,52 @@ export default function AdminUsersPage() {
       }
     } catch (err) {
       console.error("Error updating role:", err);
+    }
+  };
+
+  // Function to transfer ownership
+  const handleTransferOwnership = async (userId: string, userName: string) => {
+    const confirmed = await openConfirmation({
+      title: "Transfer Ownership",
+      message: `Are you sure you want to transfer ownership to ${userName}? This will make them the new owner and you will become an admin.`,
+      confirmText: "Yes, Transfer Ownership",
+      cancelText: "Cancel",
+      isDangerous: true,
+      icon: <PowerIcon className="w-6 h-6 text-[#F4A6A6]" />
+    });
+
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase.rpc('transfer_ownership', { new_owner_id: userId });
+
+      if (error) {
+        console.error("Error transferring ownership:", error);
+        alert(`Failed to transfer ownership: ${error.message}`);
+      } else {
+        // Refresh user list
+        const { data: refreshedUsers } = await supabase
+          .from("user_profiles")
+          .select("*")
+          .order("created_at", { ascending: false });
+        
+        if (refreshedUsers) {
+          setUsers(refreshedUsers);
+        }
+        
+        // Refresh current user profile
+        const { data: currentProfileData } = await supabase
+          .from("user_profiles")
+          .select("*")
+          .eq("id", currentUser?.id)
+          .single();
+        
+        if (currentProfileData) {
+          setCurrentUserProfile(currentProfileData);
+        }
+      }
+    } catch (err) {
+      console.error("Error transferring ownership:", err);
     }
   };
 
@@ -502,16 +548,34 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="py-4 px-3">
                     {currentUserProfile?.role === "owner" || currentUserProfile?.role === "admin" ? (
-                      <select
-                        value={user.role}
-                        onChange={(e) => handleRoleChange(user.id, e.target.value, user.fullName)}
-                        className="px-2 py-1 rounded-full text-xs font-semibold border border-gray-200 bg-white"
-                      >
-                        <option value="user">User</option>
-                        <option value="counselor">Counselor</option>
-                        <option value="admin">Admin</option>
-                        <option value="owner">Owner</option>
-                      </select>
+                      <>
+                        {user.role === "owner" ? (
+                          <span className="px-2 py-1 rounded-full text-xs font-semibold bg-[#F4A6A6]/20 text-[#F4A6A6]">
+                            Owner
+                          </span>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={user.role}
+                              onChange={(e) => handleRoleChange(user.id, e.target.value, user.fullName)}
+                              className="px-2 py-1 rounded-full text-xs font-semibold border border-gray-200 bg-white"
+                            >
+                              <option value="user">User</option>
+                              <option value="counselor">Counselor</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                            {currentUserProfile?.role === "owner" && (
+                              <button
+                                onClick={() => handleTransferOwnership(user.id, user.fullName)}
+                                className="px-2 py-1 rounded-full text-xs font-semibold border border-[#F4A6A6] text-[#F4A6A6] hover:bg-[#F4A6A6]/10"
+                                title="Transfer Ownership"
+                              >
+                                Transfer Ownership
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                         user.role === "owner" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" :
@@ -565,26 +629,26 @@ export default function AdminUsersPage() {
                         <EyeIcon className="w-5 h-5" />
                       </button>
                       
-                      {canManageUsers && user.id !== currentUser?.id && (
-                        <>
-                          {/* Toggle Active Button */}
-                          <button
-                            onClick={() => handleToggleActive(user.id, user.fullName, user.isAccountActive)}
-                            className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
-                            title={user.isAccountActive ? "Deactivate User" : "Activate User"}
-                          >
-                            <PowerIcon className="w-5 h-5" />
-                          </button>
-                          
-                          {/* Delete Button */}
-                          <button
-                            onClick={() => handleDeleteUser(user.id, user.fullName)}
-                            className="w-9 h-9 flex items-center justify-center rounded-lg text-[#F4A6A6] hover:bg-[#F4A6A6]/10 transition-colors"
-                            title="Delete User"
-                          >
-                            <TrashIcon className="w-5 h-5" />
-                          </button>
-                        </>
+                      {/* Toggle Active Button: Owner can toggle anyone, Admin can toggle anyone except Owner */}
+                      {(currentUserProfile?.role === "owner" || currentUserProfile?.role === "admin") && user.id !== currentUser?.id && !(currentUserProfile?.role === "admin" && user.role === "owner") && (
+                        <button
+                          onClick={() => handleToggleActive(user.id, user.fullName, user.isAccountActive)}
+                          className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+                          title={user.isAccountActive ? "Deactivate User" : "Activate User"}
+                        >
+                          <PowerIcon className="w-5 h-5" />
+                        </button>
+                      )}
+                      
+                      {/* Delete Button: Only Owner can delete users */}
+                      {currentUserProfile?.role === "owner" && user.id !== currentUser?.id && (
+                        <button
+                          onClick={() => handleDeleteUser(user.id, user.fullName)}
+                          className="w-9 h-9 flex items-center justify-center rounded-lg text-[#F4A6A6] hover:bg-[#F4A6A6]/10 transition-colors"
+                          title="Delete User"
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </button>
                       )}
                     </div>
                   </td>
