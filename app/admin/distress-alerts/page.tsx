@@ -5,12 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-type UserProfile = {
-  id: string;
-  username: string | null;
-  full_name: string | null;
-};
-
 type JournalEntry = {
   id: string;
   user_id: string;
@@ -18,7 +12,6 @@ type JournalEntry = {
   content: string | null;
   mood: string | null;
   created_at: string;
-  user_profiles?: UserProfile | null;
 };
 
 type DistressLog = {
@@ -28,12 +21,10 @@ type DistressLog = {
   trigger: string | null;
   notes: string | null;
   created_at: string;
-  user_profiles?: UserProfile | null;
 };
 
-const getUserDisplayName = (user?: UserProfile | null) => {
-  if (!user) return "Unknown user";
-  return user.full_name || user.username || user.id.slice(0, 8);
+const getAnonymizedAlertId = (id: string) => {
+  return `RAI-${id.slice(0, 8).toUpperCase()}`;
 };
 
 const getResponseStatus = (notes?: string | null) => {
@@ -58,6 +49,8 @@ export default function AdminDistressAlertsPage() {
   const [entriesByUser, setEntriesByUser] = useState<Record<string, JournalEntry[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
@@ -82,7 +75,6 @@ export default function AdminDistressAlertsPage() {
         const rawLogs = (data || []) as DistressLog[];
         const logUserIds = Array.from(new Set(rawLogs.map((log) => log.user_id).filter(Boolean))) as string[];
         let entries: JournalEntry[] = [];
-        let profilesById: Record<string, UserProfile> = {};
 
         if (logUserIds.length > 0) {
           const { data: entriesData, error: entriesError } = await supabase
@@ -97,37 +89,15 @@ export default function AdminDistressAlertsPage() {
           } else {
             entries = (entriesData || []) as JournalEntry[];
           }
-
-          const { data: profilesData, error: profilesError } = await supabase
-            .from("user_profiles")
-            .select("id,username,full_name")
-            .in("id", logUserIds);
-
-          if (profilesError) {
-            console.error("Error loading alert user profiles:", profilesError);
-          } else {
-            profilesById = ((profilesData || []) as UserProfile[]).reduce<Record<string, UserProfile>>((acc, profile) => {
-              acc[profile.id] = profile;
-              return acc;
-            }, {});
-          }
         }
 
-        const fetchedLogs = rawLogs.map((log) => ({
-          ...log,
-          user_profiles: profilesById[log.user_id] || null,
-        }));
-        const entriesWithProfiles = entries.map((entry) => ({
-          ...entry,
-          user_profiles: profilesById[entry.user_id] || null,
-        }));
-        const sortedLogs = fetchedLogs.sort(
+        const sortedLogs = rawLogs.sort(
           (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
 
         if (mounted) {
           setLogs(sortedLogs);
-          setEntriesByUser(groupEntriesByUser(entriesWithProfiles));
+          setEntriesByUser(groupEntriesByUser(entries));
         }
       } catch (err: any) {
         setError(err.message || "Failed to load distress logs");
@@ -170,6 +140,47 @@ export default function AdminDistressAlertsPage() {
     );
   };
 
+  const runAlertAction = async (alertId: string, action: "review" | "assign") => {
+    const actionKey = `${action}:${alertId}`;
+    setActionLoading((prev) => ({ ...prev, [actionKey]: true }));
+    setError(null);
+    setActionMessage(null);
+
+    try {
+      const response = await fetch(`/api/admin/distress-alerts/${alertId}/${action}`, {
+        method: "POST",
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.error || `Failed to ${action} alert`);
+      }
+
+      if (result.log) {
+        setLogs((prev) =>
+          prev.map((log) =>
+            log.id === alertId
+              ? {
+                  ...log,
+                  notes: result.log.notes,
+                }
+              : log
+          )
+        );
+      }
+
+      setActionMessage(result.message || "Alert updated.");
+    } catch (err: any) {
+      setError(err.message || "Alert action failed.");
+    } finally {
+      setActionLoading((prev) => {
+        const next = { ...prev };
+        delete next[actionKey];
+        return next;
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -193,6 +204,12 @@ export default function AdminDistressAlertsPage() {
           Ethical Protocol: Distress flags use anonymized IDs only. Guidance counselors must follow institutional protocols before any outreach. All actions are logged.
         </p>
       </div>
+
+      {actionMessage && (
+        <div className="rounded-xl border border-success-green/30 bg-success-green/10 px-4 py-3 text-sm font-poppins text-dark-text">
+          {actionMessage}
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -259,16 +276,29 @@ export default function AdminDistressAlertsPage() {
                   <div className="w-10 h-10 rounded-full bg-error-red/30 flex items-center justify-center text-2xl">🩸</div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-sm font-semibold text-primary-blue">{alert.id.slice(0, 8)}</span>
+                      <span className="font-mono text-sm font-semibold text-primary-blue">{getAnonymizedAlertId(alert.id)}</span>
                       <span className="badge-error">Active</span>
                     </div>
                     <p className="text-sm font-poppins font-semibold text-dark-text">{alert.trigger || "Detected distress trigger"}</p>
-                    <p className="text-xs text-dark-text/60 font-inter">User: {getUserDisplayName(alert.user_profiles)}</p>
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <button className="btn-sm bg-error-red text-white">Review Now</button>
-                  <button className="btn-sm border border-primary-blue text-primary-blue">Assign Counselor</button>
+                  <button
+                    type="button"
+                    className="btn-sm bg-error-red text-white disabled:opacity-60"
+                    disabled={!!actionLoading[`review:${alert.id}`]}
+                    onClick={() => runAlertAction(alert.id, "review")}
+                  >
+                    {actionLoading[`review:${alert.id}`] ? "Reviewing..." : "Review Now"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-sm border border-primary-blue text-primary-blue disabled:opacity-60"
+                    disabled={!!actionLoading[`assign:${alert.id}`]}
+                    onClick={() => runAlertAction(alert.id, "assign")}
+                  >
+                    {actionLoading[`assign:${alert.id}`] ? "Assigning..." : "Assign Counselor"}
+                  </button>
                 </div>
               </div>
 
@@ -312,7 +342,7 @@ export default function AdminDistressAlertsPage() {
             <table className="admin-table w-full">
               <thead>
                 <tr>
-                  <th>USER</th>
+                  <th>ALERT ID</th>
                   <th>TRIGGER</th>
                   <th>MOOD SCORE</th>
                   <th>LAST ENTRY</th>
@@ -325,7 +355,7 @@ export default function AdminDistressAlertsPage() {
                 {mediumAlerts.map((alert) => (
                   <tr key={alert.id}>
                     <td>
-                      <p className="font-mono text-sm font-semibold text-primary-blue">{getUserDisplayName(alert.user_profiles)}</p>
+                      <p className="font-mono text-sm font-semibold text-primary-blue">{getAnonymizedAlertId(alert.id)}</p>
                     </td>
                     <td>
                       <p className="text-sm font-inter text-dark-text">{alert.trigger || "Pending review"}</p>
@@ -348,7 +378,14 @@ export default function AdminDistressAlertsPage() {
                     </td>
                     <td>
                       <div className="flex items-center gap-2">
-                        <button className="btn-sm border border-warning-yellow text-[#FFB700]">Assign</button>
+                        <button
+                          type="button"
+                          className="btn-sm border border-warning-yellow text-[#FFB700] disabled:opacity-60"
+                          disabled={!!actionLoading[`assign:${alert.id}`]}
+                          onClick={() => runAlertAction(alert.id, "assign")}
+                        >
+                          {actionLoading[`assign:${alert.id}`] ? "Assigning..." : "Assign"}
+                        </button>
                       </div>
                     </td>
                   </tr>
