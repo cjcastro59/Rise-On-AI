@@ -36,7 +36,7 @@ export default function AdminSentimentMonitoringPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center pb-4 border-b border-gray-200">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Sentiment Analysis Monitoring</h1>
           <p className="text-sm text-dark-text/70 font-poppins">AI Model performance & platform-wide NLP metrics</p>

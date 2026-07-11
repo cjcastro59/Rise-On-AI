@@ -304,7 +304,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center pb-4 border-b border-gray-200">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Dashboard Overview</h1>
           <p className="text-sm text-dark-text/70 font-poppins">
@@ -334,64 +334,64 @@ export default function AdminDashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="p-5">
+        <Card className="stat-card border-l-4 border-l-primary-blue">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">👥</div>
+            <div className="stat-card-icon bg-primary-blue/20">👥</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">TOTAL USERS</p>
+              <p className="text-xs text-dark-text/60 font-poppins">TOTAL USERS</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.totalUsers}</p>
-              <p className="text-xs text-[#52B788] font-poppins">Live from user profiles</p>
+              <p className="text-xs text-success-green font-poppins">Live from user profiles</p>
             </div>
           </div>
-          <div className="h-1 bg-gradient-to-r from-purple-500 via-blue-400 to-cyan-300 rounded-full"></div>
+          <div className="stat-card-pill bg-gradient-to-r from-primary-blue to-teal" />
         </Card>
 
-        <Card className="p-5">
+        <Card className="stat-card border-l-4 border-l-success-green">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">📝</div>
+            <div className="stat-card-icon bg-success-green/20">📝</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">TOTAL ENTRIES</p>
+              <p className="text-xs text-dark-text/60 font-poppins">TOTAL ENTRIES</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.totalEntries}</p>
-              <p className="text-xs text-[#52B788] font-poppins">Live from journal entries</p>
+              <p className="text-xs text-success-green font-poppins">Live from journal entries</p>
             </div>
           </div>
-          <div className="h-1 bg-gradient-to-r from-green-400 to-emerald-300 rounded-full"></div>
+          <div className="stat-card-pill bg-gradient-to-r from-green-400 to-emerald-300" />
         </Card>
 
-        <Card className="p-5">
+        <Card className="stat-card border-l-4 border-l-warning-yellow">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#FFE8A1]/30 rounded-lg flex items-center justify-center text-2xl">💖</div>
+            <div className="stat-card-icon bg-warning-yellow/30">💖</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">AVG POSITIVE RATE</p>
+              <p className="text-xs text-dark-text/60 font-poppins">AVG POSITIVE RATE</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : `${stats.positiveRate}%`}</p>
-              <p className="text-xs text-dark-text/70 font-poppins">Based on current journal mood/text</p>
+              <p className="text-xs text-dark-text/60 font-poppins">Based on current journal mood/text</p>
             </div>
           </div>
-          <div className="h-1 bg-gradient-to-r from-yellow-400 to-orange-300 rounded-full"></div>
+          <div className="stat-card-pill bg-gradient-to-r from-yellow-400 to-orange-300" />
         </Card>
 
-        <Card className="p-5 border-l-4 border-l-[#F4A6A6]">
+        <Card className="stat-card border-l-4 border-l-error-red">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">🚨</div>
+            <div className="stat-card-icon bg-error-red/30">🚨</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">TOTAL DISTRESS LOGS</p>
-              <p className="text-2xl font-dm-serif text-[#F4A6A6]">{loading ? "—" : stats.totalDistressLogs}</p>
-              <p className="text-xs text-[#F4A6A6] font-poppins">Live from distress logs</p>
+              <p className="text-xs text-dark-text/60 font-poppins">TOTAL DISTRESS LOGS</p>
+              <p className="text-2xl font-dm-serif text-error-red">{loading ? "—" : stats.totalDistressLogs}</p>
+              <p className="text-xs text-error-red font-poppins">Live from distress logs</p>
             </div>
           </div>
-          <div className="h-1 bg-gradient-to-r from-red-400 to-pink-300 rounded-full"></div>
+          <div className="stat-card-pill bg-gradient-to-r from-red-400 to-pink-300" />
         </Card>
 
-        <Card className="p-5 bg-gray-50">
+        <Card className="stat-card border-l-4 border-l-lavender">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center text-2xl">👤</div>
+            <div className="stat-card-icon bg-lavender/20">👤</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">NEW USERS TODAY</p>
+              <p className="text-xs text-dark-text/60 font-poppins">NEW USERS TODAY</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.newUsersToday}</p>
-              <p className="text-xs text-[#52B788] font-poppins">Live from user profiles</p>
+              <p className="text-xs text-success-green font-poppins">Live from user profiles</p>
             </div>
           </div>
-          <div className="h-1 bg-gradient-to-r from-purple-400 to-pink-300 rounded-full"></div>
+          <div className="stat-card-pill bg-gradient-to-r from-purple-400 to-pink-300" />
         </Card>
       </div>
 
