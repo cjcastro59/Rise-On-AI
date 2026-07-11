@@ -14,6 +14,12 @@ type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
 type Message = Database["public"]["Tables"]["messages"]["Row"];
 type UserProfile = Database["public"]["Tables"]["user_profiles"]["Row"];
 
+const filterParticipantMessages = (messages: Message[], conversation: Conversation | null) => {
+  if (!conversation) return [];
+  const participantIds = new Set([conversation.user_id, conversation.counselor_id].filter(Boolean));
+  return messages.filter((message) => participantIds.has(message.sender_id));
+};
+
 export default function AdminSupportPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -67,6 +73,9 @@ export default function AdminSupportPage() {
         },
         async (payload: any) => {
           console.log("[ADMIN SUPPORT] New conversation received:", payload);
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user || payload.new.counselor_id !== user.id) return;
+
           // Fetch the user profile for the new conversation
           const { data: newConversationWithUser } = await supabase
             .from("conversations")
@@ -75,6 +84,7 @@ export default function AdminSupportPage() {
               user:user_profiles!user_id(*)
             `)
             .eq("id", payload.new.id)
+            .eq("counselor_id", user.id)
             .single();
           
           if (newConversationWithUser) {
@@ -94,6 +104,13 @@ export default function AdminSupportPage() {
         },
         async (payload: any) => {
           console.log("[ADMIN SUPPORT] Conversation updated:", payload);
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user || payload.new.counselor_id !== user.id) {
+            setConversations((prev) => prev.filter((c) => c.id !== payload.new.id));
+            setSelectedConversation((prev) => (prev?.id === payload.new.id ? null : prev));
+            return;
+          }
+
           // Fetch the updated conversation with user profile
           const { data: updatedConversationWithUser } = await supabase
             .from("conversations")
@@ -102,6 +119,7 @@ export default function AdminSupportPage() {
               user:user_profiles!user_id(*)
             `)
             .eq("id", payload.new.id)
+            .eq("counselor_id", user.id)
             .single();
           
           if (updatedConversationWithUser) {
@@ -161,7 +179,7 @@ export default function AdminSupportPage() {
 
       if (profiles) {
         const profileMap: Record<string, UserProfile> = {};
-        profiles.forEach(profile => {
+        profiles.forEach((profile: UserProfile) => {
           profileMap[profile.id] = profile;
         });
         setSenderProfiles(profileMap);
@@ -178,12 +196,19 @@ export default function AdminSupportPage() {
 
   const loadConversations = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setConversations([]);
+        return;
+      }
+
       const { data } = await supabase
         .from("conversations")
         .select(`
           *,
           user:user_profiles!user_id(*)
         `)
+        .eq("counselor_id", user.id)
         .order("created_at", { ascending: false });
       setConversations(data || []);
     } catch (error) {
@@ -191,14 +216,20 @@ export default function AdminSupportPage() {
     }
   };
 
-  const loadMessages = async (conversationId: string) => {
+  const loadMessages = async (conversationId: string, conversation = selectedConversation) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || conversation?.counselor_id !== user.id) {
+      setMessages([]);
+      return;
+    }
+
     try {
       const { data } = await supabase
         .from("messages")
         .select("*")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
-      setMessages(data || []);
+      setMessages(filterParticipantMessages(data || [], conversation));
     } catch (error) {
       console.error("Error loading messages:", error);
     }
@@ -228,6 +259,9 @@ export default function AdminSupportPage() {
       async (payload: any) => {
         console.log("[ADMIN SUPPORT] New real-time message received:", payload);
         const newMessage = payload.new as Message;
+        if (!selectedConversation || ![selectedConversation.user_id, selectedConversation.counselor_id].includes(newMessage.sender_id)) {
+          return;
+        }
         
         // Fetch sender profile if we don't have it
         if (!senderProfiles[newMessage.sender_id]) {
@@ -308,8 +342,9 @@ export default function AdminSupportPage() {
   };
 
   const selectConversation = (conversation: Conversation) => {
+    if (currentUserId && conversation.counselor_id !== currentUserId) return;
     setSelectedConversation(conversation);
-    loadMessages(conversation.id);
+    loadMessages(conversation.id, conversation);
     subscribeToMessages(conversation.id);
   };
 
@@ -319,7 +354,7 @@ export default function AdminSupportPage() {
     console.log("Admin: newMessage:", newMessage);
     console.log("Admin: selectedConversation:", selectedConversation);
     console.log("Admin: currentUserId:", currentUserId);
-    if (!newMessage.trim() || !selectedConversation || !currentUserId) return;
+    if (!newMessage.trim() || !selectedConversation || !currentUserId || selectedConversation.counselor_id !== currentUserId) return;
 
     const messageContent = newMessage.trim();
     
@@ -378,7 +413,7 @@ export default function AdminSupportPage() {
   };
 
   const closeConversation = async () => {
-    if (!selectedConversation) return;
+    if (!selectedConversation || !currentUserId || selectedConversation.counselor_id !== currentUserId) return;
 
     try {
       setClosingConversation(true);

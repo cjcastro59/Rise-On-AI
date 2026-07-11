@@ -14,6 +14,21 @@ type JournalEntry = {
   created_at: string;
 };
 
+type UserProfile = {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+};
+
+type Conversation = {
+  id: string;
+  user_id: string;
+  counselor_id: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
 type DistressLog = {
   id: string;
   user_id: string;
@@ -35,6 +50,11 @@ const getResponseStatus = (notes?: string | null) => {
   return "Responded";
 };
 
+const getProfileName = (profile?: UserProfile | null) => {
+  if (!profile) return "Unassigned";
+  return profile.full_name || profile.username || profile.id.slice(0, 8);
+};
+
 const groupEntriesByUser = (entries: JournalEntry[]) => {
   return entries.reduce<Record<string, JournalEntry[]>>((acc, entry) => {
     const userId = entry.user_id;
@@ -47,6 +67,10 @@ const groupEntriesByUser = (entries: JournalEntry[]) => {
 export default function AdminDistressAlertsPage() {
   const [logs, setLogs] = useState<DistressLog[]>([]);
   const [entriesByUser, setEntriesByUser] = useState<Record<string, JournalEntry[]>>({});
+  const [counselors, setCounselors] = useState<UserProfile[]>([]);
+  const [conversationsByUser, setConversationsByUser] = useState<Record<string, Conversation>>({});
+  const [assignmentSelections, setAssignmentSelections] = useState<Record<string, string>>({});
+  const [selectedAlert, setSelectedAlert] = useState<DistressLog | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -75,6 +99,21 @@ export default function AdminDistressAlertsPage() {
         const rawLogs = (data || []) as DistressLog[];
         const logUserIds = Array.from(new Set(rawLogs.map((log) => log.user_id).filter(Boolean))) as string[];
         let entries: JournalEntry[] = [];
+        let conversations: Conversation[] = [];
+        let counselorProfiles: UserProfile[] = [];
+
+        const { data: counselorsData, error: counselorsError } = await supabase
+          .from("user_profiles")
+          .select("id,username,full_name")
+          .eq("role", "counselor")
+          .eq("is_active", true)
+          .order("full_name", { ascending: true });
+
+        if (counselorsError) {
+          console.error("Error loading counselors:", counselorsError);
+        } else {
+          counselorProfiles = (counselorsData || []) as UserProfile[];
+        }
 
         if (logUserIds.length > 0) {
           const { data: entriesData, error: entriesError } = await supabase
@@ -89,6 +128,19 @@ export default function AdminDistressAlertsPage() {
           } else {
             entries = (entriesData || []) as JournalEntry[];
           }
+
+          const { data: conversationsData, error: conversationsError } = await supabase
+            .from("conversations")
+            .select("id,user_id,counselor_id,status,created_at,updated_at")
+            .in("user_id", logUserIds)
+            .eq("status", "open")
+            .order("updated_at", { ascending: false });
+
+          if (conversationsError) {
+            console.error("Error loading alert conversations:", conversationsError);
+          } else {
+            conversations = (conversationsData || []) as Conversation[];
+          }
         }
 
         const sortedLogs = rawLogs.sort(
@@ -96,8 +148,25 @@ export default function AdminDistressAlertsPage() {
         );
 
         if (mounted) {
+          const conversationsByUserId = conversations.reduce<Record<string, Conversation>>((acc, conversation) => {
+            if (!acc[conversation.user_id]) acc[conversation.user_id] = conversation;
+            return acc;
+          }, {});
+
           setLogs(sortedLogs);
           setEntriesByUser(groupEntriesByUser(entries));
+          setCounselors(counselorProfiles);
+          setConversationsByUser(conversationsByUserId);
+          setAssignmentSelections((prev) => {
+            const next = { ...prev };
+            sortedLogs.forEach((log) => {
+              const assignedCounselorId = conversationsByUserId[log.user_id]?.counselor_id;
+              if (assignedCounselorId && !next[log.id]) {
+                next[log.id] = assignedCounselorId;
+              }
+            });
+            return next;
+          });
         }
       } catch (err: any) {
         setError(err.message || "Failed to load distress logs");
@@ -118,6 +187,11 @@ export default function AdminDistressAlertsPage() {
   const mediumAlerts = logs.filter((l) => ["medium", "warning"].includes((l.severity || "").toLowerCase()));
   const respondedLogs = logs.filter((l) => !!(l.notes && l.notes.trim()));
   const responseRate = logs.length ? Math.round((respondedLogs.length / logs.length) * 100) : 0;
+
+  const getAssignedCounselor = (alert: DistressLog) => {
+    const counselorId = conversationsByUser[alert.user_id]?.counselor_id;
+    return counselors.find((counselor) => counselor.id === counselorId) || null;
+  };
 
   const renderEntrySnippets = (userId: string) => {
     const entries = entriesByUser[userId] || [];
@@ -142,6 +216,14 @@ export default function AdminDistressAlertsPage() {
 
   const runAlertAction = async (alertId: string, action: "review" | "assign") => {
     const actionKey = `${action}:${alertId}`;
+    const selectedCounselorId = assignmentSelections[alertId];
+
+    if (action === "assign" && !selectedCounselorId) {
+      setError("Please choose a counselor before assigning this alert.");
+      setActionMessage(null);
+      return;
+    }
+
     setActionLoading((prev) => ({ ...prev, [actionKey]: true }));
     setError(null);
     setActionMessage(null);
@@ -149,6 +231,8 @@ export default function AdminDistressAlertsPage() {
     try {
       const response = await fetch(`/api/admin/distress-alerts/${alertId}/${action}`, {
         method: "POST",
+        headers: action === "assign" ? { "Content-Type": "application/json" } : undefined,
+        body: action === "assign" ? JSON.stringify({ counselorId: selectedCounselorId }) : undefined,
       });
       const result = await response.json().catch(() => ({}));
 
@@ -160,13 +244,21 @@ export default function AdminDistressAlertsPage() {
         setLogs((prev) =>
           prev.map((log) =>
             log.id === alertId
-              ? {
+                ? {
                   ...log,
                   notes: result.log.notes,
                 }
               : log
           )
         );
+        setSelectedAlert((prev) => (prev?.id === alertId ? { ...prev, notes: result.log.notes } : prev));
+      }
+
+      if (result.conversation) {
+        setConversationsByUser((prev) => ({
+          ...prev,
+          [result.conversation.user_id]: result.conversation,
+        }));
       }
 
       setActionMessage(result.message || "Alert updated.");
@@ -179,6 +271,49 @@ export default function AdminDistressAlertsPage() {
         return next;
       });
     }
+  };
+
+  const renderAssignmentControls = (alert: DistressLog, compact = false) => {
+    const assignedCounselor = getAssignedCounselor(alert);
+    const selectedCounselorId = assignmentSelections[alert.id] || conversationsByUser[alert.user_id]?.counselor_id || "";
+
+    return (
+      <div className={compact ? "flex items-center gap-2" : "space-y-2"}>
+        <select
+          className={`border border-gray-200 bg-white text-xs font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/30 ${
+            compact ? "w-40 rounded-lg px-2 py-1.5" : "w-full rounded-xl px-3 py-2"
+          }`}
+          value={selectedCounselorId}
+          onChange={(event) =>
+            setAssignmentSelections((prev) => ({
+              ...prev,
+              [alert.id]: event.target.value,
+            }))
+          }
+          disabled={counselors.length === 0}
+        >
+          <option value="">{counselors.length ? "Choose counselor" : "No counselors"}</option>
+          {counselors.map((counselor) => (
+            <option key={counselor.id} value={counselor.id}>
+              {getProfileName(counselor)}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          className="btn-sm border border-primary-blue text-primary-blue disabled:opacity-60"
+          disabled={!!actionLoading[`assign:${alert.id}`] || counselors.length === 0}
+          onClick={() => runAlertAction(alert.id, "assign")}
+        >
+          {actionLoading[`assign:${alert.id}`] ? "Assigning..." : assignedCounselor ? "Reassign" : "Assign"}
+        </button>
+        {!compact && (
+          <p className="text-xs text-dark-text/60 font-inter">
+            Assigned: <span className="font-semibold text-dark-text">{getProfileName(assignedCounselor)}</span>
+          </p>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -282,27 +417,19 @@ export default function AdminDistressAlertsPage() {
                     <p className="text-sm font-poppins font-semibold text-dark-text">{alert.trigger || "Detected distress trigger"}</p>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="flex min-w-[230px] flex-col gap-2">
                   <button
                     type="button"
                     className="btn-sm bg-error-red text-white disabled:opacity-60"
-                    disabled={!!actionLoading[`review:${alert.id}`]}
-                    onClick={() => runAlertAction(alert.id, "review")}
+                    onClick={() => setSelectedAlert(alert)}
                   >
-                    {actionLoading[`review:${alert.id}`] ? "Reviewing..." : "Review Now"}
+                    Review Now
                   </button>
-                  <button
-                    type="button"
-                    className="btn-sm border border-primary-blue text-primary-blue disabled:opacity-60"
-                    disabled={!!actionLoading[`assign:${alert.id}`]}
-                    onClick={() => runAlertAction(alert.id, "assign")}
-                  >
-                    {actionLoading[`assign:${alert.id}`] ? "Assigning..." : "Assign Counselor"}
-                  </button>
+                  {renderAssignmentControls(alert)}
                 </div>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-4">
                 <div>
                   <p className="text-xs text-dark-text/60 uppercase tracking-wide">Last alert</p>
                   <p className="mt-1 text-sm text-dark-text">{new Date(alert.created_at).toLocaleString()}</p>
@@ -310,6 +437,10 @@ export default function AdminDistressAlertsPage() {
                 <div>
                   <p className="text-xs text-dark-text/60 uppercase tracking-wide">Response status</p>
                   <p className="mt-1 text-sm text-dark-text">{getResponseStatus(alert.notes)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">Counselor</p>
+                  <p className="mt-1 text-sm text-dark-text">{getProfileName(getAssignedCounselor(alert))}</p>
                 </div>
                 <div>
                   <p className="text-xs text-dark-text/60 uppercase tracking-wide">Latest entry</p>
@@ -346,6 +477,7 @@ export default function AdminDistressAlertsPage() {
                   <th>TRIGGER</th>
                   <th>MOOD SCORE</th>
                   <th>LAST ENTRY</th>
+                  <th>COUNSELOR</th>
                   <th>RESPONSE</th>
                   <th>STATUS</th>
                   <th>ACTION</th>
@@ -371,21 +503,24 @@ export default function AdminDistressAlertsPage() {
                       </p>
                     </td>
                     <td>
+                      <p className="text-sm font-inter text-dark-text">{getProfileName(getAssignedCounselor(alert))}</p>
+                    </td>
+                    <td>
                       <span className="badge-info">{getResponseStatus(alert.notes)}</span>
                     </td>
                     <td>
                       <span className="badge-info">{alert.notes ? "Followed up" : "Pending"}</span>
                     </td>
                     <td>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
                           type="button"
                           className="btn-sm border border-warning-yellow text-[#FFB700] disabled:opacity-60"
-                          disabled={!!actionLoading[`assign:${alert.id}`]}
-                          onClick={() => runAlertAction(alert.id, "assign")}
+                          onClick={() => setSelectedAlert(alert)}
                         >
-                          {actionLoading[`assign:${alert.id}`] ? "Assigning..." : "Assign"}
+                          Review
                         </button>
+                        {renderAssignmentControls(alert, true)}
                       </div>
                     </td>
                   </tr>
@@ -421,6 +556,88 @@ export default function AdminDistressAlertsPage() {
           </div>
         </div>
       </Card>
+
+      {selectedAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="font-mono text-sm font-semibold text-primary-blue">{getAnonymizedAlertId(selectedAlert.id)}</p>
+                <h3 className="mt-1 text-xl font-dm-serif text-dark-text">Distress Alert Details</h3>
+                <p className="text-sm text-dark-text/60 font-poppins">{selectedAlert.trigger || "Detected distress trigger"}</p>
+              </div>
+              <button
+                type="button"
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-poppins text-dark-text hover:bg-gray-50"
+                onClick={() => setSelectedAlert(null)}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Severity</p>
+                <p className="mt-1 text-sm font-poppins text-dark-text">{selectedAlert.severity || "Unknown"}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Created</p>
+                <p className="mt-1 text-sm font-poppins text-dark-text">{new Date(selectedAlert.created_at).toLocaleString()}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Response</p>
+                <p className="mt-1 text-sm font-poppins text-dark-text">{getResponseStatus(selectedAlert.notes)}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Counselor</p>
+                <p className="mt-1 text-sm font-poppins text-dark-text">{getProfileName(getAssignedCounselor(selectedAlert))}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-xl border border-gray-100 p-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-dark-text/60">Assign counselor</p>
+              {renderAssignmentControls(selectedAlert)}
+            </div>
+
+            <div className="mt-5">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-dark-text/60">Action notes</p>
+              <div className="min-h-[80px] whitespace-pre-wrap rounded-xl bg-slate-50 p-4 text-sm font-inter text-dark-text/80">
+                {selectedAlert.notes || "No action notes recorded yet."}
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-dark-text/60">Recent journal entries</p>
+              <div className="space-y-3">
+                {(entriesByUser[selectedAlert.user_id] || []).slice(0, 5).map((entry) => (
+                  <div key={entry.id} className="rounded-xl border border-gray-100 p-4">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">{entry.mood || "Mood unknown"}</span>
+                      <span className="text-xs text-dark-text/60">{new Date(entry.created_at).toLocaleString()}</span>
+                    </div>
+                    <p className="text-sm font-semibold text-dark-text">{entry.title || "Untitled entry"}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm font-inter text-dark-text/80">{entry.content || "No text available."}</p>
+                  </div>
+                ))}
+                {(entriesByUser[selectedAlert.user_id] || []).length === 0 && (
+                  <p className="text-sm text-dark-text/60 font-inter">No journal entries available for this user yet.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4">
+              <button
+                type="button"
+                className="btn-sm bg-error-red text-white disabled:opacity-60"
+                disabled={!!actionLoading[`review:${selectedAlert.id}`]}
+                onClick={() => runAlertAction(selectedAlert.id, "review")}
+              >
+                {actionLoading[`review:${selectedAlert.id}`] ? "Saving..." : "Done reviewed"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

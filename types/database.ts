@@ -33,6 +33,7 @@ export interface Database {
           emergency_contact_phone: string | null;
           emergency_contact_relation: string | null;
           is_active: boolean;
+          is_online: boolean;
           created_at: string;
           updated_at: string;
           two_factor_enabled: boolean;
@@ -62,6 +63,7 @@ export interface Database {
           emergency_contact_phone?: string | null;
           emergency_contact_relation?: string | null;
           is_active?: boolean;
+          is_online?: boolean;
           created_at?: string;
           updated_at?: string;
           two_factor_enabled?: boolean;
@@ -91,6 +93,7 @@ export interface Database {
           emergency_contact_phone?: string | null;
           emergency_contact_relation?: string | null;
           is_active?: boolean;
+          is_online?: boolean;
           created_at?: string;
           updated_at?: string;
           two_factor_enabled?: boolean;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,12 @@ import { Database } from "@/types/database";
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"];
 type Message = Database["public"]["Tables"]["messages"]["Row"];
 type UserProfile = Database["public"]["Tables"]["user_profiles"]["Row"];
+
+const filterParticipantMessages = (messages: Message[], conversation: Conversation | null) => {
+  if (!conversation) return [];
+  const participantIds = new Set([conversation.user_id, conversation.counselor_id].filter(Boolean));
+  return messages.filter((message) => participantIds.has(message.sender_id));
+};
 
 export default function SupportPage() {
   const [breathingActive, setBreathingActive] = useState(false);
@@ -24,9 +30,24 @@ export default function SupportPage() {
   const [loading, setLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
+  const [counselorProfile, setCounselorProfile] = useState<UserProfile | null>(null);
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
+  const currentUserIdRef = useRef<string | null>(null);
+  const senderProfilesRef = useRef<Record<string, UserProfile>>({});
+  const conversationRef = useRef<Conversation | null>(null);
   const supabase = useMemo(() => createClient() as any, []);
+  
+  // Show notification function
+  const displayNotification = useCallback((message: string) => {
+    setNotificationMessage(message);
+    setShowNotification(true);
+    setTimeout(() => {
+      setShowNotification(false);
+    }, 5000);
+  }, []);
 
   // Breathing exercise cycle
   const breathingCycle = [
@@ -95,78 +116,8 @@ export default function SupportPage() {
     "1 thing you can taste"
   ];
 
-  useEffect(() => {
-    const getCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setCurrentUserId(user.id);
-        // Fetch current user profile
-        const { data: profile } = await supabase
-          .from("user_profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-        setCurrentUserProfile(profile);
-      }
-    };
-    getCurrentUser();
-    loadOrCreateConversation();
-
-    // Cleanup on unmount
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (conversation) {
-      loadMessages();
-      subscribeToMessages();
-    } else {
-      // Cleanup if conversation is null
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    }
-  }, [conversation]);
-
-  useEffect(() => {
-    // Fetch sender profiles for all messages
-    const fetchSenderProfiles = async () => {
-      const uniqueSenderIds = [...new Set(messages.map(msg => msg.sender_id))];
-      if (uniqueSenderIds.length === 0) return;
-
-      console.log("Fetching sender profiles for IDs:", uniqueSenderIds);
-
-      const { data: profiles, error } = await supabase
-        .from("user_profiles")
-        .select("*")
-        .in("id", uniqueSenderIds);
-
-      console.log("Fetched profiles:", profiles, "Error:", error);
-
-      if (profiles) {
-        const profileMap: Record<string, UserProfile> = {};
-        profiles.forEach(profile => {
-          profileMap[profile.id] = profile;
-        });
-        setSenderProfiles(profileMap);
-      }
-    };
-
-    fetchSenderProfiles();
-  }, [messages, supabase]);
-
-  useEffect(() => {
-    // Auto-scroll to bottom when messages change
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const loadOrCreateConversation = async () => {
+  // --- All Callbacks first ---
+  const loadOrCreateConversation = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -183,27 +134,39 @@ export default function SupportPage() {
 
       if (openConvo) {
         setConversation(openConvo);
+        // Fetch counselor profile if counselor is assigned
+        if (openConvo.counselor_id) {
+          const { data: counselorData } = await supabase
+            .from("user_profiles")
+            .select("*")
+            .eq("id", openConvo.counselor_id)
+            .single();
+          if (counselorData) {
+            setCounselorProfile(counselorData);
+          }
+        }
       } else {
         // If no open conversation, set to null so user can start a new one
         setConversation(null);
+        setCounselorProfile(null);
       }
     } catch (error) {
       console.error("Error loading conversation:", error);
       setConversation(null);
     }
-  };
+  }, [supabase]);
 
-  const loadMessages = async () => {
+  const loadMessages = useCallback(async () => {
     if (!conversation) return;
     const { data } = await supabase
       .from("messages")
       .select("*")
       .eq("conversation_id", conversation.id)
       .order("created_at", { ascending: true });
-    setMessages(data || []);
-  };
+    setMessages(filterParticipantMessages(data || [], conversation));
+  }, [conversation, supabase]);
 
-  const subscribeToMessages = () => {
+  const subscribeToMessages = useCallback(() => {
     if (!conversation) return;
     
     console.log("subscribeToMessages called for conversation:", conversation.id);
@@ -230,9 +193,14 @@ export default function SupportPage() {
       async (payload: any) => {
         console.log("[USER SUPPORT] New real-time message received:", payload);
         const newMessage = payload.new as Message;
+        const currentConvo = conversationRef.current;
+        if (!currentConvo || ![currentConvo.user_id, currentConvo.counselor_id].includes(newMessage.sender_id)) {
+          return;
+        }
         
         // Fetch sender profile if we don't have it
-        if (!senderProfiles[newMessage.sender_id]) {
+        const currentSenderProfiles = senderProfilesRef.current;
+        if (!currentSenderProfiles[newMessage.sender_id]) {
           try {
             const { data: profile } = await supabase
               .from("user_profiles")
@@ -259,6 +227,16 @@ export default function SupportPage() {
             return prev;
           }
           console.log("[USER SUPPORT] Adding new message to state:", newMessage);
+          
+          // Show notification if message is from counselor and not from current user
+          const currentUserId = currentUserIdRef.current;
+          const updatedSenderProfiles = senderProfilesRef.current;
+          if (currentUserId && newMessage.sender_id !== currentUserId) {
+            const senderProfile = updatedSenderProfiles[newMessage.sender_id];
+            const senderName = senderProfile?.full_name || senderProfile?.username || "Counselor";
+            displayNotification(`${senderName} sent you a message: ${newMessage.content}`);
+          }
+          
           return [...prev, newMessage];
         });
       }
@@ -273,9 +251,28 @@ export default function SupportPage() {
         table: "conversations",
         filter: `id=eq.${conversation.id}`
       },
-      (payload: any) => {
+      async (payload: any) => {
         console.log("[USER SUPPORT] Conversation updated:", payload);
-        setConversation(payload.new as Conversation);
+        const updatedConvo = payload.new as Conversation;
+        setConversation(updatedConvo);
+        
+        // Fetch counselor profile if counselor is assigned
+        setCounselorProfile(prevCounselor => {
+          if (updatedConvo.counselor_id && (!prevCounselor || prevCounselor.id !== updatedConvo.counselor_id)) {
+            // Fetch counselor profile
+            (async () => {
+              const { data: counselorData } = await supabase
+                .from("user_profiles")
+                .select("*")
+                .eq("id", updatedConvo.counselor_id)
+                .single();
+              if (counselorData) {
+                setCounselorProfile(counselorData);
+              }
+            })();
+          }
+          return prevCounselor;
+        });
       }
     );
 
@@ -295,7 +292,91 @@ export default function SupportPage() {
     // Store channel in ref
     channelRef.current = channel;
     console.log("[USER SUPPORT] Channel stored in ref:", channelRef.current);
-  };
+  }, [conversation, supabase, displayNotification]);
+
+  // --- Now all useEffects ---
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+        // Fetch current user profile
+        const { data: profile } = await supabase
+          .from("user_profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+        setCurrentUserProfile(profile);
+      }
+    };
+    getCurrentUser();
+    loadOrCreateConversation();
+
+    // Cleanup on unmount
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [supabase, loadOrCreateConversation]);
+
+  useEffect(() => {
+    if (conversation) {
+      loadMessages();
+      subscribeToMessages();
+    } else {
+      // Cleanup if conversation is null
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    }
+  }, [conversation, loadMessages, subscribeToMessages, supabase]);
+
+  useEffect(() => {
+    // Fetch sender profiles for all messages
+    const fetchSenderProfiles = async () => {
+      const uniqueSenderIds = [...new Set(messages.map(msg => msg.sender_id))];
+      if (uniqueSenderIds.length === 0) return;
+
+      console.log("Fetching sender profiles for IDs:", uniqueSenderIds);
+
+      const { data: profiles, error } = await supabase
+        .from("user_profiles")
+        .select("*")
+        .in("id", uniqueSenderIds);
+
+      console.log("Fetched profiles:", profiles, "Error:", error);
+
+      if (profiles) {
+        const profileMap: Record<string, UserProfile> = {};
+        profiles.forEach((profile: UserProfile) => {
+          profileMap[profile.id] = profile;
+        });
+        setSenderProfiles(profileMap);
+      }
+    };
+
+    fetchSenderProfiles();
+  }, [messages, supabase]);
+
+  useEffect(() => {
+    currentUserIdRef.current = currentUserId;
+  }, [currentUserId]);
+
+  useEffect(() => {
+    senderProfilesRef.current = senderProfiles;
+  }, [senderProfiles]);
+
+  useEffect(() => {
+    conversationRef.current = conversation;
+  }, [conversation]);
+
+  useEffect(() => {
+    // Auto-scroll to bottom when messages change
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const startConversation = async () => {
     try {
@@ -414,6 +495,25 @@ export default function SupportPage() {
 
   return (
     <div className="space-y-6">
+      {/* Notification Toast */}
+      {showNotification && (
+        <div className="fixed top-4 right-4 z-50 bg-success-green/90 text-white px-6 py-4 rounded-xl shadow-lg">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">💬</span>
+            <div>
+              <p className="font-semibold font-poppins">New Message</p>
+              <p className="text-sm font-inter">{notificationMessage}</p>
+            </div>
+            <button 
+              onClick={() => setShowNotification(false)}
+              className="ml-4 text-white hover:text-white/80 font-bold"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Banner */}
       {showBanner && (
         <div className="bg-gradient-to-r from-soft-red/10 to-pink-100 border-2 border-soft-red/30 rounded-2xl p-6">
@@ -617,9 +717,19 @@ export default function SupportPage() {
             ) : (
               <div className="flex-1 flex flex-col min-h-0">
                 <div className="border-b border-gray-200 pb-4 mb-4 bg-gradient-to-r from-gray-50 to-lavender/5 -mx-6 px-6 pt-0 flex-shrink-0">
-                  <p className="text-xs text-dark-text/50">
-                    Status: <span className="font-semibold text-success-green">Open</span>
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-dark-text/50">
+                      Status: <span className="font-semibold text-success-green">Open</span>
+                    </p>
+                    {counselorProfile && (
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${counselorProfile.is_online ? 'bg-success-green animate-pulse' : 'bg-gray-400'}`}></div>
+                        <p className="text-xs text-dark-text/70">
+                          {counselorProfile.full_name || counselorProfile.username} is {counselorProfile.is_online ? 'online' : 'offline'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-2 min-h-0">
                   {messages.length === 0 ? (
