@@ -11,11 +11,12 @@ export async function POST(
   }
 
   const { adminClient, user } = auth;
-  const { data: existingLog, error: loadError } = await adminClient
+  const { data: existingLogs, error: loadError } = await adminClient
     .from("distress_logs")
     .select("id,notes")
     .eq("id", params.id)
-    .single();
+    .limit(1);
+  const existingLog = existingLogs?.[0] || null;
 
   if (loadError || !existingLog) {
     return NextResponse.json({ error: "Distress alert not found." }, { status: 404 });
@@ -32,10 +33,19 @@ export async function POST(
     .update({ notes })
     .eq("id", params.id)
     .select("id,notes")
-    .single();
+    .limit(1);
 
-  if (updateError || !log) {
-    return NextResponse.json({ error: updateError?.message || "Failed to review alert." }, { status: 500 });
+  const updatedLog = log?.[0] || null;
+
+  if (updateError) {
+    return NextResponse.json({ error: updateError.message || "Failed to review alert." }, { status: 500 });
+  }
+
+  if (!updatedLog) {
+    return NextResponse.json(
+      { error: "Review could not be saved. Please check that counselors are allowed to update distress logs in Supabase RLS." },
+      { status: 403 }
+    );
   }
 
   await adminClient.from("audit_logs").insert({
@@ -47,7 +57,7 @@ export async function POST(
   });
 
   return NextResponse.json({
-    log,
-    message: "Alert marked as reviewed.",
+    log: updatedLog,
+    message: "Case marked as done reviewed.",
   });
 }

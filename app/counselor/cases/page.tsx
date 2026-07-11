@@ -2,6 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -48,7 +49,11 @@ export default function CounselorCasesPage() {
   const [entriesByUser, setEntriesByUser] = useState<Record<string, JournalEntry[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [selectedAlert, setSelectedAlert] = useState<DistressLog | null>(null);
   const { user: currentUser } = useAuth();
+  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
@@ -164,6 +169,59 @@ export default function CounselorCasesPage() {
     );
   };
 
+  const runAlertAction = async (alertId: string, action: "review" | "message") => {
+    const actionKey = `${action}:${alertId}`;
+    setActionLoading((prev) => ({ ...prev, [actionKey]: true }));
+    setError(null);
+    setActionMessage(null);
+
+    try {
+      const endpointAction = action === "message" ? "assign" : "review";
+      const response = await fetch(`/api/admin/distress-alerts/${alertId}/${endpointAction}`, {
+        method: "POST",
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.error || `Failed to ${action} case`);
+      }
+
+      if (result.log) {
+        setLogs((prev) =>
+          prev.map((log) =>
+            log.id === alertId
+              ? {
+                  ...log,
+                  notes: result.log.notes,
+                }
+              : log
+          )
+        );
+        setSelectedAlert((prev) => (prev?.id === alertId ? { ...prev, notes: result.log.notes } : prev));
+      }
+
+      if (action === "message") {
+        if (!result.conversationId) {
+          throw new Error("Conversation could not be opened.");
+        }
+        router.push(`/counselor/messages?conversationId=${result.conversationId}`);
+        return true;
+      }
+
+      setActionMessage(result.message || "Case marked as reviewed.");
+      return true;
+    } catch (err: any) {
+      setError(err.message || "Case action failed.");
+      return false;
+    } finally {
+      setActionLoading((prev) => {
+        const next = { ...prev };
+        delete next[actionKey];
+        return next;
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -173,6 +231,12 @@ export default function CounselorCasesPage() {
           <p className="text-sm text-dark-text/60 font-poppins">Manage and review distress cases</p>
         </div>
       </div>
+
+      {actionMessage && (
+        <div className="rounded-xl border border-success-green/30 bg-success-green/10 px-4 py-3 text-sm font-poppins text-dark-text">
+          {actionMessage}
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -245,6 +309,23 @@ export default function CounselorCasesPage() {
                     <p className="text-sm font-poppins font-semibold text-dark-text">{alert.trigger || "Detected distress trigger"}</p>
                     <p className="text-xs text-dark-text/60 font-inter">User: {getUserDisplayName(alert.user_profiles)}</p>
                   </div>
+                </div>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    className="btn-sm bg-error-red text-white disabled:opacity-60"
+                    onClick={() => setSelectedAlert(alert)}
+                  >
+                    Review
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-sm border border-primary-blue text-primary-blue disabled:opacity-60"
+                    disabled={!!actionLoading[`message:${alert.id}`]}
+                    onClick={() => runAlertAction(alert.id, "message")}
+                  >
+                    {actionLoading[`message:${alert.id}`] ? "Opening..." : "Message"}
+                  </button>
                 </div>
               </div>
 
@@ -323,8 +404,22 @@ export default function CounselorCasesPage() {
                       <span className="badge-info">{alert.notes ? "Followed up" : "Pending"}</span>
                     </td>
                     <td>
-                      <div className="flex items-center gap-2">
-                        <button className="btn-sm border border-warning-yellow text-[#FFB700]">View</button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          className="btn-sm border border-warning-yellow text-[#FFB700] disabled:opacity-60"
+                          onClick={() => setSelectedAlert(alert)}
+                        >
+                          Review
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-sm border border-primary-blue text-primary-blue disabled:opacity-60"
+                          disabled={!!actionLoading[`message:${alert.id}`]}
+                          onClick={() => runAlertAction(alert.id, "message")}
+                        >
+                          {actionLoading[`message:${alert.id}`] ? "Opening..." : "Message"}
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -334,6 +429,94 @@ export default function CounselorCasesPage() {
           </div>
         </Card>
       </div>
+
+      {selectedAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="font-mono text-sm font-semibold text-primary-blue">{selectedAlert.id.slice(0, 8)}</p>
+                <h3 className="mt-1 text-xl font-dm-serif text-dark-text">Review Case Details</h3>
+                <p className="text-sm text-dark-text/60 font-poppins">{selectedAlert.trigger || "Detected distress trigger"}</p>
+              </div>
+              <button
+                type="button"
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-poppins text-dark-text hover:bg-gray-50"
+                onClick={() => setSelectedAlert(null)}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">User</p>
+                <p className="mt-1 text-sm font-poppins text-dark-text">{getUserDisplayName(selectedAlert.user_profiles)}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Severity</p>
+                <p className="mt-1 text-sm font-poppins text-dark-text">{selectedAlert.severity || "Unknown"}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Created</p>
+                <p className="mt-1 text-sm font-poppins text-dark-text">{new Date(selectedAlert.created_at).toLocaleString()}</p>
+              </div>
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Response</p>
+                <p className="mt-1 text-sm font-poppins text-dark-text">{getResponseStatus(selectedAlert.notes)}</p>
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-dark-text/60">Action notes</p>
+              <div className="min-h-[80px] whitespace-pre-wrap rounded-xl bg-slate-50 p-4 text-sm font-inter text-dark-text/80">
+                {selectedAlert.notes || "No action notes recorded yet."}
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-dark-text/60">Specific journal entries</p>
+              <div className="space-y-3">
+                {(entriesByUser[selectedAlert.user_id] || []).slice(0, 5).map((entry) => (
+                  <div key={entry.id} className="rounded-xl border border-gray-100 p-4">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">{entry.mood || "Mood unknown"}</span>
+                      <span className="text-xs text-dark-text/60">{new Date(entry.created_at).toLocaleString()}</span>
+                    </div>
+                    <p className="text-sm font-semibold text-dark-text">{entry.title || "Untitled entry"}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm font-inter text-dark-text/80">{entry.content || "No text available."}</p>
+                  </div>
+                ))}
+                {(entriesByUser[selectedAlert.user_id] || []).length === 0 && (
+                  <p className="text-sm text-dark-text/60 font-inter">No journal entries available for this user yet.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4">
+              <button
+                type="button"
+                className="btn-sm border border-primary-blue text-primary-blue disabled:opacity-60"
+                disabled={!!actionLoading[`message:${selectedAlert.id}`]}
+                onClick={() => runAlertAction(selectedAlert.id, "message")}
+              >
+                {actionLoading[`message:${selectedAlert.id}`] ? "Opening..." : "Message"}
+              </button>
+              <button
+                type="button"
+                className="btn-sm bg-error-red text-white disabled:opacity-60"
+                disabled={!!actionLoading[`review:${selectedAlert.id}`]}
+                onClick={async () => {
+                  const reviewed = await runAlertAction(selectedAlert.id, "review");
+                  if (reviewed) setSelectedAlert(null);
+                }}
+              >
+                {actionLoading[`review:${selectedAlert.id}`] ? "Saving..." : "Done reviewed"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

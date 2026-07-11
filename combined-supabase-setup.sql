@@ -42,6 +42,8 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   two_factor_secret TEXT,
   -- Account status
   is_active BOOLEAN DEFAULT true,
+  -- Counselor online status
+  is_online BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -202,6 +204,8 @@ ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP W
 -- 2FA columns
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT false;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS two_factor_secret TEXT;
+-- Counselor online status
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT false;
 
 -- Ensure role has default value
 ALTER TABLE public.user_profiles ALTER COLUMN role SET DEFAULT 'user';

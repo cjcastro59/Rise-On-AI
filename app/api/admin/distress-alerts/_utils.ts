@@ -5,7 +5,7 @@ import { Database } from "@/types/database";
 const allowedRoles = new Set(["admin", "owner", "counselor"]);
 
 export async function getAuthorizedAdminClient() {
-  const authClient = createServerClient();
+  const authClient = createServerClient() as any;
   const {
     data: { user },
     error: authError,
@@ -16,7 +16,7 @@ export async function getAuthorizedAdminClient() {
   }
 
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-  const adminClient = serviceRoleKey
+  const adminClient: any = serviceRoleKey
     ? createSupabaseClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         serviceRoleKey,
@@ -29,17 +29,18 @@ export async function getAuthorizedAdminClient() {
       )
     : authClient;
 
-  const { data: profile, error: profileError } = await adminClient
+  const { data: profiles, error: profileError } = await adminClient
     .from("user_profiles")
     .select("role")
     .eq("id", user.id)
-    .single();
+    .limit(1);
+  const profile = profiles?.[0] || null;
 
   if (profileError || !profile || !allowedRoles.has(profile.role)) {
     return { error: "You do not have permission to manage distress alerts.", status: 403 as const };
   }
 
-  return { adminClient, user, status: 200 as const };
+  return { adminClient, user, profile, status: 200 as const };
 }
 
 export function appendActionNote(notes: string | null, actionNote: string) {

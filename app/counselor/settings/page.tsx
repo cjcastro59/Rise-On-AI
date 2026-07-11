@@ -13,6 +13,7 @@ export default function CounselorSettingsPage() {
     newCaseAlerts: true,
     messageAlerts: true
   });
+  const [isOnline, setIsOnline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { user: currentUser } = useAuth();
@@ -43,7 +44,11 @@ export default function CounselorSettingsPage() {
           const parsedSettings = typeof settingsData.value === 'string' 
             ? JSON.parse(settingsData.value) 
             : settingsData.value;
-          setNotifications({ ...notifications, ...parsedSettings });
+          setNotifications(prev => ({ ...prev, ...parsedSettings }));
+        }
+        // Set is_online from profile
+        if (profileData) {
+          setIsOnline(profileData.is_online || false);
         }
       } catch (error) {
         console.error("Error loading data:", error);
@@ -59,6 +64,7 @@ export default function CounselorSettingsPage() {
     if (!currentUser) return;
     try {
       setSaving(true);
+      // Save notification settings
       await supabase
         .from("system_settings")
         .upsert(
@@ -68,6 +74,11 @@ export default function CounselorSettingsPage() {
           },
           { onConflict: "key" }
         );
+      // Save online status
+      await supabase
+        .from("user_profiles")
+        .update({ is_online: isOnline })
+        .eq("id", currentUser.id);
       alert("Settings saved successfully!");
     } catch (error) {
       console.error("Error saving settings:", error);
@@ -128,6 +139,31 @@ export default function CounselorSettingsPage() {
                 Role: Counselor
               </p>
             </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Online Status Section */}
+      <Card className="p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-8 h-8 bg-success-green/20 rounded-lg flex items-center justify-center">💬</div>
+          <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider">Online Status</p>
+        </div>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-poppins text-dark-text">Set as Online</p>
+              <p className="text-xs text-dark-text/60 font-inter">Show users that you are available to chat</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isOnline}
+                onChange={(e) => setIsOnline(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="toggle-switch"></div>
+            </label>
           </div>
         </div>
       </Card>

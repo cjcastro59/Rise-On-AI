@@ -14,6 +14,12 @@ type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
 type Message = Database["public"]["Tables"]["messages"]["Row"];
 type UserProfile = Database["public"]["Tables"]["user_profiles"]["Row"];
 
+const filterParticipantMessages = (messages: Message[], conversation: Conversation | null) => {
+  if (!conversation) return [];
+  const participantIds = new Set([conversation.user_id, conversation.counselor_id].filter(Boolean));
+  return messages.filter((message) => participantIds.has(message.sender_id));
+};
+
 export default function CounselorMessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -45,17 +51,16 @@ export default function CounselorMessagesPage() {
       }
     };
     getCurrentUser();
-    loadConversations();
 
     // Subscribe to all conversations for real-time updates
-    const subscribeToConversations = () => {
+    const subscribeToConversations = (userId: string) => {
       console.log("[Counselor Messages] Subscribing to conversations...");
       if (conversationsChannelRef.current) {
         console.log("[Counselor Messages] Removing previous conversations channel...");
         supabase.removeChannel(conversationsChannelRef.current);
       }
 
-      const channel = supabase.channel("counselor:conversations");
+      const channel = supabase.channel(`counselor:conversations:${userId}`);
 
       // Listen for new conversations
       channel.on(
@@ -67,6 +72,8 @@ export default function CounselorMessagesPage() {
         },
         async (payload: any) => {
           console.log("[Counselor Messages] New conversation received:", payload);
+          if (payload.new.counselor_id !== userId) return;
+
           // Fetch the user profile for the new conversation
           const { data: newConversationWithUser } = await supabase
             .from("conversations")
@@ -94,6 +101,12 @@ export default function CounselorMessagesPage() {
         },
         async (payload: any) => {
           console.log("[Counselor Messages] Conversation updated:", payload);
+          if (payload.new.counselor_id !== userId) {
+            setConversations((prev) => prev.filter((c) => c.id !== payload.new.id));
+            setSelectedConversation((prev) => (prev?.id === payload.new.id ? null : prev));
+            return;
+          }
+
           // Fetch the updated conversation with user profile
           const { data: updatedConversationWithUser } = await supabase
             .from("conversations")
@@ -129,8 +142,6 @@ export default function CounselorMessagesPage() {
       console.log("[Counselor Messages] Conversations channel stored in ref:", conversationsChannelRef.current);
     };
 
-    subscribeToConversations();
-
     return () => {
       console.log("[Counselor Messages] Unsubscribing from channels...");
       if (channelRef.current) {
@@ -143,6 +154,94 @@ export default function CounselorMessagesPage() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+    loadConversations(currentUserId);
+
+    const channel = supabase.channel(`counselor:conversations:${currentUserId}`);
+
+    channel.on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "conversations",
+        filter: `counselor_id=eq.${currentUserId}`
+      },
+      async (payload: any) => {
+        const { data: newConversationWithUser } = await supabase
+          .from("conversations")
+          .select(`
+            *,
+            user:user_profiles!user_id(*)
+          `)
+          .eq("id", payload.new.id)
+          .eq("counselor_id", currentUserId)
+          .single();
+
+        if (newConversationWithUser) {
+          setConversations((prev) =>
+            prev.some((c) => c.id === newConversationWithUser.id)
+              ? prev
+              : [newConversationWithUser, ...prev]
+          );
+        }
+      }
+    );
+
+    channel.on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "conversations"
+      },
+      async (payload: any) => {
+        if (payload.new.counselor_id !== currentUserId) {
+          setConversations((prev) => prev.filter((c) => c.id !== payload.new.id));
+          setSelectedConversation((prev) => (prev?.id === payload.new.id ? null : prev));
+          return;
+        }
+
+        const { data: updatedConversationWithUser } = await supabase
+          .from("conversations")
+          .select(`
+            *,
+            user:user_profiles!user_id(*)
+          `)
+          .eq("id", payload.new.id)
+          .eq("counselor_id", currentUserId)
+          .single();
+
+        if (updatedConversationWithUser) {
+          setConversations((prev) => {
+            const exists = prev.some((c) => c.id === updatedConversationWithUser.id);
+            return exists
+              ? prev.map((c) => (c.id === updatedConversationWithUser.id ? updatedConversationWithUser : c))
+              : [updatedConversationWithUser, ...prev];
+          });
+          setSelectedConversation((prev) =>
+            prev?.id === updatedConversationWithUser.id ? updatedConversationWithUser : prev
+          );
+        }
+      }
+    );
+
+    channel.subscribe((status: any, err: any) => {
+      console.log("[Counselor Messages] Scoped conversations realtime status:", status);
+      if (err) console.error("[Counselor Messages] Scoped conversations realtime error:", err);
+    });
+
+    conversationsChannelRef.current = channel;
+
+    return () => {
+      supabase.removeChannel(channel);
+      if (conversationsChannelRef.current === channel) {
+        conversationsChannelRef.current = null;
+      }
+    };
+  }, [currentUserId, supabase]);
 
   useEffect(() => {
     // Fetch sender profiles for all messages
@@ -161,7 +260,7 @@ export default function CounselorMessagesPage() {
 
       if (profiles) {
         const profileMap: Record<string, UserProfile> = {};
-        profiles.forEach(profile => {
+        profiles.forEach((profile: UserProfile) => {
           profileMap[profile.id] = profile;
         });
         setSenderProfiles(profileMap);
@@ -176,7 +275,8 @@ export default function CounselorMessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const loadConversations = async () => {
+  const loadConversations = async (userId = currentUserId) => {
+    if (!userId) return;
     try {
       const { data } = await supabase
         .from("conversations")
@@ -184,21 +284,38 @@ export default function CounselorMessagesPage() {
           *,
           user:user_profiles!user_id(*)
         `)
+        .eq("counselor_id", userId)
         .order("created_at", { ascending: false });
-      setConversations(data || []);
+      const loadedConversations = data || [];
+      setConversations(loadedConversations);
+
+      const requestedConversationId =
+        typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("conversationId") : null;
+      const requestedConversation = requestedConversationId
+        ? loadedConversations.find((conversation: Conversation) => conversation.id === requestedConversationId)
+        : null;
+
+      if (requestedConversation && selectedConversation?.id !== requestedConversation.id) {
+        selectConversation(requestedConversation);
+      }
     } catch (error) {
       console.error("Error loading conversations:", error);
     }
   };
 
-  const loadMessages = async (conversationId: string) => {
+  const loadMessages = async (conversationId: string, conversation = selectedConversation) => {
+    if (!currentUserId || conversation?.counselor_id !== currentUserId) {
+      setMessages([]);
+      return;
+    }
+
     try {
       const { data } = await supabase
         .from("messages")
         .select("*")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
-      setMessages(data || []);
+      setMessages(filterParticipantMessages(data || [], conversation));
     } catch (error) {
       console.error("Error loading messages:", error);
     }
@@ -228,6 +345,9 @@ export default function CounselorMessagesPage() {
       async (payload: any) => {
         console.log("[Counselor Messages] New real-time message received:", payload);
         const newMessage = payload.new as Message;
+        if (!selectedConversation || ![selectedConversation.user_id, selectedConversation.counselor_id].includes(newMessage.sender_id)) {
+          return;
+        }
         
         // Fetch sender profile if we don't have it
         if (!senderProfiles[newMessage.sender_id]) {
@@ -308,8 +428,9 @@ export default function CounselorMessagesPage() {
   };
 
   const selectConversation = (conversation: Conversation) => {
+    if (!currentUserId || conversation.counselor_id !== currentUserId) return;
     setSelectedConversation(conversation);
-    loadMessages(conversation.id);
+    loadMessages(conversation.id, conversation);
     subscribeToMessages(conversation.id);
   };
 
@@ -319,7 +440,7 @@ export default function CounselorMessagesPage() {
     console.log("Counselor: newMessage:", newMessage);
     console.log("Counselor: selectedConversation:", selectedConversation);
     console.log("Counselor: currentUserId:", currentUserId);
-    if (!newMessage.trim() || !selectedConversation || !currentUserId) return;
+    if (!newMessage.trim() || !selectedConversation || !currentUserId || selectedConversation.counselor_id !== currentUserId) return;
 
     const messageContent = newMessage.trim();
     
@@ -378,7 +499,7 @@ export default function CounselorMessagesPage() {
   };
 
   const closeConversation = async () => {
-    if (!selectedConversation) return;
+    if (!selectedConversation || !currentUserId || selectedConversation.counselor_id !== currentUserId) return;
 
     try {
       setClosingConversation(true);
