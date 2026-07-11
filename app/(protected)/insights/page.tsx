@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { analyzeSentiment, getSentimentFromMood } from "@/lib/sentiment";
+import { analyzeEntry } from "@/lib/sentiment";
 
 type JournalEntry = {
   id: string;
@@ -123,11 +123,13 @@ export default function MoodInsightsPage() {
 
   // Get sentiment of an entry
   const getEntrySentiment = (entry: JournalEntry): "positive" | "negative" | "distress" => {
-    let sentiment = analyzeSentiment(entry.content);
-    if (entry.mood) {
-      sentiment = getSentimentFromMood(entry.mood);
-    }
-    return sentiment;
+    const analysis = analyzeEntry(entry.content, entry.mood);
+    return analysis.sentiment;
+  };
+
+  // Get analysis of an entry
+  const getEntryAnalysis = (entry: JournalEntry) => {
+    return analyzeEntry(entry.content, entry.mood);
   };
 
   // Get emotion category for an entry
@@ -161,22 +163,14 @@ export default function MoodInsightsPage() {
   // Streak
   const currentStreak = calculateStreak();
   
-  // Mood trend (simplified)
+  // Mood trend (using our enhanced analysis)
   const now = new Date();
   const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const lastWeekEntries = entries.filter(entry => new Date(entry.created_at) >= lastWeek);
   const avgScoreLastWeek = lastWeekEntries.length > 0 
     ? lastWeekEntries.reduce((sum, entry) => {
-        let score = 5; // default neutral
-        if (entry.mood) {
-          const moodOption = moodOptions.find(m => m.label === entry.mood);
-          if (moodOption) score = moodOption.score;
-        } else {
-          const sentiment = getEntrySentiment(entry);
-          if (sentiment === "positive") score = 8;
-          if (sentiment === "negative") score = 2;
-        }
-        return sum + score;
+        const analysis = getEntryAnalysis(entry);
+        return sum + (analysis.sentimentScore / 10); // convert 0-100 to 0-10
       }, 0) / lastWeekEntries.length 
     : 5;
   const moodGrowth = Math.round((avgScoreLastWeek - 5) * 10);
@@ -193,7 +187,7 @@ export default function MoodInsightsPage() {
     emotionDistribution[category]++;
   });
 
-  // Mood trend data for chart
+  // Mood trend data for chart (using sentimentScore from analyzeEntry)
   const getMoodTrendData = () => {
     const data = [];
     const days = timeRange === "Week" ? 7 : timeRange === "Month" ? 30 : 90;
@@ -210,23 +204,14 @@ export default function MoodInsightsPage() {
         return entryDate >= date && entryDate < nextDate;
       });
       
-      let avgScore = 5;
       if (dayEntries.length > 0) {
-        avgScore = dayEntries.reduce((sum, entry) => {
-          let score = 5;
-          if (entry.mood) {
-            const moodOption = moodOptions.find(m => m.label === entry.mood);
-            if (moodOption) score = moodOption.score;
-          } else {
-            const sentiment = getEntrySentiment(entry);
-            if (sentiment === "positive") score = 8;
-            if (sentiment === "negative") score = 2;
-          }
-          return sum + score;
+        const avgScore = dayEntries.reduce((sum, entry) => {
+          const analysis = getEntryAnalysis(entry);
+          return sum + (analysis.sentimentScore / 10); // convert 0-100 to 0-10
         }, 0) / dayEntries.length;
+        
+        data.push({ date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }), score: avgScore });
       }
-      
-      data.push({ date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }), score: avgScore });
     }
     return data;
   };
@@ -363,16 +348,16 @@ export default function MoodInsightsPage() {
               </div>
               {/* X-Axis Labels */}
               <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[10px] font-inter text-[#4F4F4F]/60 px-2 pb-1">
-                {moodTrendData.slice(0, Math.min(moodTrendData.length, 5)).map((data, i) => (
+                {moodTrendData.map((data, i) => (
                   <span key={i}>{data.date}</span>
                 ))}
               </div>
               {/* Simple Bar Chart */}
               <div className="absolute inset-0 flex items-end justify-around px-4 pb-6">
-                {moodTrendData.slice(0, Math.min(moodTrendData.length, 6)).map((data, i) => (
+                {moodTrendData.map((data, i) => (
                   <div
                     key={i}
-                    className="w-8 rounded-t-2xl shadow-lg transition-all duration-300"
+                    className="w-4 rounded-t-xl shadow-lg transition-all duration-300"
                     style={{
                       height: `${(data.score / 10) * 100}%`,
                       background: data.score > 7
@@ -431,8 +416,8 @@ export default function MoodInsightsPage() {
                       color = "bg-[#A8DADC]";
                     } else if (sentiment === "negative") {
                       color = "bg-[#F4A6A6]";
-                    } else {
-                      color = "bg-[#A8DADC]";
+                    } else if (sentiment === "distress") {
+                      color = "bg-[#fca5a5]";
                     }
                   }
                 }

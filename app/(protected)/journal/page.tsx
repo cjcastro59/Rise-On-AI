@@ -143,7 +143,7 @@ export default function JournalEntryPage() {
       });
 
       localStorage.removeItem("journal_draft");
-      router.push("/journal/history");
+      router.push(`/analysis?entryId=${data.id}`);
     } catch (error) {
       console.error("Error saving entry:", error);
     } finally {
