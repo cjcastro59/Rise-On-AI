@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -59,6 +59,20 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
   const supabase = createClient();
   const recaptchaKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
+  // Keep track of whether we've completed the captcha on step 1
+  const [captchaCompletedOnStep1, setCaptchaCompletedOnStep1] = useState(false);
+
+  // Reset captcha when going back to step 1
+  useEffect(() => {
+    if (step === 1) {
+      setRecaptchaToken(null);
+      setCaptchaCompletedOnStep1(false);
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+      }
+    }
+  }, [step]);
+
   const updateStep = (newStep: number) => {
     setStepLocal(newStep);
     if (setStep) {
@@ -92,6 +106,11 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
     }
     if (!privacyPolicyAccepted) {
       setError("Please accept the Privacy Policy to proceed.");
+      return false;
+    }
+    // Check if captcha is enabled and completed
+    if (recaptchaKey && !recaptchaToken) {
+      setError("Please complete the reCAPTCHA first.");
       return false;
     }
     setError("");
@@ -156,36 +175,36 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
 
       if (authData.user) {
         console.log('User created! Now upserting complete profile...');
-        
+
         // Prepare ALL profile data
         const profileData: any = {
-            id: authData.user.id,
-            username: formData.username,
-            email: formData.email,
-            role: 'user',
-            full_name: `${formData.firstName} ${formData.lastName}`,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            goals: formData.goals,
-            language: formData.language,
-            country: formData.country,
-            two_factor_enabled: false,
-            two_factor_secret: null,
+          id: authData.user.id,
+          username: formData.username,
+          email: formData.email,
+          role: 'user',
+          full_name: `${formData.firstName} ${formData.lastName}`,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          goals: formData.goals,
+          language: formData.language,
+          country: formData.country,
+          two_factor_enabled: false,
+          two_factor_secret: null,
         };
 
         console.log('Full profile data:', profileData);
 
         // Use UPSERT! This will insert or update if the row already exists (from the trigger!)
         const { error: upsertError } = await supabase
-            .from('user_profiles')
-            .upsert(profileData, { onConflict: 'id' })
-            .select();
+          .from('user_profiles')
+          .upsert(profileData, { onConflict: 'id' })
+          .select();
 
         if (upsertError) {
-            console.error('Upsert failed!', upsertError);
-            setError(`Profile setup failed: ${upsertError.message}`);
-            localStorage.removeItem('pendingProfileData');
-            return;
+          console.error('Upsert failed!', upsertError);
+          setError(`Profile setup failed: ${upsertError.message}`);
+          localStorage.removeItem('pendingProfileData');
+          return;
         }
 
         localStorage.removeItem('pendingProfileData');
@@ -300,15 +319,15 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       </div>
 
       <div className="flex items-start gap-2">
-        <input 
-          type="checkbox" 
-          className="mt-1 accent-primary-blue" 
+        <input
+          type="checkbox"
+          className="mt-1 accent-primary-blue"
           checked={privacyPolicyAccepted}
           onChange={(e) => setPrivacyPolicyAccepted(e.target.checked)}
         />
         <p className="text-xs font-inter text-dark-text/70">
           I agree to the{" "}
-          <button 
+          <button
             type="button"
             className="text-primary-blue font-semibold hover:underline"
             onClick={() => setShowPrivacyPolicy(true)}
@@ -318,16 +337,6 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
         </p>
       </div>
 
-      {/* reCAPTCHA v2 */}
-      <div className="flex justify-center">
-        {recaptchaKey && (
-          <ReCAPTCHA
-            ref={recaptchaRef}
-            sitekey={recaptchaKey}
-            onChange={(token: string | null) => setRecaptchaToken(token)}
-          />
-        )}
-      </div>
     </div>
   );
 
@@ -347,11 +356,10 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
             <div
               key={goal}
               onClick={() => toggleGoal(goal)}
-              className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                formData.goals.includes(goal)
-                  ? "border-primary-blue bg-primary-blue/10"
-                  : "border-light-gray hover:border-primary-blue/50"
-              }`}
+              className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.goals.includes(goal)
+                ? "border-primary-blue bg-primary-blue/10"
+                : "border-light-gray hover:border-primary-blue/50"
+                }`}
             >
               <p className="text-sm font-poppins text-dark-text">{goal}</p>
             </div>
@@ -367,11 +375,10 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
               <div
                 key={lang}
                 onClick={() => setFormData(prev => ({ ...prev, language: lang }))}
-                className={`p-4 rounded-xl border-2 cursor-pointer transition-all text-center ${
-                  formData.language === lang
-                    ? "border-primary-blue bg-primary-blue/10"
-                    : "border-light-gray hover:border-primary-blue/50"
-                }`}
+                className={`p-4 rounded-xl border-2 cursor-pointer transition-all text-center ${formData.language === lang
+                  ? "border-primary-blue bg-primary-blue/10"
+                  : "border-light-gray hover:border-primary-blue/50"
+                  }`}
               >
                 <p className="text-sm font-poppins text-dark-text">{lang}</p>
               </div>
@@ -418,6 +425,27 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}
+
+        {/* reCAPTCHA v2 - always mounted! */}
+        <div className="flex justify-center" style={{ display: (step === 1 || step === 3) ? 'flex' : 'none' }}>
+          {recaptchaKey && (
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={recaptchaKey}
+              onChange={(token: string | null) => {
+                setRecaptchaToken(token);
+                if (step === 1) {
+                  setCaptchaCompletedOnStep1(true);
+                }
+              }}
+            />
+          )}
+          {!recaptchaKey && (
+            <div className="text-xs text-dark-text/70 font-inter">
+              Note: NEXT_PUBLIC_RECAPTCHA_SITE_KEY is not set in .env.local
+            </div>
+          )}
+        </div>
 
         {error && (
           <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins">
