@@ -10,7 +10,7 @@ import { MoodCard } from "@/components/dashboard/mood-card";
 import { InsightCard } from "@/components/dashboard/insight-card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { getSentimentFromMood, analyzeSentiment } from "@/lib/sentiment";
+import { getSentimentFromMood, analyzeSentiment, analyzeEntry } from "@/lib/sentiment";
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -73,22 +73,9 @@ export default function DashboardPage() {
     let totalScore = 0;
     let scoreCount = 0;
     entries.forEach(entry => {
-      if (entry.mood) {
-          const moodOption = moodOptions.find(m => m.label === entry.mood);
-          if (moodOption) {
-            totalScore += moodOption.score;
-            scoreCount++;
-          }
-        } else {
-          const sentiment = analyzeSentiment(entry.content || "");
-          if (sentiment === "positive") {
-            totalScore += 8;
-            scoreCount++;
-          } else if (sentiment === "negative" || sentiment === "distress") {
-            totalScore += 2;
-            scoreCount++;
-          }
-        }
+      const analysis = analyzeEntry(entry.content || "", entry.mood);
+      totalScore += analysis.sentimentScore / 10; // Convert to 0-10
+      scoreCount++;
     });
     const avgMoodScore = scoreCount > 0 ? parseFloat((totalScore / scoreCount).toFixed(1)) : 0;
 
@@ -98,11 +85,8 @@ export default function DashboardPage() {
 
     let positiveCount = 0;
     thisWeekEntries.forEach(entry => {
-      let sentiment = analyzeSentiment(entry.content || "");
-      if (entry.mood) {
-        sentiment = getSentimentFromMood(entry.mood);
-      }
-      if (sentiment === "positive") positiveCount++;
+      const analysis = analyzeEntry(entry.content || "", entry.mood);
+      if (analysis.sentiment === "positive") positiveCount++;
     });
     const positivityThisWeek = thisWeekEntries.length > 0 ? Math.round((positiveCount / thisWeekEntries.length) * 100) : 0;
 
@@ -112,7 +96,7 @@ export default function DashboardPage() {
       avgMoodScore,
       positivityThisWeek
     };
-  }, [calculateStreak, moodOptions]);
+  }, [calculateStreak]);
 
   const calculateWeekData = useCallback((entries: any[]) => {
     const week = [];
@@ -135,22 +119,9 @@ export default function DashboardPage() {
         let totalScore = 0;
         let count = 0;
         dayEntries.forEach(entry => {
-          if (entry.mood) {
-            const moodOption = moodOptions.find(m => m.label === entry.mood);
-            if (moodOption) {
-              totalScore += moodOption.score;
-              count++;
-            }
-          } else {
-            const sentiment = analyzeSentiment(entry.content || "");
-            if (sentiment === "positive") {
-              totalScore += 8;
-              count++;
-            } else if (sentiment === "negative" || sentiment === "distress") {
-              totalScore += 2;
-              count++;
-            }
-          }
+          const analysis = analyzeEntry(entry.content || "", entry.mood);
+          totalScore += analysis.sentimentScore / 10; // sentimentScore is 0-100, convert to 0-10
+          count++;
         });
         avgScore = count > 0 ? totalScore / count : 0;
       }
@@ -161,7 +132,7 @@ export default function DashboardPage() {
       });
     }
     return week;
-  }, [moodOptions]);
+  }, []);
 
   const fetchDashboardData = useCallback(async () => {
     if (!user) {
@@ -247,6 +218,7 @@ export default function DashboardPage() {
     <>
       {/* Top Header */}
       <header className="flex items-center justify-between mb-8 bg-white rounded-2xl px-6 py-4 shadow-sm border border-light-gray">
+        <div className="w-40"></div> {/* Spacer for balance */}
         <nav className="flex items-center gap-4">
           <Link href="/dashboard" className="text-dark-text text-sm font-poppins font-semibold">Home</Link>
           <Link href="/journal" className="text-dark-text/60 text-sm font-poppins font-medium hover:text-primary-blue">Journal</Link>
@@ -258,9 +230,9 @@ export default function DashboardPage() {
             <Image src="/icons/crisis-report.svg" alt="Crisis Support" width={16} height={16} className="object-contain" />
             Crisis Support
           </Link>
-          <div className="w-10 h-10 bg-gradient-to-r from-primary-blue to-lavender rounded-full flex items-center justify-center text-white font-poppins font-semibold">
+          <Link href="/profile" className="w-10 h-10 bg-gradient-to-r from-primary-blue to-lavender rounded-full flex items-center justify-center text-white font-poppins font-semibold hover:opacity-80 transition-all">
             {userName.charAt(0).toUpperCase()}
-          </div>
+          </Link>
         </div>
       </header>
 
@@ -381,14 +353,14 @@ export default function DashboardPage() {
               <div key={index} className="flex flex-col items-center gap-2">
                 <div
                   className="w-8 rounded-t-lg transition-all duration-300"
-                  style={{
-                    height: `${(day.score / 10) * 100}%`,
-                    background: day.score > 7
-                      ? 'linear-gradient(to top, #10b981, #34d399)'
-                      : day.score > 4
-                        ? 'linear-gradient(to top, #8b5cf6, #a78bfa)'
-                        : 'linear-gradient(to top, #ef4444, #f87171)'
-                  }}
+                  style={{ 
+                        height: `${Math.max((day.score / 10) * 100, 12)}%`,
+                        background: day.score > 7
+                          ? 'linear-gradient(to top, #10b981, #34d399)'
+                          : day.score > 4
+                            ? 'linear-gradient(to top, #8b5cf6, #a78bfa)'
+                            : 'linear-gradient(to top, #ef4444, #f87171)'
+                      }}
                 />
                 <span className="text-xs font-inter text-dark-text/60">{day.date}</span>
               </div>

@@ -40,14 +40,15 @@ export async function middleware(request: NextRequest) {
   if (
     !user &&
     (request.nextUrl.pathname.startsWith("/dashboard") ||
-    request.nextUrl.pathname.startsWith("/journal") ||
-    request.nextUrl.pathname.startsWith("/insights") ||
-    request.nextUrl.pathname.startsWith("/analysis") ||
-    request.nextUrl.pathname.startsWith("/profile") ||
-    request.nextUrl.pathname.startsWith("/settings") ||
-    request.nextUrl.pathname.startsWith("/support") ||
-    request.nextUrl.pathname.startsWith("/admin") ||
-    request.nextUrl.pathname.startsWith("/setup-2fa"))
+      request.nextUrl.pathname.startsWith("/journal") ||
+      request.nextUrl.pathname.startsWith("/insights") ||
+      request.nextUrl.pathname.startsWith("/analysis") ||
+      request.nextUrl.pathname.startsWith("/profile") ||
+      request.nextUrl.pathname.startsWith("/settings") ||
+      request.nextUrl.pathname.startsWith("/support") ||
+      request.nextUrl.pathname.startsWith("/admin") ||
+      request.nextUrl.pathname.startsWith("/counselor") ||
+      request.nextUrl.pathname.startsWith("/setup-2fa"))
   ) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
@@ -71,29 +72,52 @@ export async function middleware(request: NextRequest) {
     const isOnSetupPage = request.nextUrl.pathname === "/setup-2fa";
 
     // Redirect to setup-2fa if needed (and not already there)
-    if (needs2FASetup && !isOnSetupPage && 
-        !request.nextUrl.pathname.startsWith("/login") && 
-        !request.nextUrl.pathname.startsWith("/register")) {
+    if (needs2FASetup && !isOnSetupPage &&
+      !request.nextUrl.pathname.startsWith("/login") &&
+      !request.nextUrl.pathname.startsWith("/register")) {
       return NextResponse.redirect(new URL("/setup-2fa", request.url));
     }
 
     // If already on setup-2fa and doesn't need it, redirect to dashboard
     if (!needs2FASetup && isOnSetupPage) {
-      if (profile && ["admin", "owner", "researcher", "counselor"].includes(profile.role)) {
+      if (profile && profile.role === "counselor") {
+        return NextResponse.redirect(new URL("/counselor/dashboard", request.url));
+      }
+      if (profile && ["admin", "owner", "researcher"].includes(profile.role)) {
         return NextResponse.redirect(new URL("/admin/dashboard", request.url));
       }
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
-    // If user is trying to access regular dashboard but is admin/owner/researcher/counselor, redirect to admin dashboard
-    if (request.nextUrl.pathname === "/dashboard" && profile && ["admin", "owner", "researcher", "counselor"].includes(profile.role)) {
-      return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+    // If user is trying to access regular dashboard but is admin/owner/researcher/counselor, redirect to appropriate dashboard
+    if (request.nextUrl.pathname === "/dashboard" && profile) {
+      if (profile.role === "counselor") {
+        return NextResponse.redirect(new URL("/counselor/dashboard", request.url));
+      }
+      if (["admin", "owner", "researcher"].includes(profile.role)) {
+        return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+      }
     }
 
     // Check if user is trying to access admin routes
     if (request.nextUrl.pathname.startsWith("/admin")) {
       // If not admin/owner/researcher/counselor, redirect to regular dashboard
       if (!profile || !["admin", "owner", "researcher", "counselor"].includes(profile.role)) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+      // If counselor tries to access admin routes, redirect to counselor dashboard
+      if (profile.role === "counselor") {
+        return NextResponse.redirect(new URL("/counselor/dashboard", request.url));
+      }
+    }
+
+    // Check if user is trying to access counselor routes
+    if (request.nextUrl.pathname.startsWith("/counselor")) {
+      // If not counselor, redirect to appropriate dashboard
+      if (!profile || profile.role !== "counselor") {
+        if (profile && ["admin", "owner", "researcher"].includes(profile.role)) {
+          return NextResponse.redirect(new URL("/admin/dashboard", request.url));
+        }
         return NextResponse.redirect(new URL("/dashboard", request.url));
       }
     }
@@ -103,5 +127,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/journal/:path*", "/insights/:path*", "/analysis/:path*", "/profile/:path*", "/settings/:path*", "/support/:path*", "/admin/:path*", "/login", "/register", "/setup-2fa", "/forgot-password", "/reset-password", "/privacy-policy"],
+  matcher: ["/dashboard/:path*", "/journal/:path*", "/insights/:path*", "/analysis/:path*", "/profile/:path*", "/settings/:path*", "/support/:path*", "/admin/:path*", "/counselor/:path*", "/login", "/register", "/setup-2fa", "/forgot-password", "/reset-password", "/privacy-policy"],
 };

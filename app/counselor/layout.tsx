@@ -1,13 +1,13 @@
-import AdminSidebar from "@/components/admin/AdminSidebar";
+import CounselorSidebar from "@/components/counselor/CounselorSidebar";
 
-export default function AdminLayout({
+export default function CounselorLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
     <div className="h-screen bg-gradient-to-r from-primary-blue to-lavender flex overflow-hidden">
-      <AdminSidebar />
+      <CounselorSidebar />
       <main className="flex-1 min-h-0 p-8 overflow-y-auto">
         {children}
       </main>

@@ -33,7 +33,7 @@ const commonEmojis = [
 ];
 
 const prompts = [
-  "Ano ang isang pangyayari ngayon na nakaapekto sa iyong mood? Paano mo ito kinabayaan? (What's one thing today that affected your mood? How did you handle it?)",
+  "Ano ang isang pangyayari ngayon na nakaapekto sa iyong mood? Paano mo ito mahahandle? (What's one thing today that affected your mood? How did you handle it?)",
   "What are three things you're grateful for today, and why?",
   "Describe a moment today that made you feel peaceful or happy.",
   "Is there something on your mind that you need to let go of? Write it down.",
@@ -143,7 +143,7 @@ export default function JournalEntryPage() {
       });
 
       localStorage.removeItem("journal_draft");
-      router.push("/journal/history");
+      router.push(`/analysis?entryId=${data.id}`);
     } catch (error) {
       console.error("Error saving entry:", error);
     } finally {

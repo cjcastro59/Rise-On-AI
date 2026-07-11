@@ -5,6 +5,12 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
+type UserProfile = {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+};
+
 type JournalEntry = {
   id: string;
   user_id: string;
@@ -21,10 +27,12 @@ type DistressLog = {
   trigger: string | null;
   notes: string | null;
   created_at: string;
+  user_profiles?: UserProfile | null;
 };
 
-const getAnonymizedAlertId = (id: string) => {
-  return `RAI-${id.slice(0, 8).toUpperCase()}`;
+const getUserDisplayName = (user?: UserProfile | null) => {
+  if (!user) return "Unknown user";
+  return user.full_name || user.username || user.id.slice(0, 8);
 };
 
 const getResponseStatus = (notes?: string | null) => {
@@ -35,22 +43,11 @@ const getResponseStatus = (notes?: string | null) => {
   return "Responded";
 };
 
-const groupEntriesByUser = (entries: JournalEntry[]) => {
-  return entries.reduce<Record<string, JournalEntry[]>>((acc, entry) => {
-    const userId = entry.user_id;
-    acc[userId] = acc[userId] || [];
-    acc[userId].push(entry);
-    return acc;
-  }, {});
-};
-
-export default function AdminDistressAlertsPage() {
+export default function CounselorCasesPage() {
   const [logs, setLogs] = useState<DistressLog[]>([]);
   const [entriesByUser, setEntriesByUser] = useState<Record<string, JournalEntry[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
@@ -75,6 +72,7 @@ export default function AdminDistressAlertsPage() {
         const rawLogs = (data || []) as DistressLog[];
         const logUserIds = Array.from(new Set(rawLogs.map((log) => log.user_id).filter(Boolean))) as string[];
         let entries: JournalEntry[] = [];
+        let profilesById: Record<string, UserProfile> = {};
 
         if (logUserIds.length > 0) {
           const { data: entriesData, error: entriesError } = await supabase
@@ -89,18 +87,44 @@ export default function AdminDistressAlertsPage() {
           } else {
             entries = (entriesData || []) as JournalEntry[];
           }
+
+          const { data: profilesData, error: profilesError } = await supabase
+            .from("user_profiles")
+            .select("id,username,full_name")
+            .in("id", logUserIds);
+
+          if (profilesError) {
+            console.error("Error loading alert user profiles:", profilesError);
+          } else {
+            profilesById = ((profilesData || []) as UserProfile[]).reduce<Record<string, UserProfile>>((acc, profile) => {
+              acc[profile.id] = profile;
+              return acc;
+            }, {});
+          }
         }
 
-        const sortedLogs = rawLogs.sort(
+        const fetchedLogs = rawLogs.map((log) => ({
+          ...log,
+          user_profiles: profilesById[log.user_id] || null,
+        }));
+        const entriesWithProfiles = entries.map((entry) => ({
+          ...entry,
+          user_profiles: profilesById[entry.user_id] || null,
+        }));
+        const sortedLogs = fetchedLogs.sort(
           (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         );
 
         if (mounted) {
           setLogs(sortedLogs);
-          setEntriesByUser(groupEntriesByUser(entries));
+          setEntriesByUser(entries.reduce((acc, entry) => {
+            acc[entry.user_id] = acc[entry.user_id] || [];
+            acc[entry.user_id].push(entry);
+            return acc;
+          }, {} as Record<string, JournalEntry[]>));
         }
       } catch (err: any) {
-        setError(err.message || "Failed to load distress logs");
+        setError(err.message || "Failed to load cases");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -140,76 +164,15 @@ export default function AdminDistressAlertsPage() {
     );
   };
 
-  const runAlertAction = async (alertId: string, action: "review" | "assign") => {
-    const actionKey = `${action}:${alertId}`;
-    setActionLoading((prev) => ({ ...prev, [actionKey]: true }));
-    setError(null);
-    setActionMessage(null);
-
-    try {
-      const response = await fetch(`/api/admin/distress-alerts/${alertId}/${action}`, {
-        method: "POST",
-      });
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(result.error || `Failed to ${action} alert`);
-      }
-
-      if (result.log) {
-        setLogs((prev) =>
-          prev.map((log) =>
-            log.id === alertId
-              ? {
-                  ...log,
-                  notes: result.log.notes,
-                }
-              : log
-          )
-        );
-      }
-
-      setActionMessage(result.message || "Alert updated.");
-    } catch (err: any) {
-      setError(err.message || "Alert action failed.");
-    } finally {
-      setActionLoading((prev) => {
-        const next = { ...prev };
-        delete next[actionKey];
-        return next;
-      });
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
-          <h1 className="text-2xl font-dm-serif text-error-red mb-1">Distress Alert Monitoring</h1>
-          <p className="text-sm text-dark-text/60 font-poppins">Real-time emotional crisis detection • Anonymized IDs • Requires immediate review</p>
-        </div>
-        <div className="flex gap-3">
-          <span className="badge-error animate-pulse">⚡ {criticalAlerts.length} Active Alerts</span>
-          <button className="btn-secondary flex items-center gap-2" onClick={() => window.location.reload()}>
-            <span>📄</span> Refresh
-          </button>
+          <h1 className="text-2xl font-dm-serif text-error-red mb-1">Cases</h1>
+          <p className="text-sm text-dark-text/60 font-poppins">Manage and review distress cases</p>
         </div>
       </div>
-
-      {/* Alert Banner */}
-      <div className="admin-alert-banner bg-error-red/10 border-l-error-red">
-        <span>🛡️</span>
-        <p className="text-sm font-poppins text-dark-text">
-          Ethical Protocol: Distress flags use anonymized IDs only. Guidance counselors must follow institutional protocols before any outreach. All actions are logged.
-        </p>
-      </div>
-
-      {actionMessage && (
-        <div className="rounded-xl border border-success-green/30 bg-success-green/10 px-4 py-3 text-sm font-poppins text-dark-text">
-          {actionMessage}
-        </div>
-      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -217,9 +180,9 @@ export default function AdminDistressAlertsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-error-red/30">🔴</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">CRITICAL ALERTS</p>
+              <p className="text-xs text-dark-text/60 font-poppins">CRITICAL CASES</p>
               <p className="text-2xl font-dm-serif text-error-red">{criticalAlerts.length}</p>
-              <p className="text-xs text-error-red font-poppins">Needs immediate review</p>
+              <p className="text-xs text-error-red font-poppins">Needs immediate attention</p>
             </div>
           </div>
           <div className="stat-card-pill bg-gradient-to-r from-red-400 to-pink-300" />
@@ -228,7 +191,7 @@ export default function AdminDistressAlertsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-warning-yellow/30">🟠</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">MEDIUM ALERTS</p>
+              <p className="text-xs text-dark-text/60 font-poppins">MEDIUM CASES</p>
               <p className="text-2xl font-dm-serif text-dark-text">{mediumAlerts.length}</p>
               <p className="text-xs text-dark-text/60 font-poppins">Monitor closely</p>
             </div>
@@ -239,7 +202,7 @@ export default function AdminDistressAlertsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-success-green/30">🟢</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">RESPONSES RECORDED</p>
+              <p className="text-xs text-dark-text/60 font-poppins">RESPONDED CASES</p>
               <p className="text-2xl font-dm-serif text-dark-text">{respondedLogs.length}</p>
               <p className="text-xs text-success-green font-poppins">Follow-up actions logged</p>
             </div>
@@ -252,22 +215,22 @@ export default function AdminDistressAlertsPage() {
             <div className="text-right">
               <p className="text-xs text-dark-text/60 font-poppins">RESPONSE RATE</p>
               <p className="text-2xl font-dm-serif text-dark-text">{responseRate}%</p>
-              <p className="text-xs text-dark-text/60 font-poppins">Alerts with a logged response</p>
+              <p className="text-xs text-dark-text/60 font-poppins">Cases with a logged response</p>
             </div>
           </div>
           <div className="stat-card-pill bg-gradient-to-r from-primary-blue to-teal" />
         </Card>
       </div>
 
-      {/* Critical Alerts */}
+      {/* Critical Cases */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-2 h-2 rounded-full bg-error-red" />
           <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Critical — Immediate Attention Required</h2>
         </div>
-        {loading && <p className="text-sm text-dark-text/60">Loading alerts…</p>}
+        {loading && <p className="text-sm text-dark-text/60">Loading cases…</p>}
         {!loading && error && <p className="text-sm text-error-red">{error}</p>}
-        {!loading && criticalAlerts.length === 0 && !error && <p className="text-sm text-dark-text/60">No critical alerts at the moment.</p>}
+        {!loading && criticalAlerts.length === 0 && !error && <p className="text-sm text-dark-text/60">No critical cases at the moment.</p>}
         {criticalAlerts.map((alert) => (
           <Card key={alert.id} className="p-5 bg-error-red/5 border border-error-red/20 rounded-2xl">
             <div className="flex flex-col gap-4">
@@ -276,29 +239,12 @@ export default function AdminDistressAlertsPage() {
                   <div className="w-10 h-10 rounded-full bg-error-red/30 flex items-center justify-center text-2xl">🩸</div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-sm font-semibold text-primary-blue">{getAnonymizedAlertId(alert.id)}</span>
+                      <span className="font-mono text-sm font-semibold text-primary-blue">{alert.id.slice(0, 8)}</span>
                       <span className="badge-error">Active</span>
                     </div>
                     <p className="text-sm font-poppins font-semibold text-dark-text">{alert.trigger || "Detected distress trigger"}</p>
+                    <p className="text-xs text-dark-text/60 font-inter">User: {getUserDisplayName(alert.user_profiles)}</p>
                   </div>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <button
-                    type="button"
-                    className="btn-sm bg-error-red text-white disabled:opacity-60"
-                    disabled={!!actionLoading[`review:${alert.id}`]}
-                    onClick={() => runAlertAction(alert.id, "review")}
-                  >
-                    {actionLoading[`review:${alert.id}`] ? "Reviewing..." : "Review Now"}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-sm border border-primary-blue text-primary-blue disabled:opacity-60"
-                    disabled={!!actionLoading[`assign:${alert.id}`]}
-                    onClick={() => runAlertAction(alert.id, "assign")}
-                  >
-                    {actionLoading[`assign:${alert.id}`] ? "Assigning..." : "Assign Counselor"}
-                  </button>
                 </div>
               </div>
 
@@ -331,7 +277,7 @@ export default function AdminDistressAlertsPage() {
         ))}
       </div>
 
-      {/* Medium Alerts */}
+      {/* Medium Cases */}
       <div className="space-y-4 mt-8">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-2 h-2 rounded-full bg-warning-yellow" />
@@ -342,9 +288,9 @@ export default function AdminDistressAlertsPage() {
             <table className="admin-table w-full">
               <thead>
                 <tr>
-                  <th>ALERT ID</th>
+                  <th>USER</th>
                   <th>TRIGGER</th>
-                  <th>MOOD SCORE</th>
+                  <th>MOOD</th>
                   <th>LAST ENTRY</th>
                   <th>RESPONSE</th>
                   <th>STATUS</th>
@@ -355,7 +301,7 @@ export default function AdminDistressAlertsPage() {
                 {mediumAlerts.map((alert) => (
                   <tr key={alert.id}>
                     <td>
-                      <p className="font-mono text-sm font-semibold text-primary-blue">{getAnonymizedAlertId(alert.id)}</p>
+                      <p className="font-mono text-sm font-semibold text-primary-blue">{getUserDisplayName(alert.user_profiles)}</p>
                     </td>
                     <td>
                       <p className="text-sm font-inter text-dark-text">{alert.trigger || "Pending review"}</p>
@@ -378,14 +324,7 @@ export default function AdminDistressAlertsPage() {
                     </td>
                     <td>
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="btn-sm border border-warning-yellow text-[#FFB700] disabled:opacity-60"
-                          disabled={!!actionLoading[`assign:${alert.id}`]}
-                          onClick={() => runAlertAction(alert.id, "assign")}
-                        >
-                          {actionLoading[`assign:${alert.id}`] ? "Assigning..." : "Assign"}
-                        </button>
+                        <button className="btn-sm border border-warning-yellow text-[#FFB700]">View</button>
                       </div>
                     </td>
                   </tr>
@@ -395,32 +334,6 @@ export default function AdminDistressAlertsPage() {
           </div>
         </Card>
       </div>
-
-      {/* Trend Chart */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-8 h-8 bg-error-red/20 rounded-lg flex items-center justify-center">📉</div>
-          <p className="text-xs font-poppins text-dark-text/60">DISTRESS ALERT TREND — LAST 30 DAYS</p>
-        </div>
-        <div className="relative h-40">
-          <div className="absolute inset-0 bg-gradient-to-t from-error-red/20 to-transparent rounded-lg"></div>
-          <svg className="absolute bottom-0 left-0 right-0 h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
-            <path
-              d="M0 20 Q10 18 20 19 T40 18 T60 15 T80 16 T100 14"
-              fill="none"
-              stroke="#F4A6A6"
-              strokeWidth="1.5"
-            />
-          </svg>
-          <div className="absolute bottom-0 left-0 right-0 flex justify-between px-4 pb-2">
-            <span className="text-xs text-dark-text/60 font-poppins">Apr 28</span>
-            <span className="text-xs text-dark-text/60 font-poppins">May 5</span>
-            <span className="text-xs text-dark-text/60 font-poppins">May 12</span>
-            <span className="text-xs text-dark-text/60 font-poppins">May 19</span>
-            <span className="text-xs text-dark-text/60 font-poppins">May 28</span>
-          </div>
-        </div>
-      </Card>
     </div>
   );
 }

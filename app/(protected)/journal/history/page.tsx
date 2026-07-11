@@ -266,32 +266,37 @@ export default function JournalHistoryPage() {
                     <Card key={entry.id} className="p-6 hover:shadow-md transition-shadow">
                       <div className="flex items-start justify-between gap-4">
                         <Link href={`/journal/${entry.id}`} className="flex-1 cursor-pointer">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <span className="text-2xl">{getMoodEmoji(entry.mood)}</span>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h3 className="font-poppins font-semibold text-dark-text">
-                                    {entry.title || "Untitled Entry"}
-                                  </h3>
-                                  <span
-                                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${getSentimentColor(
-                                      getSentiment(entry.mood, entry.content)
-                                    )}`}
-                                  >
-                                    {getSentiment(entry.mood, entry.content)}
-                                  </span>
-                                </div>
-                                <p className="text-xs font-inter text-dark-text/60">
-                                  {formatDate(entry.created_at)} • {getWordCount(entry.content)} words
-                                </p>
-                              </div>
-                            </div>
-                            <p className="text-sm font-inter text-dark-text/70">
-                              {getExcerpt(entry.content)}
-                            </p>
-                          </div>
-                        </Link>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-2xl">{getMoodEmoji(entry.mood)}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-poppins font-semibold text-dark-text">
+                          {entry.title || "Untitled Entry"}
+                        </h3>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${getSentimentColor(
+                            getSentiment(entry.mood, entry.content)
+                          )}`}
+                        >
+                          {getSentiment(entry.mood, entry.content)}
+                        </span>
+                      </div>
+                      <p className="text-xs font-inter text-dark-text/60">
+                        {formatDate(entry.created_at)} • {getWordCount(entry.content)} words
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm font-inter text-dark-text/70">
+                    {getExcerpt(entry.content)}
+                  </p>
+                </div>
+              </Link>
+              <Link href={`/analysis?entryId=${entry.id}`}>
+                <Button variant="secondary" size="sm" className="mr-2">
+                  Analysis
+                </Button>
+              </Link>
                         <Button
                           variant="secondary"
                           size="sm"

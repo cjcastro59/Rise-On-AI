@@ -92,21 +92,31 @@ export default function AdminSystemSettingsPage() {
       if (!isOwner) return;
       
       try {
-        const { data: rbacData } = await supabase
+        const { data: rbacData, error: rbacError } = await supabase
           .from("system_settings")
           .select("value")
           .eq("key", "rbac_permissions")
           .single();
         
-        const { data: featuresData } = await supabase
+        const { data: featuresData, error: featuresError } = await supabase
           .from("system_settings")
           .select("value")
           .eq("key", "features")
           .single();
 
-        if (rbacData) setPermissions(rbacData.value as RolePermissions);
-        if (featuresData) setFeatures(featuresData.value as typeof DEFAULT_FEATURES);
+        console.log("Loaded RBAC data:", rbacData);
+        console.log("Loaded Features data:", featuresData);
+        if (rbacData && !rbacError) {
+          // Handle cases where data might be stringified JSON
+          const parsedRbac = typeof rbacData.value === 'string' ? JSON.parse(rbacData.value) : rbacData.value;
+          setPermissions(parsedRbac as RolePermissions);
+        }
+        if (featuresData && !featuresError) {
+          const parsedFeatures = typeof featuresData.value === 'string' ? JSON.parse(featuresData.value) : featuresData.value;
+          setFeatures(parsedFeatures as typeof DEFAULT_FEATURES);
+        }
       } catch (error) {
+        console.error("Error loading settings:", error);
         console.log("Using default settings");
       } finally {
         setLoading(false);
@@ -148,21 +158,40 @@ export default function AdminSystemSettingsPage() {
     if (!isOwner) return;
 
     try {
+      console.log("Saving permissions:", permissions);
+      console.log("Saving features:", features);
+      
       // Save RBAC permissions
-      await supabase
+      const { error: rbacError } = await supabase
         .from("system_settings")
-        .upsert({
-          key: "rbac_permissions",
-          value: permissions,
-        });
+        .upsert(
+          {
+            key: "rbac_permissions",
+            value: permissions,
+          },
+          { onConflict: "key" }
+        );
+      
+      if (rbacError) {
+        console.error("RBAC save error:", rbacError);
+        throw rbacError;
+      }
 
       // Save features
-      await supabase
+      const { error: featuresError } = await supabase
         .from("system_settings")
-        .upsert({
-          key: "features",
-          value: features,
-        });
+        .upsert(
+          {
+            key: "features",
+            value: features,
+          },
+          { onConflict: "key" }
+        );
+      
+      if (featuresError) {
+        console.error("Features save error:", featuresError);
+        throw featuresError;
+      }
 
       // Log to audit logs
       await supabase
@@ -250,7 +279,7 @@ export default function AdminSystemSettingsPage() {
   if (!isOwner) {
     return (
       <div className="space-y-6">
-        <div className="flex justify-between items-center pb-4 border-b border-gray-200">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
           <div>
             <h1 className="text-2xl font-dm-serif text-dark-text mb-1">System Settings</h1>
             <p className="text-sm text-dark-text/60 font-poppins">Configure safety, privacy, and AI response settings</p>
@@ -337,7 +366,7 @@ export default function AdminSystemSettingsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center pb-4 border-b border-gray-200">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">System Settings</h1>
           <p className="text-sm text-dark-text/60 font-poppins">Configure safety, privacy, and AI response settings</p>
