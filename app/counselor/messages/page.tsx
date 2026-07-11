@@ -418,7 +418,7 @@ export default function CounselorMessagesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center pb-4 border-b border-gray-200">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text">Messages</h1>
           <p className="text-sm text-dark-text/60 font-poppins">Respond to user inquiries and manage conversations.</p>
