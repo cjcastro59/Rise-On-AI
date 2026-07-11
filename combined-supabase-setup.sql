@@ -149,6 +149,16 @@ CREATE TABLE IF NOT EXISTS public.messages (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- notes table
+CREATE TABLE IF NOT EXISTS public.notes (
+    id UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    related_user_id UUID REFERENCES public.user_profiles(id) ON DELETE SET NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Enable RLS on both tables
 ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
@@ -602,15 +612,19 @@ CREATE POLICY "Admins/owners can insert audit logs"
     FOR INSERT
     WITH CHECK (public.is_current_user_admin_or_owner());
 
--- system_settings (Owner only)
+-- system_settings
 DO $$
 BEGIN
     DROP POLICY IF EXISTS "Only owners can view system settings" ON public.system_settings;
     DROP POLICY IF EXISTS "Only owners can update system settings" ON public.system_settings;
     DROP POLICY IF EXISTS "Only owners can insert system settings" ON public.system_settings;
+    DROP POLICY IF EXISTS "Counselors can view their own settings" ON public.system_settings;
+    DROP POLICY IF EXISTS "Counselors can update their own settings" ON public.system_settings;
+    DROP POLICY IF EXISTS "Counselors can insert their own settings" ON public.system_settings;
 END
 $$;
 
+-- Policy for owners to manage all system settings
 CREATE POLICY "Only owners can view system settings"
     ON public.system_settings
     FOR SELECT
@@ -626,6 +640,47 @@ CREATE POLICY "Only owners can insert system settings"
     ON public.system_settings
     FOR INSERT
     WITH CHECK (public.is_current_user_owner());
+
+-- Policies for counselors to manage their own notification settings
+CREATE POLICY "Counselors can view their own settings"
+    ON public.system_settings
+    FOR SELECT
+    USING (
+        public.is_current_user_admin_or_owner()
+        AND (
+            public.is_current_user_owner()
+            OR (key LIKE 'counselor_notifications_%' AND key = 'counselor_notifications_' || auth.uid()::text)
+        )
+    );
+
+CREATE POLICY "Counselors can update their own settings"
+    ON public.system_settings
+    FOR UPDATE
+    USING (
+        public.is_current_user_admin_or_owner()
+        AND (
+            public.is_current_user_owner()
+            OR (key LIKE 'counselor_notifications_%' AND key = 'counselor_notifications_' || auth.uid()::text)
+        )
+    )
+    WITH CHECK (
+        public.is_current_user_admin_or_owner()
+        AND (
+            public.is_current_user_owner()
+            OR (key LIKE 'counselor_notifications_%' AND key = 'counselor_notifications_' || auth.uid()::text)
+        )
+    );
+
+CREATE POLICY "Counselors can insert their own settings"
+    ON public.system_settings
+    FOR INSERT
+    WITH CHECK (
+        public.is_current_user_admin_or_owner()
+        AND (
+            public.is_current_user_owner()
+            OR (key LIKE 'counselor_notifications_%' AND key = 'counselor_notifications_' || auth.uid()::text)
+        )
+    );
 
 -- announcements table
 DO $$
@@ -784,6 +839,48 @@ DROP TRIGGER IF EXISTS update_conversation_on_new_message ON public.messages;
 CREATE OR REPLACE TRIGGER update_conversation_on_new_message
     AFTER INSERT ON public.messages
     FOR EACH ROW EXECUTE FUNCTION public.update_conversation_updated_at_on_message();
+
+-- ------------------------------
+-- RLS Policies for notes
+-- ------------------------------
+DO $$
+BEGIN
+    DROP POLICY IF EXISTS "Users can view their own notes" ON public.notes;
+    DROP POLICY IF EXISTS "Users can insert their own notes" ON public.notes;
+    DROP POLICY IF EXISTS "Users can update their own notes" ON public.notes;
+    DROP POLICY IF EXISTS "Users can delete their own notes" ON public.notes;
+END
+$$;
+
+CREATE POLICY "Users can view their own notes"
+    ON public.notes
+    FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own notes"
+    ON public.notes
+    FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own notes"
+    ON public.notes
+    FOR UPDATE
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own notes"
+    ON public.notes
+    FOR DELETE
+    USING (auth.uid() = user_id);
+
+-- Enable RLS on notes table
+ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
+
+-- Add updated_at trigger for notes table
+DROP TRIGGER IF EXISTS update_notes_updated_at ON public.notes;
+CREATE OR REPLACE TRIGGER update_notes_updated_at
+    BEFORE UPDATE ON public.notes
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 -- ------------------------------
 -- 8. GRANT PERMISSIONS TO ROLES
