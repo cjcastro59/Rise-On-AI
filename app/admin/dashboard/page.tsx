@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
-import { analyzeSentiment, getSentimentFromMood } from "@/lib/sentiment";
+import { analyzeSentiment, getSentimentFromMood, analyzeEntry } from "@/lib/sentiment";
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
@@ -72,9 +72,15 @@ export default function AdminDashboardPage() {
       // Calculate DAU
       const dauMap = new Map<string, Set<string>>();
       (journalData || []).forEach((entry: { created_at: string; user_id: string }) => {
-        const date = new Date(entry.created_at).toLocaleDateString("en-US", { weekday: "short" });
-        if (!dauMap.has(date)) dauMap.set(date, new Set());
-        dauMap.get(date)!.add(entry.user_id);
+        let dateKey: string;
+        const entryDate = new Date(entry.created_at);
+        if (dauPeriod === "week") {
+          dateKey = entryDate.toLocaleDateString("en-US", { weekday: 'short' });
+        } else {
+          dateKey = String(entryDate.getDate());
+        }
+        if (!dauMap.has(dateKey)) dauMap.set(dateKey, new Set());
+        dauMap.get(dateKey)!.add(entry.user_id);
       });
 
       // Build DAU array
@@ -84,13 +90,12 @@ export default function AdminDashboardPage() {
         for (let i = 6; i >= 0; i--) {
           const d = new Date(now);
           d.setDate(now.getDate() - i);
-          const dateLabel = d.toLocaleDateString("en-US", { weekday: "short" });
+          const dateLabel = d.toLocaleDateString("en-US", { weekday: 'short' });
           dauArray.push({ date: dateLabel, count: dauMap.get(dateLabel)?.size || 0 });
         }
       } else {
         const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         for (let i = 1; i <= daysInMonth; i++) {
-          const d = new Date(now.getFullYear(), now.getMonth(), i);
           const dateLabel = String(i);
           dauArray.push({ date: dateLabel, count: dauMap.get(dateLabel)?.size || 0 });
         }
@@ -100,13 +105,13 @@ export default function AdminDashboardPage() {
 
       // Calculate mood distribution
       const moodCounts = { positive: 0, negative: 0, distress: 0 };
-      const allEntries = await supabase.from("journal_entries").select("mood, content");
+      const { data: allEntries } = await supabase.from("journal_entries").select("mood, content");
       
-      (allEntries.data || []).forEach((entry: any) => {
-        const sentiment = analyzeSentiment(entry.content);
-        if (sentiment === "distress") {
+      (allEntries || []).forEach((entry: any) => {
+        const analysis = analyzeEntry(entry.content, entry.mood);
+        if (analysis.sentiment === "distress") {
           moodCounts.distress++;
-        } else if (sentiment === "positive") {
+        } else if (analysis.sentiment === "positive") {
           moodCounts.positive++;
         } else {
           moodCounts.negative++;
@@ -398,8 +403,8 @@ export default function AdminDashboardPage() {
               <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📈</div>
               <div>
                 <p className="text-xs font-poppins text-dark-text/70">
-                  DAILY ACTIVE USERS — {dauPeriod === "month" ? new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "LAST 7 DAYS"}
-                </p>
+                DAILY ACTIVE USERS — {dauPeriod === "month" ? new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "LAST 7 DAYS"}
+              </p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -446,7 +451,9 @@ export default function AdminDashboardPage() {
         <Card className="p-5 bg-[#eef3f8]">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">📊</div>
-            <p className="text-xs font-poppins text-dark-text/70">PLATFORM MOOD DISTRIBUTION</p>
+            <div>
+                <p className="text-xs font-poppins text-dark-text/70">PLATFORM MOOD DISTRIBUTION</p>
+              </div>
           </div>
           <div className="flex items-center gap-8">
             <div className="relative w-32 h-32">
@@ -491,7 +498,7 @@ export default function AdminDashboardPage() {
                         <circle 
                           cx="50" cy="50" r="40" 
                           fill="none" 
-                          stroke="#F4A6A6" 
+                          stroke="#FF6B6B" 
                           strokeWidth="10" 
                           strokeDasharray={`${distressDash} ${circumference}`}
                           strokeDashoffset={-(offset += negativeDash)}
@@ -530,7 +537,7 @@ export default function AdminDashboardPage() {
                       <span className="text-xs font-poppins text-dark-text">Negative {n}%</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-[#F4A6A6]"></div>
+                      <div className="w-3 h-3 rounded-full bg-[#FF6B6B]"></div>
                       <span className="text-xs font-poppins text-dark-text">Distress {d}%</span>
                     </div>
                   </>
