@@ -530,10 +530,17 @@ $$;
 -- distress_logs
 -- Update select policy for admins
 DROP POLICY IF EXISTS "Users can view their own distress logs" ON public.distress_logs;
+DROP POLICY IF EXISTS "Counselors/admins can update distress logs" ON public.distress_logs;
 CREATE POLICY "Users can view their own or admins can view all distress logs" 
     ON public.distress_logs 
     FOR SELECT 
     USING (auth.uid() = user_id OR public.is_current_user_admin_or_owner());
+
+CREATE POLICY "Counselors/admins can update distress logs"
+    ON public.distress_logs
+    FOR UPDATE
+    USING (public.is_current_user_admin_or_owner())
+    WITH CHECK (public.is_current_user_admin_or_owner());
 
 DO $$
 BEGIN
@@ -656,6 +663,7 @@ BEGIN
     DROP POLICY IF EXISTS "Users can view their own conversations" ON public.conversations;
     DROP POLICY IF EXISTS "Counselors/admins can view all conversations" ON public.conversations;
     DROP POLICY IF EXISTS "Users can insert their own conversations" ON public.conversations;
+    DROP POLICY IF EXISTS "Counselors/admins can insert conversations" ON public.conversations;
     DROP POLICY IF EXISTS "Counselors/admins can update conversations" ON public.conversations;
 END
 $$;
@@ -674,6 +682,11 @@ CREATE POLICY "Users can insert their own conversations"
     ON public.conversations
     FOR INSERT
     WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Counselors/admins can insert conversations"
+    ON public.conversations
+    FOR INSERT
+    WITH CHECK (public.is_current_user_admin_or_owner());
 
 CREATE POLICY "Counselors/admins can update conversations"
     ON public.conversations
@@ -689,6 +702,7 @@ BEGIN
     DROP POLICY IF EXISTS "Users can view their own conversations" ON public.conversations;
     DROP POLICY IF EXISTS "Counselors/admins can view all conversations" ON public.conversations;
     DROP POLICY IF EXISTS "Users can insert their own conversations" ON public.conversations;
+    DROP POLICY IF EXISTS "Counselors/admins can insert conversations" ON public.conversations;
     DROP POLICY IF EXISTS "Counselors/admins can update conversations" ON public.conversations;
 END
 $$;
@@ -707,6 +721,11 @@ CREATE POLICY "Users can insert their own conversations"
     ON public.conversations
     FOR INSERT
     WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Counselors/admins can insert conversations"
+    ON public.conversations
+    FOR INSERT
+    WITH CHECK (public.is_current_user_admin_or_owner());
 
 CREATE POLICY "Counselors/admins can update conversations"
     ON public.conversations
