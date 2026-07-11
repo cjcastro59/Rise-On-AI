@@ -14,7 +14,7 @@ type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
 type Message = Database["public"]["Tables"]["messages"]["Row"];
 type UserProfile = Database["public"]["Tables"]["user_profiles"]["Row"];
 
-export default function AdminSupportPage() {
+export default function CounselorMessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -49,13 +49,13 @@ export default function AdminSupportPage() {
 
     // Subscribe to all conversations for real-time updates
     const subscribeToConversations = () => {
-      console.log("[ADMIN SUPPORT] Subscribing to conversations...");
+      console.log("[Counselor Messages] Subscribing to conversations...");
       if (conversationsChannelRef.current) {
-        console.log("[ADMIN SUPPORT] Removing previous conversations channel...");
+        console.log("[Counselor Messages] Removing previous conversations channel...");
         supabase.removeChannel(conversationsChannelRef.current);
       }
 
-      const channel = supabase.channel("admin:conversations");
+      const channel = supabase.channel("counselor:conversations");
 
       // Listen for new conversations
       channel.on(
@@ -66,7 +66,7 @@ export default function AdminSupportPage() {
           table: "conversations"
         },
         async (payload: any) => {
-          console.log("[ADMIN SUPPORT] New conversation received:", payload);
+          console.log("[Counselor Messages] New conversation received:", payload);
           // Fetch the user profile for the new conversation
           const { data: newConversationWithUser } = await supabase
             .from("conversations")
@@ -78,7 +78,7 @@ export default function AdminSupportPage() {
             .single();
           
           if (newConversationWithUser) {
-            console.log("[ADMIN SUPPORT] Adding new conversation to state:", newConversationWithUser);
+            console.log("[Counselor Messages] Adding new conversation to state:", newConversationWithUser);
             setConversations((prev) => [newConversationWithUser, ...prev]);
           }
         }
@@ -93,7 +93,7 @@ export default function AdminSupportPage() {
           table: "conversations"
         },
         async (payload: any) => {
-          console.log("[ADMIN SUPPORT] Conversation updated:", payload);
+          console.log("[Counselor Messages] Conversation updated:", payload);
           // Fetch the updated conversation with user profile
           const { data: updatedConversationWithUser } = await supabase
             .from("conversations")
@@ -105,7 +105,7 @@ export default function AdminSupportPage() {
             .single();
           
           if (updatedConversationWithUser) {
-            console.log("[ADMIN SUPPORT] Updating conversation in state:", updatedConversationWithUser);
+            console.log("[Counselor Messages] Updating conversation in state:", updatedConversationWithUser);
             // Update conversations list
             setConversations((prev) => 
               prev.map(c => c.id === updatedConversationWithUser.id ? updatedConversationWithUser : c)
@@ -119,20 +119,20 @@ export default function AdminSupportPage() {
       );
 
       channel.subscribe((status: any, err: any) => {
-        console.log("[ADMIN SUPPORT] Conversations realtime status:", status);
+        console.log("[Counselor Messages] Conversations realtime status:", status);
         if (err) {
-          console.error("[ADMIN SUPPORT] Conversations realtime error:", err);
+          console.error("[Counselor Messages] Conversations realtime error:", err);
         }
       });
 
       conversationsChannelRef.current = channel;
-      console.log("[ADMIN SUPPORT] Conversations channel stored in ref:", conversationsChannelRef.current);
+      console.log("[Counselor Messages] Conversations channel stored in ref:", conversationsChannelRef.current);
     };
 
     subscribeToConversations();
 
     return () => {
-      console.log("[ADMIN SUPPORT] Unsubscribing from channels...");
+      console.log("[Counselor Messages] Unsubscribing from channels...");
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
@@ -150,14 +150,14 @@ export default function AdminSupportPage() {
       const uniqueSenderIds = [...new Set(messages.map(msg => msg.sender_id))];
       if (uniqueSenderIds.length === 0) return;
 
-      console.log("Admin: Fetching sender profiles for IDs:", uniqueSenderIds);
+      console.log("Counselor: Fetching sender profiles for IDs:", uniqueSenderIds);
 
       const { data: profiles, error } = await supabase
         .from("user_profiles")
         .select("*")
         .in("id", uniqueSenderIds);
 
-      console.log("Admin: Fetched profiles:", profiles, "Error:", error);
+      console.log("Counselor: Fetched profiles:", profiles, "Error:", error);
 
       if (profiles) {
         const profileMap: Record<string, UserProfile> = {};
@@ -205,16 +205,16 @@ export default function AdminSupportPage() {
   };
 
   const subscribeToMessages = (conversationId: string) => {
-    console.log("[ADMIN SUPPORT] subscribeToMessages called for conversation:", conversationId);
+    console.log("[Counselor Messages] subscribeToMessages called for conversation:", conversationId);
     // Cleanup previous channel
     if (channelRef.current) {
-      console.log("[ADMIN SUPPORT] Removing previous messages channel...");
+      console.log("[Counselor Messages] Removing previous messages channel...");
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
     // Create new channel
-    const channel = supabase.channel(`admin-support:${conversationId}`);
+    const channel = supabase.channel(`counselor-support:${conversationId}`);
     
     // Add message insert handler
     channel.on(
@@ -226,7 +226,7 @@ export default function AdminSupportPage() {
         filter: `conversation_id=eq.${conversationId}`
       },
       async (payload: any) => {
-        console.log("[ADMIN SUPPORT] New real-time message received:", payload);
+        console.log("[Counselor Messages] New real-time message received:", payload);
         const newMessage = payload.new as Message;
         
         // Fetch sender profile if we don't have it
@@ -239,23 +239,23 @@ export default function AdminSupportPage() {
               .single();
             
             if (profile) {
-              console.log("[ADMIN SUPPORT] Fetched sender profile:", profile);
+              console.log("[Counselor Messages] Fetched sender profile:", profile);
               setSenderProfiles((prev) => ({
                 ...prev,
                 [profile.id]: profile
               }));
             }
           } catch (error) {
-            console.error("[ADMIN SUPPORT] Error fetching sender profile for new message:", error);
+            console.error("[Counselor Messages] Error fetching sender profile for new message:", error);
           }
         }
         
         setMessages((prev) => {
           if (prev.some(msg => msg.id === newMessage.id)) {
-            console.log("[ADMIN SUPPORT] Message already exists, skipping...");
+            console.log("[Counselor Messages] Message already exists, skipping...");
             return prev;
           }
-          console.log("[ADMIN SUPPORT] Adding new message to state:", newMessage);
+          console.log("[Counselor Messages] Adding new message to state:", newMessage);
           return [...prev, newMessage];
         });
       }
@@ -271,7 +271,7 @@ export default function AdminSupportPage() {
         filter: `id=eq.${conversationId}`
       },
       async (payload: any) => {
-        console.log("[ADMIN SUPPORT] Selected conversation updated:", payload);
+        console.log("[Counselor Messages] Selected conversation updated:", payload);
         // Fetch the updated conversation with user profile
         const { data: updatedConversationWithUser } = await supabase
           .from("conversations")
@@ -283,7 +283,7 @@ export default function AdminSupportPage() {
           .single();
         
         if (updatedConversationWithUser) {
-          console.log("[ADMIN SUPPORT] Updating selected conversation in state:", updatedConversationWithUser);
+          console.log("[Counselor Messages] Updating selected conversation in state:", updatedConversationWithUser);
           setSelectedConversation(updatedConversationWithUser);
         }
       }
@@ -291,20 +291,20 @@ export default function AdminSupportPage() {
 
     // Subscribe
     channel.subscribe((status: any, err: any) => {
-      console.log("[ADMIN SUPPORT] Messages realtime subscription status:", status);
+      console.log("[Counselor Messages] Messages realtime subscription status:", status);
       if (err) {
-        console.error("[ADMIN SUPPORT] Messages realtime subscription error:", err);
+        console.error("[Counselor Messages] Messages realtime subscription error:", err);
       }
       if (status === 'SUBSCRIBED') {
-        console.log("[ADMIN SUPPORT] Successfully subscribed to real-time support channel!");
+        console.log("[Counselor Messages] Successfully subscribed to real-time support channel!");
       } else if (status === 'CHANNEL_ERROR') {
-        console.error("[ADMIN SUPPORT] Error subscribing to real-time support channel!");
+        console.error("[Counselor Messages] Error subscribing to real-time support channel!");
       }
     });
     
     // Store channel in ref
     channelRef.current = channel;
-    console.log("[ADMIN SUPPORT] Messages channel stored in ref:", channelRef.current);
+    console.log("[Counselor Messages] Messages channel stored in ref:", channelRef.current);
   };
 
   const selectConversation = (conversation: Conversation) => {
@@ -315,10 +315,10 @@ export default function AdminSupportPage() {
 
   const sendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    console.log("Admin: Attempting to send message...");
-    console.log("Admin: newMessage:", newMessage);
-    console.log("Admin: selectedConversation:", selectedConversation);
-    console.log("Admin: currentUserId:", currentUserId);
+    console.log("Counselor: Attempting to send message...");
+    console.log("Counselor: newMessage:", newMessage);
+    console.log("Counselor: selectedConversation:", selectedConversation);
+    console.log("Counselor: currentUserId:", currentUserId);
     if (!newMessage.trim() || !selectedConversation || !currentUserId) return;
 
     const messageContent = newMessage.trim();
@@ -333,13 +333,13 @@ export default function AdminSupportPage() {
       created_at: new Date().toISOString()
     };
 
-    console.log("Admin: Adding optimistic message:", optimisticMessage);
+    console.log("Counselor: Adding optimistic message:", optimisticMessage);
     setMessages((prev) => [...prev, optimisticMessage]);
     setNewMessage("");
 
     try {
       setLoading(true);
-      console.log("Admin: Inserting message into Supabase...");
+      console.log("Counselor: Inserting message into Supabase...");
       
       const { data: insertedMessage, error } = await supabase
         .from("messages")
@@ -351,7 +351,7 @@ export default function AdminSupportPage() {
         .select()
         .single();
 
-      console.log("Admin: Insert result:", { data: insertedMessage, error });
+      console.log("Counselor: Insert result:", { data: insertedMessage, error });
       if (error) throw error;
       
       // Update conversation's updated_at timestamp
@@ -361,7 +361,7 @@ export default function AdminSupportPage() {
         .eq("id", selectedConversation.id);
       
       // Replace optimistic message with real one
-      console.log("Admin: Replacing optimistic message with real one:", insertedMessage);
+      console.log("Counselor: Replacing optimistic message with real one:", insertedMessage);
       setMessages((prev) => 
         prev.map(msg => 
           msg.id === optimisticMessage.id ? insertedMessage : msg
@@ -369,7 +369,7 @@ export default function AdminSupportPage() {
       );
       
     } catch (error) {
-      console.error("Admin: Error sending message:", error);
+      console.error("Counselor: Error sending message:", error);
       // Remove optimistic message if there was an error
       setMessages((prev) => prev.filter(msg => msg.id !== optimisticMessage.id));
     } finally {
@@ -411,41 +411,16 @@ export default function AdminSupportPage() {
     }
   };
 
-  const getRoleLabel = (role: string | null) => {
-    if (!role) return "User";
-    switch (role) {
-      case "owner":
-        return "Owner";
-      case "admin":
-        return "Admin";
-      case "counselor":
-        return "Counselor";
-      default:
-        return "User";
-    }
-  };
-
-  const getMessageBgColor = (role: string | null, isCurrentUser: boolean) => {
-    if (isCurrentUser) {
-      return "bg-gradient-to-r from-primary-blue to-lavender text-white";
-    }
-    switch (role) {
-      case "owner":
-        return "bg-gradient-to-r from-soft-red to-pink-300 text-white";
-      case "admin":
-        return "bg-gradient-to-r from-success-green to-teal-300 text-white";
-      case "counselor":
-        return "bg-gradient-to-r from-warning-yellow to-amber-300 text-white";
-      default:
-        return "bg-gradient-to-r from-gray-100 to-gray-200 text-dark-text";
-    }
+  const getFirstName = (name: string | undefined | null) => {
+    if (!name) return "Unknown User";
+    return name.split(' ')[0];
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
-          <h1 className="text-2xl font-dm-serif text-dark-text">Support Chat</h1>
+          <h1 className="text-2xl font-dm-serif text-dark-text">Messages</h1>
           <p className="text-sm text-dark-text/60 font-poppins">Respond to user inquiries and manage conversations.</p>
         </div>
       </div>
@@ -475,13 +450,7 @@ export default function AdminSupportPage() {
                   >
                     <div className="flex items-center justify-between mb-1">
                       <p className="font-semibold text-sm text-dark-text">
-                        {(() => {
-                          const getFirstName = (name: string | undefined | null) => {
-                            if (!name) return "Unknown User";
-                            return name.split(' ')[0];
-                          };
-                          return getFirstName(convo.user?.full_name) || getFirstName(convo.user?.username) || "Unknown User";
-                        })()}
+                        {getFirstName(convo.user?.full_name) || getFirstName(convo.user?.username) || "Unknown User"}
                       </p>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                         convo.status === "open" 
@@ -510,13 +479,7 @@ export default function AdminSupportPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-poppins font-semibold text-dark-text mb-1">
-                        Chat with {(() => {
-                          const getFirstName = (name: string | undefined | null) => {
-                            if (!name) return "Unknown User";
-                            return name.split(' ')[0];
-                          };
-                          return getFirstName(selectedConversation.user?.full_name) || getFirstName(selectedConversation.user?.username) || "Unknown User";
-                        })()}
+                        Chat with {getFirstName(selectedConversation.user?.full_name) || getFirstName(selectedConversation.user?.username) || "Unknown User"}
                       </h3>
                       <p className="text-xs text-dark-text/50">
                         Status: <span className={`font-semibold ${selectedConversation.status === "open" ? "text-success-green" : "text-gray-500"}`}>
@@ -545,20 +508,10 @@ export default function AdminSupportPage() {
                     messages.map((msg, index) => {
                       const isCurrentUser = currentUserId && msg.sender_id === currentUserId;
                       const senderProfile = senderProfiles[msg.sender_id];
-                      const role = senderProfile?.role;
-                      const roleLabel = getRoleLabel(role);
-                      // Get first name
-                      const getFirstName = (name: string | undefined | null) => {
-                        if (!name) return "Unknown";
-                        return name.split(' ')[0];
-                      };
-
                       const senderName = getFirstName(senderProfile?.full_name) || getFirstName(senderProfile?.username) || "Unknown";
-                      const currentUserName = getFirstName(currentUserProfile?.full_name) || getFirstName(currentUserProfile?.username) || "Me";
-                      const shouldShowRoleLabel = role && ['owner', 'admin', 'counselor'].includes(role);
                       const showAvatar = !isCurrentUser && (index === 0 || messages[index - 1].sender_id !== msg.sender_id);
 
-                      console.log("Admin: Message:", msg, "Sender profile:", senderProfile, "Sender name:", senderName);
+                      console.log("Counselor: Message:", msg, "Sender profile:", senderProfile, "Sender name:", senderName);
 
                       return (
                         <div 
@@ -587,11 +540,6 @@ export default function AdminSupportPage() {
                             </>
                           )}
                           <div className="flex flex-col gap-1 max-w-[80%]">
-                            {!isCurrentUser && shouldShowRoleLabel && (index === 0 || messages[index - 1].sender_id !== msg.sender_id) && (
-                              <p className="text-xs font-bold text-gray-600 ml-1 mb-1">
-                                {roleLabel} {senderName}
-                              </p>
-                            )}
                             <div 
                               className={`rounded-2xl px-4 py-2 shadow-sm ${
                                 isCurrentUser
@@ -623,7 +571,7 @@ export default function AdminSupportPage() {
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       disabled={loading}
-                      className="flex-1 border-2 border-primary-blue/10 bg-white focus:border-primary-blue/30 focus:ring-2 focus:ring-primary-blue/20"
+                      className="flex-1 border-2 border-primary-blue/10 bg-white focus:border-primary-blue/30 focus:ring-2 focus:ring-primary-blue/50"
                     />
                     <Button 
                       type="submit" 

@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
-import { analyzeSentiment, getSentimentFromMood } from "@/lib/sentiment";
+import { analyzeSentiment, getSentimentFromMood, analyzeEntry } from "@/lib/sentiment";
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
@@ -72,9 +72,15 @@ export default function AdminDashboardPage() {
       // Calculate DAU
       const dauMap = new Map<string, Set<string>>();
       (journalData || []).forEach((entry: { created_at: string; user_id: string }) => {
-        const date = new Date(entry.created_at).toLocaleDateString("en-US", { weekday: "short" });
-        if (!dauMap.has(date)) dauMap.set(date, new Set());
-        dauMap.get(date)!.add(entry.user_id);
+        let dateKey: string;
+        const entryDate = new Date(entry.created_at);
+        if (dauPeriod === "week") {
+          dateKey = entryDate.toLocaleDateString("en-US", { weekday: 'short' });
+        } else {
+          dateKey = String(entryDate.getDate());
+        }
+        if (!dauMap.has(dateKey)) dauMap.set(dateKey, new Set());
+        dauMap.get(dateKey)!.add(entry.user_id);
       });
 
       // Build DAU array
@@ -84,13 +90,12 @@ export default function AdminDashboardPage() {
         for (let i = 6; i >= 0; i--) {
           const d = new Date(now);
           d.setDate(now.getDate() - i);
-          const dateLabel = d.toLocaleDateString("en-US", { weekday: "short" });
+          const dateLabel = d.toLocaleDateString("en-US", { weekday: 'short' });
           dauArray.push({ date: dateLabel, count: dauMap.get(dateLabel)?.size || 0 });
         }
       } else {
         const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         for (let i = 1; i <= daysInMonth; i++) {
-          const d = new Date(now.getFullYear(), now.getMonth(), i);
           const dateLabel = String(i);
           dauArray.push({ date: dateLabel, count: dauMap.get(dateLabel)?.size || 0 });
         }
@@ -100,13 +105,13 @@ export default function AdminDashboardPage() {
 
       // Calculate mood distribution
       const moodCounts = { positive: 0, negative: 0, distress: 0 };
-      const allEntries = await supabase.from("journal_entries").select("mood, content");
+      const { data: allEntries } = await supabase.from("journal_entries").select("mood, content");
       
-      (allEntries.data || []).forEach((entry: any) => {
-        const sentiment = analyzeSentiment(entry.content);
-        if (sentiment === "distress") {
+      (allEntries || []).forEach((entry: any) => {
+        const analysis = analyzeEntry(entry.content, entry.mood);
+        if (analysis.sentiment === "distress") {
           moodCounts.distress++;
-        } else if (sentiment === "positive") {
+        } else if (analysis.sentiment === "positive") {
           moodCounts.positive++;
         } else {
           moodCounts.negative++;
@@ -299,7 +304,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center pb-4 border-b border-gray-200">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Dashboard Overview</h1>
           <p className="text-sm text-dark-text/70 font-poppins">
@@ -329,64 +334,64 @@ export default function AdminDashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="p-5">
+        <Card className="stat-card border-l-4 border-l-primary-blue">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">👥</div>
+            <div className="stat-card-icon bg-primary-blue/20">👥</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">TOTAL USERS</p>
+              <p className="text-xs text-dark-text/60 font-poppins">TOTAL USERS</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.totalUsers}</p>
-              <p className="text-xs text-[#52B788] font-poppins">Live from user profiles</p>
+              <p className="text-xs text-success-green font-poppins">Live from user profiles</p>
             </div>
           </div>
-          <div className="h-1 bg-gradient-to-r from-purple-500 via-blue-400 to-cyan-300 rounded-full"></div>
+          <div className="stat-card-pill bg-gradient-to-r from-primary-blue to-teal" />
         </Card>
 
-        <Card className="p-5">
+        <Card className="stat-card border-l-4 border-l-success-green">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">📝</div>
+            <div className="stat-card-icon bg-success-green/20">📝</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">TOTAL ENTRIES</p>
+              <p className="text-xs text-dark-text/60 font-poppins">TOTAL ENTRIES</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.totalEntries}</p>
-              <p className="text-xs text-[#52B788] font-poppins">Live from journal entries</p>
+              <p className="text-xs text-success-green font-poppins">Live from journal entries</p>
             </div>
           </div>
-          <div className="h-1 bg-gradient-to-r from-green-400 to-emerald-300 rounded-full"></div>
+          <div className="stat-card-pill bg-gradient-to-r from-green-400 to-emerald-300" />
         </Card>
 
-        <Card className="p-5">
+        <Card className="stat-card border-l-4 border-l-warning-yellow">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#FFE8A1]/30 rounded-lg flex items-center justify-center text-2xl">💖</div>
+            <div className="stat-card-icon bg-warning-yellow/30">💖</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">AVG POSITIVE RATE</p>
+              <p className="text-xs text-dark-text/60 font-poppins">AVG POSITIVE RATE</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : `${stats.positiveRate}%`}</p>
-              <p className="text-xs text-dark-text/70 font-poppins">Based on current journal mood/text</p>
+              <p className="text-xs text-dark-text/60 font-poppins">Based on current journal mood/text</p>
             </div>
           </div>
-          <div className="h-1 bg-gradient-to-r from-yellow-400 to-orange-300 rounded-full"></div>
+          <div className="stat-card-pill bg-gradient-to-r from-yellow-400 to-orange-300" />
         </Card>
 
-        <Card className="p-5 border-l-4 border-l-[#F4A6A6]">
+        <Card className="stat-card border-l-4 border-l-error-red">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">🚨</div>
+            <div className="stat-card-icon bg-error-red/30">🚨</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">TOTAL DISTRESS LOGS</p>
-              <p className="text-2xl font-dm-serif text-[#F4A6A6]">{loading ? "—" : stats.totalDistressLogs}</p>
-              <p className="text-xs text-[#F4A6A6] font-poppins">Live from distress logs</p>
+              <p className="text-xs text-dark-text/60 font-poppins">TOTAL DISTRESS LOGS</p>
+              <p className="text-2xl font-dm-serif text-error-red">{loading ? "—" : stats.totalDistressLogs}</p>
+              <p className="text-xs text-error-red font-poppins">Live from distress logs</p>
             </div>
           </div>
-          <div className="h-1 bg-gradient-to-r from-red-400 to-pink-300 rounded-full"></div>
+          <div className="stat-card-pill bg-gradient-to-r from-red-400 to-pink-300" />
         </Card>
 
-        <Card className="p-5 bg-gray-50">
+        <Card className="stat-card border-l-4 border-l-lavender">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center text-2xl">👤</div>
+            <div className="stat-card-icon bg-lavender/20">👤</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">NEW USERS TODAY</p>
+              <p className="text-xs text-dark-text/60 font-poppins">NEW USERS TODAY</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.newUsersToday}</p>
-              <p className="text-xs text-[#52B788] font-poppins">Live from user profiles</p>
+              <p className="text-xs text-success-green font-poppins">Live from user profiles</p>
             </div>
           </div>
-          <div className="h-1 bg-gradient-to-r from-purple-400 to-pink-300 rounded-full"></div>
+          <div className="stat-card-pill bg-gradient-to-r from-purple-400 to-pink-300" />
         </Card>
       </div>
 
@@ -398,8 +403,8 @@ export default function AdminDashboardPage() {
               <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📈</div>
               <div>
                 <p className="text-xs font-poppins text-dark-text/70">
-                  DAILY ACTIVE USERS — {dauPeriod === "month" ? new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "LAST 7 DAYS"}
-                </p>
+                DAILY ACTIVE USERS — {dauPeriod === "month" ? new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "LAST 7 DAYS"}
+              </p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -446,7 +451,9 @@ export default function AdminDashboardPage() {
         <Card className="p-5 bg-[#eef3f8]">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">📊</div>
-            <p className="text-xs font-poppins text-dark-text/70">PLATFORM MOOD DISTRIBUTION</p>
+            <div>
+                <p className="text-xs font-poppins text-dark-text/70">PLATFORM MOOD DISTRIBUTION</p>
+              </div>
           </div>
           <div className="flex items-center gap-8">
             <div className="relative w-32 h-32">
@@ -491,7 +498,7 @@ export default function AdminDashboardPage() {
                         <circle 
                           cx="50" cy="50" r="40" 
                           fill="none" 
-                          stroke="#F4A6A6" 
+                          stroke="#FF6B6B" 
                           strokeWidth="10" 
                           strokeDasharray={`${distressDash} ${circumference}`}
                           strokeDashoffset={-(offset += negativeDash)}
@@ -530,7 +537,7 @@ export default function AdminDashboardPage() {
                       <span className="text-xs font-poppins text-dark-text">Negative {n}%</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-[#F4A6A6]"></div>
+                      <div className="w-3 h-3 rounded-full bg-[#FF6B6B]"></div>
                       <span className="text-xs font-poppins text-dark-text">Distress {d}%</span>
                     </div>
                   </>
