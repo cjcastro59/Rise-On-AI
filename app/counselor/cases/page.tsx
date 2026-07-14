@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/ui/card";
+import { Portal } from "@/components/ui/Portal";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -431,91 +432,97 @@ export default function CounselorCasesPage() {
       </div>
 
       {selectedAlert && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
-                <p className="font-mono text-sm font-semibold text-primary-blue">{selectedAlert.id.slice(0, 8)}</p>
-                <h3 className="mt-1 text-xl font-dm-serif text-dark-text">Review Case Details</h3>
-                <p className="text-sm text-dark-text/60 font-poppins">{selectedAlert.trigger || "Detected distress trigger"}</p>
+        <Portal>
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+            <div
+              className="absolute inset-0 bg-black/60"
+              onClick={() => setSelectedAlert(null)}
+            ></div>
+            <div className="relative bg-white rounded-2xl p-6 w-full max-w-3xl shadow-xl z-10 m-4 max-h-[90vh] overflow-y-auto">
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-mono text-sm font-semibold text-primary-blue">{selectedAlert.id.slice(0, 8)}</p>
+                  <h3 className="mt-1 text-xl font-dm-serif text-dark-text">Review Case Details</h3>
+                  <p className="text-sm text-dark-text/60 font-poppins">{selectedAlert.trigger || "Detected distress trigger"}</p>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-poppins text-dark-text hover:bg-gray-50"
+                  onClick={() => setSelectedAlert(null)}
+                >
+                  Close
+                </button>
               </div>
-              <button
-                type="button"
-                className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-poppins text-dark-text hover:bg-gray-50"
-                onClick={() => setSelectedAlert(null)}
-              >
-                Close
-              </button>
-            </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-xl bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">User</p>
-                <p className="mt-1 text-sm font-poppins text-dark-text">{getUserDisplayName(selectedAlert.user_profiles)}</p>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">User</p>
+                  <p className="mt-1 text-sm font-poppins text-dark-text">{getUserDisplayName(selectedAlert.user_profiles)}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Severity</p>
+                  <p className="mt-1 text-sm font-poppins text-dark-text">{selectedAlert.severity || "Unknown"}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Created</p>
+                  <p className="mt-1 text-sm font-poppins text-dark-text">{new Date(selectedAlert.created_at).toLocaleString()}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Response</p>
+                  <p className="mt-1 text-sm font-poppins text-dark-text">{getResponseStatus(selectedAlert.notes)}</p>
+                </div>
               </div>
-              <div className="rounded-xl bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Severity</p>
-                <p className="mt-1 text-sm font-poppins text-dark-text">{selectedAlert.severity || "Unknown"}</p>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Created</p>
-                <p className="mt-1 text-sm font-poppins text-dark-text">{new Date(selectedAlert.created_at).toLocaleString()}</p>
-              </div>
-              <div className="rounded-xl bg-slate-50 p-4">
-                <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Response</p>
-                <p className="mt-1 text-sm font-poppins text-dark-text">{getResponseStatus(selectedAlert.notes)}</p>
-              </div>
-            </div>
 
-            <div className="mt-5">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-dark-text/60">Action notes</p>
-              <div className="min-h-[80px] whitespace-pre-wrap rounded-xl bg-slate-50 p-4 text-sm font-inter text-dark-text/80">
-                {selectedAlert.notes || "No action notes recorded yet."}
+              <div className="mt-5">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-dark-text/60">Action notes</p>
+                <div className="min-h-[80px] whitespace-pre-wrap rounded-xl bg-slate-50 p-4 text-sm font-inter text-dark-text/80">
+                  {selectedAlert.notes || "No action notes recorded yet."}
+                </div>
               </div>
-            </div>
 
-            <div className="mt-5">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-dark-text/60">Specific journal entries</p>
-              <div className="space-y-3">
-                {(entriesByUser[selectedAlert.user_id] || []).slice(0, 5).map((entry) => (
-                  <div key={entry.id} className="rounded-xl border border-gray-100 p-4">
-                    <div className="mb-2 flex items-center justify-between gap-3">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">{entry.mood || "Mood unknown"}</span>
-                      <span className="text-xs text-dark-text/60">{new Date(entry.created_at).toLocaleString()}</span>
+              <div className="mt-5">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-dark-text/60">Specific journal entries</p>
+                <div className="space-y-3">
+                  {(entriesByUser[selectedAlert.user_id] || []).slice(0, 5).map((entry) => (
+                    <div key={entry.id} className="rounded-xl border border-gray-100 p-4">
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">{entry.mood || "Mood unknown"}</span>
+                        <span className="text-xs text-dark-text/60">{new Date(entry.created_at).toLocaleString()}</span>
+                      </div>
+                      <p className="text-sm font-semibold text-dark-text">{entry.title || "Untitled entry"}</p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm font-inter text-dark-text/80">{entry.content || "No text available."}</p>
                     </div>
-                    <p className="text-sm font-semibold text-dark-text">{entry.title || "Untitled entry"}</p>
-                    <p className="mt-1 whitespace-pre-wrap text-sm font-inter text-dark-text/80">{entry.content || "No text available."}</p>
-                  </div>
-                ))}
-                {(entriesByUser[selectedAlert.user_id] || []).length === 0 && (
-                  <p className="text-sm text-dark-text/60 font-inter">No journal entries available for this user yet.</p>
-                )}
+                  ))}
+                  {(entriesByUser[selectedAlert.user_id] || []).length === 0 && (
+                    <p className="text-sm text-dark-text/60 font-inter">No journal entries available for this user yet.</p>
+                  )}
+                </div>
               </div>
-            </div>
 
-            <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4">
-              <button
-                type="button"
-                className="btn-sm border border-primary-blue text-primary-blue disabled:opacity-60"
-                disabled={!!actionLoading[`message:${selectedAlert.id}`]}
-                onClick={() => runAlertAction(selectedAlert.id, "message")}
-              >
-                {actionLoading[`message:${selectedAlert.id}`] ? "Opening..." : "Message"}
-              </button>
-              <button
-                type="button"
-                className="btn-sm bg-error-red text-white disabled:opacity-60"
-                disabled={!!actionLoading[`review:${selectedAlert.id}`]}
-                onClick={async () => {
-                  const reviewed = await runAlertAction(selectedAlert.id, "review");
-                  if (reviewed) setSelectedAlert(null);
-                }}
-              >
-                {actionLoading[`review:${selectedAlert.id}`] ? "Saving..." : "Done reviewed"}
-              </button>
+              <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4">
+                <button
+                  type="button"
+                  className="btn-sm border border-primary-blue text-primary-blue disabled:opacity-60"
+                  disabled={!!actionLoading[`message:${selectedAlert.id}`]}
+                  onClick={() => runAlertAction(selectedAlert.id, "message")}
+                >
+                  {actionLoading[`message:${selectedAlert.id}`] ? "Opening..." : "Message"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-sm bg-error-red text-white disabled:opacity-60"
+                  disabled={!!actionLoading[`review:${selectedAlert.id}`]}
+                  onClick={async () => {
+                    const reviewed = await runAlertAction(selectedAlert.id, "review");
+                    if (reviewed) setSelectedAlert(null);
+                  }}
+                >
+                  {actionLoading[`review:${selectedAlert.id}`] ? "Saving..." : "Done reviewed"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
     </div>
   );

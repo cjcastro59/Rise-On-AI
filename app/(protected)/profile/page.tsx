@@ -61,6 +61,7 @@ export default function ProfilePage() {
     emergency_contact_phone: null,
     created_at: new Date().toISOString(),
   });
+  const [originalProfile, setOriginalProfile] = useState<Profile | null>(null);
   const [stats, setStats] = useState({
     totalEntries: 0,
     streak: 0,
@@ -135,6 +136,7 @@ export default function ProfilePage() {
         console.error("Error fetching profile:", profileError);
       } else if (profileData) {
         setProfile(profileData);
+        setOriginalProfile(profileData);
       }
 
       // Fetch journal entries for stats
@@ -218,6 +220,13 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleCancel = () => {
+    if (originalProfile) {
+      setProfile(originalProfile);
+    }
+    setIsEditing(false);
   };
 
   const toggleGoal = (goal: string) => {
@@ -382,7 +391,7 @@ export default function ProfilePage() {
               {saving ? "Saving..." : (isEditing ? "Save Changes" : "Edit Profile")}
             </Button>
             {isEditing && (
-              <Button variant="secondary" onClick={() => setIsEditing(false)} disabled={saving}>
+              <Button variant="secondary" onClick={handleCancel} disabled={saving}>
                 Cancel
               </Button>
             )}
@@ -397,7 +406,7 @@ export default function ProfilePage() {
 
       {/* Personal Information */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6">
+        <Card variant="white" className="p-6">
           <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
             <span>👤</span>
             Personal Information
@@ -561,7 +570,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Mood Preferences */}
-        <Card className="p-6">
+        <Card variant="white" className="p-6">
           <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
             <span>⏰</span>
             Mood Preferences
@@ -667,7 +676,7 @@ export default function ProfilePage() {
       </div>
 
       {/* My Wellness Journey */}
-      <Card className="p-6">
+      <Card variant="white" className="p-6">
         <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
           <span>📊</span>
           My Wellness Journey
@@ -694,7 +703,7 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Wellness Goals */}
-        <Card className="p-6">
+        <Card variant="white" className="p-6">
           <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
             <span>🎯</span>
             Wellness Goals
@@ -731,7 +740,7 @@ export default function ProfilePage() {
         </Card>
 
         {/* Recent Activity */}
-        <Card className="p-6">
+        <Card variant="white" className="p-6">
           <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
             <span>📝</span>
             Recent Activity
@@ -755,7 +764,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Emergency Support */}
-      <Card className="p-6 bg-red-50 border-2 border-red-100">
+      <Card variant="white" className="p-6 bg-red-50 border-2 border-red-100">
         <h3 className="text-xs font-poppins uppercase tracking-wider text-red-800/80 mb-4 flex items-center gap-2">
           <span>🚨</span>
           Emergency Support

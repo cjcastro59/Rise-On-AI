@@ -334,7 +334,7 @@ export default function AdminDashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="stat-card border-l-4 border-l-primary-blue">
+        <Card variant="white" className="stat-card border-l-4 border-l-primary-blue">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-primary-blue/20">👥</div>
             <div className="text-right">
@@ -346,7 +346,7 @@ export default function AdminDashboardPage() {
           <div className="stat-card-pill bg-gradient-to-r from-primary-blue to-teal" />
         </Card>
 
-        <Card className="stat-card border-l-4 border-l-success-green">
+        <Card variant="white" className="stat-card border-l-4 border-l-success-green">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-success-green/20">📝</div>
             <div className="text-right">
@@ -358,7 +358,7 @@ export default function AdminDashboardPage() {
           <div className="stat-card-pill bg-gradient-to-r from-green-400 to-emerald-300" />
         </Card>
 
-        <Card className="stat-card border-l-4 border-l-warning-yellow">
+        <Card variant="white" className="stat-card border-l-4 border-l-warning-yellow">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-warning-yellow/30">💖</div>
             <div className="text-right">
@@ -370,7 +370,7 @@ export default function AdminDashboardPage() {
           <div className="stat-card-pill bg-gradient-to-r from-yellow-400 to-orange-300" />
         </Card>
 
-        <Card className="stat-card border-l-4 border-l-error-red">
+        <Card variant="white" className="stat-card border-l-4 border-l-error-red">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-error-red/30">🚨</div>
             <div className="text-right">
@@ -382,7 +382,7 @@ export default function AdminDashboardPage() {
           <div className="stat-card-pill bg-gradient-to-r from-red-400 to-pink-300" />
         </Card>
 
-        <Card className="stat-card border-l-4 border-l-lavender">
+        <Card variant="white" className="stat-card border-l-4 border-l-lavender">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-lavender/20">👤</div>
             <div className="text-right">
@@ -397,7 +397,7 @@ export default function AdminDashboardPage() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-5">
+        <Card variant="white" className="p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📈</div>
@@ -448,7 +448,7 @@ export default function AdminDashboardPage() {
           </div>
         </Card>
 
-        <Card className="p-5 bg-[#eef3f8]">
+        <Card variant="white" className="p-5 bg-[#eef3f8]">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">📊</div>
             <div>
@@ -551,7 +551,7 @@ export default function AdminDashboardPage() {
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Distress Alerts */}
-        <Card className="p-5">
+        <Card variant="white" className="p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center">🚨</div>
@@ -578,7 +578,7 @@ export default function AdminDashboardPage() {
 
         {/* System Health & Admin Activity */}
         <div className="space-y-4">
-          <Card className="p-5">
+          <Card variant="white" className="p-5">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-[#52B788]/20 rounded-lg flex items-center justify-center">⚙️</div>
               <p className="text-xs font-poppins text-dark-text/70">SYSTEM HEALTH</p>
@@ -635,7 +635,7 @@ export default function AdminDashboardPage() {
             </div>
           </Card>
 
-          <Card className="p-5">
+          <Card variant="white" className="p-5">
             <p className="text-xs font-poppins text-dark-text/70 mb-3">RECENT ADMIN ACTIVITY</p>
             <div className="space-y-3">
               {loading ? (

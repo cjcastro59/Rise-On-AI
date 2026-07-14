@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -20,21 +19,28 @@ interface UserProfile {
 
 export default function CounselorSidebar() {
     const pathname = usePathname();
-    const { user: currentUser } = useAuth();
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [distressAlertCount, setDistressAlertCount] = useState(0);
+    const [isMounted, setIsMounted] = useState(false);
     const supabase = useMemo(() => createClient(), []);
 
     useEffect(() => {
-        if (!currentUser) return;
+        setIsMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (!isMounted) return;
 
         const fetchSidebarData = async () => {
             try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
                 const [profileResult, alertsResult] = await Promise.all([
                     supabase
                         .from("user_profiles")
                         .select("id, first_name, last_name, full_name, username, role, avatar_url")
-                        .eq("id", currentUser.id)
+                        .eq("id", user.id)
                         .single(),
                     supabase
                         .from("distress_logs")
@@ -56,7 +62,7 @@ export default function CounselorSidebar() {
         fetchSidebarData();
         const interval = setInterval(fetchSidebarData, 30_000);
         return () => clearInterval(interval);
-    }, [currentUser, supabase]);
+    }, [supabase, isMounted]);
 
     const getDisplayName = () => {
         if (!userProfile) return "User";
@@ -76,6 +82,18 @@ export default function CounselorSidebar() {
     const roleLabel = userProfile?.role
         ? userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1)
         : "User";
+
+    // Don't render until mounted to prevent hydration mismatch
+    if (!isMounted) {
+        return (
+            <aside className="w-64 bg-[#1E293B] text-white p-6 hidden md:flex md:flex-col md:h-full md:min-h-screen">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-9 h-9 bg-gray-600 rounded-lg animate-pulse" />
+                    <div className="h-6 w-24 bg-gray-600 rounded animate-pulse" />
+                </div>
+            </aside>
+        );
+    }
 
     return (
         <aside className="w-64 bg-[#1E293B] text-white p-6 hidden md:flex md:flex-col md:h-full md:min-h-screen">
@@ -98,27 +116,24 @@ export default function CounselorSidebar() {
                 <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">Main</p>
                 <div className="space-y-1">
                     <Link
-                        href="/counselor/dashboard"
-                        className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${pathname === "/counselor/dashboard" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-                            }`}
+                      href="/counselor/dashboard"
+                      className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${pathname === "/counselor/dashboard" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"}`}
                     >
-                        <Image src="/icons/dashboard.svg" alt="Dashboard" width={18} height={18} className="object-contain" /> Dashboard
+                      <Image src="/icons/dashboard.svg" alt="Dashboard" width={18} height={18} className="object-contain" /> Dashboard
                     </Link>
                     <Link
-                        href="/counselor/cases"
-                        className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${pathname === "/counselor/cases" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-                            }`}
+                      href="/counselor/cases"
+                      className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${pathname === "/counselor/cases" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"}`}
                     >
-                        <Image src="/icons/crisis-report.svg" alt="Cases" width={18} height={18} className="object-contain" /> Cases
+                      <Image src="/icons/crisis-report.svg" alt="Cases" width={18} height={18} className="object-contain" /> Cases
                     </Link>
                     <Link
-                        href="/counselor/assigned-users"
-                        className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${pathname === "/counselor/assigned-users" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-                            }`}
+                      href="/counselor/assigned-users"
+                      className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${pathname === "/counselor/assigned-users" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"}`}
                     >
-                        <Image src="/icons/account.svg" alt="Assigned Users" width={18} height={18} className="object-contain" /> Assigned Users
+                      <Image src="/icons/account.svg" alt="Assigned Users" width={18} height={18} className="object-contain" /> Assigned Users
                     </Link>
-                </div>
+                  </div>
             </div>
 
             {/* SUPPORT Section */}
@@ -157,29 +172,31 @@ export default function CounselorSidebar() {
             </div>
 
             <div className="mt-auto">
-                <div className="p-4 bg-white/5 rounded-xl border border-white/10 mb-3">
-                    <div className="flex items-center gap-3 mb-2">
-                        {userProfile?.avatar_url ? (
-                            <Image
-                                src={userProfile.avatar_url}
-                                alt="Profile"
-                                width={40}
-                                height={40}
-                                className="rounded-full object-cover"
-                            />
-                        ) : (
-                            <div className="w-10 h-10 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full flex items-center justify-center text-[#1E293B] font-bold font-poppins text-sm">
-                                {getInitials()}
+                <Link href="/counselor/profile">
+                    <div className="p-4 bg-white/5 rounded-xl border border-white/10 mb-3 hover:bg-white/10 transition-colors cursor-pointer">
+                        <div className="flex items-center gap-3 mb-2">
+                            {userProfile?.avatar_url ? (
+                                <Image
+                                    src={userProfile.avatar_url}
+                                    alt="Profile"
+                                    width={40}
+                                    height={40}
+                                    className="rounded-full object-cover"
+                                />
+                            ) : (
+                                <div className="w-10 h-10 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full flex items-center justify-center text-[#1E293B] font-bold font-poppins text-sm">
+                                    {getInitials()}
+                                </div>
+                            )}
+                            <div className="min-w-0">
+                                <p className="text-sm font-poppins text-white leading-tight">{getDisplayName()}</p>
+                                <p className="text-[11px] text-white/50 font-poppins leading-snug">
+                                    {roleLabel}
+                                </p>
                             </div>
-                        )}
-                        <div className="min-w-0">
-                            <p className="text-sm font-poppins text-white leading-tight">{getDisplayName()}</p>
-                            <p className="text-[11px] text-white/50 font-poppins leading-snug">
-                                {roleLabel}
-                            </p>
                         </div>
                     </div>
-                </div>
+                </Link>
                 <form action="/api/auth/signout" method="post">
                     <Button variant="secondary" className="w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
                         <Image src="/icons/logout.svg" alt="Log Out" width={20} height={20} className="object-contain" />

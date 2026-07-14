@@ -1,9 +1,9 @@
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Portal } from "@/components/ui/Portal";
 import { useRBAC } from "@/hooks/useRBAC";
 import { Input } from "@/components/ui/input";
 
@@ -131,60 +131,66 @@ If you have any questions about this privacy policy, please contact us.
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
-        <div className="p-6 border-b border-light-gray flex justify-between items-center">
-          <h2 className="text-xl font-dm-serif text-dark-text">Privacy Policy</h2>
-          <div className="flex items-center gap-3">
-            {hasPermission('settings') && (
+    <Portal>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+        <div
+          className="absolute inset-0 bg-black/60"
+          onClick={onClose}
+        ></div>
+        <div className="relative bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden z-10 m-4">
+          <div className="p-6 border-b border-light-gray flex justify-between items-center">
+            <h2 className="text-xl font-dm-serif text-dark-text">Privacy Policy</h2>
+            <div className="flex items-center gap-3">
+              {hasPermission('settings') && (
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    if (isEditing) {
+                      setIsEditing(false);
+                      setEditablePolicy(privacyPolicy);
+                    } else {
+                      setIsEditing(true);
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  {isEditing ? 'Cancel' : 'Edit'}
+                </Button>
+              )}
               <Button
-                variant="secondary"
-                onClick={() => {
-                  if (isEditing) {
-                    setIsEditing(false);
-                    setEditablePolicy(privacyPolicy);
-                  } else {
-                    setIsEditing(true);
-                  }
-                }}
-                disabled={loading}
+                variant="ghost"
+                onClick={onClose}
               >
-                {isEditing ? 'Cancel' : 'Edit'}
+                ✕
               </Button>
+            </div>
+          </div>
+          <div className="p-6 overflow-y-auto max-h-[70vh]">
+            {isEditing ? (
+              <div className="space-y-4">
+                <textarea
+                  value={editablePolicy}
+                  onChange={(e) => setEditablePolicy(e.target.value)}
+                  className="w-full h-96 p-4 border border-light-gray rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-blue/30"
+                />
+                <div className="flex justify-end">
+                  <Button onClick={savePrivacyPolicy} disabled={loading}>
+                    {loading ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="prose prose-sm max-w-none">
+                {privacyPolicy.split('\n').map((line, i) => (
+                  <p key={i} className="mb-3 text-sm font-inter text-dark-text/80">
+                    {line}
+                  </p>
+                ))}
+              </div>
             )}
-            <Button
-              variant="ghost"
-              onClick={onClose}
-            >
-              ✕
-            </Button>
           </div>
         </div>
-        <div className="p-6 overflow-y-auto max-h-[70vh]">
-          {isEditing ? (
-            <div className="space-y-4">
-              <textarea
-                value={editablePolicy}
-                onChange={(e) => setEditablePolicy(e.target.value)}
-                className="w-full h-96 p-4 border border-light-gray rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-blue/30"
-              />
-              <div className="flex justify-end">
-                <Button onClick={savePrivacyPolicy} disabled={loading}>
-                  {loading ? 'Saving...' : 'Save Changes'}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="prose prose-sm max-w-none">
-              {privacyPolicy.split('\n').map((line, i) => (
-                <p key={i} className="mb-3 text-sm font-inter text-dark-text/80">
-                  {line}
-                </p>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
-    </div>
+    </Portal>
   );
 }
