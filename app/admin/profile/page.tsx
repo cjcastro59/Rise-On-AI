@@ -274,7 +274,7 @@ export default function AdminProfilePage() {
               </p>
               <div className="flex gap-4 mt-2">
                 <span className="px-3 py-1 bg-primary-blue/20 rounded-full text-xs font-poppins text-primary-blue">
-                  Role: Admin
+                  Role: {profile.role ?? "User"}
                 </span>
               </div>
             </div>
