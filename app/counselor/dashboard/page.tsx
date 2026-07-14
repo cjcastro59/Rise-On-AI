@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { analyzeSentiment, getSentimentFromMood } from "@/lib/sentiment";
 
 export default function CounselorDashboardPage() {
@@ -19,8 +18,13 @@ export default function CounselorDashboardPage() {
   const [firstUserDate, setFirstUserDate] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState<string>("");
   const [loading, setLoading] = useState(true);
-  const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient() as any, []);
+
+  // Prevent hydration mismatch
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Format date as "Thursday, May 28, 2026"
   const formatFullDate = (date: Date) => {
@@ -37,11 +41,14 @@ export default function CounselorDashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!isMounted) return;
 
     const loadData = async () => {
       try {
         setLoading(true);
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -72,7 +79,7 @@ export default function CounselorDashboardPage() {
     };
 
     loadData();
-  }, [supabase, currentUser]);
+  }, [supabase, isMounted]);
 
   const formatTime = (value?: string) => {
     if (!value) return "just now";
@@ -84,6 +91,15 @@ export default function CounselorDashboardPage() {
     const diffDays = Math.round(diffHours / 24);
     return `${diffDays}d ago`;
   };
+
+  // Don't render until mounted to prevent hydration mismatch
+  if (!isMounted) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-dark-text/70 font-poppins">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -99,7 +115,7 @@ export default function CounselorDashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="stat-card border-l-4 border-l-primary-blue">
+        <Card variant="white" className="stat-card border-l-4 border-l-primary-blue">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-primary-blue/20">👥</div>
             <div className="text-right">
@@ -110,7 +126,7 @@ export default function CounselorDashboardPage() {
           <div className="stat-card-pill bg-gradient-to-r from-primary-blue to-teal" />
         </Card>
 
-        <Card className="stat-card border-l-4 border-l-error-red">
+        <Card variant="white" className="stat-card border-l-4 border-l-error-red">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-error-red/30">🚨</div>
             <div className="text-right">
@@ -121,7 +137,7 @@ export default function CounselorDashboardPage() {
           <div className="stat-card-pill bg-gradient-to-r from-red-400 to-pink-300" />
         </Card>
 
-        <Card className="stat-card border-l-4 border-l-lavender">
+        <Card variant="white" className="stat-card border-l-4 border-l-lavender">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-lavender/20">💬</div>
             <div className="text-right">
@@ -136,7 +152,7 @@ export default function CounselorDashboardPage() {
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Cases */}
-        <Card className="p-5">
+        <Card variant="white" className="p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center">🚨</div>
@@ -162,7 +178,7 @@ export default function CounselorDashboardPage() {
         </Card>
 
         {/* Recent Messages */}
-        <Card className="p-5">
+        <Card variant="white" className="p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">💬</div>

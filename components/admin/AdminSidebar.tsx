@@ -216,29 +216,31 @@ export default function AdminSidebar() {
       </nav>
 
       <div className="shrink-0 pt-2">
-        <div className="p-2 bg-white/5 rounded-xl border border-white/10 mb-2">
-          <div className="flex items-center gap-2">
-              {userProfile?.avatar_url ? (
-              <Image
-                src={userProfile.avatar_url}
-                alt="Profile"
-                width={32}
-                height={32}
-                className="rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-8 h-8 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full flex items-center justify-center text-[#1E293B] font-bold font-poppins text-xs">
-                {getInitials()}
+        <Link href="/admin/profile">
+          <div className="p-2 bg-white/5 rounded-xl border border-white/10 mb-2 hover:bg-white/10 transition-colors cursor-pointer">
+            <div className="flex items-center gap-2">
+                {userProfile?.avatar_url ? (
+                <Image
+                  src={userProfile.avatar_url}
+                  alt="Profile"
+                  width={32}
+                  height={32}
+                  className="rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-8 h-8 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full flex items-center justify-center text-[#1E293B] font-bold font-poppins text-xs">
+                  {getInitials()}
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-poppins text-white leading-tight">{getDisplayName()}</p>
+                <p className="text-[10px] text-white/50 font-poppins leading-snug">
+                  {roleLabel}
+                </p>
               </div>
-            )}
-            <div className="min-w-0">
-              <p className="text-xs font-poppins text-white leading-tight">{getDisplayName()}</p>
-              <p className="text-[10px] text-white/50 font-poppins leading-snug">
-                {roleLabel}
-              </p>
             </div>
           </div>
-        </div>
+        </Link>
         <form action="/api/auth/signout" method="post">
           <Button variant="secondary" size="sm" className="w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
             <Image src="/icons/logout.svg" alt="Log Out" width={16} height={16} className="object-contain" />
