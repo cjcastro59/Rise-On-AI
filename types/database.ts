@@ -19,7 +19,7 @@ export interface Database {
           email: string | null;
           role: string;
           age: number | null;
-          gender: string | null;
+          sex: string | null;
           country: string | null;
           bio: string | null;
           avatar_url: string | null;
@@ -49,7 +49,7 @@ export interface Database {
           email?: string | null;
           role?: string;
           age?: number | null;
-          gender?: string | null;
+          sex?: string | null;
           country?: string | null;
           bio?: string | null;
           avatar_url?: string | null;
@@ -79,7 +79,7 @@ export interface Database {
           email?: string | null;
           role?: string;
           age?: number | null;
-          gender?: string | null;
+          sex?: string | null;
           country?: string | null;
           bio?: string | null;
           avatar_url?: string | null;

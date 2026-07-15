@@ -217,7 +217,7 @@ export default function DashboardPage() {
   return (
     <>
       {/* Top Header */}
-      <header className="flex items-center justify-between mb-8 bg-white rounded-2xl px-6 py-4 shadow-sm border border-light-gray">
+      <header className="flex items-center justify-between mb-8 bg-white rounded-2xl px-6 py-5 shadow-sm border border-gray-100">
         <div className="w-40"></div> {/* Spacer for balance */}
         <nav className="flex items-center gap-4">
           <Link href="/dashboard" className="text-dark-text text-sm font-poppins font-semibold">Home</Link>
@@ -229,9 +229,6 @@ export default function DashboardPage() {
           <Link href="/support" className="px-4 py-2 bg-pink-100 text-pink-60 rounded-full text-xs font-poppins font-semibold flex items-center gap-2 hover:bg-pink-200 transition-all">
             <Image src="/icons/crisis-report.svg" alt="Crisis Support" width={16} height={16} className="object-contain" />
             Crisis Support
-          </Link>
-          <Link href="/profile" className="w-10 h-10 bg-gradient-to-r from-primary-blue to-lavender rounded-full flex items-center justify-center text-white font-poppins font-semibold hover:opacity-80 transition-all">
-            {userName.charAt(0).toUpperCase()}
           </Link>
         </div>
       </header>

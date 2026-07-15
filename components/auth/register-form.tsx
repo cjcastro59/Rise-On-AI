@@ -30,6 +30,7 @@ interface FormData {
   goals: string[];
   language: string;
   country: string;
+  sex: string;
 }
 
 interface RegisterFormProps {
@@ -48,6 +49,7 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
     goals: [],
     language: "English",
     country: "",
+    sex: "",
   });
   const [privacyPolicyAccepted, setPrivacyPolicyAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -122,6 +124,10 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       setError("Please select at least one goal.");
       return false;
     }
+    if (!formData.sex) {
+      setError("Please select your sex.");
+      return false;
+    }
     setError("");
     return true;
   };
@@ -188,6 +194,7 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
           goals: formData.goals,
           language: formData.language,
           country: formData.country,
+          sex: formData.sex,
           two_factor_enabled: false,
           two_factor_secret: null,
         };
@@ -399,6 +406,22 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
             {COUNTRIES.map((country) => (
               <option key={country} value={country}>{country}</option>
             ))}
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-poppins font-semibold text-dark-text mb-3">Sex</h3>
+        <div className="space-y-3">
+          <select
+            value={formData.sex}
+            onChange={(e) => setFormData(prev => ({ ...prev, sex: e.target.value }))}
+            required
+            className="w-full px-3 py-2 rounded-xl border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
+          >
+            <option value="">Select Sex</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
           </select>
         </div>
       </div>

@@ -15,7 +15,7 @@ interface User {
   email: string | null;
   role: string;
   age: number | null;
-  gender: string | null;
+  sex: string | null;
   country: string | null;
   bio: string | null;
   created_at: string;
@@ -132,10 +132,10 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
                 </div>
                 <div>
                   <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider mb-1">
-                    Gender
+                    Sex
                   </p>
                   <p className="text-sm font-poppins text-dark-text">
-                    {user.gender || "-"}
+                    {user.sex || "-"}
                   </p>
                 </div>
                 <div>
