@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import ProfileCard from "@/components/layout/ProfileCard";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useMemo, useState } from "react";
@@ -66,11 +67,6 @@ export default function AdminSidebar() {
     if (userProfile.full_name) return userProfile.full_name;
     if (userProfile.username) return userProfile.username;
     return "User";
-  };
-
-  const getInitials = () => {
-    const name = getDisplayName();
-    return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
   };
 
   const roleLabel = userProfile?.role
@@ -216,31 +212,12 @@ export default function AdminSidebar() {
       </nav>
 
       <div className="shrink-0 pt-2">
-        <Link href="/admin/profile">
-          <div className="p-2 bg-white/5 rounded-xl border border-white/10 mb-2 hover:bg-white/10 transition-colors cursor-pointer">
-            <div className="flex items-center gap-2">
-                {userProfile?.avatar_url ? (
-                <Image
-                  src={userProfile.avatar_url}
-                  alt="Profile"
-                  width={32}
-                  height={32}
-                  className="rounded-full object-cover"
-                />
-              ) : (
-                <div className="w-8 h-8 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full flex items-center justify-center text-[#1E293B] font-bold font-poppins text-xs">
-                  {getInitials()}
-                </div>
-              )}
-              <div className="min-w-0">
-                <p className="text-xs font-poppins text-white leading-tight">{getDisplayName()}</p>
-                <p className="text-[10px] text-white/50 font-poppins leading-snug">
-                  {roleLabel}
-                </p>
-              </div>
-            </div>
-          </div>
-        </Link>
+        <ProfileCard
+          href="/admin/profile"
+          avatarUrl={userProfile?.avatar_url}
+          name={getDisplayName()}
+          role={roleLabel}
+        />
         <form action="/api/auth/signout" method="post">
           <Button variant="secondary" size="sm" className="w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
             <Image src="/icons/logout.svg" alt="Log Out" width={16} height={16} className="object-contain" />

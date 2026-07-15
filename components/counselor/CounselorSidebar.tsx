@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import ProfileCard from "@/components/layout/ProfileCard";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -72,11 +73,6 @@ export default function CounselorSidebar() {
         if (userProfile.full_name) return userProfile.full_name;
         if (userProfile.username) return userProfile.username;
         return "User";
-    };
-
-    const getInitials = () => {
-        const name = getDisplayName();
-        return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
     };
 
     const roleLabel = userProfile?.role
@@ -172,31 +168,12 @@ export default function CounselorSidebar() {
             </div>
 
             <div className="mt-auto">
-                <Link href="/counselor/profile">
-                    <div className="p-4 bg-white/5 rounded-xl border border-white/10 mb-3 hover:bg-white/10 transition-colors cursor-pointer">
-                        <div className="flex items-center gap-3 mb-2">
-                            {userProfile?.avatar_url ? (
-                                <Image
-                                    src={userProfile.avatar_url}
-                                    alt="Profile"
-                                    width={40}
-                                    height={40}
-                                    className="rounded-full object-cover"
-                                />
-                            ) : (
-                                <div className="w-10 h-10 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full flex items-center justify-center text-[#1E293B] font-bold font-poppins text-sm">
-                                    {getInitials()}
-                                </div>
-                            )}
-                            <div className="min-w-0">
-                                <p className="text-sm font-poppins text-white leading-tight">{getDisplayName()}</p>
-                                <p className="text-[11px] text-white/50 font-poppins leading-snug">
-                                    {roleLabel}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </Link>
+                <ProfileCard
+                    href="/counselor/profile"
+                    avatarUrl={userProfile?.avatar_url}
+                    name={getDisplayName()}
+                    role={roleLabel}
+                />
                 <form action="/api/auth/signout" method="post">
                     <Button variant="secondary" className="w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
                         <Image src="/icons/logout.svg" alt="Log Out" width={20} height={20} className="object-contain" />

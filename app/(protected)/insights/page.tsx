@@ -278,7 +278,7 @@ export default function MoodInsightsPage() {
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card className="p-5 bg-[#eef3f8]">
+        <Card className="p-5 bg-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-dark-text/70 text-xs font-poppins mb-1">Total Entries</p>
@@ -289,7 +289,7 @@ export default function MoodInsightsPage() {
             </div>
           </div>
         </Card>
-        <Card className="p-5 bg-[#eef3f8]">
+        <Card className="p-5 bg-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-dark-text/70 text-xs font-poppins mb-1">Positive Entries</p>
@@ -300,7 +300,7 @@ export default function MoodInsightsPage() {
             </div>
           </div>
         </Card>
-        <Card className="p-5 bg-[#eef3f8]">
+        <Card className="p-5 bg-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-dark-text/70 text-xs font-poppins mb-1">Current Streak</p>
@@ -311,7 +311,7 @@ export default function MoodInsightsPage() {
             </div>
           </div>
         </Card>
-        <Card className="p-5 bg-[#eef3f8]">
+        <Card className="p-5 bg-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-dark-text/70 text-xs font-poppins mb-1">Mood Growth</p>
@@ -331,7 +331,7 @@ export default function MoodInsightsPage() {
         {/* Left Column */}
         <div className="space-y-6">
           {/* Mood Trajectory Chart */}
-          <Card className="p-6 bg-[#eef3f8]">
+          <Card className="p-6 bg-white">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-6">
               Mood Trajectory — This {timeRange}
             </h3>
@@ -373,7 +373,7 @@ export default function MoodInsightsPage() {
           </Card>
 
           {/* Journaling Calendar (simplified) */}
-          <Card className="p-6 bg-[#eef3f8]">
+          <Card className="p-6 bg-white">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
               <span>🗓️</span>
               Journaling Calendar — {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
@@ -438,7 +438,7 @@ export default function MoodInsightsPage() {
         {/* Right Column */}
         <div className="space-y-6">
           {/* Emotion Distribution */}
-          <Card className="p-6 bg-[#eef3f8]">
+          <Card className="p-6 bg-white">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-6 flex items-center gap-2">
               <span>🎨</span>
               Emotion Distribution
@@ -475,7 +475,7 @@ export default function MoodInsightsPage() {
           </Card>
 
           {/* Top Emotional Keywords */}
-          <Card className="p-6 bg-[#eef3f8]">
+          <Card className="p-6 bg-white">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
               <span>🔤</span>
               Top Emotional Keywords
