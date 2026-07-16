@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import PageHeader from "@/components/layout/PageHeader";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { analyzeEntry, type AnalysisResult } from "@/lib/sentiment";
@@ -152,40 +153,38 @@ export default function AIAnalysisPage() {
   return (
     <>
       {/* Page Header */}
-      <div className="mb-8">
-        <p className="text-sm text-dark-text/70 font-poppins mb-2">
-          Analysis for • {formatDate(entry.created_at)}
-        </p>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
-          <h1 className="text-3xl font-dm-serif text-dark-text">Emotional Analysis Complete</h1>
+      <PageHeader
+        title="Emotional Analysis Complete"
+        subtitle={`Analysis for • ${formatDate(entry.created_at)}`}
+        actions={
           <div className={`flex items-center gap-2 px-4 py-2 bg-gradient-to-r ${sentimentColor} rounded-full shadow-sm`}>
             <span className="text-sm font-poppins text-dark-text">
               {sentimentEmoji} {sentimentLabel} — {analysis.sentimentScore}%
             </span>
           </div>
+        }
+      />
+
+      {/* Progress Steps */}
+      <div className="flex items-center gap-2 mb-6">
+        <div className="flex items-center gap-2 px-3 py-1 bg-[#A8DADC]/40 rounded-full">
+          <span className="text-sm">📝</span>
+          <span className="text-sm font-poppins text-dark-text">Wrote Entry</span>
         </div>
-        
-        {/* Progress Steps */}
-        <div className="flex items-center gap-2 mb-6">
-          <div className="flex items-center gap-2 px-3 py-1 bg-[#A8DADC]/40 rounded-full">
-            <span className="text-sm">📝</span>
-            <span className="text-sm font-poppins text-dark-text">Wrote Entry</span>
-          </div>
-          <div className="text-sm text-dark-text/40">→</div>
-          <div className="flex items-center gap-2 px-3 py-1 bg-[#A8DADC]/40 rounded-full">
-            <span className="text-sm">🧠</span>
-            <span className="text-sm font-poppins text-dark-text">AI Analyzed</span>
-          </div>
-          <div className="text-sm text-dark-text/50">→</div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-primary-blue to-lavender rounded-full shadow-sm">
-            <span className="text-sm">✨</span>
-            <span className="text-sm font-poppins text-white">Insights Ready</span>
-          </div>
-          <div className="text-sm text-dark-text/50">→</div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#E5E7EB] rounded-full">
-            <span className="text-sm">📊</span>
-            <span className="text-sm font-poppins text-dark-text">Track Over Time</span>
-          </div>
+        <div className="text-sm text-dark-text/40">→</div>
+        <div className="flex items-center gap-2 px-3 py-1 bg-[#A8DADC]/40 rounded-full">
+          <span className="text-sm">🧠</span>
+          <span className="text-sm font-poppins text-dark-text">AI Analyzed</span>
+        </div>
+        <div className="text-sm text-dark-text/50">→</div>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-primary-blue to-lavender rounded-full shadow-sm">
+          <span className="text-sm">✨</span>
+          <span className="text-sm font-poppins text-white">Insights Ready</span>
+        </div>
+        <div className="text-sm text-dark-text/50">→</div>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-[#E5E7EB] rounded-full">
+          <span className="text-sm">📊</span>
+          <span className="text-sm font-poppins text-dark-text">Track Over Time</span>
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import PageHeader from "@/components/layout/PageHeader";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { analyzeSentiment, getSentimentFromMood } from "@/lib/sentiment";
@@ -216,10 +217,7 @@ export default function JournalHistoryPage() {
   return (
     <>
       {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-dm-serif text-dark-text mb-2">My Journal</h1>
-        <p className="text-dark-text/70 text-sm font-inter">Your personal entries, organized</p>
-      </div>
+      <PageHeader title="My Journal" subtitle="Your personal entries, organized" />
 
       {/* Search and Filters */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">

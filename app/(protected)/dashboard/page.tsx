@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MoodCard } from "@/components/dashboard/mood-card";
 import { InsightCard } from "@/components/dashboard/insight-card";
+import PageHeader from "@/components/layout/PageHeader";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getSentimentFromMood, analyzeSentiment, analyzeEntry } from "@/lib/sentiment";
@@ -234,26 +235,26 @@ export default function DashboardPage() {
       </header>
 
       {/* Welcome Section */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-dm-serif text-dark-text mb-2">
-          {getGreeting()}, {userName.split(" ")[0]}!
-        </h1>
-        <p className="text-dark-text/70 text-sm font-inter flex items-center gap-2">
-          {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-          <span className="mx-2">•</span>
-          How are you feeling today?
-        </p>
-        <div className="flex flex-wrap items-center gap-4 mt-3">
-          {moodOptions.map((mood) => (
-            <MoodCard
-              key={mood.label}
-              mood={mood.label}
-              icon={mood.icon}
-              selected={selectedMood === mood.label}
-              onClick={() => handleSaveMood(mood.label)}
-            />
-          ))}
-        </div>
+      <PageHeader
+        title={`${getGreeting()}, ${userName.split(" ")[0]}!`}
+        subtitle={
+          <>
+            {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+            <span className="mx-2">•</span>
+            How are you feeling today?
+          </>
+        }
+      />
+      <div className="flex flex-wrap items-center gap-4 mb-8">
+        {moodOptions.map((mood) => (
+          <MoodCard
+            key={mood.label}
+            mood={mood.label}
+            icon={mood.icon}
+            selected={selectedMood === mood.label}
+            onClick={() => handleSaveMood(mood.label)}
+          />
+        ))}
       </div>
 
       {/* Stats Cards */}
