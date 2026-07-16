@@ -117,7 +117,7 @@ export default function AdminMoodTrendsPage() {
         </Card>
         <Card className="p-5 bg-[#eef3f8]">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">�</div>
+            <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">😢</div>
             <div className="text-right">
               <p className="text-xs text-dark-text/70 font-poppins">NEGATIVE ENTRIES</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : `${negativePercent}%`}</p>
@@ -137,7 +137,7 @@ export default function AdminMoodTrendsPage() {
         </Card>
         <Card className="p-5 border-l-4 border-l-[#F4A6A6] bg-[#eef3f8]">
           <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">😢</div>
+            <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">😫</div>
             <div className="text-right">
               <p className="text-xs text-dark-text/70 font-poppins">DISTRESS SIGNALS</p>
               <p className="text-2xl font-dm-serif text-[#F4A6A6]">{loading ? "—" : `${distressPercent}%`}</p>

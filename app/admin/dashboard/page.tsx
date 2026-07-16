@@ -2,11 +2,38 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  TooltipContentProps,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 import { analyzeSentiment, getSentimentFromMood, analyzeEntry } from "@/lib/sentiment";
+
+interface DauPoint {
+  date: string;
+  fullDate: string;
+  count: number;
+}
+
+function DauTooltip({ active, payload }: TooltipContentProps) {
+  if (!active || !payload || !payload.length) return null;
+  const point = payload[0].payload as DauPoint;
+  return (
+    <div className="rounded-lg bg-white px-3 py-2 shadow-md border border-light-gray">
+      <p className="text-xs font-poppins text-dark-text/70">{point.fullDate}</p>
+      <p className="text-sm font-poppins text-dark-text font-semibold">{point.count} Active User{point.count === 1 ? "" : "s"}</p>
+    </div>
+  );
+}
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState({
@@ -23,7 +50,14 @@ export default function AdminDashboardPage() {
   const [currentDate, setCurrentDate] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [dauPeriod, setDauPeriod] = useState<"week" | "month">("month");
-  const [dauData, setDauData] = useState<{ date: string; count: number }[]>([]);
+  const [dauData, setDauData] = useState<DauPoint[]>([]);
+  const [dauSummary, setDauSummary] = useState({
+    today: 0,
+    yesterday: 0,
+    weeklyAvg: 0,
+    peakDate: "",
+    peakCount: 0,
+  });
   const [moodDistribution, setMoodDistribution] = useState<{
     positive: number;
     negative: number;
@@ -50,58 +84,113 @@ export default function AdminDashboardPage() {
     setCurrentDate(formatFullDate(new Date()));
   }, []);
 
+  // Local YYYY-MM-DD key, used to bucket activity records by calendar day
+  // without the ambiguity of matching on weekday name or day-of-month alone.
+  const toDateKey = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
   // Load DAU and mood distribution
   const loadAnalyticsData = useCallback(async () => {
     try {
       const now = new Date();
-      let startDate = new Date();
+      const sevenDaysAgo = new Date(now);
+      sevenDaysAgo.setDate(now.getDate() - 6);
+      let startDate: Date;
 
       if (dauPeriod === "week") {
-        startDate.setDate(now.getDate() - 6); // Last 7 days
+        startDate = sevenDaysAgo; // Last 7 days
       } else {
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1); // Start of current month
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        // Extend back far enough to also cover the trailing 7 days, so the
+        // summary row's "Weekly Average" is accurate even in the first days
+        // of a new month, without issuing a second Supabase query for it.
+        startDate = startOfMonth < sevenDaysAgo ? startOfMonth : sevenDaysAgo;
       }
+      startDate.setHours(0, 0, 0, 0);
 
-      // Fetch journal entries for the period
-      const { data: journalData } = await supabase
-        .from("journal_entries")
-        .select("user_id, mood, content, created_at")
-        .gte("created_at", startDate.toISOString())
-        .order("created_at", { ascending: true });
+      // A user is "active" if they created a journal entry, logged a mood,
+      // logged distress, or have any activity_logs record. Combine all four
+      // real tables so the chart reflects actual usage rather than a single
+      // table that may have no rows yet.
+      const [
+        { data: activityLogRows, error: activityLogError },
+        { data: journalRows, error: journalError },
+        { data: moodLogRows, error: moodLogError },
+        { data: distressRows, error: distressError },
+      ] = await Promise.all([
+        supabase.from("activity_logs").select("user_id, created_at").gte("created_at", startDate.toISOString()),
+        supabase.from("journal_entries").select("user_id, created_at").gte("created_at", startDate.toISOString()),
+        supabase.from("mood_logs").select("user_id, created_at").gte("created_at", startDate.toISOString()),
+        supabase.from("distress_logs").select("user_id, created_at").gte("created_at", startDate.toISOString()),
+      ]);
 
-      // Calculate DAU
+      if (activityLogError) console.error("activityLogError:", activityLogError);
+      if (journalError) console.error("journalError:", journalError);
+      if (moodLogError) console.error("moodLogError:", moodLogError);
+      if (distressError) console.error("distressError:", distressError);
+
+      const activityRecords: { user_id: string; created_at: string }[] = [
+        ...(activityLogRows || []),
+        ...(journalRows || []),
+        ...(moodLogRows || []),
+        ...(distressRows || []),
+      ];
+
+      // Calculate DAU: unique users per local calendar day
       const dauMap = new Map<string, Set<string>>();
-      (journalData || []).forEach((entry: { created_at: string; user_id: string }) => {
-        let dateKey: string;
-        const entryDate = new Date(entry.created_at);
-        if (dauPeriod === "week") {
-          dateKey = entryDate.toLocaleDateString("en-US", { weekday: 'short' });
-        } else {
-          dateKey = String(entryDate.getDate());
-        }
+      activityRecords.forEach((record) => {
+        if (!record.user_id || !record.created_at) return;
+        const dateKey = toDateKey(new Date(record.created_at));
         if (!dauMap.has(dateKey)) dauMap.set(dateKey, new Set());
-        dauMap.get(dateKey)!.add(entry.user_id);
+        dauMap.get(dateKey)!.add(record.user_id);
       });
 
       // Build DAU array
-      const dauArray: { date: string; count: number }[] = [];
+      const dauArray: DauPoint[] = [];
+      const fullDateLabel = (d: Date) => d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
 
       if (dauPeriod === "week") {
         for (let i = 6; i >= 0; i--) {
           const d = new Date(now);
           d.setDate(now.getDate() - i);
           const dateLabel = d.toLocaleDateString("en-US", { weekday: 'short' });
-          dauArray.push({ date: dateLabel, count: dauMap.get(dateLabel)?.size || 0 });
+          dauArray.push({ date: dateLabel, fullDate: fullDateLabel(d), count: dauMap.get(toDateKey(d))?.size || 0 });
         }
       } else {
         const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
         for (let i = 1; i <= daysInMonth; i++) {
-          const dateLabel = String(i);
-          dauArray.push({ date: dateLabel, count: dauMap.get(dateLabel)?.size || 0 });
+          const d = new Date(now.getFullYear(), now.getMonth(), i);
+          dauArray.push({ date: String(i), fullDate: fullDateLabel(d), count: dauMap.get(toDateKey(d))?.size || 0 });
         }
       }
 
       setDauData(dauArray);
+
+      // Summary row: derived entirely from dauMap already fetched above, no
+      // extra Supabase calls. "Today"/"Yesterday"/"Weekly Average" always
+      // look at the trailing 7 days regardless of the selected period.
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+
+      let weeklySum = 0;
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        weeklySum += dauMap.get(toDateKey(d))?.size || 0;
+      }
+
+      let peak = { date: "", count: 0 };
+      dauArray.forEach((point) => {
+        if (point.count > peak.count) peak = { date: point.fullDate, count: point.count };
+      });
+
+      setDauSummary({
+        today: dauMap.get(toDateKey(now))?.size || 0,
+        yesterday: dauMap.get(toDateKey(yesterday))?.size || 0,
+        weeklyAvg: Math.round((weeklySum / 7) * 10) / 10,
+        peakDate: peak.date,
+        peakCount: peak.count,
+      });
 
       // Calculate mood distribution
       const moodCounts = { positive: 0, negative: 0, distress: 0 };
@@ -301,6 +390,18 @@ export default function AdminDashboardPage() {
     }
   };
 
+  // Derived chart values — all computed from the already-fetched dauData,
+  // no additional Supabase queries.
+  const dauMaxCount = useMemo(() => Math.max(...dauData.map((d) => d.count), 0), [dauData]);
+  const dauYAxisMax = useMemo(() => Math.max(5, Math.ceil(dauMaxCount / 5) * 5), [dauMaxCount]);
+  const dauHasActivity = useMemo(() => dauData.some((d) => d.count > 0), [dauData]);
+  const dauMonthTicks = useMemo(() => {
+    if (dauPeriod !== "month" || dauData.length === 0) return undefined;
+    const daysInMonth = dauData.length;
+    const candidates = [1, 5, 10, 15, 20, 25, daysInMonth];
+    return Array.from(new Set(candidates.filter((n) => n >= 1 && n <= daysInMonth))).map(String);
+  }, [dauPeriod, dauData]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -420,29 +521,82 @@ export default function AdminDashboardPage() {
               </button>
             </div>
           </div>
-          <div className="h-48 flex items-end justify-between gap-2 px-4 pb-4">
+          {/* DAU Summary Row */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+            <div className="bg-light-gray/30 rounded-lg px-3 py-2">
+              <p className="text-[10px] font-poppins text-dark-text/60 uppercase tracking-wide">Today</p>
+              <p className="text-sm font-dm-serif text-dark-text">{loading ? "—" : dauSummary.today}</p>
+            </div>
+            <div className="bg-light-gray/30 rounded-lg px-3 py-2">
+              <p className="text-[10px] font-poppins text-dark-text/60 uppercase tracking-wide">Yesterday</p>
+              <p className="text-sm font-dm-serif text-dark-text">{loading ? "—" : dauSummary.yesterday}</p>
+            </div>
+            <div className="bg-light-gray/30 rounded-lg px-3 py-2">
+              <p className="text-[10px] font-poppins text-dark-text/60 uppercase tracking-wide">Weekly Avg</p>
+              <p className="text-sm font-dm-serif text-dark-text">{loading ? "—" : dauSummary.weeklyAvg}</p>
+            </div>
+            <div className="bg-light-gray/30 rounded-lg px-3 py-2">
+              <p className="text-[10px] font-poppins text-dark-text/60 uppercase tracking-wide">Peak Day</p>
+              <p className="text-sm font-dm-serif text-dark-text truncate">
+                {loading ? "—" : dauSummary.peakCount > 0 ? `${dauSummary.peakDate} (${dauSummary.peakCount})` : "—"}
+              </p>
+            </div>
+          </div>
+
+          <div className="h-48 relative">
             {dauData.length > 0 ? (
-              dauData.map((d, i) => {
-                const maxCount = Math.max(...dauData.map(x => x.count), 1);
-                const heightPercent = (d.count / maxCount) * 100;
-                const colors = ["#52B788", "#A8DADC", "#CDB4DB"];
-                const color = colors[i % colors.length];
-                return (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                    <div 
-                      className="w-full rounded-t-2xl shadow-sm"
-                      style={{ 
-                        height: `${Math.max(heightPercent, 12)}%`,
-                        background: `linear-gradient(to top, ${color}, rgba(255,255,255,0.8))`
-                      }}
-                    ></div>
-                    <span className="text-xs text-dark-text/70 font-poppins">{d.date}</span>
+              <>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={dauData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="dauFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#A8DADC" stopOpacity={0.55} />
+                        <stop offset="95%" stopColor="#A8DADC" stopOpacity={0.04} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke="#EAEAEA" strokeDasharray="3 3" vertical={false} />
+                    <XAxis
+                      dataKey="date"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: "rgba(30,41,59,0.6)" }}
+                      interval={dauPeriod === "month" ? "preserveStartEnd" : 0}
+                      ticks={dauMonthTicks}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      width={28}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: "rgba(30,41,59,0.6)" }}
+                      domain={[0, dauYAxisMax]}
+                      tickCount={5}
+                    />
+                    <Tooltip content={DauTooltip} />
+                    <Area
+                      type="monotone"
+                      dataKey="count"
+                      stroke="#52B788"
+                      strokeWidth={2}
+                      fill="url(#dauFill)"
+                      dot={false}
+                      activeDot={{ r: 4, stroke: "#52B788", strokeWidth: 2, fill: "#fff" }}
+                      isAnimationActive
+                      animationDuration={400}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+                {!dauHasActivity && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <p className="text-sm text-dark-text/70 font-poppins bg-white/85 px-3 py-1 rounded-full">
+                      No activity data available.
+                    </p>
                   </div>
-                );
-              })
+                )}
+              </>
             ) : (
               <div className="flex items-center justify-center w-full h-full">
-                <p className="text-sm text-dark-text/70 font-poppins">No data yet</p>
+                <p className="text-sm text-dark-text/70 font-poppins">No activity data available.</p>
               </div>
             )}
           </div>

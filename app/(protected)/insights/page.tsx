@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import PageHeader from "@/components/layout/PageHeader";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { analyzeEntry } from "@/lib/sentiment";
@@ -254,27 +255,23 @@ export default function MoodInsightsPage() {
   return (
     <>
       {/* Page Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-dm-serif text-[#4F4F4F] mb-2">Mood Insights</h1>
-          <p className="text-sm font-inter text-[#4F4F4F]/70">Your emotional journey over time</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {["Week", "Month", "3 Months", "All Time"].map((range) => (
-            <button
-              key={range}
-              onClick={() => setTimeRange(range)}
-              className={`px-3 py-1.5 rounded-full text-xs font-poppins transition-all ${
-                timeRange === range
-                  ? "bg-[#A8DADC] text-white shadow-md"
-                  : "bg-white text-[#4F4F4F] hover:bg-[#F5F5F5]"
-              }`}
-            >
-              {range}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PageHeader
+        title="Mood Insights"
+        subtitle="Your emotional journey over time"
+        actions={["Week", "Month", "3 Months", "All Time"].map((range) => (
+          <button
+            key={range}
+            onClick={() => setTimeRange(range)}
+            className={`px-3 py-1.5 rounded-full text-xs font-poppins transition-all ${
+              timeRange === range
+                ? "bg-[#A8DADC] text-white shadow-md"
+                : "bg-gray-100 text-dark-text/60 hover:bg-[#F5F5F5]"
+            }`}
+          >
+            {range}
+          </button>
+        ))}
+      />
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
