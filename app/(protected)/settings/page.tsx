@@ -416,7 +416,7 @@ export default function SettingsPage() {
     <div className="flex gap-6">
       {/* Sidebar */}
       <div className="w-64 flex-shrink-0 hidden md:block">
-        <Card className="p-4 space-y-2">
+        <Card className="p-4 space-y-2 bg-white">
           <h2 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4">Settings</h2>
           <button
             onClick={() => setActiveSection("notifications")}
@@ -495,7 +495,7 @@ export default function SettingsPage() {
 
       {/* Main Content */}
       <div className="flex-1">
-        <Card className="p-6">
+        <Card className="p-6 bg-white">
           {renderSettingsContent()}
         </Card>
       </div>

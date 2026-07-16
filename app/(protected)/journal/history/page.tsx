@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { analyzeSentiment, getSentimentFromMood } from "@/lib/sentiment";
@@ -151,11 +150,13 @@ export default function JournalHistoryPage() {
   const getSentimentColor = (sentiment: string): string => {
     switch (sentiment) {
       case "Positive":
-        return "bg-green-100 text-green-800";
+        return "bg-[#52B788]/20 text-[#52B788]";
       case "Negative":
-        return "bg-red-100 text-red-800";
+        return "bg-[#F4A6A6]/20 text-[#F4A6A6]";
+      case "Distress":
+        return "bg-red-100 text-red-600";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-600";
     }
   };
 
@@ -222,13 +223,16 @@ export default function JournalHistoryPage() {
 
       {/* Search and Filters */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
-        <Input
-          type="text"
-          placeholder="Search entries..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="flex-1"
-        />
+        <div className="relative flex-1">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-text/60">🔍</span>
+          <input
+            type="text"
+            placeholder="Search entries..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl text-sm font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/50"
+          />
+        </div>
         <div className="flex gap-2">
           {["All", "Positive", "Negative", "Distress"].map((filter) => (
             <Button
@@ -263,49 +267,49 @@ export default function JournalHistoryPage() {
               {!collapsedMonths.has(group.monthKey) && (
                 <div className="space-y-3 pl-6">
                   {group.entries.map((entry) => (
-                    <Card key={entry.id} className="p-6 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between gap-4">
-                        <Link href={`/journal/${entry.id}`} className="flex-1 cursor-pointer">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-2xl">{getMoodEmoji(entry.mood)}</span>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-poppins font-semibold text-dark-text">
-                          {entry.title || "Untitled Entry"}
-                        </h3>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-medium ${getSentimentColor(
-                            getSentiment(entry.mood, entry.content)
-                          )}`}
-                        >
-                          {getSentiment(entry.mood, entry.content)}
-                        </span>
-                      </div>
-                      <p className="text-xs font-inter text-dark-text/60">
-                        {formatDate(entry.created_at)} • {getWordCount(entry.content)} words
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-sm font-inter text-dark-text/70">
-                    {getExcerpt(entry.content)}
-                  </p>
-                </div>
-              </Link>
-              <Link href={`/analysis?entryId=${entry.id}`}>
-                <Button variant="secondary" size="sm" className="mr-2">
-                  Analysis
-                </Button>
-              </Link>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={(e) => deleteEntry(entry.id, e)}
-                          disabled={deletingId === entry.id}
-                          className="text-soft-red border-soft-red hover:bg-soft-red/10"
-                        >
-                          {deletingId === entry.id ? "Deleting..." : "Delete"}
-                        </Button>
+                    <Card key={entry.id} className="p-6 bg-white hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between gap-4">
+                        <Link href={`/journal/${entry.id}`} className="flex-1 min-w-0 cursor-pointer">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className="text-2xl">{getMoodEmoji(entry.mood)}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="font-poppins font-semibold text-dark-text">
+                                  {entry.title || "Untitled Entry"}
+                                </h3>
+                                <span
+                                  className={`px-2 py-1 rounded-full text-xs font-semibold ${getSentimentColor(
+                                    getSentiment(entry.mood, entry.content)
+                                  )}`}
+                                >
+                                  {getSentiment(entry.mood, entry.content)}
+                                </span>
+                              </div>
+                              <p className="text-xs font-inter text-dark-text/60">
+                                {formatDate(entry.created_at)} • {getWordCount(entry.content)} words
+                              </p>
+                            </div>
+                          </div>
+                          <p className="text-sm font-inter text-dark-text/70">
+                            {getExcerpt(entry.content)}
+                          </p>
+                        </Link>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Link href={`/analysis?entryId=${entry.id}`}>
+                            <Button variant="secondary" size="sm">
+                              Analysis
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={(e) => deleteEntry(entry.id, e)}
+                            disabled={deletingId === entry.id}
+                            className="text-soft-red border-soft-red hover:bg-soft-red/10"
+                          >
+                            {deletingId === entry.id ? "Deleting..." : "Delete"}
+                          </Button>
+                        </div>
                       </div>
                     </Card>
                   ))}

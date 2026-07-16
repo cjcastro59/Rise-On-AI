@@ -97,7 +97,7 @@ export default function CounselorAssignedUsersPage() {
       country: "Philippines",
       role: "user",
       age: 20,
-      gender: "Female",
+      sex: "Female",
       is_active: true,
       created_at: new Date(Date.now() - 86400000).toISOString(),
       updated_at: new Date(Date.now() - 3600000).toISOString()
@@ -110,7 +110,7 @@ export default function CounselorAssignedUsersPage() {
       country: "Philippines",
       role: "user",
       age: 30,
-      gender: "Male",
+      sex: "Male",
       is_active: true,
       created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
       updated_at: new Date(Date.now() - 86400000).toISOString()
@@ -161,7 +161,7 @@ export default function CounselorAssignedUsersPage() {
       role: user.role || "user",
       country: user.country || "Unknown",
       age: user.age || "N/A",
-      gender: user.gender || "N/A",
+      sex: user.sex || "N/A",
       entries: entryCount,
       lastActive: getLastActive(lastEntry?.created_at || user.updated_at || user.created_at),
       avgMood: avgMoodScore ? `${avgMoodScore}/10` : "—",

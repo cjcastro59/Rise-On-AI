@@ -17,7 +17,7 @@ interface Profile {
   bio: string | null;
   avatar_url: string | null;
   age: number | null;
-  gender: string | null;
+  sex: string | null;
   country: string | null;
   mood_baseline: string | null;
   mood_baseline_details: string | null;
@@ -46,7 +46,7 @@ export default function ProfilePage() {
     bio: null,
     avatar_url: null,
     age: null,
-    gender: null,
+    sex: null,
     country: null,
     mood_baseline: null,
     goals: [],
@@ -462,17 +462,20 @@ export default function ProfilePage() {
                 )}
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">Gender</label>
+                <label className="text-xs font-poppins text-dark-text/60">Sex</label>
                 {isEditing ? (
-                  <input
-                    type="text"
-                    value={profile.gender || ""}
-                    onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
+                  <select
+                    value={profile.sex || ""}
+                    onChange={(e) => setProfile({ ...profile, sex: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
-                  />
+                  >
+                    <option value="">Select Sex</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
                 ) : (
                   <div className="px-3 py-2 bg-light-gray/50 rounded-lg text-sm font-inter text-dark-text">
-                    {profile.gender || "Not set"}
+                    {profile.sex || "Not set"}
                   </div>
                 )}
               </div>
