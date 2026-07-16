@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import ProfileCard from "@/components/layout/ProfileCard";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -60,128 +61,115 @@ export default function Sidebar({ userName }: SidebarProps) {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-light-gray p-6 hidden md:flex md:flex-col md:h-full md:min-h-screen">
-      <div className="flex items-center gap-2 mb-10">
-        <Image
-          src="/logo/Without Text.png"
-          alt="Rise On Logo"
-          width={40}
-          height={40}
-          className="object-contain"
-        />
-        <span className="font-poppins font-bold text-dark-text text-xl">Rise On</span>
+    <aside className="w-64 bg-[#1E293B] text-white p-6 hidden md:flex md:flex-col md:h-full md:min-h-screen">
+      <div className="mb-6">
+        <div className="flex items-center gap-3">
+          <Image
+            src="/logo/Without Text.png"
+            alt="Rise On Logo"
+            width={36}
+            height={36}
+            className="rounded-lg object-contain"
+          />
+          <h2 className="text-lg font-poppins font-semibold">Rise On</h2>
+        </div>
+        <p className="text-xs text-white/50 font-poppins mt-1">Member Panel</p>
       </div>
 
-      <nav className="flex-1 space-y-2 mb-10">
-        <Link
-          href="/dashboard"
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
-            isActive("dashboard")
-              ? "bg-primary-blue/10 text-primary-blue font-semibold"
-              : "text-dark-text hover:bg-light-gray"
-          }`}
-        >
-          <Image src="/icons/dashboard.svg" alt="Dashboard" width={20} height={20} className="object-contain" />
-          Dashboard
-        </Link>
-        <Link
-          href="/journal"
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
-            isActive("journal")
-              ? "bg-primary-blue/10 text-primary-blue font-semibold"
-              : "text-dark-text hover:bg-light-gray"
-          }`}
-        >
-          <Image src="/icons/new-entry.svg" alt="New Entry" width={20} height={20} className="object-contain" />
-          New Entry
-        </Link>
-        <Link
-          href="/journal/history"
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
-            isActive("history")
-              ? "bg-primary-blue/10 text-primary-blue font-semibold"
-              : "text-dark-text hover:bg-light-gray"
-          }`}
-        >
-          <Image src="/icons/journal.svg" alt="My Journal" width={20} height={20} className="object-contain" />
-          My Journal
-        </Link>
-        <Link
-          href="/insights"
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
-            isActive("insights")
-              ? "bg-primary-blue/10 text-primary-blue font-semibold"
-              : "text-dark-text hover:bg-light-gray"
-          }`}
-        >
-          <Image src="/icons/mood-insights.svg" alt="Mood Insights" width={20} height={20} className="object-contain" />
-          Mood Insights
-        </Link>
-        <Link
-          href="/analysis"
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
-            isActive("analysis")
-              ? "bg-primary-blue/10 text-primary-blue font-semibold"
-              : "text-dark-text hover:bg-light-gray"
-          }`}
-        >
-          <Image src="/icons/ai-reports.svg" alt="AI Reports" width={20} height={20} className="object-contain" />
-          AI Reports
-        </Link>
-      </nav>
+      <div className="mb-6">
+        <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">Main</p>
+        <div className="space-y-1">
+          <Link
+            href="/dashboard"
+            className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${
+              isActive("dashboard")
+                ? "bg-[#A8DADC]/20 text-[#A8DADC]"
+                : "text-white/70 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Image src="/icons/dashboard.svg" alt="Dashboard" width={18} height={18} className="object-contain" />
+            Dashboard
+          </Link>
+          <Link
+            href="/journal"
+            className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${
+              isActive("journal")
+                ? "bg-[#A8DADC]/20 text-[#A8DADC]"
+                : "text-white/70 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Image src="/icons/new-entry.svg" alt="New Entry" width={18} height={18} className="object-contain" />
+            New Entry
+          </Link>
+          <Link
+            href="/journal/history"
+            className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${
+              isActive("history")
+                ? "bg-[#A8DADC]/20 text-[#A8DADC]"
+                : "text-white/70 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Image src="/icons/journal.svg" alt="My Journal" width={18} height={18} className="object-contain" />
+            My Journal
+          </Link>
+          <Link
+            href="/insights"
+            className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${
+              isActive("insights")
+                ? "bg-[#A8DADC]/20 text-[#A8DADC]"
+                : "text-white/70 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Image src="/icons/mood-insights.svg" alt="Mood Insights" width={18} height={18} className="object-contain" />
+            Mood Insights
+          </Link>
+          <Link
+            href="/analysis"
+            className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${
+              isActive("analysis")
+                ? "bg-[#A8DADC]/20 text-[#A8DADC]"
+                : "text-white/70 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Image src="/icons/ai-reports.svg" alt="AI Reports" width={18} height={18} className="object-contain" />
+            AI Reports
+          </Link>
+        </div>
+      </div>
 
-      <div className="pt-6 border-t border-light-gray space-y-2 mb-8">
-        <Link
-          href="/settings"
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-poppins transition-all ${
-            isActive("settings")
-              ? "bg-primary-blue/10 text-primary-blue font-semibold"
-              : "text-dark-text hover:bg-light-gray"
-          }`}
-        >
-          <Image src="/icons/settings.svg" alt="Settings" width={20} height={20} className="object-contain" />
-          Settings
-        </Link>
+      <div className="mb-6">
+        <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">System</p>
+        <div className="space-y-1">
+          <Link
+            href="/settings"
+            className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${
+              isActive("settings")
+                ? "bg-[#A8DADC]/20 text-[#A8DADC]"
+                : "text-white/70 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Image src="/icons/settings.svg" alt="Settings" width={18} height={18} className="object-contain filter invert brightness-200" />
+            Settings
+          </Link>
+        </div>
       </div>
 
       <div className="mt-auto">
-        <Link
+        <ProfileCard
           href="/profile"
-          className="block p-3 mb-4 bg-slate-100 rounded-xl border border-slate-200 transition-all hover:border-primary-blue/20 hover:bg-white"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            {avatarUrl ? (
-              <Image src={avatarUrl} alt="Profile" width={40} height={40} className="rounded-full object-cover" />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-primary-blue/10 flex items-center justify-center text-primary-blue font-bold text-sm">
-                {userName
-                  .split(" ")
-                  .map((part) => part[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase()}
-              </div>
-            )}
-            <div>
-              <p className="text-sm font-semibold text-dark-text leading-tight">{userName}</p>
-              <p className="text-[11px] text-dark-text/60 leading-snug">{userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : "User"}</p>
-            </div>
-          </div>
-          <p className="text-[11px] text-dark-text/60 leading-snug">Manage your profile, settings, and support access.</p>
-          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
-            <span>Edit profile</span>
-            <span className="font-semibold">→</span>
-          </div>
-        </Link>
+          avatarUrl={avatarUrl}
+          name={userName}
+          role={userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : "User"}
+        />
         <Link
           href="/support"
-          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#FDE8E8] text-[#b91c1c] text-sm font-poppins font-semibold hover:bg-[#F9DADA] transition-all"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#F4A6A6]/15 text-[#F4A6A6] text-sm font-poppins font-semibold border border-[#F4A6A6]/20 hover:bg-[#F4A6A6]/25 transition-all duration-200"
         >
           <Image src="/icons/crisis-report.svg" alt="Get Help Now" width={16} height={16} className="object-contain" />
           Get Help Now
         </Link>
         <form action="/api/auth/signout" method="post">
-          <Button variant="secondary" className="w-full flex items-center justify-center gap-2 mt-2 py-2">
+          <Button variant="secondary" className="w-full flex items-center justify-center gap-2 mt-2 py-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
             <Image src="/icons/logout.svg" alt="Log Out" width={18} height={18} className="object-contain" />
             Log Out
           </Button>
