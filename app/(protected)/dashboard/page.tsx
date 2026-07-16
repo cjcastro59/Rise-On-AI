@@ -9,8 +9,10 @@ import { Card } from "@/components/ui/card";
 import { MoodCard } from "@/components/dashboard/mood-card";
 import { InsightCard } from "@/components/dashboard/insight-card";
 import PageHeader from "@/components/layout/PageHeader";
+import WeeklyMoodChart from "@/components/dashboard/WeeklyMoodChart";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useMoodTrend } from "@/hooks/useMoodTrend";
 import { getSentimentFromMood, analyzeSentiment, analyzeEntry } from "@/lib/sentiment";
 
 export default function DashboardPage() {
@@ -25,8 +27,8 @@ export default function DashboardPage() {
     avgMoodScore: 0,
     positivityThisWeek: 0
   });
-  const [weekData, setWeekData] = useState<any[]>([]);
   const { user } = useAuth();
+  const { data: weekData, loading: weekMoodLoading, hasData: weekMoodHasData } = useMoodTrend("Week");
   const router = useRouter();
   const supabase = useMemo(() => createClient() as any, []);
 
@@ -99,42 +101,6 @@ export default function DashboardPage() {
     };
   }, [calculateStreak]);
 
-  const calculateWeekData = useCallback((entries: any[]) => {
-    const week = [];
-    const now = new Date();
-
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(now.getDate() - i);
-      date.setHours(0, 0, 0, 0);
-      const nextDate = new Date(date);
-      nextDate.setDate(date.getDate() + 1);
-
-      const dayEntries = entries.filter(entry => {
-        const entryDate = new Date(entry.created_at);
-        return entryDate >= date && entryDate < nextDate;
-      });
-
-      let avgScore = 0;
-      if (dayEntries.length > 0) {
-        let totalScore = 0;
-        let count = 0;
-        dayEntries.forEach(entry => {
-          const analysis = analyzeEntry(entry.content || "", entry.mood);
-          totalScore += analysis.sentimentScore / 10; // sentimentScore is 0-100, convert to 0-10
-          count++;
-        });
-        avgScore = count > 0 ? totalScore / count : 0;
-      }
-
-      week.push({
-        date: date.toLocaleDateString(undefined, { weekday: 'short' }),
-        score: avgScore
-      });
-    }
-    return week;
-  }, []);
-
   const fetchDashboardData = useCallback(async () => {
     if (!user) {
       setLoading(false);
@@ -183,12 +149,8 @@ export default function DashboardPage() {
 
     setTodayEntryPreview(todayEntry || null);
 
-    // Prepare week data for chart
-    const week = calculateWeekData(entries || []);
-    setWeekData(week);
-
     setLoading(false);
-  }, [calculateStats, calculateWeekData, user, supabase]);
+  }, [calculateStats, user, supabase]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -346,24 +308,7 @@ export default function DashboardPage() {
         {/* Mood Chart */}
         <Card className="p-6 bg-white">
           <h3 className="font-poppins font-semibold text-dark-text mb-4">Your Mood This Week</h3>
-          <div className="h-48 bg-gradient-to-r from-header-bg to-lavender/20 rounded-xl flex items-end justify-around px-4 pb-4">
-            {weekData.map((day, index) => (
-              <div key={index} className="flex flex-col items-center gap-2">
-                <div
-                  className="w-8 rounded-t-lg transition-all duration-300"
-                  style={{ 
-                        height: `${Math.max((day.score / 10) * 100, 12)}%`,
-                        background: day.score > 7
-                          ? 'linear-gradient(to top, #10b981, #34d399)'
-                          : day.score > 4
-                            ? 'linear-gradient(to top, #8b5cf6, #a78bfa)'
-                            : 'linear-gradient(to top, #ef4444, #f87171)'
-                      }}
-                />
-                <span className="text-xs font-inter text-dark-text/60">{day.date}</span>
-              </div>
-            ))}
-          </div>
+          <WeeklyMoodChart data={weekData} loading={weekMoodLoading} hasData={weekMoodHasData} />
         </Card>
 
         {/* AI Insight */}
