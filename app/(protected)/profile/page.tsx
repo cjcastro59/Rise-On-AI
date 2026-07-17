@@ -326,7 +326,7 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       {/* Profile Header */}
-      <div className="bg-gradient-to-r from-primary-blue/10 to-lavender/30 rounded-2xl p-6">
+      <div className="bg-white rounded-2xl p-6 border border-light-gray shadow-sm">
         <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="relative">
