@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
+import { ViewUserModal } from "@/components/admin/ViewUserModal";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { analyzeSentiment } from "@/lib/sentiment";
@@ -42,6 +43,8 @@ export default function CounselorAssignedUsersPage() {
   const [journalEntries, setJournalEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
@@ -86,36 +89,6 @@ export default function CounselorAssignedUsersPage() {
 
     fetchData();
   }, [currentUser, supabase]);
-
-  // Get mock users for fallback
-  const getMockUsers = () => [
-    {
-      id: "mock1",
-      first_name: "Jane",
-      last_name: "Doe",
-      full_name: "Jane Doe",
-      country: "Philippines",
-      role: "user",
-      age: 20,
-      sex: "Female",
-      is_active: true,
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 3600000).toISOString()
-    },
-    {
-      id: "mock2",
-      first_name: "John",
-      last_name: "Smith",
-      full_name: "John Smith",
-      country: "Philippines",
-      role: "user",
-      age: 30,
-      sex: "Male",
-      is_active: true,
-      created_at: new Date(Date.now() - 86400000 * 7).toISOString(),
-      updated_at: new Date(Date.now() - 86400000).toISOString()
-    }
-  ];
 
   // Process users to add computed data
   const processedUsers = users.map(user => {
@@ -348,7 +321,14 @@ export default function CounselorAssignedUsersPage() {
                     )}
                   </td>
                   <td className="py-4 px-3">
-                    <button className="px-3 py-1 bg-primary-blue/20 text-primary-blue rounded-full text-xs font-semibold font-poppins">View</button>
+                    <button 
+                      onClick={() => {
+                        setSelectedUserId(user.id);
+                        setViewModalOpen(true);
+                      }}
+                      className="px-3 py-1 bg-primary-blue/20 text-primary-blue rounded-full text-xs font-semibold font-poppins">
+                      View
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -411,6 +391,13 @@ export default function CounselorAssignedUsersPage() {
           </div>
         )}
       </Card>
+
+      {/* View User Modal */}
+      <ViewUserModal 
+        isOpen={viewModalOpen} 
+        onClose={() => setViewModalOpen(false)} 
+        userId={selectedUserId} 
+      />
     </div>
   );
 }
