@@ -4,14 +4,7 @@
 -- Safe to run multiple times!
 -- ------------------------------
 
--- ------------------------------
--- 1. Enable Extensions
--- ------------------------------
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- ------------------------------
--- 2. Create Tables (if they don't exist)
--- ------------------------------
 
 -- user_profiles table
 CREATE TABLE IF NOT EXISTS public.user_profiles (
@@ -23,7 +16,7 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   email TEXT,
   role TEXT DEFAULT 'user' CHECK (role IN ('user', 'counselor', 'admin', 'owner')),
   age INTEGER,
-  gender TEXT,
+  sex TEXT,
   country TEXT,
   bio TEXT,
   avatar_url TEXT,
@@ -165,15 +158,13 @@ CREATE TABLE IF NOT EXISTS public.notes (
 ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
--- ------------------------------
--- 3. Add Missing Columns to user_profiles
--- ------------------------------
+
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS username TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS full_name TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS first_name TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS last_name TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS age INTEGER;
-ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS gender TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS sex TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS country TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS bio TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
@@ -213,9 +204,6 @@ ALTER TABLE public.user_profiles ALTER COLUMN role SET DEFAULT 'user';
 -- Add title column to journal_entries if missing
 ALTER TABLE public.journal_entries ADD COLUMN IF NOT EXISTS title TEXT;
 
--- ------------------------------
--- 4. Create Functions & Triggers
--- ------------------------------
 
 -- Helper function to check if user is owner ONLY (SAFE, avoids recursion!)
 DROP FUNCTION IF EXISTS public.is_current_user_owner() CASCADE;
@@ -384,9 +372,7 @@ CREATE OR REPLACE TRIGGER update_journal_entries_updated_at
     BEFORE UPDATE ON public.journal_entries
     FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
--- ------------------------------
--- 5. Enable RLS on All Tables
--- ------------------------------
+
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.journal_entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mood_logs ENABLE ROW LEVEL SECURITY;
@@ -395,9 +381,6 @@ ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mood_analytics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
--- ------------------------------
--- 6. RLS Policies for user_profiles (safe create using DO blocks)
--- ------------------------------
 -- First, DROP ALL existing policies for user_profiles to start fresh!
 DROP POLICY IF EXISTS "Users can view their own profile" ON public.user_profiles;
 DROP POLICY IF EXISTS "Users can update their own profile" ON public.user_profiles;
@@ -440,10 +423,6 @@ CREATE POLICY "Only owners can delete profiles"
     ON public.user_profiles
     FOR DELETE
     USING (public.is_current_user_owner());
-
--- ------------------------------
--- 7. RLS Policies for Other Tables (safe create)
--- ------------------------------
 
 -- journal_entries
 -- First, drop existing select policy to replace it
@@ -1023,3 +1002,86 @@ SELECT
   tablename 
 FROM pg_publication_tables 
 WHERE pubname = 'supabase_realtime';
+
+-- Allows counselors, admins, and owners to review/update distress alert notes.
+-- Run this in Supabase SQL editor if counselor Review still shows a permission message.
+
+CREATE OR REPLACE FUNCTION public.is_current_user_admin_or_owner()
+RETURNS BOOLEAN AS $$
+DECLARE
+  v_role TEXT;
+BEGIN
+  SELECT role INTO v_role
+  FROM public.user_profiles
+  WHERE id = auth.uid();
+
+  RETURN v_role IN ('admin', 'owner', 'counselor');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP POLICY IF EXISTS "Counselors/admins can update distress logs" ON public.distress_logs;
+
+CREATE POLICY "Counselors/admins can update distress logs"
+  ON public.distress_logs
+  FOR UPDATE
+  USING (public.is_current_user_admin_or_owner())
+  WITH CHECK (public.is_current_user_admin_or_owner());
+
+-- Restricts chat message visibility to conversation participants only:
+-- the user who owns the conversation and the assigned counselor.
+-- Conversation lists are scoped in the app UI; message content is enforced here.
+
+DROP POLICY IF EXISTS "Users can view messages from their conversations" ON public.messages;
+DROP POLICY IF EXISTS "Counselors/admins can view all messages" ON public.messages;
+DROP POLICY IF EXISTS "Participants can view messages from their conversations" ON public.messages;
+
+CREATE POLICY "Participants can view messages from their conversations"
+  ON public.messages
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.conversations
+      WHERE public.conversations.id = public.messages.conversation_id
+        AND (
+          public.conversations.user_id = auth.uid()
+          OR public.conversations.counselor_id = auth.uid()
+        )
+        AND public.messages.sender_id IN (
+          public.conversations.user_id,
+          public.conversations.counselor_id
+        )
+    )
+  );
+
+DROP POLICY IF EXISTS "Users can insert messages to their conversations" ON public.messages;
+DROP POLICY IF EXISTS "Counselors/admins can insert messages" ON public.messages;
+DROP POLICY IF EXISTS "Participants can insert messages to their conversations" ON public.messages;
+
+CREATE POLICY "Participants can insert messages to their conversations"
+  ON public.messages
+  FOR INSERT
+  WITH CHECK (
+    auth.uid() = sender_id
+    AND EXISTS (
+      SELECT 1
+      FROM public.conversations
+      WHERE public.conversations.id = public.messages.conversation_id
+        AND (
+          public.conversations.user_id = auth.uid()
+          OR public.conversations.counselor_id = auth.uid()
+        )
+    )
+  );
+
+-- ------------------------------
+-- ADD COUNSELOR ONLINE STATUS
+-- Adds is_online column to user_profiles for counselor availability
+-- Safe to run multiple times!
+-- ------------------------------
+
+-- Add is_online column to user_profiles
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT false;
+
+-- Create index for faster online counselor queries
+CREATE INDEX IF NOT EXISTS idx_user_profiles_is_online ON public.user_profiles(is_online) WHERE role = 'counselor';
