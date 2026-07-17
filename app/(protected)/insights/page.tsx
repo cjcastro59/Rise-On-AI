@@ -4,8 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import PageHeader from "@/components/layout/PageHeader";
+import WeeklyMoodChart from "@/components/dashboard/WeeklyMoodChart";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useMoodTrend, type MoodTrendRange } from "@/hooks/useMoodTrend";
 import { analyzeEntry } from "@/lib/sentiment";
 
 type JournalEntry = {
@@ -16,12 +19,21 @@ type JournalEntry = {
   created_at: string;
 };
 
+const TIME_RANGES: MoodTrendRange[] = ["Week", "Month", "3 Months", "All Time"];
+
 export default function MoodInsightsPage() {
-  const [timeRange, setTimeRange] = useState("Week");
+  const [timeRange, setTimeRange] = useState<MoodTrendRange>("Week");
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const supabase = useMemo(() => createClient(), []);
+  const {
+    data: moodTrendData,
+    loading: moodTrendLoading,
+    hasData: moodTrendHasData,
+    avgScore: moodTrendAvg,
+    ticks: moodTrendTicks,
+  } = useMoodTrend(timeRange);
 
   // Mood options for scoring
   const moodOptions = [
@@ -187,37 +199,20 @@ export default function MoodInsightsPage() {
     emotionDistribution[category]++;
   });
 
-  // Mood trend data for chart (using sentimentScore from analyzeEntry)
-  const getMoodTrendData = () => {
-    const data = [];
-    const days = timeRange === "Week" ? 7 : timeRange === "Month" ? 30 : 90;
-    
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
-      const nextDate = new Date(date);
-      nextDate.setDate(date.getDate() + 1);
-      
-      const dayEntries = entries.filter(entry => {
-        const entryDate = new Date(entry.created_at);
-        return entryDate >= date && entryDate < nextDate;
-      });
-      
-      if (dayEntries.length > 0) {
-        const avgScore = dayEntries.reduce((sum, entry) => {
-          const analysis = getEntryAnalysis(entry);
-          return sum + (analysis.sentimentScore / 10); // convert 0-100 to 0-10
-        }, 0) / dayEntries.length;
-        
-        data.push({ date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }), score: avgScore });
-      }
+  // Direction of change for "Mood Trajectory": compares the first and last
+  // recorded points in the selected range, using real mood_logs /
+  // journal_entries scores only — never randomized or placeholder values.
+  const moodTrend = (() => {
+    const validPoints = moodTrendData.filter(p => p.score !== null);
+    if (validPoints.length < 2) {
+      return { direction: validPoints.length === 1 ? "flat" : "none" } as const;
     }
-    return data;
-  };
+    const diff = (validPoints[validPoints.length - 1].score as number) - (validPoints[0].score as number);
+    if (diff > 0.3) return { direction: "up" } as const;
+    if (diff < -0.3) return { direction: "down" } as const;
+    return { direction: "flat" } as const;
+  })();
 
-  const moodTrendData = getMoodTrendData();
-  
   // Top keywords (simplified)
   const extractKeywords = () => {
     const stopWords = ["the", "a", "and", "of", "to", "in", "for", "is", "are", "on", "with", "that", "this"];
@@ -254,27 +249,23 @@ export default function MoodInsightsPage() {
   return (
     <>
       {/* Page Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-dm-serif text-[#4F4F4F] mb-2">Mood Insights</h1>
-          <p className="text-sm font-inter text-[#4F4F4F]/70">Your emotional journey over time</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {["Week", "Month", "3 Months", "All Time"].map((range) => (
-            <button
-              key={range}
-              onClick={() => setTimeRange(range)}
-              className={`px-3 py-1.5 rounded-full text-xs font-poppins transition-all ${
-                timeRange === range
-                  ? "bg-[#A8DADC] text-white shadow-md"
-                  : "bg-white text-[#4F4F4F] hover:bg-[#F5F5F5]"
-              }`}
-            >
-              {range}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PageHeader
+        title="Mood Insights"
+        subtitle="Your emotional journey over time"
+        actions={TIME_RANGES.map((range) => (
+          <button
+            key={range}
+            onClick={() => setTimeRange(range)}
+            className={`px-3 py-1.5 rounded-full text-xs font-poppins transition-all ${
+              timeRange === range
+                ? "bg-[#A8DADC] text-white shadow-md"
+                : "bg-gray-100 text-dark-text/60 hover:bg-[#F5F5F5]"
+            }`}
+          >
+            {range}
+          </button>
+        ))}
+      />
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -332,44 +323,41 @@ export default function MoodInsightsPage() {
         <div className="space-y-6">
           {/* Mood Trajectory Chart */}
           <Card className="p-6 bg-white">
-            <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-6">
-              Mood Trajectory — This {timeRange}
-            </h3>
-            <div className="relative h-52 w-full">
-              {/* Chart Grid Lines */}
-              <div className="absolute inset-0 flex flex-col justify-between py-2">
-                <div className="h-px bg-[#d8e2ed] w-full"></div>
-                <div className="h-px bg-[#d8e2ed] w-full"></div>
-                <div className="h-px bg-[#d8e2ed] w-full"></div>
-                <div className="h-px bg-[#d8e2ed] w-full"></div>
-                <div className="h-px bg-[#F5F5F5] w-full"></div>
-                <div className="h-px bg-[#F5F5F5] w-full"></div>
-                <div className="h-px bg-[#F5F5F5] w-full"></div>
-              </div>
-              {/* X-Axis Labels */}
-              <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[10px] font-inter text-[#4F4F4F]/60 px-2 pb-1">
-                {moodTrendData.map((data, i) => (
-                  <span key={i}>{data.date}</span>
-                ))}
-              </div>
-              {/* Simple Bar Chart */}
-              <div className="absolute inset-0 flex items-end justify-around px-4 pb-6">
-                {moodTrendData.map((data, i) => (
-                  <div
-                    key={i}
-                    className="w-4 rounded-t-xl shadow-lg transition-all duration-300"
-                    style={{
-                      height: `${(data.score / 10) * 100}%`,
-                      background: data.score > 7
-                        ? "linear-gradient(to top, #047857, #34d399)"
-                        : data.score > 4
-                        ? "linear-gradient(to top, #5b21b6, #a78bfa)"
-                        : "linear-gradient(to top, #b91c1c, #fca5a5)"
-                    }}
-                  ></div>
-                ))}
-              </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
+              <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70">
+                Mood Trajectory — This {timeRange}
+              </h3>
+              {moodTrend.direction !== "none" && (
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-poppins ${
+                    moodTrend.direction === "up"
+                      ? "bg-success-green/20 text-success-dark"
+                      : moodTrend.direction === "down"
+                      ? "bg-[#F4A6A6]/20 text-[#F4A6A6]"
+                      : "bg-light-gray text-dark-text/60"
+                  }`}
+                >
+                  {moodTrend.direction === "up" ? "↑ Improving" : moodTrend.direction === "down" ? "↓ Declining" : "→ Stable"}
+                  {moodTrendAvg !== null && ` · Avg ${moodTrendAvg}`}
+                </span>
+              )}
             </div>
+            <WeeklyMoodChart
+              data={moodTrendData}
+              loading={moodTrendLoading}
+              hasData={moodTrendHasData}
+              heightClassName="h-52"
+              ticks={moodTrendTicks}
+              emptyMessage={
+                timeRange === "Week"
+                  ? "No mood entries recorded this week."
+                  : timeRange === "Month"
+                  ? "No mood entries recorded this month."
+                  : timeRange === "3 Months"
+                  ? "No mood entries recorded in the last 3 months."
+                  : "No mood entries recorded yet."
+              }
+            />
           </Card>
 
           {/* Journaling Calendar (simplified) */}
