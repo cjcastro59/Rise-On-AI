@@ -69,8 +69,6 @@ export default function CounselorAssignedUsersPage() {
 
         if (usersRes.error) {
           console.error("Error fetching users:", usersRes.error);
-          // Use mock data if error
-          setUsers(getMockUsers());
         } else {
           const userList = usersRes.data || [];
           setUsers(userList);
@@ -81,7 +79,6 @@ export default function CounselorAssignedUsersPage() {
         }
       } catch (err) {
         console.error("Error fetching data:", err);
-        setUsers(getMockUsers());
       } finally {
         setLoading(false);
       }

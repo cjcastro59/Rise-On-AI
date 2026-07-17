@@ -190,10 +190,7 @@ export function LoginForm() {
           router.refresh();
         }
       } else {
-        const expected = profile?.two_factor_secret 
-          ? authenticator.generate(profile.two_factor_secret)
-          : '';
-        setError(`Invalid verification code! Expected: ${expected}`);
+        setError("Invalid verification code! Please try again.");
       }
     } catch (err) {
       console.error("💥 Unexpected error:", err);

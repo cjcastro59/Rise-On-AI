@@ -88,8 +88,7 @@ export default function Setup2FAPage() {
       });
 
       if (!verified) {
-        const expected = authenticator.generate(profile.two_factor_secret);
-        setError(`Invalid verification code! Expected: ${expected}. Please try again.`);
+        setError("Invalid verification code! Please try again.");
         return;
       }
 
