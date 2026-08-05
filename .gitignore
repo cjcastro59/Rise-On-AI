@@ -142,3 +142,23 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 env.local
+
+# Python virtual environment
+scripts/sentiment-server/.venv/
+**/.venv/
+.venv/
+
+# Python
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+**/.venv/
+venv/
+
+# Hugging Face cache (optional)
+.huggingface/
+.cache/
