@@ -1,0 +1,15 @@
+# Run: pip install -r requirements.txt
+# (Recommended: use a virtual environment!)
+
+# Web framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+
+# ML libraries (XLM-RoBERTa)
+torch>=2.3.0
+transformers>=4.44.0
+sentencepiece>=0.2.0
+protobuf>=4.25.0
+
+# Utilities
+pydantic>=2.8.0
