@@ -1085,3 +1085,146 @@ ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFA
 
 -- Create index for faster online counselor queries
 CREATE INDEX IF NOT EXISTS idx_user_profiles_is_online ON public.user_profiles(is_online) WHERE role = 'counselor';
+
+
+-- ==========================================
+-- ADD XLM-ROBERTA SENTIMENT COLUMNS TO journal_entries
+-- Stores predictions from fine-tuned XLM-RoBERTa model
+-- (Positive / Negative / Distress — NO Neutral)
+-- Safe to run multiple times!
+-- ==========================================
+
+-- Sentiment label (positive, negative, distress)
+ALTER TABLE public.journal_entries
+ADD COLUMN IF NOT EXISTS sentiment TEXT CHECK (sentiment IN ('positive', 'negative', 'distress'));
+
+-- Overall sentiment score (0-100)
+ALTER TABLE public.journal_entries
+ADD COLUMN IF NOT EXISTS sentiment_score NUMERIC;
+
+-- Class percentages 0-100
+ALTER TABLE public.journal_entries
+ADD COLUMN IF NOT EXISTS positive_percentage INTEGER;
+
+ALTER TABLE public.journal_entries
+ADD COLUMN IF NOT EXISTS negative_percentage INTEGER;
+
+ALTER TABLE public.journal_entries
+ADD COLUMN IF NOT EXISTS distress_percentage INTEGER;
+
+-- Model confidence 0-1
+ALTER TABLE public.journal_entries
+ADD COLUMN IF NOT EXISTS confidence NUMERIC;
+
+-- Model name/version (e.g., "xlm-roberta-finetuned-v1" or "fallback-keyword")
+ALTER TABLE public.journal_entries
+ADD COLUMN IF NOT EXISTS sentiment_model TEXT DEFAULT 'xlm-roberta-finetuned';
+
+-- Raw model output JSON for debugging
+ALTER TABLE public.journal_entries
+ADD COLUMN IF NOT EXISTS sentiment_raw JSONB;
+
+
+-- ==========================================
+-- BEHAVIORAL ANALYTICS MODULE — Phase 4.1
+-- Stores computed behavioral indicators per user per time window
+-- Uses ONLY: positive / negative / distress (no Neutral)
+-- Safe to run multiple times!
+-- ==========================================
+
+-- behavioral_indicators table
+-- One row per (user_id, window_end_date, lookback_days) unique tuple
+CREATE TABLE IF NOT EXISTS public.behavioral_indicators (
+    id UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+
+    -- Window definition
+    window_end_date DATE NOT NULL,
+    lookback_days INTEGER NOT NULL DEFAULT 30,
+
+    -- 1. Behavioral Trend Score
+    -- Weighted time-decayed sentiment trajectory: -100 (declining) to +100 (improving)
+    behavioral_trend_score NUMERIC NOT NULL DEFAULT 0,
+    behavioral_trend_details JSONB,
+
+    -- 2. Journaling Frequency
+    -- Normalized 0-100: ratio of actual journaling days to expected cadence
+    journaling_frequency_score NUMERIC NOT NULL DEFAULT 0,
+    total_entries_window INTEGER NOT NULL DEFAULT 0,
+    unique_days_journaled INTEGER NOT NULL DEFAULT 0,
+    journaling_frequency_details JSONB,
+
+    -- 3. Mood Consistency
+    -- 0-100: how similar/consistent are sentiment scores (1 - CV normalized)
+    mood_consistency_score NUMERIC NOT NULL DEFAULT 0,
+    sentiment_scores_variance NUMERIC,
+    sentiment_scores_std NUMERIC,
+    mood_consistency_details JSONB,
+
+    -- 4. Consecutive Negative Journal Entries
+    -- Most recent streak of consecutive negative/distress entries ending at window_end_date
+    consecutive_negative_count INTEGER NOT NULL DEFAULT 0,
+    consecutive_negative_streak JSONB,
+
+    -- Metadata
+    entries_analyzed INTEGER NOT NULL DEFAULT 0,
+    computed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+    UNIQUE(user_id, window_end_date, lookback_days)
+);
+
+-- Indexes for fast queries by user and recent windows
+CREATE INDEX IF NOT EXISTS idx_behavioral_indicators_user_date
+    ON public.behavioral_indicators(user_id, window_end_date DESC);
+
+-- RLS on behavioral_indicators
+ALTER TABLE public.behavioral_indicators ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies to start clean
+DROP POLICY IF EXISTS "Users can view their own or admins can view all behavioral indicators" ON public.behavioral_indicators;
+DROP POLICY IF EXISTS "Users can insert their own behavioral indicators" ON public.behavioral_indicators;
+DROP POLICY IF EXISTS "Users can update their own behavioral indicators" ON public.behavioral_indicators;
+
+-- Select policy: users see their own; admins/owners/counselors see all
+CREATE POLICY "Users can view their own or admins can view all behavioral indicators"
+    ON public.behavioral_indicators
+    FOR SELECT
+    USING (auth.uid() = user_id OR public.is_current_user_admin_or_owner());
+
+-- Insert policy: users can insert rows for themselves
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE tablename = 'behavioral_indicators'
+          AND policyname = 'Users can insert their own behavioral indicators'
+    ) THEN
+        CREATE POLICY "Users can insert their own behavioral indicators"
+            ON public.behavioral_indicators
+            FOR INSERT
+            WITH CHECK (auth.uid() = user_id);
+    END IF;
+END $$;
+
+-- Update policy: recomputations can update existing user rows
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE tablename = 'behavioral_indicators'
+          AND policyname = 'Users can update their own behavioral indicators'
+    ) THEN
+        CREATE POLICY "Users can update their own behavioral indicators"
+            ON public.behavioral_indicators
+            FOR UPDATE
+            USING (auth.uid() = user_id)
+            WITH CHECK (auth.uid() = user_id);
+    END IF;
+END $$;
+
+-- Trigger to keep behavioral_indicators.updated_at fresh
+DROP TRIGGER IF EXISTS update_behavioral_indicators_updated_at ON public.behavioral_indicators;
+CREATE OR REPLACE TRIGGER update_behavioral_indicators_updated_at
+    BEFORE UPDATE ON public.behavioral_indicators
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
