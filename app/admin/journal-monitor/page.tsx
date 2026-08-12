@@ -202,7 +202,30 @@ export default function AdminJournalMonitorPage() {
           <p className="text-sm text-dark-text/70 font-poppins">Anonymized entry analytics; no content displayed</p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50">
+          <button
+            onClick={() => {
+              const rows = [["Entry ID", "User ID", "Created At", "Mood", "Word Count", "Language", "Emotions", "Sentiment Category"]];
+              for (const entry of entries.slice(0, 5000)) {
+                const lang = getLanguage(entry.content);
+                const wc = getWordCount(entry.content);
+                const cat = classifyEntry(entry);
+                rows.push([
+                  entry.id, entry.user_id, new Date(entry.created_at).toISOString(),
+                  entry.mood || "", String(wc), lang,
+                  (entry.emotions || []).join("|"), cat,
+                ]);
+              }
+              const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+              const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `journal-monitor-${new Date().toISOString().slice(0, 10)}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50"
+          >
             <span>📊</span> Export
           </button>
         </div>

@@ -54,16 +54,27 @@ export default function CounselorAssignedUsersPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Fetch user profiles with role "user"
+        const counselorId = currentUser.id;
+        // Fetch user profiles assigned to this counselor
         const [usersRes, entriesRes] = await Promise.all([
           supabase
             .from("user_profiles")
             .select("*")
             .eq("role", "user")
+            .eq("assigned_counselor_id", counselorId)
             .order("created_at", { ascending: false }),
           supabase
             .from("journal_entries")
             .select("*")
+            .in(
+              "user_id",
+              (
+                await supabase
+                  .from("user_profiles")
+                  .select("id")
+                  .eq("assigned_counselor_id", counselorId)
+              ).data?.map((u: any) => u.id) || []
+            )
             .order("created_at", { ascending: false }),
         ]);
 

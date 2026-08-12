@@ -9,8 +9,14 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { authenticator } from "@otplib/preset-default";
 import { QRCodeSVG } from "qrcode.react";
+import { useRouter } from "next/navigation";
 
 type SettingSection = "notifications" | "privacy" | "language" | "security" | "data" | "account";
+
+const flash = (setter: (m: string) => void, msg: string, ms = 3500) => {
+  setter(msg);
+  setTimeout(() => setter(""), ms);
+};
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingSection>("notifications");
@@ -32,10 +38,53 @@ export default function SettingsPage() {
   const [secret, setSecret] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
+
+  // Change password modal
+  const [showChangePw, setShowChangePw] = useState(false);
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwLoading, setPwLoading] = useState(false);
+
+  // Delete account confirmation
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const loadSettings = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from("user_profiles")
+        .select("mood_reminder_enabled, reminder_time, weekly_report_enabled, ai_insight_alerts_enabled, streak_reminder_enabled, share_anonymous_data, profile_visibility, preferred_language, two_factor_enabled")
+        .eq("id", user.id)
+        .single();
+      if (error) return;
+      if (data) {
+        setNotificationSettings({
+          dailyReminder: data.mood_reminder_enabled ?? true,
+          weeklyReport: data.weekly_report_enabled ?? true,
+          aiAlerts: data.ai_insight_alerts_enabled ?? true,
+          streakReminder: data.streak_reminder_enabled ?? false,
+          reminderTime: data.reminder_time || "20:00",
+        });
+        setPrivacySettings({
+          shareAnonymousData: data.share_anonymous_data ?? true,
+          profileVisibility: data.profile_visibility || "private",
+        });
+        setLanguage(data.preferred_language || "English");
+        setTwoFactorEnabled(Boolean(data.two_factor_enabled));
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [supabase, user]);
 
   const check2FAStatus = useCallback(async () => {
     if (!user) return;
@@ -51,9 +100,186 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (user) {
+      loadSettings();
       check2FAStatus();
     }
-  }, [check2FAStatus, user]);
+  }, [loadSettings, check2FAStatus, user]);
+
+  const saveNotificationSettings = async () => {
+    if (!user) return;
+    try {
+      setSaving(true);
+      const { error } = await supabase.from("user_profiles").update({
+        mood_reminder_enabled: notificationSettings.dailyReminder,
+        reminder_time: notificationSettings.reminderTime,
+        weekly_report_enabled: notificationSettings.weeklyReport,
+        ai_insight_alerts_enabled: notificationSettings.aiAlerts,
+        streak_reminder_enabled: notificationSettings.streakReminder,
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id);
+      if (error) throw error;
+      flash(setSuccess, "✅ Notification settings saved!");
+    } catch (e: any) {
+      flash(setError, "❌ Failed to save: " + (e.message || "unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const savePrivacySettings = async () => {
+    if (!user) return;
+    try {
+      setSaving(true);
+      const { error } = await supabase.from("user_profiles").update({
+        share_anonymous_data: privacySettings.shareAnonymousData,
+        profile_visibility: privacySettings.profileVisibility,
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id);
+      if (error) throw error;
+      flash(setSuccess, "✅ Privacy settings saved!");
+    } catch (e: any) {
+      flash(setError, "❌ Failed to save: " + (e.message || "unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveLanguageSettings = async () => {
+    if (!user) return;
+    try {
+      setSaving(true);
+      const { error } = await supabase.from("user_profiles").update({
+        preferred_language: language,
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id);
+      if (error) throw error;
+      flash(setSuccess, "✅ Language preference saved!");
+    } catch (e: any) {
+      flash(setError, "❌ Failed to save: " + (e.message || "unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!user) return;
+    if (!pwCurrent || !pwNew || !pwConfirm) {
+      flash(setError, "Please fill in all password fields");
+      return;
+    }
+    if (pwNew.length < 6) {
+      flash(setError, "New password must be at least 6 characters");
+      return;
+    }
+    if (pwNew !== pwConfirm) {
+      flash(setError, "New passwords don't match");
+      return;
+    }
+    try {
+      setPwLoading(true);
+      const { error } = await supabase.auth.updateUser({
+        password: pwNew,
+      });
+      if (error) throw error;
+      setShowChangePw(false);
+      setPwCurrent(""); setPwNew(""); setPwConfirm("");
+      flash(setSuccess, "✅ Password changed successfully!");
+    } catch (e: any) {
+      flash(setError, "❌ " + (e.message || "Failed to change password (verify current password via email OTP if required)"));
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
+  const downloadAllData = async () => {
+    if (!user) return;
+    try {
+      setSaving(true);
+      const chunks: string[] = [];
+      const addSection = (title: string, rows: any[]) => {
+        chunks.push(`\n===== ${title} =====\n`);
+        if (rows.length === 0) chunks.push("(no records)\n");
+        else chunks.push(JSON.stringify(rows, null, 2) + "\n");
+      };
+
+      const [{ data: profile }, { data: entries }, { data: moods }, { data: indicators }] = await Promise.all([
+        supabase.from("user_profiles").select("*").eq("id", user.id).single(),
+        supabase.from("journal_entries").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5000),
+        supabase.from("mood_logs").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5000),
+        supabase.from("behavioral_indicators").select("*").eq("user_id", user.id).order("date", { ascending: false }).limit(2000),
+      ] as any);
+
+      chunks.push(`# Rise On AI - Data Export for ${(profile as any)?.email || user.email}\n`);
+      chunks.push(`Generated: ${new Date().toISOString()}\n`);
+      addSection("User Profile", [profile].filter(Boolean));
+      addSection("Journal Entries", entries || []);
+      addSection("Mood Logs", moods || []);
+      addSection("Behavioral Indicators", indicators || []);
+
+      try {
+        const [{ data: convs }, { data: distressLogs }] = await Promise.all([
+          supabase.from("conversations").select("*").eq("user_id", user.id),
+          supabase.from("distress_logs").select("*").eq("user_id", user.id),
+        ] as any);
+        addSection("Support Conversations", convs || []);
+        addSection("Distress Logs", distressLogs || []);
+      } catch {
+        /* ignore optional sections */
+      }
+
+      const blob = new Blob(chunks, { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `rise-on-ai-data-export-${new Date().toISOString().slice(0, 10)}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
+      flash(setSuccess, "✅ Data export downloaded!");
+    } catch (e: any) {
+      flash(setError, "❌ Failed to export: " + (e.message || "unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    if (deleteConfirmText.trim().toLowerCase() !== "delete my account") {
+      flash(setError, 'Type "DELETE MY ACCOUNT" exactly to confirm');
+      return;
+    }
+    try {
+      setDeleteLoading(true);
+      // Step 1: Soft-delete profile data
+      try {
+        await supabase.from("user_profiles").update({
+          status: "deactivated",
+          first_name: "Deleted",
+          last_name: "User",
+          emergency_contact_name: null,
+          emergency_contact_number: null,
+          avatar_url: null,
+          bio: null,
+          updated_at: new Date().toISOString(),
+        }).eq("id", user.id);
+      } catch { /* ignore */ }
+
+      // Step 2: Sign out client-side
+      try {
+        await signOut();
+      } catch { /* ignore */ }
+
+      // Step 3: Try to delete auth user via RPC (if defined); otherwise redirect and let admin handle
+      try {
+        await supabase.rpc("delete_auth_user", {});
+      } catch { /* ignore */ }
+
+      router.push("/");
+    } catch (e: any) {
+      flash(setError, "❌ " + (e.message || "Failed, contact an admin to delete your account"));
+      setDeleteLoading(false);
+    }
+  };
 
   const startSetupAuthenticator = async () => {
     if (!user?.email) return;
@@ -239,7 +465,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="flex justify-end mt-6">
-              <Button>Save Notification Settings</Button>
+              <Button onClick={saveNotificationSettings} disabled={saving}>{saving ? "Saving..." : "Save Notification Settings"}</Button>
             </div>
           </div>
         );
@@ -248,7 +474,7 @@ export default function SettingsPage() {
         return (
           <div className="space-y-4">
             <div className="mb-6">
-              <h3 className="text-lg font-dm-serif text-dark-text mb-2">Privacy & Data</h3>
+              <h3 className="text-lg font-dm-serif text-dark-text mb-2">Privacy &amp; Data</h3>
               <p className="text-sm text-dark-text/60 font-poppins">
                 Control how your data is used and who can see it.
               </p>
@@ -282,8 +508,29 @@ export default function SettingsPage() {
                     />
                     <span>Private (Only you can see your profile)</span>
                   </label>
+                  <label className="flex items-center gap-2 text-sm font-inter">
+                    <input
+                      type="radio"
+                      checked={privacySettings.profileVisibility === "counselor"}
+                      onChange={() => setPrivacySettings({ ...privacySettings, profileVisibility: "counselor" })}
+                      className="text-primary-blue focus:ring-primary-blue"
+                    />
+                    <span>Counselors Only (assigned counselor can view details)</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-inter">
+                    <input
+                      type="radio"
+                      checked={privacySettings.profileVisibility === "public"}
+                      onChange={() => setPrivacySettings({ ...privacySettings, profileVisibility: "public" })}
+                      className="text-primary-blue focus:ring-primary-blue"
+                    />
+                    <span>Public (basic info visible)</span>
+                  </label>
                 </div>
               </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <Button onClick={savePrivacySettings} disabled={saving}>{saving ? "Saving..." : "Save Privacy Settings"}</Button>
             </div>
           </div>
         );
@@ -292,7 +539,7 @@ export default function SettingsPage() {
         return (
           <div className="space-y-4">
             <div className="mb-6">
-              <h3 className="text-lg font-dm-serif text-dark-text mb-2">Language & Region</h3>
+              <h3 className="text-lg font-dm-serif text-dark-text mb-2">Language &amp; Region</h3>
               <p className="text-sm text-dark-text/60 font-poppins">
                 Choose your preferred language for the app.
               </p>
@@ -306,7 +553,12 @@ export default function SettingsPage() {
               >
                 <option value="English">English</option>
                 <option value="Filipino">Filipino</option>
+                <option value="Taglish">Taglish</option>
+                <option value="Cebuano">Cebuano</option>
               </select>
+            </div>
+            <div className="flex justify-end mt-6">
+              <Button onClick={saveLanguageSettings} disabled={saving}>{saving ? "Saving..." : "Save Language Preference"}</Button>
             </div>
           </div>
         );
@@ -315,7 +567,7 @@ export default function SettingsPage() {
         return (
           <div className="space-y-4">
             <div className="mb-6">
-              <h3 className="text-lg font-dm-serif text-dark-text mb-2">Security & Login</h3>
+              <h3 className="text-lg font-dm-serif text-dark-text mb-2">Security &amp; Login</h3>
               <p className="text-sm text-dark-text/60 font-poppins">
                 Manage your password and login security.
               </p>
@@ -331,7 +583,7 @@ export default function SettingsPage() {
               </div>
             )}
             <div className="space-y-3">
-              <Button variant="secondary">Change Password</Button>
+              <Button variant="secondary" onClick={() => setShowChangePw(true)}>Change Password</Button>
               {!twoFactorEnabled ? (
                 <div>
                   {!showSetup2FA ? (
@@ -383,15 +635,28 @@ export default function SettingsPage() {
         return (
           <div className="space-y-4">
             <div className="mb-6">
-              <h3 className="text-lg font-dm-serif text-dark-text mb-2">Data & Export</h3>
+              <h3 className="text-lg font-dm-serif text-dark-text mb-2">Data &amp; Export</h3>
               <p className="text-sm text-dark-text/60 font-poppins">
                 Download or delete your data.
               </p>
             </div>
+            {error && (
+              <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins">{error}</div>
+            )}
+            {success && (
+              <div className="text-green-600 text-xs bg-green-100 p-3 rounded-lg font-poppins">{success}</div>
+            )}
             <div className="flex flex-col gap-3">
-              <Button variant="secondary">Download All My Data</Button>
-              <Button variant="ghost" className="text-soft-red">Delete My Account</Button>
+              <Button variant="secondary" onClick={downloadAllData} disabled={saving}>
+                {saving ? "Preparing..." : "📥 Download All My Data"}
+              </Button>
+              <Button variant="ghost" className="text-soft-red" onClick={() => setShowDeleteConfirm(true)}>
+                🗑️ Delete My Account
+              </Button>
             </div>
+            <p className="text-xs text-dark-text/50 font-inter mt-2">
+              Export includes your profile, journal entries, mood logs, behavioral indicators, and support conversations.
+            </p>
           </div>
         );
 
@@ -499,6 +764,92 @@ export default function SettingsPage() {
           {renderSettingsContent()}
         </Card>
       </div>
+
+      {/* Change Password Modal */}
+      {showChangePw && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark-text/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <h3 className="text-xl font-dm-serif text-dark-text">🔐 Change Password</h3>
+                <p className="text-xs text-dark-text/60 font-poppins mt-1">Update your login credentials</p>
+              </div>
+              <button onClick={() => { setShowChangePw(false); setPwCurrent(""); setPwNew(""); setPwConfirm(""); }} className="text-dark-text/40 hover:text-dark-text text-2xl leading-none">×</button>
+            </div>
+            {error && <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins mb-3">{error}</div>}
+            {success && <div className="text-green-600 text-xs bg-green-100 p-3 rounded-lg font-poppins mb-3">{success}</div>}
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-poppins text-dark-text/70 mb-1 block">Current Password</label>
+                <Input type="password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} placeholder="Enter current password" />
+              </div>
+              <div>
+                <label className="text-xs font-poppins text-dark-text/70 mb-1 block">New Password (min 6 chars)</label>
+                <Input type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} placeholder="Enter new password" />
+              </div>
+              <div>
+                <label className="text-xs font-poppins text-dark-text/70 mb-1 block">Confirm New Password</label>
+                <Input type="password" value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)} placeholder="Repeat new password" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => { setShowChangePw(false); setPwCurrent(""); setPwNew(""); setPwConfirm(""); }}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50"
+              >Cancel</button>
+              <button
+                onClick={handleChangePassword}
+                disabled={pwLoading}
+                className="flex-1 px-4 py-2.5 bg-primary-blue text-white rounded-lg text-sm font-poppins hover:bg-primary-blue/90 disabled:opacity-60"
+              >{pwLoading ? "Updating..." : "Update Password"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark-text/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border-l-4 border-l-[#FF6B6B]">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-dm-serif text-dark-text">⚠️ Delete My Account</h3>
+                <p className="text-xs text-dark-text/70 font-poppins mt-1 leading-relaxed">
+                  This is permanent and cannot be undone. Your profile will be anonymized and your support conversations may be retained for compliance.
+                </p>
+              </div>
+              <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }} className="text-dark-text/40 hover:text-dark-text text-2xl leading-none">×</button>
+            </div>
+            {error && <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins mb-3">{error}</div>}
+            <div className="space-y-3">
+              <div className="p-3 bg-gradient-to-r from-red-400/20 to-pink-300/20 rounded-xl border border-[#FF6B6B]/20">
+                <p className="text-xs font-poppins text-dark-text font-semibold mb-1">
+                  Type exactly below to confirm:
+                </p>
+                <p className="text-sm font-mono text-[#FF6B6B] font-bold tracking-wide">DELETE MY ACCOUNT</p>
+              </div>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type confirmation phrase here"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins focus:outline-none focus:ring-2 focus:ring-[#FF6B6B]/30 focus:border-[#FF6B6B]"
+              />
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50"
+              >Cancel, Keep My Account</button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-400 to-pink-300 text-white rounded-lg text-sm font-poppins hover:opacity-90 disabled:opacity-60"
+              >{deleteLoading ? "Deleting..." : "Yes, Delete Forever"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

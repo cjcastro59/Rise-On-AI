@@ -427,7 +427,31 @@ export default function AdminUsersPage() {
           <p className="text-sm text-dark-text/60 font-poppins">{totalUsers} total registered users</p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50">
+          <button
+            onClick={() => {
+              const rows = [["User ID", "Email", "First Name", "Last Name", "Role", "Status", "Mood Reminder", "Avg Mood Score", "Entries Count", "Created At"]];
+              for (const u of filteredUsers) {
+                const entryCount = journalEntries.filter((e: any) => e.user_id === u.id).length;
+                const userEntries = journalEntries.filter((e: any) => e.user_id === u.id);
+                const avgMood = userEntries.length ? userEntries.reduce((a: number, e: any) => a + (Number(e.sentiment_score) || 0), 0) / userEntries.length : 0;
+                rows.push([
+                  u.id, u.email || "", u.first_name || "", u.last_name || "",
+                  u.role || "", u.status || "", String(u.mood_reminder_enabled ?? ""),
+                  String(Math.round(avgMood * 100) / 100), String(entryCount),
+                  new Date(u.created_at || Date.now()).toISOString(),
+                ]);
+              }
+              const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+              const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `users-export-${new Date().toISOString().slice(0, 10)}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50"
+          >
             <span>📊</span> Export CSV
           </button>
         </div>

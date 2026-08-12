@@ -53,21 +53,44 @@ export default function CounselorDashboardPage() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        const counselorId = user.id;
+
+        const todayStart = new Date(today);
+        const todayEnd = new Date(today);
+        todayEnd.setDate(todayEnd.getDate() + 1);
+
         const [
           { count: userCount, error: userCountError },
           { data: casesData, error: casesError },
           { data: messagesData, error: messagesError },
+          { count: newUsersCount, error: newUsersError },
         ] = await Promise.all([
-          supabase.from("user_profiles").select("id", { count: "exact", head: true }).eq("role", "user"),
-          supabase.from("distress_logs").select("id, user_id, severity, trigger, created_at").order("created_at", { ascending: false }).limit(5),
-          supabase.from("messages").select("id, conversation_id, sender_id, created_at").order("created_at", { ascending: false }).limit(5),
+          supabase.from("user_profiles").select("id", { count: "exact", head: true }).eq("assigned_counselor_id", counselorId),
+          supabase
+            .from("distress_logs")
+            .select("id, user_id, severity, trigger, created_at, assigned_counselor_id")
+            .eq("assigned_counselor_id", counselorId)
+            .order("created_at", { ascending: false })
+            .limit(5),
+          supabase
+            .from("messages")
+            .select("id, conversation_id, sender_id, created_at, conversations!inner(counselor_id)")
+            .eq("conversations.counselor_id", counselorId)
+            .order("created_at", { ascending: false })
+            .limit(5),
+          supabase
+            .from("user_profiles")
+            .select("id", { count: "exact", head: true })
+            .eq("assigned_counselor_id", counselorId)
+            .gte("created_at", todayStart.toISOString())
+            .lt("created_at", todayEnd.toISOString()),
         ]);
 
         setStats({
           assignedUsers: userCount || 0,
           activeCases: casesData?.length || 0,
           pendingMessages: messagesData?.length || 0,
-          newUsersToday: 0, // We can add this later
+          newUsersToday: newUsersCount || 0,
         });
         setRecentCases(casesData || []);
         setRecentMessages(messagesData || []);

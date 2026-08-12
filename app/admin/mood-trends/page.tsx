@@ -98,7 +98,44 @@ export default function AdminMoodTrendsPage() {
           <p className="text-sm text-dark-text/70 font-poppins">Platform-wide emotional analytics; aggregated and anonymized</p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50">
+          <button
+            onClick={() => {
+              const header = ["Date", "Entry ID", "Mood", "Sentiment Class", "Emotions"];
+              const rows = [header];
+              for (const entry of entries.slice(0, 5000)) {
+                const cat = classifyEntry(entry);
+                rows.push([
+                  new Date(entry.created_at).toISOString(),
+                  entry.id,
+                  entry.mood || "",
+                  cat,
+                  (entry.emotions || []).join("|"),
+                ]);
+              }
+              // Write summary at end for PDF/print context
+              rows.push([]);
+              rows.push(["SUMMARY"]);
+              rows.push(["Positive %", positivePercent]);
+              rows.push(["Negative %", negativePercent]);
+              rows.push(["Mixed %", mixedPercent]);
+              rows.push(["Distress %", distressPercent]);
+              rows.push(["Top Emotions", topEmotions.map(([k, v]) => `${k}:${v}`).join("; ")]);
+              const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+              const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `mood-trends-${new Date().toISOString().slice(0, 10)}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+              try {
+                setTimeout(() => window.print(), 300);
+              } catch {
+                /* ignore print */
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50"
+          >
             <span>📄</span> Export PDF
           </button>
         </div>
