@@ -1228,3 +1228,179 @@ DROP TRIGGER IF EXISTS update_behavioral_indicators_updated_at ON public.behavio
 CREATE OR REPLACE TRIGGER update_behavioral_indicators_updated_at
     BEFORE UPDATE ON public.behavioral_indicators
     FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+
+-- ==========================================
+-- PHASE 4.1 ADDITIONS — Safe to run multiple times
+-- ==========================================
+
+-- ── assigned_counselor_id on user_profiles ────────────────────────────────
+-- Required by counselor/dashboard and counselor/cases pages.
+-- References user_profiles.id (the counselor's user row).
+ALTER TABLE public.user_profiles
+    ADD COLUMN IF NOT EXISTS assigned_counselor_id UUID
+        REFERENCES public.user_profiles(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_user_profiles_assigned_counselor
+    ON public.user_profiles(assigned_counselor_id)
+    WHERE assigned_counselor_id IS NOT NULL;
+
+-- ── wellness_score on behavioral_indicators ───────────────────────────────
+-- Computed from the 4 behavioral indicators (0.00–10.00).
+-- Maps to: Healthy ≥8, Stable ≥6, Moderate Concern ≥4, At Risk ≥2, High Risk <2.
+ALTER TABLE public.behavioral_indicators
+    ADD COLUMN IF NOT EXISTS wellness_score NUMERIC;
+
+ALTER TABLE public.behavioral_indicators
+    ADD COLUMN IF NOT EXISTS wellness_level TEXT
+        CHECK (wellness_level IN (
+            'Healthy', 'Stable', 'Moderate Concern', 'At Risk', 'High Risk'
+        ));
+
+-- ── Ensure update_updated_at() function exists ────────────────────────────
+-- Some fresh Supabase projects may not have it yet.
+CREATE OR REPLACE FUNCTION public.update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ── updated_at trigger on user_profiles (safe re-create) ──────────────────
+DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON public.user_profiles;
+CREATE TRIGGER update_user_profiles_updated_at
+    BEFORE UPDATE ON public.user_profiles
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+-- ── updated_at trigger on journal_entries (safe re-create) ────────────────
+DROP TRIGGER IF EXISTS update_journal_entries_updated_at ON public.journal_entries;
+CREATE TRIGGER update_journal_entries_updated_at
+    BEFORE UPDATE ON public.journal_entries
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+-- ── Counselor RLS: allow counselors to SELECT any user's behavioral data ──
+-- is_current_user_admin_or_owner() already includes 'counselor' role,
+-- so the existing SELECT policy on behavioral_indicators already covers it.
+-- Nothing extra needed; documented here for clarity.
+
+-- ── Index on journal_entries.sentiment for fast streak/trend queries ──────
+CREATE INDEX IF NOT EXISTS idx_journal_entries_user_sentiment
+    ON public.journal_entries(user_id, sentiment, created_at DESC)
+    WHERE sentiment IS NOT NULL;
+
+-- ── Index on journal_entries.created_at for window range queries ──────────
+CREATE INDEX IF NOT EXISTS idx_journal_entries_user_created
+    ON public.journal_entries(user_id, created_at DESC);
+
+-- ==========================================
+-- PHASE 4.2 ADDITIONS — Safe to run multiple times
+-- ==========================================
+
+-- ── wellness_score_details: persists the full computation breakdown ────────
+-- Stores trendSubScore, frequencySubScore, consistencySubScore,
+-- weightedRaw, streakPenalty, rawScore, inputClamped, sanitisedInput
+-- so the Wellness Assessment is fully reproducible and documentable.
+ALTER TABLE public.behavioral_indicators
+    ADD COLUMN IF NOT EXISTS wellness_score_details JSONB;
+
+-- ── Index for fast wellness history queries ───────────────────────────────
+CREATE INDEX IF NOT EXISTS idx_behavioral_indicators_wellness
+    ON public.behavioral_indicators(user_id, wellness_score DESC NULLS LAST)
+    WHERE wellness_score IS NOT NULL;
+
+-- ==========================================
+-- PHASE 4.3 — DISTRESS RISK INDICATOR
+-- Safe to run multiple times (IF NOT EXISTS)
+-- ==========================================
+
+-- distress_risk_assessments table
+-- One row per (user_id, assessed_date, lookback_days) unique tuple.
+-- Stores the full DRI result so it is queryable without recomputing.
+CREATE TABLE IF NOT EXISTS public.distress_risk_assessments (
+    id UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+
+    -- Window definition (mirrors behavioral_indicators)
+    assessed_date DATE NOT NULL,          -- calendar date the assessment was produced
+    lookback_days INTEGER NOT NULL DEFAULT 30,
+
+    -- Output: risk classification
+    risk_level TEXT NOT NULL
+        CHECK (risk_level IN ('Low Risk', 'Moderate Risk', 'High Risk', 'Critical Risk')),
+    total_points INTEGER NOT NULL DEFAULT 0,
+
+    -- Input snapshot (what was used to produce this result)
+    latest_sentiment TEXT
+        CHECK (latest_sentiment IN ('positive', 'negative', 'distress') OR latest_sentiment IS NULL),
+    behavioral_trend_score NUMERIC,
+    consecutive_negative_count INTEGER,
+    wellness_score NUMERIC,
+    total_entries_window INTEGER,
+    distress_entries_window INTEGER,
+
+    -- Per-condition point breakdown (stored as JSONB for full transparency)
+    -- Array of {conditionId, label, points, triggered, observedValue}
+    condition_results JSONB,
+
+    -- Full details object (mirrors DistressRiskDetails in lib/distress-risk.ts)
+    assessment_details JSONB,
+
+    -- Metadata
+    assessed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+    UNIQUE(user_id, assessed_date, lookback_days)
+);
+
+-- Indexes for fast user + date queries
+CREATE INDEX IF NOT EXISTS idx_distress_risk_user_date
+    ON public.distress_risk_assessments(user_id, assessed_date DESC);
+
+CREATE INDEX IF NOT EXISTS idx_distress_risk_user_level
+    ON public.distress_risk_assessments(user_id, risk_level)
+    WHERE risk_level IN ('High Risk', 'Critical Risk');
+
+-- RLS
+ALTER TABLE public.distress_risk_assessments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their own distress risk assessments" ON public.distress_risk_assessments;
+CREATE POLICY "Users can view their own distress risk assessments"
+    ON public.distress_risk_assessments
+    FOR SELECT
+    USING (auth.uid() = user_id OR public.is_current_user_admin_or_owner());
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE tablename = 'distress_risk_assessments'
+          AND policyname = 'Users can insert their own distress risk assessments'
+    ) THEN
+        CREATE POLICY "Users can insert their own distress risk assessments"
+            ON public.distress_risk_assessments
+            FOR INSERT
+            WITH CHECK (auth.uid() = user_id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE tablename = 'distress_risk_assessments'
+          AND policyname = 'Users can update their own distress risk assessments'
+    ) THEN
+        CREATE POLICY "Users can update their own distress risk assessments"
+            ON public.distress_risk_assessments
+            FOR UPDATE
+            USING (auth.uid() = user_id)
+            WITH CHECK (auth.uid() = user_id);
+    END IF;
+END $$;
+
+-- updated_at trigger
+DROP TRIGGER IF EXISTS update_distress_risk_updated_at ON public.distress_risk_assessments;
+CREATE TRIGGER update_distress_risk_updated_at
+    BEFORE UPDATE ON public.distress_risk_assessments
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();

@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { analyzeSentiment } from "@/lib/sentiment";
+import {
+  WELLNESS_LEVEL_CONFIG,
+  classifyWellnessLevel,
+  type WellnessLevel,
+} from "@/lib/wellness-assessment";
 
 interface JournalEntryRow {
   id: string;
@@ -33,6 +38,13 @@ function isSameDay(dateString: string, target: Date) {
 export default function AdminMoodTrendsPage() {
   const [entries, setEntries] = useState<JournalEntryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  // Platform-wide wellness distribution fetched directly from behavioral_indicators
+  const [wellnessStats, setWellnessStats] = useState<{
+    level: WellnessLevel;
+    count: number;
+    avgScore: number;
+  }[]>([]);
+  const [wellnessLoading, setWellnessLoading] = useState(true);
   const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
@@ -50,7 +62,60 @@ export default function AdminMoodTrendsPage() {
       }
     };
 
+    // Load platform-wide wellness distribution (latest row per user)
+    const loadWellness = async () => {
+      try {
+        setWellnessLoading(true);
+        // Fetch the most recent behavioral_indicators row per user (30-day window)
+        const { data } = await supabase
+          .from("behavioral_indicators")
+          .select("user_id, wellness_score, wellness_level, window_end_date")
+          .eq("lookback_days", 30)
+          .not("wellness_score", "is", null)
+          .order("window_end_date", { ascending: false });
+
+        if (!data) return;
+
+        // Deduplicate: keep only the most-recent row per user
+        const seen = new Set<string>();
+        const latest: { wellness_score: number; wellness_level: string | null }[] = [];
+        for (const row of data) {
+          if (!seen.has(row.user_id)) {
+            seen.add(row.user_id);
+            latest.push(row);
+          }
+        }
+
+        // Group by level
+        const buckets: Record<string, { count: number; totalScore: number }> = {};
+        for (const row of latest) {
+          const lvl = (row.wellness_level as WellnessLevel) ||
+            classifyWellnessLevel(row.wellness_score);
+          if (!buckets[lvl]) buckets[lvl] = { count: 0, totalScore: 0 };
+          buckets[lvl].count++;
+          buckets[lvl].totalScore += row.wellness_score;
+        }
+
+        const ORDER: WellnessLevel[] = [
+          "Healthy", "Stable", "Moderate Concern", "At Risk", "High Risk",
+        ];
+        setWellnessStats(
+          ORDER.filter(l => buckets[l])
+            .map(l => ({
+              level: l,
+              count: buckets[l].count,
+              avgScore: Math.round((buckets[l].totalScore / buckets[l].count) * 10) / 10,
+            }))
+        );
+      } catch (err) {
+        console.error("Error loading wellness distribution:", err);
+      } finally {
+        setWellnessLoading(false);
+      }
+    };
+
     loadEntries();
+    loadWellness();
   }, [supabase]);
 
   const categories = entries.reduce(
@@ -230,6 +295,100 @@ export default function AdminMoodTrendsPage() {
           </div>
         </Card>
       </div>
+
+      {/* ── WELLNESS DISTRIBUTION ─────────────────────────────────────────── */}
+      <Card className="p-6 bg-[#eef3f8]">
+        <div className="flex items-center gap-3 mb-1">
+          <div className="w-8 h-8 bg-[#B7E4C7]/30 rounded-lg flex items-center justify-center">💚</div>
+          <p className="text-xs font-poppins text-dark-text/70 uppercase tracking-wider">
+            PLATFORM WELLNESS DISTRIBUTION
+          </p>
+          <span className="ml-auto text-[10px] text-dark-text/40 font-inter normal-case tracking-normal">
+            Most recent 30-day score per user
+          </span>
+        </div>
+        <p className="text-[11px] text-dark-text/40 font-inter mb-5 ml-11">
+          Aggregated &amp; anonymised · scores sourced from behavioral_indicators table
+        </p>
+
+        {wellnessLoading ? (
+          <p className="text-xs text-dark-text/50 py-4 text-center">Loading wellness distribution…</p>
+        ) : wellnessStats.length === 0 ? (
+          <p className="text-xs text-dark-text/50 py-4 text-center">
+            No wellness scores computed yet. Users need at least one journal entry.
+          </p>
+        ) : (
+          <>
+            {/* Summary counts row */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+              {(["Healthy","Stable","Moderate Concern","At Risk","High Risk"] as WellnessLevel[]).map((lvl) => {
+                const stat  = wellnessStats.find(s => s.level === lvl);
+                const cfg   = WELLNESS_LEVEL_CONFIG[lvl];
+                const total = wellnessStats.reduce((s, r) => s + r.count, 0) || 1;
+                return (
+                  <div key={lvl}
+                    className="rounded-xl p-3 flex flex-col gap-1 border"
+                    style={{ backgroundColor: cfg.bgColor + "40", borderColor: cfg.borderColor + "60" }}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm">{cfg.emoji}</span>
+                      <span className="text-[10px] font-poppins font-semibold" style={{ color: cfg.color }}>
+                        {lvl}
+                      </span>
+                    </div>
+                    <p className="text-xl font-dm-serif" style={{ color: cfg.color }}>
+                      {stat ? stat.count : 0}
+                    </p>
+                    <p className="text-[10px] text-dark-text/50 font-inter">
+                      {stat ? Math.round((stat.count / total) * 100) : 0}% of users
+                      {stat ? ` · avg ${stat.avgScore.toFixed(1)}` : ""}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Stacked proportion bar */}
+            {(() => {
+              const total = wellnessStats.reduce((s, r) => s + r.count, 0) || 1;
+              return (
+                <div>
+                  <div className="h-4 flex rounded-full overflow-hidden gap-px">
+                    {(["Healthy","Stable","Moderate Concern","At Risk","High Risk"] as WellnessLevel[]).map(lvl => {
+                      const stat = wellnessStats.find(s => s.level === lvl);
+                      if (!stat || stat.count === 0) return null;
+                      const pct = (stat.count / total) * 100;
+                      return (
+                        <div
+                          key={lvl}
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: WELLNESS_LEVEL_CONFIG[lvl].bgColor,
+                          }}
+                          title={`${lvl}: ${stat.count} users (${pct.toFixed(1)}%)`}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div className="flex flex-wrap gap-3 mt-2">
+                    {(["Healthy","Stable","Moderate Concern","At Risk","High Risk"] as WellnessLevel[]).map(lvl => {
+                      const cfg  = WELLNESS_LEVEL_CONFIG[lvl];
+                      const stat = wellnessStats.find(s => s.level === lvl);
+                      if (!stat) return null;
+                      return (
+                        <div key={lvl} className="flex items-center gap-1">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cfg.bgColor }} />
+                          <span className="text-[10px] font-inter text-dark-text/60">{lvl}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+          </>
+        )}
+      </Card>
     </div>
   );
 }

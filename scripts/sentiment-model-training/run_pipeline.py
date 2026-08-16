@@ -7,7 +7,7 @@ Runs the FULL fine-tuning pipeline end-to-end:
 
 Usage examples:
 --------------
-# 1) Synthetic demo dataset + 1 trial (quick test)
+# 1) Synthetic demo dataset + 1 trial (quick test, full 3-way eval)
 python run_pipeline.py --synthetic-per-class 300 --trials 1 --epochs 4
 
 # 2) Synthetic dataset + HP search (8 trials, production)
@@ -18,6 +18,12 @@ python run_pipeline.py --input path/to/your_dataset.csv --trials 8 --epochs 8
 
 # 4) XLMR-LARGE model (requires more GPU memory)
 python run_pipeline.py --synthetic-per-class 500 --trials 5 --model FacebookAI/xlm-roberta-large --batch-size 8
+
+# 5) Skip base-model eval (faster, no base-model download needed after training)
+python run_pipeline.py --synthetic-per-class 300 --trials 1 --skip-eval-base
+
+# 6) Skip ALL baseline evals (fastest; fine-tuned metrics only)
+python run_pipeline.py --synthetic-per-class 300 --trials 1 --skip-eval-keyword --skip-eval-base
 """
 from __future__ import annotations
 
@@ -66,8 +72,11 @@ def main():
                     help="Skip ONNX/PyTorch export step")
     ap.add_argument("--no-quant", action="store_true",
                     help="Skip INT8 quantization")
-    ap.add_argument("--skip-before", action="store_true",
-                    help="Skip 'before fine-tuning' baseline eval")
+    ap.add_argument("--skip-eval-keyword", action="store_true",
+                    help="Skip keyword baseline evaluation in Phase 3.2")
+    ap.add_argument("--skip-eval-base", action="store_true",
+                    help="Skip XLM-R base model evaluation in Phase 3.2 "
+                         "(saves time; requires internet to download base weights)")
     ap.add_argument("--max-len", type=int, default=256)
 
     args = ap.parse_args()
@@ -121,11 +130,14 @@ def main():
         print("[SKIP] Skipping export step (--no-export set).")
 
     # ---------------------------------------------------------------
-    # STEP 4 — EVALUATION
+    # STEP 4 — EVALUATION  (Phase 3.2: full 3-way comparison by default)
     # ---------------------------------------------------------------
     ev_args = ["--max-len", str(args.max_len)]
-    if args.skip_before:
-        ev_args.append("--skip-before")
+    # --skip-keyword maps to the old --skip-before flag name
+    if args.skip_eval_keyword:
+        ev_args.append("--skip-keyword")
+    if args.skip_eval_base:
+        ev_args.append("--skip-base")
     try:
         run("04_evaluate_model.py", ev_args)
         summary["steps_completed"].append("04_evaluate_model")

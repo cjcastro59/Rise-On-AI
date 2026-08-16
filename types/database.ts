@@ -39,6 +39,7 @@ export interface Database {
           two_factor_enabled: boolean;
           two_factor_secret: string | null;
           two_factor_skipped: boolean | null;
+          assigned_counselor_id: string | null;
         };
         Insert: {
           id: string;
@@ -69,6 +70,7 @@ export interface Database {
           two_factor_enabled?: boolean;
           two_factor_secret?: string | null;
           two_factor_skipped?: boolean | null;
+          assigned_counselor_id?: string | null;
         };
         Update: {
           id?: string;
@@ -99,6 +101,7 @@ export interface Database {
           two_factor_enabled?: boolean;
           two_factor_secret?: string | null;
           two_factor_skipped?: boolean | null;
+          assigned_counselor_id?: string | null;
         };
       };
       conversations: {
@@ -337,6 +340,9 @@ export interface Database {
           entries_analyzed: number;
           computed_at: string;
           updated_at: string;
+          wellness_score: number | null;
+          wellness_level: string | null;
+          wellness_score_details: Json | null;
         };
         Insert: {
           id?: string;
@@ -358,6 +364,9 @@ export interface Database {
           entries_analyzed?: number;
           computed_at?: string;
           updated_at?: string;
+          wellness_score?: number | null;
+          wellness_level?: string | null;
+          wellness_score_details?: Json | null;
         };
         Update: {
           id?: string;
@@ -378,6 +387,66 @@ export interface Database {
           consecutive_negative_streak?: Json | null;
           entries_analyzed?: number;
           computed_at?: string;
+          updated_at?: string;
+          wellness_score?: number | null;
+          wellness_level?: string | null;
+          wellness_score_details?: Json | null;
+        };
+      };
+    };
+      distress_risk_assessments: {
+        Row: {
+          id: string;
+          user_id: string;
+          assessed_date: string;
+          lookback_days: number;
+          risk_level: string;
+          total_points: number;
+          latest_sentiment: string | null;
+          behavioral_trend_score: number | null;
+          consecutive_negative_count: number | null;
+          wellness_score: number | null;
+          total_entries_window: number | null;
+          distress_entries_window: number | null;
+          condition_results: Json | null;
+          assessment_details: Json | null;
+          assessed_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          assessed_date: string;
+          lookback_days?: number;
+          risk_level: string;
+          total_points?: number;
+          latest_sentiment?: string | null;
+          behavioral_trend_score?: number | null;
+          consecutive_negative_count?: number | null;
+          wellness_score?: number | null;
+          total_entries_window?: number | null;
+          distress_entries_window?: number | null;
+          condition_results?: Json | null;
+          assessment_details?: Json | null;
+          assessed_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          assessed_date?: string;
+          lookback_days?: number;
+          risk_level?: string;
+          total_points?: number;
+          latest_sentiment?: string | null;
+          behavioral_trend_score?: number | null;
+          consecutive_negative_count?: number | null;
+          wellness_score?: number | null;
+          total_entries_window?: number | null;
+          distress_entries_window?: number | null;
+          condition_results?: Json | null;
+          assessment_details?: Json | null;
+          assessed_at?: string;
           updated_at?: string;
         };
       };

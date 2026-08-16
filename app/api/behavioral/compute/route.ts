@@ -5,6 +5,7 @@ import {
   mapDbRowToAnalyticsEntry,
   type JournalEntryForAnalytics,
 } from "@/lib/behavioral-analytics";
+import { computeWellnessScore } from "@/lib/wellness-assessment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -59,8 +60,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ---- 4. Fetch user's journal entries (sentiment fields already stored) ----
-    const { data: journalRows, error: fetchError } = await (supabase
-      .from("journal_entries") as any)
+    const { data: journalRows, error: fetchError } = await supabase
+      .from("journal_entries")
       .select(
         "id, user_id, created_at, sentiment, sentiment_score, positive_percentage, negative_percentage, distress_percentage, confidence"
       )
@@ -83,10 +84,18 @@ export async function POST(request: NextRequest) {
       mapDbRowToAnalyticsEntry
     );
 
-    // ---- 6. Compute all 4 indicators ----
+    // ---- 6. Compute all 4 behavioral indicators ----
     const indicators = computeAllBehavioralIndicators(inputEntries, lookbackDays);
 
-    // ---- 7. Persist to behavioral_indicators table (upsert by unique key) ----
+    // ---- 7. Compute Wellness Score from the 4 indicators ----
+    const wellnessResult = computeWellnessScore({
+      behavioralTrendScore: indicators.behavioralTrendScore,
+      journalingFrequencyScore: indicators.journalingFrequencyScore,
+      moodConsistencyScore: indicators.moodConsistencyScore,
+      consecutiveNegativeCount: indicators.consecutiveNegativeCount,
+    });
+
+    // ---- 8. Persist to behavioral_indicators table (upsert by unique key) ----
     let savedId: string | null = null;
     if (persist) {
       const payload = {
@@ -94,23 +103,25 @@ export async function POST(request: NextRequest) {
         window_end_date: indicators.windowEndDate,
         lookback_days: indicators.lookbackDays,
         behavioral_trend_score: indicators.behavioralTrendScore,
-        behavioral_trend_details: indicators.behavioralTrendDetails as any,
+        behavioral_trend_details: indicators.behavioralTrendDetails,
         journaling_frequency_score: indicators.journalingFrequencyScore,
         total_entries_window: indicators.totalEntriesWindow,
-        unique_days_journaled: indicators.uniqueDaysJournaled,
-        journaling_frequency_details: indicators.journalingFrequencyDetails as any,
+        unique_days_journaled:  indicators.uniqueDaysJournaled,
+        journaling_frequency_details: indicators.journalingFrequencyDetails,
         mood_consistency_score: indicators.moodConsistencyScore,
         sentiment_scores_variance: indicators.sentimentScoresVariance,
         sentiment_scores_std: indicators.sentimentScoresStd,
-        mood_consistency_details: indicators.moodConsistencyDetails as any,
+        mood_consistency_details: indicators.moodConsistencyDetails,
         consecutive_negative_count: indicators.consecutiveNegativeCount,
-        consecutive_negative_streak: indicators.consecutiveNegativeStreak as any,
+        consecutive_negative_streak: indicators.consecutiveNegativeStreak,
         entries_analyzed: indicators.entriesAnalyzed,
+        wellness_score: wellnessResult.score,
+        wellness_level: wellnessResult.level,
+        wellness_score_details: wellnessResult.details,
       };
 
-      // Try to update existing row; if none, insert it.
-      const { data: existingRow, error: lookupError } = await (supabase
-        .from("behavioral_indicators") as any)
+      const { data: existingRow, error: lookupError } = await supabase
+        .from("behavioral_indicators")
         .select("id")
         .eq("user_id", targetUserId)
         .eq("window_end_date", indicators.windowEndDate)
@@ -125,48 +136,44 @@ export async function POST(request: NextRequest) {
       }
 
       if (existingRow?.id) {
-        const { error: updateError } = await (supabase
-          .from("behavioral_indicators") as any)
+        const { error: updateError } = await supabase
+          .from("behavioral_indicators")
           .update(payload)
           .eq("id", existingRow.id);
         if (updateError) {
-          console.error(
-            "[behavioral/compute] Failed to UPDATE indicators:",
-            updateError
-          );
+          console.error("[behavioral/compute] Failed to UPDATE indicators:", updateError);
         } else {
           savedId = existingRow.id;
         }
       } else {
-        const { data: insertResult, error: insertError } = await (supabase
-          .from("behavioral_indicators") as any)
+        const { data: insertResult, error: insertError } = await supabase
+          .from("behavioral_indicators")
           .insert(payload)
           .select("id")
           .single();
         if (insertError) {
-          console.error(
-            "[behavioral/compute] Failed to INSERT indicators:",
-            insertError
-          );
+          console.error("[behavioral/compute] Failed to INSERT indicators:", insertError);
         } else {
           savedId = insertResult?.id ?? null;
         }
       }
     }
 
-    // ---- 8. Return result ----
+    // ---- 9. Return result ----
     return NextResponse.json({
       ok: true,
       targetUserId,
       lookbackDays,
-      persisted: persist ? (savedId !== null) : false,
+      persisted: persist ? savedId !== null : false,
       savedId,
       indicators,
+      wellness: wellnessResult,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[behavioral/compute] unexpected error:", err);
     return NextResponse.json(
-      { error: "Internal server error", details: err?.message },
+      { error: "Internal server error", details: message },
       { status: 500 }
     );
   }

@@ -52,8 +52,8 @@ export async function GET(request: NextRequest) {
     }
 
     // ---- 4. Fetch stored indicators ----
-    const { data: rows, error } = await (supabase
-      .from("behavioral_indicators") as any)
+    const { data: rows, error } = await supabase
+      .from("behavioral_indicators")
       .select("*")
       .eq("user_id", targetUserId)
       .eq("lookback_days", lookbackDays)
@@ -68,8 +68,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // ---- 5. Optionally include the LATEST computed summary even if not yet stored
-    //      (convenience: clients can always see the "most recent" window)
     const latest = (rows ?? [])[0] ?? null;
 
     return NextResponse.json({
@@ -80,10 +78,11 @@ export async function GET(request: NextRequest) {
       history: rows ?? [],
       latest,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[behavioral GET] unexpected error:", err);
     return NextResponse.json(
-      { error: "Internal server error", details: err?.message },
+      { error: "Internal server error", details: message },
       { status: 500 }
     );
   }

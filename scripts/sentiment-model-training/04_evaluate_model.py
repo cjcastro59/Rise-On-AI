@@ -1,28 +1,52 @@
 """
 ================================================================
-04_evaluate_model.py  — Phase 3.2
-AI Evaluation: Accuracy / Precision / Recall / F1 / Confusion Matrix
-                BEFORE vs AFTER Fine-Tuning Comparison
+04_evaluate_model.py  —  Phase 3.2
+AI Model Evaluation: Accuracy / Precision / Recall / F1 / Confusion Matrix
+                     3-Way Comparison: Keyword Baseline → XLM-R Base → Fine-Tuned
 ================================================================
 
-✅ Evaluates on held-out test.csv (unseen during training)
-✅ Computes:
-   - Accuracy
-   - Precision (macro / weighted / per-class)
-   - Recall    (macro / weighted / per-class)
-   - F1-Score  (macro / weighted / per-class)
-   - Confusion Matrix (plotted + CSV)
-   - Full classification report
-✅ Compares:
-   - BEFORE Fine-Tuning  (fallback: keyword / rule-based baseline OR base model)
-   - AFTER  Fine-Tuning  (the fine-tuned XLM-RoBERTa from outputs/best_model/)
-✅ Saves:
-   - 04_evaluation_report.json     (full numeric report)
-   - 04_before_vs_after.png        (bar chart of all key metrics)
-   - 04_confusion_matrix_before.png
-   - 04_confusion_matrix_after.png
-   - 04_errors_before.csv          (misclassified rows for qualitative review)
-   - 04_errors_after.csv
+WHAT THIS SCRIPT DOES
+─────────────────────
+✅ Evaluates on held-out test.csv ONLY (never seen during training)
+✅ Computes — Overall, Per-Class, Macro Avg, Weighted Avg:
+     • Accuracy
+     • Precision
+     • Recall
+     • F1-score
+     • Confusion Matrix (numeric + saved PNG)
+✅ 3-way reproducible comparison:
+     1. Keyword Baseline            ("before" — no ML)
+     2. XLM-R Pre-trained Base      ("base"   — random 3-class head, no fine-tuning)
+     3. XLM-R Fine-tuned            ("after"  — our trained model)
+✅ Identifies lowest-performing class (F1, Recall, Precision)
+✅ Analyzes common misclassification patterns
+✅ Generates data-driven recommendations
+✅ Saves CAPSTONE-READY artifacts:
+     • 04_evaluation_report.json      Full structured report
+     • 04_evaluation_report.md        Markdown for Capstone docs
+     • 04_metrics_overall.csv         Overall / macro / weighted table
+     • 04_metrics_per_class.csv       Per-class table
+     • 04_confusion_matrix_keyword.png
+     • 04_confusion_matrix_base.png
+     • 04_confusion_matrix_finetuned.png
+     • 04_comparison_overall.png      3-way bar chart (overall metrics)
+     • 04_comparison_perclass_f1.png  Per-class F1 bar chart
+     • 04_errors_keyword.csv
+     • 04_errors_base.csv
+     • 04_errors_finetuned.csv
+
+REPRODUCIBILITY
+───────────────
+  Random seed 42 is locked on Python / NumPy / PyTorch / CUDA before ANY
+  inference call.  Results are identical across re-runs given the same
+  test.csv and model weights.
+
+USAGE
+─────
+  python 04_evaluate_model.py                          # full 3-way comparison
+  python 04_evaluate_model.py --skip-base              # skip base model (faster)
+  python 04_evaluate_model.py --skip-keyword           # skip keyword baseline
+  python 04_evaluate_model.py --model path/to/model    # custom model path
 """
 from __future__ import annotations
 
@@ -36,7 +60,7 @@ from collections import Counter
 from pathlib import Path
 
 import matplotlib
-matplotlib.use("Agg")  # non-interactive backend (no GUI needed)
+matplotlib.use("Agg")   # headless — no display needed
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -52,40 +76,37 @@ from sklearn.metrics import (
 )
 from tqdm.auto import tqdm
 
-# ------------------------------
+# ─────────────────────────────────────────────────────────────────────────────
 # PATHS & CONSTANTS
-# ------------------------------
+# ─────────────────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 OUT_DIR = BASE_DIR / "outputs"
 LOG_DIR = BASE_DIR / "logs"
-for d in (DATA_DIR, OUT_DIR, LOG_DIR):
-    d.mkdir(parents=True, exist_ok=True)
+for _d in (DATA_DIR, OUT_DIR, LOG_DIR):
+    _d.mkdir(parents=True, exist_ok=True)
 
 LABELS = ["positive", "negative", "distress"]
 LABEL2IDX = {l: i for i, l in enumerate(LABELS)}
 IDX2LABEL = {i: l for l, i in LABEL2IDX.items()}
 RANDOM_SEED = 42
 
+# Stage display names used in plots / tables
+STAGE_LABELS = {
+    "keyword": "Keyword Baseline",
+    "base": "XLM-R Base (pre-trained)",
+    "finetuned": "XLM-R Fine-tuned",
+}
 
-# ====================================================================
-# 🔒 REPRODUCIBILITY: Lock ALL random seeds globally (Step 1 of Phase 3.2)
-# ====================================================================
+# ─────────────────────────────────────────────────────────────────────────────
+# 1. REPRODUCIBILITY — lock ALL random seeds globally
+# ─────────────────────────────────────────────────────────────────────────────
 def set_global_seed(seed: int = RANDOM_SEED) -> None:
-    """Lock seeds for Python, Numpy, PyTorch, Sklearn — fully reproducible."""
     import random as _pyrandom
     _pyrandom.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    try:
-        # scikit-learn uses numpy random state by default, but let's be explicit:
-        import sklearn
-        if hasattr(sklearn, "utils") and hasattr(sklearn.utils, "check_random_state"):
-            sklearn.utils.check_random_state(seed)
-    except Exception:
-        pass
-    # CUDA deterministic ops (optional, slight perf hit for reproducibility)
     if torch.cuda.is_available():
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
@@ -93,98 +114,91 @@ def set_global_seed(seed: int = RANDOM_SEED) -> None:
 
 set_global_seed(RANDOM_SEED)
 
-
-# ---- Plot style ----
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. PLOT STYLE
+# ─────────────────────────────────────────────────────────────────────────────
 sns.set_theme(style="whitegrid", palette="Set2")
 plt.rcParams["figure.dpi"] = 140
 
-# ------------------------------
-# PREPROCESSING (same as everywhere!)
-# ------------------------------
-URL_RE = re.compile(r"https?://[^\s]+")
-EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
-HTML_RE = re.compile(r"<[^>]*>")
-WS_RE = re.compile(r"\s+")
+# ─────────────────────────────────────────────────────────────────────────────
+# 3. PREPROCESSING  (must match training-time and Next.js 1-for-1)
+# ─────────────────────────────────────────────────────────────────────────────
+_URL_RE = re.compile(r"https?://[^\s]+")
+_EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
+_HTML_RE  = re.compile(r"<[^>]*>")
+_WS_RE = re.compile(r"\s+")
 
 
 def preprocess(text: str) -> str:
     if not isinstance(text, str):
         return ""
     t = text.strip()
-    t = WS_RE.sub(" ", t)
+    t = _WS_RE.sub(" ", t)
     t = unicodedata.normalize("NFC", t)
-    t = HTML_RE.sub(" ", t)
-    t = URL_RE.sub(" ", t)
-    t = EMAIL_RE.sub(" ", t)
+    t = _HTML_RE.sub(" ", t)
+    t = _URL_RE.sub(" ", t)
+    t = _EMAIL_RE.sub(" ", t)
     return t.strip()
 
 
-# ====================================================================
-# BASELINE PREDICTOR (BEFORE FINE-TUNING):
-# Reproducible keyword-based scoring (similar to app-level fallback)
-# so we have a fair "before" to compare against.
-# ====================================================================
-
-POS_EN = {
-    "happy", "glad", "joy", "joyful", "grateful", "thankful", "blessed",
-    "love", "amazing", "great", "good", "wonderful", "excellent", "smile",
-    "proud", "excited", "peaceful", "calm", "grin", "laugh", "positive",
-    "hope", "hopeful", "success", "successful", "win", "won",
+# ─────────────────────────────────────────────────────────────────────────────
+# 4. KEYWORD BASELINE  ("before" — no ML at all)
+# ─────────────────────────────────────────────────────────────────────────────
+_POS_EN = {
+    "happy","glad","joy","joyful","grateful","thankful","blessed","love",
+    "amazing","great","good","wonderful","excellent","smile","proud","excited",
+    "peaceful","calm","grin","laugh","positive","hope","hopeful","success",
+    "successful","win","won",
 }
-NEG_EN = {
-    "sad", "down", "tired", "exhausted", "angry", "hate", "lonely", "alone",
-    "stressed", "anxious", "anxiety", "worried", "worry", "bad", "fail",
-    "failed", "disappointed", "frustrated", "upset", "hurt", "empty",
-    "hopeless", "nothing", "regret", "regretting", "bored",
+_NEG_EN = {
+    "sad","down","tired","exhausted","angry","hate","lonely","alone","stressed",
+    "anxious","anxiety","worried","worry","bad","fail","failed","disappointed",
+    "frustrated","upset","hurt","empty","hopeless","nothing","regret",
+    "regretting","bored",
 }
-DST_EN = {
-    "suicide", "suicidal", "killmyself", "kill myself", "want to die",
-    "end my life", "no point living", "no point in living", "goodbye letter",
-    "self harm", "self-harm", "cutting myself", "cut myself", "hurt myself",
-    "unbearable", "can't take it anymore", "cant take it anymore",
-    "disappear", "nobody cares", "no one cares",
+_DST_EN = {
+    "suicide","suicidal","killmyself","kill myself","want to die","end my life",
+    "no point living","no point in living","goodbye letter","self harm",
+    "self-harm","cutting myself","cut myself","hurt myself","unbearable",
+    "can't take it anymore","cant take it anymore","disappear","nobody cares",
+    "no one cares",
 }
-POS_TL = {
-    "masaya", "saya", "tuwa", "salamat", "grateful", "salamat", "blessed",
-    "mahalin", "mahal", "maganda", "magaling", "mabuti", "masayang",
-    "ipinagpapasalamat", "tagumpay", "nanalo", "panalo", "proud", "payapa",
-    "sana all", "masarap", "kilig", "hope", "pag-asa", "pag asa",
+_POS_TL = {
+    "masaya","saya","tuwa","salamat","blessed","mahalin","mahal","maganda",
+    "magaling","mabuti","masayang","ipinagpapasalamat","tagumpay","nanalo",
+    "panalo","proud","payapa","sana all","masarap","kilig","pag-asa","pag asa",
 }
-NEG_TL = {
-    "malungkot", "lungkot", "pagod", "sobrang pagod", "galit", "naiinis",
-    "mag-isa", "nag-iisa", "stress", "stress na stress", "nababahala",
-    "aalala", "nag-aalala", "problema", "problema na", "bigo", "nabigo",
-    "bigong", "nadismaya", "sawa", "sawang sawa", "nasasaktan",
-    "walang pag-asa", "walang pag asa", "pagsisisi", "nagsisisi",
-    "hinayang", "sawama", "bored",
+_NEG_TL = {
+    "malungkot","lungkot","pagod","sobrang pagod","galit","naiinis","mag-isa",
+    "nag-iisa","stress","stress na stress","nababahala","aalala","nag-aalala",
+    "problema","bigo","nabigo","bigong","nadismaya","sawa","sawang sawa",
+    "nasasaktan","walang pag-asa","walang pag asa","pagsisisi","nagsisisi",
+    "hinayang","bored",
 }
-DST_TL = {
-    "ayaw ko nang mabuhay", "ayaw ko na mabuhay", "tapusin na ito",
-    "tapos na ako", "ayaw ko na", "mawawala na lang", "goodbye letter",
-    "saktan ko ang sarili ko", "saktan ko sarili ko",
-    "magsuicide", "magpakamatay", "mag pakamatay",
-    "hirap na hirap na ako", "di ko na kaya", "hindi ko na kaya",
-    "wala nang kwenta", "walang kwenta",
+_DST_TL = {
+    "ayaw ko nang mabuhay","ayaw ko na mabuhay","tapusin na ito","tapos na ako",
+    "ayaw ko na","mawawala na lang","goodbye letter","saktan ko ang sarili ko",
+    "saktan ko sarili ko","magsuicide","magpakamatay","mag pakamatay",
+    "hirap na hirap na ako","di ko na kaya","hindi ko na kaya",
+    "wala nang kwenta","walang kwenta",
 }
 
 
-def baseline_predict(text: str) -> str:
-    """Keyword-based baseline ("before fine-tuning") predictor."""
+def keyword_predict(text: str) -> str:
+    """Pure keyword/rule-based prediction (no ML). Used as the 'before' baseline."""
     t = preprocess(text).lower()
     if not t:
         return "positive"
 
-    def hits(words, bag):
+    def hits(bag: set) -> int:
         return sum(1 for w in bag if w in t) + sum(
             1 for w in re.findall(r"[a-z]+", t) if w in bag
         )
 
-    pos = hits(t, POS_EN) + hits(t, POS_TL)
-    neg = hits(t, NEG_EN) + hits(t, NEG_TL)
-    dst = hits(t, DST_EN) + hits(t, DST_TL)
-
-    # Distress gets highest priority (weighted)
-    dst *= 2
+    pos = hits(_POS_EN) + hits(_POS_TL)
+    neg = hits(_NEG_EN) + hits(_NEG_TL)
+    dst = hits(_DST_EN) + hits(_DST_TL)
+    dst *= 2  # distress carries higher weight for safety
     if dst >= 2 and dst >= pos and dst >= neg:
         return "distress"
     if neg > pos:
@@ -192,29 +206,61 @@ def baseline_predict(text: str) -> str:
     return "positive"
 
 
-# ====================================================================
-# FINE-TUNED MODEL PREDICTOR (AFTER)
-# ====================================================================
-class FineTunedPredictor:
-    def __init__(self, model_path: Path, max_seq_len: int = 256):
+# ─────────────────────────────────────────────────────────────────────────────
+# 5. TRANSFORMER PREDICTORS  (Base + Fine-tuned)
+# ─────────────────────────────────────────────────────────────────────────────
+def _best_device() -> str:
+    if torch.cuda.is_available():
+        return "cuda"
+    if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
+class HFPredictor:
+    """Generic HuggingFace sequence-classifier predictor (base OR fine-tuned)."""
+
+    def __init__(
+        self,
+        model_name_or_path: str,
+        label_name: str,
+        max_seq_len: int = 256,
+        random_head: bool = False,
+    ) -> None:
         from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-        self.device = (
-            "cuda" if torch.cuda.is_available() else
-            ("mps" if (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()) else "cpu")
+        self.device = _best_device()
+        print(f"[EVAL] Loading '{label_name}': {model_name_or_path}  (device={self.device})")
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_name_or_path, use_fast=True
         )
-        print(f"[EVAL] Loading fine-tuned model from {model_path} (device={self.device})")
-        self.tokenizer = AutoTokenizer.from_pretrained(str(model_path), use_fast=True)
-        self.model = AutoModelForSequenceClassification.from_pretrained(str(model_path))
+        if random_head:
+            # Pre-trained backbone + randomly-initialised 3-class head
+            # This is the "before fine-tuning" model comparison (not keyword heuristic)
+            self.model = AutoModelForSequenceClassification.from_pretrained(
+                model_name_or_path,
+                num_labels=len(LABELS),
+                id2label=IDX2LABEL,
+                label2id=LABEL2IDX,
+                ignore_mismatched_sizes=True,
+            )
+        else:
+            self.model = AutoModelForSequenceClassification.from_pretrained(
+                model_name_or_path
+            )
+
         self.model.to(self.device)
         self.model.eval()
         self.max_seq_len = max_seq_len
+        self.label_name = label_name
 
     @torch.inference_mode()
     def predict_many(self, texts: list[str], batch_size: int = 64) -> list[str]:
-        preds = []
-        for i in tqdm(range(0, len(texts), batch_size), desc="Fine-tuned predict"):
-            batch = texts[i:i+batch_size]
+        set_global_seed(RANDOM_SEED)   # re-lock seed for each predictor run
+        preds: list[str] = []
+        for i in tqdm(range(0, len(texts), batch_size), desc=self.label_name):
+            batch = texts[i : i + batch_size]
             enc = self.tokenizer(
                 batch,
                 return_tensors="pt",
@@ -224,727 +270,845 @@ class FineTunedPredictor:
             )
             enc = {k: v.to(self.device) for k, v in enc.items()}
             logits = self.model(**enc).logits
-            argmax = logits.argmax(dim=-1).cpu().tolist()
-            preds.extend(IDX2LABEL[i] for i in argmax)
+            indices = logits.argmax(dim=-1).cpu().tolist()
+            preds.extend(IDX2LABEL[idx] for idx in indices)
         return preds
 
 
-# ====================================================================
-# METRICS
-# ====================================================================
+# ─────────────────────────────────────────────────────────────────────────────
+# 6. METRICS
+# ─────────────────────────────────────────────────────────────────────────────
 def compute_full_metrics(y_true: list[str], y_pred: list[str]) -> dict:
-    # Label order is fixed: positive, negative, distress
-    y_true_idx = [LABEL2IDX[l] for l in y_true]
-    y_pred_idx = [LABEL2IDX[l] for l in y_pred]
+    yt = [LABEL2IDX[l] for l in y_true]
+    yp = [LABEL2IDX[l] for l in y_pred]
 
-    metrics = {
-        "n_samples": len(y_true),
-        "accuracy": float(accuracy_score(y_true_idx, y_pred_idx)),
-        # ---- MACRO averages ----
-        "precision_macro": float(precision_score(
-            y_true_idx, y_pred_idx, average="macro", zero_division=0)),
-        "recall_macro": float(recall_score(
-            y_true_idx, y_pred_idx, average="macro", zero_division=0)),
-        "f1_macro": float(f1_score(
-            y_true_idx, y_pred_idx, average="macro", zero_division=0)),
-        # ---- WEIGHTED averages (ADDED for Phase 3.2!) ----
-        "precision_weighted": float(precision_score(
-            y_true_idx, y_pred_idx, average="weighted", zero_division=0)),
-        "recall_weighted": float(recall_score(
-            y_true_idx, y_pred_idx, average="weighted", zero_division=0)),
-        "f1_weighted": float(f1_score(
-            y_true_idx, y_pred_idx, average="weighted", zero_division=0)),
+    m: dict = {
+        "n_samples": len(yt),
+        # Overall
+        "accuracy": float(accuracy_score(yt, yp)),
+        # Macro
+        "precision_macro": float(precision_score(yt, yp, average="macro",    zero_division=0)),
+        "recall_macro": float(recall_score   (yt, yp, average="macro",    zero_division=0)),
+        "f1_macro": float(f1_score       (yt, yp, average="macro",    zero_division=0)),
+        # Weighted
+        "precision_weighted": float(precision_score(yt, yp, average="weighted", zero_division=0)),
+        "recall_weighted": float(recall_score   (yt, yp, average="weighted", zero_division=0)),
+        "f1_weighted":float(f1_score       (yt, yp, average="weighted", zero_division=0)),
     }
 
-    # Per-class scores
-    per_label = classification_report(
-        y_true_idx, y_pred_idx,
+    # Per-class
+    cr = classification_report(
+        yt, yp,
         labels=[LABEL2IDX[l] for l in LABELS],
         target_names=LABELS,
         output_dict=True,
         zero_division=0,
     )
     for l in LABELS:
-        d = per_label.get(l, {})
-        metrics[f"per_{l}"] = {
+        d = cr.get(l, {})
+        m[f"per_{l}"] = {
             "precision": float(d.get("precision", 0.0)),
-            "recall":    float(d.get("recall", 0.0)),
-            "f1":        float(d.get("f1-score", 0.0)),
-            "support":   int(d.get("support", 0)),
+            "recall":    float(d.get("recall",    0.0)),
+            "f1":        float(d.get("f1-score",  0.0)),
+            "support":   int  (d.get("support",   0  )),
         }
 
-    # Confusion matrix
-    cm = confusion_matrix(
-        y_true_idx, y_pred_idx,
-        labels=[LABEL2IDX[l] for l in LABELS],
-    )
-    metrics["confusion_matrix"] = cm.tolist()
-    metrics["classification_report_raw"] = per_label
-    return metrics
+    # Confusion matrix (rows = true, cols = predicted)
+    cm = confusion_matrix(yt, yp, labels=[LABEL2IDX[l] for l in LABELS])
+    m["confusion_matrix"]         = cm.tolist()
+    m["classification_report_raw"] = cr
+    return m
 
 
-# ====================================================================
-# 🆕 PRE-TRAINED BASE MODEL PREDICTOR (for REAL "Base vs Fine-tuned" comparison)
-# Loads the ORIGINAL pre-trained XLM-R with a randomly initialized 3-class head
-# (no fine-tuning!) — this is Phase 3.2's "before" comparison point.
-# ====================================================================
-class BasePreTrainedPredictor:
-    def __init__(self, base_model: str = "FacebookAI/xlm-roberta-base", max_seq_len: int = 256):
-        from transformers import AutoTokenizer, AutoModelForSequenceClassification
-
-        self.device = (
-            "cuda" if torch.cuda.is_available() else
-            ("mps" if (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()) else "cpu")
-        )
-        print(f"[EVAL] Loading PRE-TRAINED BASE model: {base_model} (device={self.device})")
-        self.tokenizer = AutoTokenizer.from_pretrained(base_model, use_fast=True)
-        # Randomly initialized head with 3 classes → this is the "before fine-tuning" baseline model
-        self.model = AutoModelForSequenceClassification.from_pretrained(
-            base_model,
-            num_labels=len(LABELS),
-            id2label=IDX2LABEL,
-            label2id=LABEL2IDX,
-        )
-        self.model.to(self.device)
-        self.model.eval()
-        self.max_seq_len = max_seq_len
-
-    @torch.inference_mode()
-    def predict_many(self, texts: list[str], batch_size: int = 64) -> list[str]:
-        preds = []
-        for i in tqdm(range(0, len(texts), batch_size), desc="Base pre-trained predict"):
-            batch = texts[i:i+batch_size]
-            enc = self.tokenizer(
-                batch,
-                return_tensors="pt",
-                truncation=True,
-                padding="max_length",
-                max_length=self.max_seq_len,
-            )
-            enc = {k: v.to(self.device) for k, v in enc.items()}
-            logits = self.model(**enc).logits
-            argmax = logits.argmax(dim=-1).cpu().tolist()
-            preds.extend(IDX2LABEL[i] for i in argmax)
-        return preds
-
-
-def plot_confusion_matrix(cm: list[list[int]], title: str, save_path: Path) -> None:
-    cm_arr = np.array(cm)
+# ─────────────────────────────────────────────────────────────────────────────
+# 7. PLOTS
+# ─────────────────────────────────────────────────────────────────────────────
+def plot_confusion_matrix(
+    cm: list[list[int]],
+    title: str,
+    save_path: Path,
+) -> None:
+    arr = np.array(cm)
     plt.figure(figsize=(6, 5))
     ax = sns.heatmap(
-        cm_arr,
-        annot=True, fmt="d", cmap="Blues",
+        arr, annot=True, fmt="d", cmap="Blues",
         xticklabels=LABELS, yticklabels=LABELS,
         cbar=True, square=True,
     )
-    ax.set_xlabel("Predicted Label", fontsize=11)
-    ax.set_ylabel("True Label", fontsize=11)
-    ax.set_title(title, fontsize=12, pad=12)
+    ax.set_xlabel("Predicted Label",  fontsize=11)
+    ax.set_ylabel("True Label",       fontsize=11)
+    ax.set_title(title,               fontsize=12, pad=12)
     plt.tight_layout()
     plt.savefig(str(save_path), bbox_inches="tight")
     plt.close()
+    print(f"[PLOT] Saved → {save_path.name}")
 
 
-def plot_before_vs_after(before: dict, after: dict, save_path: Path) -> None:
-    keys = [
-        "accuracy",
-        "precision_macro",
-        "recall_macro",
-        "f1_macro",
-        "f1_weighted",
-    ]
-    labels_pretty = [
-        "Accuracy", "Precision\n(Macro)", "Recall\n(Macro)",
-        "F1 (Macro)", "F1 (Weighted)",
-    ]
-    x = np.arange(len(keys))
-    width = 0.35
-    fig, ax = plt.subplots(figsize=(9, 5.5))
-    b = ax.bar(x - width/2, [before[k] for k in keys], width,
-               label="Before Fine-Tuning (Keyword Baseline)", color="#B9A7D5", edgecolor="#7a63b5")
-    a = ax.bar(x + width/2, [after[k] for k in keys], width,
-               label="After Fine-Tuning (XLM-RoBERTa)", color="#76C7C0", edgecolor="#317873")
+def plot_comparison_overall(
+    metrics_map: dict[str, dict],
+    save_path: Path,
+) -> None:
+    """
+    3-way grouped bar chart: Keyword Baseline / XLM-R Base / XLM-R Fine-tuned
+    across five overall metrics.
+    """
+    metric_keys   = ["accuracy", "precision_macro", "recall_macro", "f1_macro", "f1_weighted"]
+    metric_labels = ["Accuracy", "Precision\n(Macro)", "Recall\n(Macro)", "F1\n(Macro)", "F1\n(Weighted)"]
 
-    ax.set_ylabel("Score")
-    ax.set_title("Before vs After Fine-Tuning — Key Metrics", fontsize=13, pad=12)
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels_pretty, fontsize=9)
-    ax.set_ylim(0, 1.12)
-    ax.legend(loc="lower right")
-    for bars in (b, a):
+    stages  = [s for s in ("keyword", "base", "finetuned") if s in metrics_map]
+    colors  = {"keyword": "#C9B8E8", "base": "#88C7C1", "finetuned": "#F4A261"}
+    n_met   = len(metric_keys)
+    n_stg   = len(stages)
+    width   = 0.22
+    x       = np.arange(n_met)
+
+    fig, ax = plt.subplots(figsize=(10, 5.5))
+    for idx, stage in enumerate(stages):
+        m      = metrics_map[stage]
+        vals   = [m.get(k, 0.0) for k in metric_keys]
+        offset = (idx - (n_stg - 1) / 2) * width
+        bars   = ax.bar(x + offset, vals, width,
+                        label=STAGE_LABELS[stage],
+                        color=colors[stage],
+                        edgecolor="#555", linewidth=0.6)
         for bar in bars:
             h = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2, h + 0.01,
-                    f"{h:.2f}", ha="center", va="bottom", fontsize=8)
+            ax.text(
+                bar.get_x() + bar.get_width() / 2, h + 0.012,
+                f"{h:.2f}", ha="center", va="bottom", fontsize=7.5,
+            )
+
+    ax.set_ylabel("Score",  fontsize=11)
+    ax.set_title("Phase 3.2 — Model Comparison: Overall Metrics", fontsize=13, pad=12)
+    ax.set_xticks(x)
+    ax.set_xticklabels(metric_labels, fontsize=9)
+    ax.set_ylim(0, 1.15)
+    ax.legend(loc="lower right", fontsize=9)
     plt.tight_layout()
     plt.savefig(str(save_path), bbox_inches="tight")
     plt.close()
+    print(f"[PLOT] Saved → {save_path.name}")
 
 
-def save_error_csv(df: pd.DataFrame, y_true, y_pred, fname: str):
-    errors = df[[c for c in df.columns if c != "label"]].copy()
-    errors["label_true"] = list(y_true)
-    errors["label_pred"] = list(y_pred)
-    errors = errors[errors["label_true"] != errors["label_pred"]]
-    errors.to_csv(OUT_DIR / fname, index=False, encoding="utf-8")
-    print(f"[EVAL] {len(errors)} misclassifications saved → {OUT_DIR / fname}")
-    return errors.reset_index(drop=True)
+def plot_comparison_perclass_f1(
+    metrics_map: dict[str, dict],
+    save_path: Path,
+) -> None:
+    """Per-class F1 grouped bar chart (one group per class)."""
+    stages  = [s for s in ("keyword", "base", "finetuned") if s in metrics_map]
+    colors  = {"keyword": "#C9B8E8", "base": "#88C7C1", "finetuned": "#F4A261"}
+    n_cls   = len(LABELS)
+    n_stg   = len(stages)
+    width   = 0.22
+    x       = np.arange(n_cls)
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    for idx, stage in enumerate(stages):
+        m      = metrics_map[stage]
+        vals   = [m.get(f"per_{l}", {}).get("f1", 0.0) for l in LABELS]
+        offset = (idx - (n_stg - 1) / 2) * width
+        bars   = ax.bar(x + offset, vals, width,
+                        label=STAGE_LABELS[stage],
+                        color=colors[stage],
+                        edgecolor="#555", linewidth=0.6)
+        for bar in bars:
+            h = bar.get_height()
+            ax.text(
+                bar.get_x() + bar.get_width() / 2, h + 0.012,
+                f"{h:.2f}", ha="center", va="bottom", fontsize=8,
+            )
+
+    ax.set_ylabel("F1-Score", fontsize=11)
+    ax.set_title("Phase 3.2 — Per-Class F1-Score Comparison", fontsize=13, pad=12)
+    ax.set_xticks(x)
+    ax.set_xticklabels([l.capitalize() for l in LABELS], fontsize=10)
+    ax.set_ylim(0, 1.15)
+    ax.legend(loc="lower right", fontsize=9)
+    plt.tight_layout()
+    plt.savefig(str(save_path), bbox_inches="tight")
+    plt.close()
+    print(f"[PLOT] Saved → {save_path.name}")
 
 
-# ====================================================================
-# 🆕 PHASE 3.2 ANALYSIS TOOLS
-# ====================================================================
+# ─────────────────────────────────────────────────────────────────────────────
+# 8. ERROR / MISCLASSIFICATION HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
+def save_error_csv(df: pd.DataFrame, y_true: list, y_pred: list, fname: str) -> pd.DataFrame:
+    err = df.copy()
+    err["label_true"] = list(y_true)
+    err["label_pred"] = list(y_pred)
+    err = err[err["label_true"] != err["label_pred"]].reset_index(drop=True)
+    err.to_csv(OUT_DIR / fname, index=False, encoding="utf-8")
+    print(f"[EVAL] {len(err)} misclassifications → {fname}")
+    return err
 
-def identify_lowest_performing_class(metrics: dict) -> dict:
-    """Identify which class has lowest F1, Recall, Precision (for Capstone findings)."""
-    f1_per = {l: metrics.get(f"per_{l}", {}).get("f1", 0.0) for l in LABELS}
-    recall_per = {l: metrics.get(f"per_{l}", {}).get("recall", 0.0) for l in LABELS}
-    precision_per = {l: metrics.get(f"per_{l}", {}).get("precision", 0.0) for l in LABELS}
+
+def identify_lowest_performing_class(m: dict) -> dict:
+    f1_per   = {l: m.get(f"per_{l}", {}).get("f1",        0.0) for l in LABELS}
+    rec_per  = {l: m.get(f"per_{l}", {}).get("recall",    0.0) for l in LABELS}
+    prec_per = {l: m.get(f"per_{l}", {}).get("precision", 0.0) for l in LABELS}
 
     def _lowest(d: dict) -> tuple[str, float]:
-        items = sorted(d.items(), key=lambda kv: kv[1])
-        return items[0] if items else ("unknown", 0.0)
+        return min(d.items(), key=lambda kv: kv[1])
 
-    lowest_f1_class, lowest_f1_val = _lowest(f1_per)
-    lowest_rec_class, lowest_rec_val = _lowest(recall_per)
-    lowest_prec_class, lowest_prec_val = _lowest(precision_per)
+    low_f1_cls,   low_f1_val   = _lowest(f1_per)
+    low_rec_cls,  low_rec_val  = _lowest(rec_per)
+    low_prec_cls, low_prec_val = _lowest(prec_per)
 
-    # Support-imbalance check
-    supports = {l: int(metrics.get(f"per_{l}", {}).get("support", 0)) for l in LABELS}
-    max_sup = max(supports.values()) or 1
-    min_sup = min(supports.values()) or 1
+    supports = {l: m.get(f"per_{l}", {}).get("support", 0) for l in LABELS}
+    max_sup  = max(supports.values()) or 1
+    min_sup  = min(supports.values()) or 1
 
     return {
-        "lowest_f1": {"class": lowest_f1_class, "value": round(lowest_f1_val, 4)},
-        "lowest_recall": {"class": lowest_rec_class, "value": round(lowest_rec_val, 4)},
-        "lowest_precision": {"class": lowest_prec_class, "value": round(lowest_prec_val, 4)},
+        "lowest_f1":        {"class": low_f1_cls,   "value": round(low_f1_val,   4)},
+        "lowest_recall":    {"class": low_rec_cls,  "value": round(low_rec_val,  4)},
+        "lowest_precision": {"class": low_prec_cls, "value": round(low_prec_val, 4)},
         "support_ratio_min_to_max": round(min_sup / max_sup, 3),
         "supports": supports,
-        "flag_imbalance": min_sup / max_sup < 0.5,  # Less than half means imbalance concern
+        "flag_imbalance": (min_sup / max_sup) < 0.5,
     }
 
 
-def analyze_misclassifications(errors_df: pd.DataFrame, cm: list[list[int]]) -> dict:
-    """Analyze top error patterns: which true→predicted pairs happen most."""
+def analyze_misclassifications(
+    errors_df: pd.DataFrame | None,
+    cm: list[list[int]],
+) -> dict:
     top_pairs: list[dict] = []
-    cm_arr = np.array(cm, dtype=int)
+    arr = np.array(cm, dtype=int)
     for i in range(len(LABELS)):
         for j in range(len(LABELS)):
-            if i != j and cm_arr[i, j] > 0:
+            if i != j and arr[i, j] > 0:
                 top_pairs.append({
-                    "true_label": LABELS[i],
+                    "true_label":      LABELS[i],
                     "predicted_label": LABELS[j],
-                    "count": int(cm_arr[i, j]),
-                    "description": f"True '{LABELS[i]}' misclassified as '{LABELS[j]}'",
+                    "count":           int(arr[i, j]),
+                    "description":     f"True '{LABELS[i]}' predicted as '{LABELS[j]}'",
                 })
     top_pairs.sort(key=lambda x: x["count"], reverse=True)
 
-    # Qualitative stats on error texts (if errors_df available)
-    avg_err_len = 0
-    common_err_keywords: list[str] = []
+    avg_len: float = 0.0
+    common_kw: list[str] = []
     if errors_df is not None and len(errors_df) > 0 and "text" in errors_df.columns:
-        lens = [len(str(x)) for x in errors_df["text"].astype(str)]
-        avg_err_len = round(float(np.mean(lens)), 1) if lens else 0
-        all_words = " ".join(str(x).lower() for x in errors_df["text"])
-        words = re.findall(r"[a-z]+", all_words)
-        stopwords = {
-            "ang", "the", "ng", "ko", "na", "i", "you", "me", "to", "a", "sa",
-            "is", "it", "of", "and", "or", "but", "in", "on", "my", "that",
-            "this", "not", "no", "yes", "so", "very", "too", "with", "for",
-            "from", "at", "by", "as", "an", "be", "are", "was", "were",
+        lens    = [len(str(x)) for x in errors_df["text"]]
+        avg_len = round(float(np.mean(lens)), 1) if lens else 0.0
+        raw     = " ".join(str(x).lower() for x in errors_df["text"])
+        words   = re.findall(r"[a-z]+", raw)
+        STOP    = {
+            "ang","the","ng","ko","na","i","you","me","to","a","sa","is","it",
+            "of","and","or","but","in","on","my","that","this","not","no","yes",
+            "so","very","too","with","for","from","at","by","as","an","be","are",
+            "was","were","naman","lang","yung","kasi","pero",
         }
-        freq = Counter(w for w in words if w not in stopwords and len(w) > 2)
-        common_err_keywords = [w for w, _ in freq.most_common(12)]
+        freq    = Counter(w for w in words if w not in STOP and len(w) > 2)
+        common_kw = [w for w, _ in freq.most_common(12)]
 
     return {
-        "total_errors": int(len(errors_df)) if errors_df is not None else 0,
+        "total_errors":                int(len(errors_df)) if errors_df is not None else 0,
         "top_misclassification_pairs": top_pairs[:6],
-        "error_text_avg_length_chars": avg_err_len,
-        "common_keywords_in_errors": common_err_keywords,
+        "error_text_avg_length_chars": avg_len,
+        "common_keywords_in_errors":   common_kw,
     }
 
 
 def generate_recommendations(
-    metrics_fine_tuned: dict,
+    m_finetuned: dict,
     analysis: dict,
     misclass: dict,
-    label_distribution: dict,
+    label_dist: dict,
 ) -> list[dict]:
-    """Generate concrete, data-driven recommendations for the Capstone report."""
     recs: list[dict] = []
 
-    # Low F1 → more training data for the affected class
-    f1_issue = analysis["lowest_f1"]
-    if f1_issue["value"] < 0.7:
+    # Distress recall — highest priority (safety-critical)
+    dst_recall = m_finetuned.get("per_distress", {}).get("recall", 1.0)
+    if dst_recall < 0.85:
         recs.append({
-            "priority": "HIGH",
-            "category": "DATA",
-            "title": f"Class '{f1_issue['class']}' has low F1-score ({f1_issue['value']:.2f})",
+            "priority":       "CRITICAL",
+            "category":       "SAFETY",
+            "title":          f"Distress class Recall is {dst_recall:.2f} (below 0.85 safety threshold)",
             "recommendation": (
-                f"Increase training / validation examples for class '{f1_issue['class']}' "
-                "(target: at least 50% of the majority class's sample count). "
-                "Consider guided data augmentation: synonym replacement, back-translation "
-                "(Tagalog ↔ English), and rule-based paraphrasing."
+                "A low distress recall means at-risk users may be missed. Actions: "
+                "(1) Add ≥200 real-world distress examples to the training set. "
+                "(2) Increase distress class weight in CrossEntropyLoss by ×1.5–2.0. "
+                "(3) Consider lowering the distress inference threshold in production "
+                "(bias toward false-positives rather than false-negatives for safety)."
             ),
         })
 
-    # Imbalance recommendation
+    # Lowest F1 class
+    f1_issue = analysis["lowest_f1"]
+    if f1_issue["value"] < 0.70:
+        recs.append({
+            "priority":       "HIGH",
+            "category":       "DATA",
+            "title":          f"Class '{f1_issue['class']}' has low F1-score ({f1_issue['value']:.4f})",
+            "recommendation": (
+                f"Increase training examples for class '{f1_issue['class']}' "
+                "to at least 50 % of the majority class count. "
+                "Techniques: back-translation (EN↔TL), synonym replacement, "
+                "rule-based paraphrasing, or crowd-sourced annotation."
+            ),
+        })
+
+    # Class imbalance
     if analysis.get("flag_imbalance"):
         sup = analysis["supports"]
         recs.append({
-            "priority": "MEDIUM",
-            "category": "BALANCING",
-            "title": "Class imbalance detected in test set",
+            "priority":       "MEDIUM",
+            "category":       "BALANCING",
+            "title":          "Class imbalance detected in test set",
             "recommendation": (
-                f"Label distribution is {sup}. Apply: "
-                "(a) class weights in trainer, "
-                "(b) stratified train/val/test splitting (already done), "
-                "(c) optional upsampling of minority classes OR downsampling of majority class."
+                f"Support distribution is {sup}. "
+                "Ensure training split applies stratified sampling (already enforced in 01_prepare_dataset.py). "
+                "Additionally consider: weighted random sampler, upsampling minority classes, "
+                "or focal loss to penalise easy majority-class predictions."
             ),
         })
 
-    # Distress Recall → highest priority (safety)
-    distress_recall = metrics_fine_tuned.get("per_distress", {}).get("recall", 0.0)
-    if distress_recall < 0.85:
-        recs.append({
-            "priority": "CRITICAL",
-            "category": "SAFETY",
-            "title": f"Distress-class Recall is low ({distress_recall:.2f})",
-            "recommendation": (
-                "Low distress recall is a SAFETY risk (missing at-risk users). "
-                "Recommend: (1) Add 200+ real distress examples to train set, "
-                "(2) Increase distress class weight by factor of 1.5–2.0 in loss function, "
-                "(3) Lower inference threshold for 'distress' if needed (bias toward safety)."
-            ),
-        })
-
-    # Negative ↔ Distress confusion pattern
+    # Top confusion pair
     top_pair = (misclass.get("top_misclassification_pairs") or [{}])[0]
     if top_pair:
+        n = top_pair.get("count", 0)
         recs.append({
-            "priority": "HIGH" if top_pair.get("count", 0) >= 5 else "MEDIUM",
-            "category": "ERROR ANALYSIS",
-            "title": f"Top misclassification: {top_pair.get('description')} (N={top_pair.get('count', 0)})",
+            "priority":       "HIGH" if n >= 5 else "MEDIUM",
+            "category":       "ERROR ANALYSIS",
+            "title":          f"Top confusion: {top_pair.get('description')} (N={n})",
             "recommendation": (
-                f"Inspect the exported error CSV (04_errors_after.csv) for pattern: "
-                f"{top_pair.get('description')}. "
-                "Common fixes: expand keyword features, add more fine-tuning examples of "
-                f"class '{top_pair.get('true_label')}' that exhibit similar wording, "
-                "and/or clean ambiguous/noisy labels."
+                f"Review 04_errors_finetuned.csv for rows where true='{top_pair.get('true_label')}' "
+                f"is predicted as '{top_pair.get('predicted_label')}'. "
+                "Common causes: ambiguous phrasing shared between two classes, noisy labels, "
+                "or too few fine-grained training examples at the boundary. "
+                "Fix: add more contrastive examples and consider label-smoothing."
             ),
         })
 
-    # Short error texts
+    # Short misclassified texts
     avg_len = misclass.get("error_text_avg_length_chars", 0)
-    if avg_len and 0 < avg_len < 30:
+    if avg_len and 0 < avg_len < 40:
         recs.append({
-            "priority": "LOW",
-            "category": "DATA QUALITY",
-            "title": f"Misclassified texts are short (avg {avg_len} chars)",
+            "priority":       "LOW",
+            "category":       "DATA QUALITY",
+            "title":          f"Misclassified texts are very short (avg {avg_len} chars)",
             "recommendation": (
-                "Short texts lack context and are legitimately hard to classify. "
-                "Consider: (1) in-app minimum text length for journal entries, "
-                "(2) context-concatenation (e.g., include user's last 2 entries as side info), "
-                "(3) hybrid keyword fallback for very short inputs."
+                "Short texts lack discriminative context. "
+                "Mitigations: enforce a minimum entry length in the app UI, "
+                "concatenate the user's previous journal entry as context, "
+                "or apply a keyword-based fallback when text length < 20 chars."
             ),
         })
 
     if not recs:
         recs.append({
-            "priority": "LOW",
-            "category": "GENERAL",
-            "title": "Metrics are within acceptable range",
+            "priority":       "LOW",
+            "category":       "GENERAL",
+            "title":          "All key metrics are within acceptable range",
             "recommendation": (
-                "All key metrics look good. Next steps: monitor real-world production "
-                "misclassifications via user/counselor feedback, periodically retrain on new "
-                "gold-labeled data."
+                "Continue monitoring production misclassifications via counselor feedback. "
+                "Retrain periodically on gold-labelled real-world data."
             ),
         })
 
     return recs
 
 
-# ====================================================================
-# 🆕 REPORTING: CSV + Markdown outputs (Capstone-doc ready)
-# ====================================================================
-
+# ─────────────────────────────────────────────────────────────────────────────
+# 9. CAPSTONE-READY CSV OUTPUTS
+# ─────────────────────────────────────────────────────────────────────────────
 def save_metrics_csvs(report: dict) -> list[Path]:
-    """Save flattened metrics as CSV (easy to paste into Capstone tables)."""
     written: list[Path] = []
 
-    # --- 1. Overall metrics (OVERALL + MACRO + WEIGHTED) ---
-    overall_rows = []
-    for stage in ("before", "base", "after"):
+    # Overall / macro / weighted table
+    rows: list[dict] = []
+    for stage in ("keyword", "base", "finetuned"):
         m = report.get(stage)
         if not m:
             continue
-        row = {
-            "stage": stage,
-            "n_samples": m.get("n_samples"),
-            "accuracy": m.get("accuracy"),
-            "precision_macro": m.get("precision_macro"),
-            "recall_macro": m.get("recall_macro"),
-            "f1_macro": m.get("f1_macro"),
-            "precision_weighted": m.get("precision_weighted"),
-            "recall_weighted": m.get("recall_weighted"),
-            "f1_weighted": m.get("f1_weighted"),
+        rows.append({
+            "stage":                   STAGE_LABELS.get(stage, stage),
+            "n_samples":               m.get("n_samples"),
+            "accuracy":                m.get("accuracy"),
+            "precision_macro":         m.get("precision_macro"),
+            "recall_macro":            m.get("recall_macro"),
+            "f1_macro":                m.get("f1_macro"),
+            "precision_weighted":      m.get("precision_weighted"),
+            "recall_weighted":         m.get("recall_weighted"),
+            "f1_weighted":             m.get("f1_weighted"),
             "avg_latency_ms_per_sample": m.get("avg_latency_ms_per_sample"),
-        }
-        overall_rows.append(row)
-    if overall_rows:
+        })
+    if rows:
         p = OUT_DIR / "04_metrics_overall.csv"
-        pd.DataFrame(overall_rows).to_csv(p, index=False, encoding="utf-8")
+        pd.DataFrame(rows).to_csv(p, index=False, encoding="utf-8")
         written.append(p)
+        print(f"[SAVE] {p.name}")
 
-    # --- 2. Per-class metrics ---
-    per_rows = []
-    for stage in ("before", "base", "after"):
+    # Per-class table
+    per_rows: list[dict] = []
+    for stage in ("keyword", "base", "finetuned"):
         m = report.get(stage)
         if not m:
             continue
         for l in LABELS:
             d = m.get(f"per_{l}", {})
             per_rows.append({
-                "stage": stage,
-                "class": l,
-                "support": d.get("support"),
+                "stage":     STAGE_LABELS.get(stage, stage),
+                "class":     l,
+                "support":   d.get("support"),
                 "precision": d.get("precision"),
-                "recall": d.get("recall"),
-                "f1": d.get("f1"),
+                "recall":    d.get("recall"),
+                "f1":        d.get("f1"),
             })
     if per_rows:
         p = OUT_DIR / "04_metrics_per_class.csv"
         pd.DataFrame(per_rows).to_csv(p, index=False, encoding="utf-8")
         written.append(p)
+        print(f"[SAVE] {p.name}")
 
     return written
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 10. MARKDOWN REPORT  (Capstone-doc ready)
+# ─────────────────────────────────────────────────────────────────────────────
+def _fmt_pct(x: float | None) -> str:
+    return "N/A" if x is None else f"{x * 100:.2f}%"
+
+def _fmt(x: float | None, n: int = 4) -> str:
+    return "N/A" if x is None else f"{x:.{n}f}"
+
+
 def generate_markdown_report(
-    report: dict,
-    analysis: dict,
-    misclass: dict,
+    report:          dict,
+    analysis:        dict,
+    misclass:        dict,
     recommendations: list[dict],
-    csvs: list[Path],
+    csvs:            list[Path],
 ) -> Path:
-    """Generate a full Capstone-doc-ready Markdown evaluation report."""
-    meta = report.get("meta", {})
-    after = report.get("after")
-    before = report.get("before")
-    base = report.get("base")
+    meta       = report.get("meta", {})
+    m_ft       = report.get("finetuned")
+    m_base     = report.get("base")
+    m_keyword  = report.get("keyword")
 
-    def fmt_pct(x: float | None) -> str:
-        return "N/A" if x is None else f"{100*x:.2f}%"
+    L: list[str] = []
 
-    def fmt(x: float | None, n=4) -> str:
-        return "N/A" if x is None else f"{x:.{n}f}"
+    L.append("# AI Model Evaluation — Phase 3.2 Report")
+    L.append("")
+    L.append("> **Rise On AI · Capstone 2**  ")
+    L.append(f"> Generated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    L.append("")
+    L.append("---")
+    L.append("")
 
-    lines: list[str] = []
-    lines.append("# AI Model Evaluation — Phase 3.2 Report")
-    lines.append("")
-    lines.append("## 1. Evaluation Setup")
-    lines.append("")
-    lines.append(f"- **Date**: {pd.Timestamp.now().isoformat()}")
-    lines.append(f"- **Random seed (reproducibility)**: {RANDOM_SEED}")
-    lines.append(f"- **Evaluation dataset split**: **TEST only** (`{DATA_DIR.name}/test.csv`)")
-    lines.append(f"- **Total test samples (N)**: {meta.get('test_size', 'N/A')}")
-    lines.append(f"- **Label distribution (test set)**: `{json.dumps(meta.get('label_distribution', {}))}`")
-    lines.append(f"- **Classes (3-way)**: Positive / Negative / Distress (no Neutral)")
-    lines.append(f"- **Languages supported**: English, Filipino (Tagalog), Taglish (mixed)")
-    lines.append("")
-    lines.append("## 2. Comparison: Base Model → Fine-Tuned Model")
-    lines.append("")
-    lines.append("### 2.1 Overall Metrics")
-    lines.append("")
-    lines.append("| Stage | N | Accuracy | Prec (Macro) | Recall (Macro) | F1 (Macro) | Prec (Weighted) | Recall (Weighted) | F1 (Weighted) |")
-    lines.append("|-------|---|----------|--------------|----------------|------------|-----------------|-------------------|---------------|")
-    for stage in ("before", "base", "after"):
+    # ── 1. Setup ──────────────────────────────────────────────────────────────
+    L.append("## 1. Evaluation Setup")
+    L.append("")
+    L.append(f"| Item | Value |")
+    L.append(f"|------|-------|")
+    L.append(f"| Random seed (reproducibility) | `{RANDOM_SEED}` |")
+    L.append(f"| Dataset split used | **TEST ONLY** — never seen during training |")
+    L.append(f"| Test samples (N) | `{meta.get('test_size', 'N/A')}` |")
+    L.append(f"| Label distribution | `{json.dumps(meta.get('label_distribution', {}))}` |")
+    L.append(f"| Number of classes | 3 (Positive / Negative / Distress) |")
+    L.append(f"| Languages | English, Filipino (Tagalog), Taglish |")
+    L.append(f"| Base model (HF) | `{meta.get('base_model_name', 'FacebookAI/xlm-roberta-base')}` |")
+    L.append("")
+
+    # ── 2. Overall comparison ─────────────────────────────────────────────────
+    L.append("## 2. Overall Metrics Comparison")
+    L.append("")
+    L.append("Three models are compared on the **same** held-out test set:")
+    L.append("")
+    L.append("| Stage | N | Accuracy | Prec (Macro) | Rec (Macro) | F1 (Macro) | F1 (Weighted) | Avg Latency |")
+    L.append("|-------|---|----------|--------------|-------------|------------|---------------|-------------|")
+    for stage in ("keyword", "base", "finetuned"):
         m = report.get(stage)
         if not m:
             continue
-        lines.append(
-            f"| {stage.capitalize()} | {m.get('n_samples')} | "
-            f"{fmt_pct(m.get('accuracy'))} | "
-            f"{fmt_pct(m.get('precision_macro'))} | "
-            f"{fmt_pct(m.get('recall_macro'))} | "
-            f"{fmt_pct(m.get('f1_macro'))} | "
-            f"{fmt_pct(m.get('precision_weighted'))} | "
-            f"{fmt_pct(m.get('recall_weighted'))} | "
-            f"{fmt_pct(m.get('f1_weighted'))} |"
+        lat = m.get("avg_latency_ms_per_sample")
+        lat_str = f"{lat:.2f} ms" if lat is not None else "N/A"
+        L.append(
+            f"| {STAGE_LABELS[stage]} | {m.get('n_samples')} "
+            f"| {_fmt_pct(m.get('accuracy'))} "
+            f"| {_fmt_pct(m.get('precision_macro'))} "
+            f"| {_fmt_pct(m.get('recall_macro'))} "
+            f"| {_fmt_pct(m.get('f1_macro'))} "
+            f"| {_fmt_pct(m.get('f1_weighted'))} "
+            f"| {lat_str} |"
         )
-    lines.append("")
-    lines.append("### 2.2 Per-Class Metrics (Fine-Tuned)")
-    lines.append("")
-    if after:
-        lines.append("| Class | Support | Precision | Recall | F1 |")
-        lines.append("|-------|---------|-----------|--------|----|")
+    L.append("")
+    L.append("> Charts: `04_comparison_overall.png` · `04_comparison_perclass_f1.png`")
+    L.append("")
+
+    # ── 3. Per-class metrics ──────────────────────────────────────────────────
+    L.append("## 3. Per-Class Metrics")
+    L.append("")
+    for stage in ("keyword", "base", "finetuned"):
+        m = report.get(stage)
+        if not m:
+            continue
+        L.append(f"### {STAGE_LABELS[stage]}")
+        L.append("")
+        L.append("| Class | Support | Precision | Recall | F1 |")
+        L.append("|-------|---------|-----------|--------|----|")
         for l in LABELS:
-            d = after.get(f"per_{l}", {})
-            lines.append(
-                f"| {l.capitalize()} | {d.get('support')} | "
-                f"{fmt_pct(d.get('precision'))} | "
-                f"{fmt_pct(d.get('recall'))} | "
-                f"{fmt_pct(d.get('f1'))} |"
+            d = m.get(f"per_{l}", {})
+            L.append(
+                f"| {l.capitalize()} "
+                f"| {d.get('support', 'N/A')} "
+                f"| {_fmt_pct(d.get('precision'))} "
+                f"| {_fmt_pct(d.get('recall'))} "
+                f"| {_fmt_pct(d.get('f1'))} |"
             )
-        lines.append("")
-    lines.append("## 3. Lowest Performing Class")
-    lines.append("")
-    lines.append(f"- **Lowest F1**: class `{analysis['lowest_f1']['class']}` = {analysis['lowest_f1']['value']:.4f}")
-    lines.append(f"- **Lowest Recall**: class `{analysis['lowest_recall']['class']}` = {analysis['lowest_recall']['value']:.4f}")
-    lines.append(f"- **Lowest Precision**: class `{analysis['lowest_precision']['class']}` = {analysis['lowest_precision']['value']:.4f}")
-    lines.append(f"- **Support min/max ratio**: {analysis['support_ratio_min_to_max']:.3f} → "
-                 f"`{'IMBALANCED' if analysis.get('flag_imbalance') else 'ACCEPTABLE'}`")
-    lines.append("")
-    lines.append("## 4. Misclassification Patterns")
-    lines.append("")
-    lines.append(f"- Total errors (fine-tuned): **{misclass['total_errors']}**")
-    if misclass.get("error_text_avg_length_chars"):
-        lines.append(f"- Avg length of misclassified text: **{misclass['error_text_avg_length_chars']} chars**")
-    if misclass.get("common_keywords_in_errors"):
-        lines.append(f"- Common words among errors: {', '.join(misclass['common_keywords_in_errors'][:8])}")
-    lines.append("")
-    lines.append("### 4.1 Top Confusion Pairs")
-    lines.append("")
-    pairs = misclass.get("top_misclassification_pairs") or []
-    if pairs:
-        lines.append("| Rank | Actual → Predicted | Count |")
-        lines.append("|------|--------------------|-------|")
-        for rank, p in enumerate(pairs, 1):
-            lines.append(f"| {rank} | {p.get('true_label')} → {p.get('predicted_label')} | {p.get('count')} |")
-    lines.append("")
-    lines.append("## 5. Confusion Matrix (Fine-Tuned)")
-    lines.append("")
-    if after:
-        cm = after.get("confusion_matrix") or []
-        lines.append("| Actual \\ Predicted | Positive | Negative | Distress |")
-        lines.append("|--------------------|----------|----------|----------|")
-        for i, l in enumerate(LABELS):
-            row = (cm[i] if i < len(cm) else [0, 0, 0])
-            lines.append(f"| {l.capitalize()} | {row[0] if len(row)>0 else 0} | {row[1] if len(row)>1 else 0} | {row[2] if len(row)>2 else 0} |")
-        lines.append("")
-        lines.append("(PNG versions saved: `04_confusion_matrix_before.png`, `04_confusion_matrix_after.png`, `04_before_vs_after.png`)")
-    lines.append("")
-    lines.append("## 6. Recommendations (Data-Driven)")
-    lines.append("")
-    if recommendations:
-        for i, r in enumerate(recommendations, 1):
-            lines.append(f"### 6.{i} [{r.get('priority')}] {r.get('category')}: {r.get('title')}")
-            lines.append("")
-            lines.append(f"> {r.get('recommendation')}")
-            lines.append("")
-    lines.append("## 7. Artifacts")
-    lines.append("")
-    lines.append("- JSON metrics: `04_evaluation_report.json`")
-    for p in csvs:
-        lines.append(f"- Capstone-ready CSV: `{p.name}`")
-    lines.append("- Misclassified samples: `04_errors_before.csv`, `04_errors_after.csv`")
-    lines.append("")
-    lines.append("---")
-    lines.append("_End of Phase 3.2 Evaluation Report — Rise On AI Capstone 2._")
+        L.append("")
 
-    p = OUT_DIR / "04_evaluation_report.md"
-    p.write_text("\n".join(lines), encoding="utf-8")
-    return p
+    # ── 4. Confusion matrices ─────────────────────────────────────────────────
+    L.append("## 4. Confusion Matrices")
+    L.append("")
+    for stage, label, png in [
+        ("keyword",   "Keyword Baseline",        "04_confusion_matrix_keyword.png"),
+        ("base",      "XLM-R Base (pre-trained)","04_confusion_matrix_base.png"),
+        ("finetuned", "XLM-R Fine-tuned",         "04_confusion_matrix_finetuned.png"),
+    ]:
+        m = report.get(stage)
+        if not m:
+            continue
+        cm = m.get("confusion_matrix") or []
+        L.append(f"### {label}")
+        L.append("")
+        L.append("| Actual \\ Predicted | Positive | Negative | Distress |")
+        L.append("|--------------------|----------|----------|----------|")
+        for i, lbl in enumerate(LABELS):
+            row = cm[i] if i < len(cm) else [0, 0, 0]
+            L.append(f"| {lbl.capitalize()} | {row[0] if len(row)>0 else 0} | {row[1] if len(row)>1 else 0} | {row[2] if len(row)>2 else 0} |")
+        L.append("")
+        L.append(f"> PNG: `{png}`")
+        L.append("")
+
+    # ── 5. Lowest performing class ────────────────────────────────────────────
+    L.append("## 5. Lowest Performing Class (Fine-Tuned Model)")
+    L.append("")
+    if analysis:
+        L.append(f"| Metric | Class | Score |")
+        L.append(f"|--------|-------|-------|")
+        L.append(f"| Lowest F1        | `{analysis['lowest_f1']['class']}`        | {analysis['lowest_f1']['value']:.4f} |")
+        L.append(f"| Lowest Recall    | `{analysis['lowest_recall']['class']}`    | {analysis['lowest_recall']['value']:.4f} |")
+        L.append(f"| Lowest Precision | `{analysis['lowest_precision']['class']}` | {analysis['lowest_precision']['value']:.4f} |")
+        L.append("")
+        imbalance_flag = "⚠️ IMBALANCED" if analysis.get("flag_imbalance") else "✅ ACCEPTABLE"
+        L.append(f"**Test-set support distribution:** `{analysis.get('supports', {})}` → {imbalance_flag}")
+        L.append(f"  (min/max support ratio = {analysis.get('support_ratio_min_to_max', 'N/A')})")
+    L.append("")
+
+    # ── 6. Misclassification analysis ────────────────────────────────────────
+    L.append("## 6. Misclassification Analysis (Fine-Tuned)")
+    L.append("")
+    if misclass:
+        L.append(f"- Total errors: **{misclass.get('total_errors', 0)}**")
+        L.append(f"- Average length of misclassified texts: **{misclass.get('error_text_avg_length_chars', 'N/A')} chars**")
+        kw = misclass.get("common_keywords_in_errors", [])
+        if kw:
+            L.append(f"- Common words in errors: {', '.join(kw[:8])}")
+        L.append("")
+        L.append("### 6.1 Top Confusion Pairs")
+        L.append("")
+        pairs = misclass.get("top_misclassification_pairs") or []
+        if pairs:
+            L.append("| Rank | Actual → Predicted | Count | Possible Cause |")
+            L.append("|------|--------------------|-------|----------------|")
+            causes = {
+                ("negative",  "distress"): "Overlap in depressive / hopeless language",
+                ("distress",  "negative"): "Subtle distress cues misread as general sadness",
+                ("positive",  "negative"): "Sarcasm or mixed-sentiment entries",
+                ("negative",  "positive"): "Hopeful ending overrides negative body text",
+                ("distress",  "positive"): "Rare — check for label noise",
+                ("positive",  "distress"): "Rare — check for label noise",
+            }
+            for rank, p in enumerate(pairs, 1):
+                cause = causes.get((p.get("true_label"), p.get("predicted_label")), "Review error CSV")
+                L.append(f"| {rank} | {p.get('true_label')} → {p.get('predicted_label')} | {p.get('count')} | {cause} |")
+        L.append("")
+    L.append("> Full misclassified rows: `04_errors_keyword.csv`, `04_errors_base.csv`, `04_errors_finetuned.csv`")
+    L.append("")
+
+    # ── 7. Recommendations ───────────────────────────────────────────────────
+    L.append("## 7. Recommendations (Data-Driven)")
+    L.append("")
+    for i, r in enumerate(recommendations, 1):
+        L.append(f"### 7.{i} `[{r.get('priority')}]` {r.get('category')} — {r.get('title')}")
+        L.append("")
+        L.append(f"> {r.get('recommendation')}")
+        L.append("")
+
+    # ── 8. Artifacts ──────────────────────────────────────────────────────────
+    L.append("## 8. Saved Artifacts")
+    L.append("")
+    artifacts = [
+        ("04_evaluation_report.json",        "Full structured metrics (JSON)"),
+        ("04_evaluation_report.md",           "This report (Markdown)"),
+        ("04_metrics_overall.csv",            "Overall / macro / weighted table (CSV)"),
+        ("04_metrics_per_class.csv",          "Per-class precision/recall/F1 table (CSV)"),
+        ("04_comparison_overall.png",         "3-way overall metrics bar chart"),
+        ("04_comparison_perclass_f1.png",     "Per-class F1 bar chart"),
+        ("04_confusion_matrix_keyword.png",   "Confusion matrix — Keyword Baseline"),
+        ("04_confusion_matrix_base.png",      "Confusion matrix — XLM-R Base"),
+        ("04_confusion_matrix_finetuned.png", "Confusion matrix — Fine-tuned model"),
+        ("04_errors_keyword.csv",             "Misclassified samples — Keyword Baseline"),
+        ("04_errors_base.csv",                "Misclassified samples — XLM-R Base"),
+        ("04_errors_finetuned.csv",           "Misclassified samples — Fine-tuned model"),
+    ]
+    L.append("| File | Description |")
+    L.append("|------|-------------|")
+    for fname, desc in artifacts:
+        L.append(f"| `{fname}` | {desc} |")
+    L.append("")
+    L.append("---")
+    L.append("_End of Phase 3.2 Evaluation Report — Rise On AI Capstone 2._")
+
+    out_path = OUT_DIR / "04_evaluation_report.md"
+    out_path.write_text("\n".join(L), encoding="utf-8")
+    print(f"[SAVE] {out_path.name}")
+    return out_path
 
 
-# ====================================================================
-# MAIN
-# ====================================================================
-def main():
-    parser = argparse.ArgumentParser(description="AI Evaluation (before vs after fine-tuning)")
-    parser.add_argument("--model", default=str(OUT_DIR / "best_model"),
-                        help="Path to fine-tuned model folder")
-    parser.add_argument("--base-model", default="FacebookAI/xlm-roberta-base",
-                        help="Pre-trained base model name (for Base vs Fine-tuned comparison")
-    parser.add_argument("--max-len", type=int, default=256)
-    parser.add_argument("--skip-before", action="store_true",
-                        help="Skip keyword baseline 'before' evaluation")
-    parser.add_argument("--compare-base", action="store_true",
-                        help="Also evaluate the raw PRE-TRAINED base XLM-R (no fine-tuning!)")
+# ─────────────────────────────────────────────────────────────────────────────
+# 11. MAIN
+# ─────────────────────────────────────────────────────────────────────────────
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Phase 3.2: Reproducible AI evaluation — Keyword / Base / Fine-tuned"
+    )
+    parser.add_argument(
+        "--model",
+        default=str(OUT_DIR / "best_model"),
+        help="Path to fine-tuned model folder (default: outputs/best_model/)",
+    )
+    parser.add_argument(
+        "--base-model",
+        default="FacebookAI/xlm-roberta-base",
+        help="HF model ID for base pre-trained comparison",
+    )
+    parser.add_argument("--max-len",      type=int, default=256)
+    parser.add_argument("--skip-keyword", action="store_true",
+                        help="Skip keyword baseline evaluation")
+    parser.add_argument("--skip-base",    action="store_true",
+                        help="Skip base XLM-R (pre-trained, no fine-tuning) evaluation")
     args = parser.parse_args()
 
-    # Lock seeds again at runtime (extra safety for reproducibility)
+    # ── Seed ──────────────────────────────────────────────────────────────────
     set_global_seed(RANDOM_SEED)
 
+    # ── Load test split ───────────────────────────────────────────────────────
     test_csv = DATA_DIR / "test.csv"
     if not test_csv.exists():
-        raise FileNotFoundError(
-            f"Missing {test_csv}. Run 01_prepare_dataset.py first!"
-        )
+        print(f"[ERROR] {test_csv} not found. Run 01_prepare_dataset.py first.")
+        sys.exit(1)
 
-    df = pd.read_csv(test_csv)
+    df      = pd.read_csv(test_csv)
     df["text"] = df["text"].map(preprocess)
-    # Filter any weird empties
-    df = df[df["text"].str.len() > 0].reset_index(drop=True)
+    df      = df[df["text"].str.len() > 0].reset_index(drop=True)
+    y_true  = list(df["label"].astype(str))
+    texts   = list(df["text"].astype(str))
+    label_dist = {l: int(y_true.count(l)) for l in LABELS}
 
-    y_true = list(df["label"].astype(str))
-    texts = list(df["text"].astype(str))
-    label_distribution = {l: int(y_true.count(l)) for l in LABELS}
+    print(f"\n[TEST SET] N={len(df)} | Distribution: {label_dist}")
 
-    report: dict = {"meta": {
-        "test_size": len(df),
-        "label_distribution": label_distribution,
-        "dataset_split": "TEST ONLY",  # Explicitly Phase 3.2 requirement!
-        "random_seed": RANDOM_SEED,
-        "base_model_name": args.base_model,
-    }}
+    report: dict = {
+        "meta": {
+            "test_size": len(df),
+            "label_distribution": label_dist,
+            "dataset_split": "TEST ONLY",
+            "random_seed": RANDOM_SEED,
+            "base_model_name": args.base_model,
+            "evaluation_date": pd.Timestamp.now().isoformat(),
+        }
+    }
+    metrics_map: dict[str, dict] = {}
 
-    errors_after_df = None
-    m_after: dict | None = None
-    m_before: dict | None = None
+    # ── Stage 1: Keyword baseline ─────────────────────────────────────────────
+    if not args.skip_keyword:
+        print("\n" + "─"*60)
+        print("▶  STAGE 1 / 3 — Keyword Baseline  (no ML)")
+        print("─"*60)
+        t0 = time.perf_counter()
+        y_pred_kw = [keyword_predict(t) for t in tqdm(texts, desc="Keyword")]
+        lat_ms = (time.perf_counter() - t0) * 1000 / max(1, len(texts))
+        m_kw = compute_full_metrics(y_true, y_pred_kw)
+        m_kw["avg_latency_ms_per_sample"] = round(lat_ms, 4)
+        report["keyword"]    = m_kw
+        metrics_map["keyword"] = m_kw
+        print(f"   Accuracy : {m_kw['accuracy']:.4f}")
+        print(f"   F1 Macro : {m_kw['f1_macro']:.4f}")
+        plot_confusion_matrix(
+            m_kw["confusion_matrix"],
+            "Confusion Matrix — Keyword Baseline",
+            OUT_DIR / "04_confusion_matrix_keyword.png",
+        )
+        save_error_csv(df, y_true, y_pred_kw, "04_errors_keyword.csv")
 
-    # ---------------- 0. BASE PRE-TRAINED MODEL (optional) ----------------
-    if args.compare_base:
-        print("\n▶ [BASE PRE-TRAINED] Raw XLM-R with random init 3-class head...")
+    # ── Stage 2: XLM-R Base (pre-trained, random head) ───────────────────────
+    if not args.skip_base:
+        print("\n" + "─"*60)
+        print(f"▶  STAGE 2 / 3 — XLM-R Base (pre-trained, random head)")
+        print("─"*60)
         try:
-            base_predictor = BasePreTrainedPredictor(
-                base_model=args.base_model, max_seq_len=args.max_len
+            base_predictor = HFPredictor(
+                model_name_or_path=args.base_model,
+                label_name="XLM-R Base",
+                max_seq_len=args.max_len,
+                random_head=True,
             )
-            start = time.perf_counter()
+            t0 = time.perf_counter()
             y_pred_base = base_predictor.predict_many(texts)
-            lat_ms = (time.perf_counter() - start) * 1000 / max(1, len(texts))
+            lat_ms = (time.perf_counter() - t0) * 1000 / max(1, len(texts))
             m_base = compute_full_metrics(y_true, y_pred_base)
-            m_base["avg_latency_ms_per_sample"] = round(lat_ms, 2)
-            report["base"] = m_base
-            print(f"   -> F1 Macro (base) : {m_base['f1_macro']:.4f}")
-            print(f"   -> Accuracy  (base) : {m_base['accuracy']:.4f}")
-        except Exception as e:
-            print(f"[WARN] Base model comparison failed (continuing): {e}")
-
-    # ---------------- 1. BEFORE (Baseline / keyword) ----------------
-    if not args.skip_before:
-        print("\n▶ [BEFORE FINE-TUNING] Baseline keyword predictor...")
-        start = time.perf_counter()
-        y_pred_before = [baseline_predict(t) for t in tqdm(texts, desc="Baseline")]
-        lat_ms = (time.perf_counter() - start) * 1000 / max(1, len(texts))
-        m_before = compute_full_metrics(y_true, y_pred_before)
-        m_before["avg_latency_ms_per_sample"] = round(lat_ms, 2)
-        report["before"] = m_before
-
-        print(f"   -> F1 Macro (before) : {m_before['f1_macro']:.4f}")
-        print(f"   -> Accuracy  (before) : {m_before['accuracy']:.4f}")
-
-        plot_confusion_matrix(
-            m_before["confusion_matrix"],
-            title="Confusion Matrix: BEFORE Fine-Tuning (Keyword)",
-            save_path=OUT_DIR / "04_confusion_matrix_before.png",
-        )
-        save_error_csv(df, y_true, y_pred_before, "04_errors_before.csv")
-    else:
-        print("[EVAL] Skipping baseline 'before' per request.")
-
-    # ---------------- 2. AFTER (Fine-tuned XLM-RoBERTa) ----------------
-    model_path = Path(args.model)
-    if (model_path / "model.safetensors").exists() or (model_path / "pytorch_model.bin").exists():
-        print("\n▶ [AFTER FINE-TUNING] Fine-tuned XLM-RoBERTa...")
-        predictor = FineTunedPredictor(model_path, max_seq_len=args.max_len)
-        start = time.perf_counter()
-        y_pred_after = predictor.predict_many(texts)
-        lat_ms = (time.perf_counter() - start) * 1000 / max(1, len(texts))
-
-        m_after = compute_full_metrics(y_true, y_pred_after)
-        m_after["avg_latency_ms_per_sample"] = round(lat_ms, 2)
-        report["after"] = m_after
-
-        print(f"   -> F1 Macro (after)  : {m_after['f1_macro']:.4f}")
-        print(f"   -> Accuracy  (after)  : {m_after['accuracy']:.4f}")
-
-        plot_confusion_matrix(
-            m_after["confusion_matrix"],
-            title="Confusion Matrix: AFTER Fine-Tuning (XLM-RoBERTa)",
-            save_path=OUT_DIR / "04_confusion_matrix_after.png",
-        )
-        errors_after_df = save_error_csv(df, y_true, y_pred_after, "04_errors_after.csv")
-
-        # --- Before vs After comparison plot ---
-        if m_before is not None:
-            print("\n[EVAL] Generating before/after comparison plot...")
-            plot_before_vs_after(
-                m_before, m_after,
-                save_path=OUT_DIR / "04_before_vs_after.png",
+            m_base["avg_latency_ms_per_sample"] = round(lat_ms, 4)
+            report["base"]      = m_base
+            metrics_map["base"] = m_base
+            print(f"   Accuracy : {m_base['accuracy']:.4f}")
+            print(f"   F1 Macro : {m_base['f1_macro']:.4f}")
+            plot_confusion_matrix(
+                m_base["confusion_matrix"],
+                "Confusion Matrix — XLM-R Base (pre-trained, random head)",
+                OUT_DIR / "04_confusion_matrix_base.png",
             )
+            save_error_csv(df, y_true, y_pred_base, "04_errors_base.csv")
+            del base_predictor   # free memory before loading fine-tuned
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception as exc:
+            print(f"[WARN] Base model evaluation failed: {exc}")
+            import traceback; traceback.print_exc()
 
-            # Print improvement summary
-            print("\n========================================")
-            print("  IMPROVEMENT (After vs Before Fine-Tuning)")
-            print("========================================")
-            keys = [
-                "accuracy", "precision_macro", "recall_macro", "f1_macro",
-                "precision_weighted", "recall_weighted", "f1_weighted",
-            ]
-            for k in keys:
-                try:
-                    delta = m_after[k] - m_before[k]
-                    sign = "+" if delta >= 0 else ""
-                    print(f"   {k:22s}  {m_before[k]:.3f} → {m_after[k]:.3f}   ({sign}{100*delta:.2f} pp)")
-                except Exception:
-                    continue
-            print("========================================\n")
+    # ── Stage 3: Fine-tuned XLM-RoBERTa ──────────────────────────────────────
+    model_path = Path(args.model)
+    has_weights = (
+        (model_path / "model.safetensors").exists()
+        or (model_path / "pytorch_model.bin").exists()
+    )
+
+    m_ft:  dict | None = None
+    err_ft: pd.DataFrame | None = None
+
+    if has_weights:
+        print("\n" + "─"*60)
+        print("▶  STAGE 3 / 3 — Fine-tuned XLM-RoBERTa")
+        print("─"*60)
+        ft_predictor = HFPredictor(
+            model_name_or_path=str(model_path),
+            label_name="XLM-R Fine-tuned",
+            max_seq_len=args.max_len,
+            random_head=False,
+        )
+        t0 = time.perf_counter()
+        y_pred_ft = ft_predictor.predict_many(texts)
+        lat_ms = (time.perf_counter() - t0) * 1000 / max(1, len(texts))
+        m_ft = compute_full_metrics(y_true, y_pred_ft)
+        m_ft["avg_latency_ms_per_sample"] = round(lat_ms, 4)
+        report["finetuned"]      = m_ft
+        metrics_map["finetuned"] = m_ft
+        print(f"   Accuracy : {m_ft['accuracy']:.4f}")
+        print(f"   F1 Macro : {m_ft['f1_macro']:.4f}")
+        plot_confusion_matrix(
+            m_ft["confusion_matrix"],
+            "Confusion Matrix — XLM-R Fine-tuned",
+            OUT_DIR / "04_confusion_matrix_finetuned.png",
+        )
+        err_ft = save_error_csv(df, y_true, y_pred_ft, "04_errors_finetuned.csv")
+
+        # ── Improvement summary ────────────────────────────────────────────────
+        print("\n" + "═"*60)
+        print("  IMPROVEMENT SUMMARY  (relative to keyword baseline & base model)")
+        print("═"*60)
+        keys = ["accuracy", "precision_macro", "recall_macro", "f1_macro",
+                "precision_weighted", "recall_weighted", "f1_weighted"]
+        hdr  = f"  {'Metric':<24}  {'Keyword':>8}  {'Base':>8}  {'Fine-tuned':>10}  {'Δ vs Base':>10}"
+        print(hdr)
+        print("  " + "─" * (len(hdr) - 2))
+        for k in keys:
+            ft_val = m_ft.get(k, 0.0)
+            kw_val = report.get("keyword", {}).get(k)
+            bm_val = report.get("base",    {}).get(k)
+            kw_s   = f"{kw_val:.3f}" if kw_val is not None else "  N/A"
+            bm_s   = f"{bm_val:.3f}" if bm_val is not None else "  N/A"
+            delta  = ft_val - bm_val if bm_val is not None else None
+            dlt_s  = (("+" if delta >= 0 else "") + f"{100*delta:.2f} pp") if delta is not None else "  N/A"
+            print(f"  {k:<24}  {kw_s:>8}  {bm_s:>8}  {ft_val:>10.3f}  {dlt_s:>10}")
+        print("═"*60 + "\n")
+
     else:
-        print(f"[WARN] No fine-tuned model at {model_path} — skipping 'after' evaluation.")
+        print(f"[WARN] No fine-tuned model weights at {model_path} — skipping Stage 3.")
+        print("        Run 02_finetune_xlmroberta.py first, then re-run this script.")
 
-    # ---------------- 3. Capstone-Ready ANALYSIS, RECOMMENDATIONS, REPORTS ----------------
-    analysis = {}
-    misclass = {}
+    # ── Comparison charts ─────────────────────────────────────────────────────
+    if len(metrics_map) >= 2:
+        plot_comparison_overall(
+            metrics_map,
+            OUT_DIR / "04_comparison_overall.png",
+        )
+        plot_comparison_perclass_f1(
+            metrics_map,
+            OUT_DIR / "04_comparison_perclass_f1.png",
+        )
+
+    # ── Analysis + recommendations (fine-tuned) ───────────────────────────────
+    analysis: dict = {}
+    misclass: dict = {}
     recs: list[dict] = []
-    csvs_written: list[Path] = []
-    md_path: Path | None = None
 
-    if m_after is not None:
-        # 3.1 Lowest performing class
-        analysis = identify_lowest_performing_class(m_after)
-        print("\n📊 [ANALYSIS] Lowest performing class:")
-        print(f"   F1     → {analysis['lowest_f1']['class']} = {analysis['lowest_f1']['value']:.4f}")
-        print(f"   Recall → {analysis['lowest_recall']['class']} = {analysis['lowest_recall']['value']:.4f}")
-        print(f"   Imbalance flag → {analysis.get('flag_imbalance')}")
+    if m_ft is not None:
+        analysis = identify_lowest_performing_class(m_ft)
+        misclass = analyze_misclassifications(err_ft, m_ft.get("confusion_matrix") or [[0]*3]*3)
+        recs     = generate_recommendations(m_ft, analysis, misclass, label_dist)
 
-        # 3.2 Misclassification patterns
-        misclass = analyze_misclassifications(
-            errors_after_df, m_after.get("confusion_matrix") or [[0]*3]*3
-        )
-        print(f"\n🔎 [ANALYSIS] Top misclassification patterns:")
+        print("─"*60)
+        print("📊 LOWEST PERFORMING CLASS (Fine-tuned):")
+        print(f"   Lowest F1        → {analysis['lowest_f1']['class']:<12} {analysis['lowest_f1']['value']:.4f}")
+        print(f"   Lowest Recall    → {analysis['lowest_recall']['class']:<12} {analysis['lowest_recall']['value']:.4f}")
+        print(f"   Lowest Precision → {analysis['lowest_precision']['class']:<12} {analysis['lowest_precision']['value']:.4f}")
+        print(f"   Imbalance flag   → {analysis.get('flag_imbalance')}")
+        print("")
+        print("🔎 TOP MISCLASSIFICATION PAIRS:")
         for p in (misclass.get("top_misclassification_pairs") or [])[:3]:
-            print(f"   • {p.get('description')} (N={p.get('count')})")
+            print(f"   • {p.get('description')}  (N={p.get('count')})")
+        print("")
+        print("💡 RECOMMENDATIONS:")
+        for r in recs:
+            print(f"   [{r.get('priority')}] {r.get('title')}")
+        print("─"*60)
 
-        # 3.3 Recommendations
-        recs = generate_recommendations(m_after, analysis, misclass, label_distribution)
-        print(f"\n💡 [RECOMMENDATIONS] {len(recs)} generated:")
-        for r in recs[:3]:
-            print(f"   • [{r.get('priority')}] {r.get('title')}")
-
-    # 3.4 Save structured CSVs + Markdown (for Capstone docs)
-    csvs_written = save_metrics_csvs(report)
-    if m_after is not None or m_before is not None:
-        md_path = generate_markdown_report(
-            report, analysis, misclass, recs, csvs_written
-        )
-
-    # 3.5 Attach analysis/recommendations to the JSON report
-    report["analysis"] = analysis
+    report["analysis"]                 = analysis
     report["misclassification_analysis"] = misclass
-    report["recommendations"] = recs
+    report["recommendations"]          = recs
 
-    # ---------------- 4. Save JSON report (FINAL) ----------------
+    # ── Save all artifacts ────────────────────────────────────────────────────
+    print("\n[SAVING ARTIFACTS]")
+    csvs_written = save_metrics_csvs(report)
+    md_path = None
+    if m_ft is not None or metrics_map:
+        md_path = generate_markdown_report(report, analysis, misclass, recs, csvs_written)
+
     report_path = OUT_DIR / "04_evaluation_report.json"
     report_path.write_text(json.dumps(report, indent=2, default=float), encoding="utf-8")
+    print(f"[SAVE] {report_path.name}")
 
-    # ---------------- 5. Print summary of saved artifacts ----------------
-    print("\n" + "="*70)
-    print("📂 SAVED EVALUATION ARTIFACTS (for Capstone documentation)")
-    print("="*70)
-    print(f"  JSON Report             : {report_path}")
+    # ── Final artifact summary ────────────────────────────────────────────────
+    print("\n" + "═"*70)
+    print("📂  EVALUATION ARTIFACTS  (outputs/ directory)")
+    print("═"*70)
+    print(f"  JSON Report                : 04_evaluation_report.json")
     if md_path:
-        print(f"  Markdown Report (docs!) : {md_path}")
+        print(f"  Markdown Report (Capstone) : 04_evaluation_report.md")
     for p in csvs_written:
-        print(f"  CSV Table               : {p}")
-    print(f"  CM Plot (Before)        : {OUT_DIR / '04_confusion_matrix_before.png'}")
-    print(f"  CM Plot (After)         : {OUT_DIR / '04_confusion_matrix_after.png'}")
-    print(f"  Before/After Plot       : {OUT_DIR / '04_before_vs_after.png'}")
-    print(f"  Errors CSV (Before)     : {OUT_DIR / '04_errors_before.csv'}")
-    print(f"  Errors CSV (After)      : {OUT_DIR / '04_errors_after.csv'}")
-    print("="*70)
-
-    print("\nEvaluation complete! 📊")
+        print(f"  CSV Table                  : {p.name}")
+    for png in [
+        "04_confusion_matrix_keyword.png",
+        "04_confusion_matrix_base.png",
+        "04_confusion_matrix_finetuned.png",
+        "04_comparison_overall.png",
+        "04_comparison_perclass_f1.png",
+    ]:
+        if (OUT_DIR / png).exists():
+            print(f"  Plot                       : {png}")
+    print("═"*70)
+    print("\nPhase 3.2 evaluation complete.")
 
 
 if __name__ == "__main__":

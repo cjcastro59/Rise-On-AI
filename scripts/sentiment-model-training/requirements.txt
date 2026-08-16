@@ -1,40 +1,56 @@
-# =====================================================
-# XLM-RoBERTa Fine-Tuning + Evaluation Requirements
-# Install in a SEPARATE venv (more packages than inference server!)
-# =====================================================
-# python -m venv .venv-training
-# .venv-training\Scripts\activate  (Windows)
-# pip install -r requirements.txt
+# =====================================================================
+# Rise On AI — XLM-RoBERTa Training + Evaluation Requirements
+# Phase 3.1 (Fine-tuning) + Phase 3.2 (Evaluation)
+#
+# Install in a dedicated virtual environment:
+#   python -m venv .venv-training
+#   .venv-training\Scripts\activate        (Windows PowerShell)
+#   source .venv-training/bin/activate     (macOS / Linux)
+#   pip install --upgrade pip
+#   pip install -r requirements.txt
+#
+# GPU users (CUDA 11.8): replace the torch line with:
+#   pip install torch==2.3.1+cu118 --extra-index-url https://download.pytorch.org/whl/cu118
+# GPU users (CUDA 12.1):
+#   pip install torch==2.3.1+cu121 --extra-index-url https://download.pytorch.org/whl/cu121
+# =====================================================================
 
-# ---- Core ML ----
-torch>=2.3.0
-transformers>=4.44.0
-sentencepiece>=0.2.0
-protobuf>=4.25.0
-datasets>=2.20.0
-accelerate>=0.32.0
-peft>=0.12.0
-safetensors>=0.4.4
+# ── Core deep learning ─────────────────────────────────────────────
+torch==2.3.1
+transformers==4.44.2
+sentencepiece==0.2.0
+protobuf==5.27.3
+datasets==2.21.0
+accelerate==0.34.2
+peft==0.12.0
+safetensors==0.4.4
 
-# ---- Data processing ----
-pandas>=2.2.0
-numpy>=1.26.0
-scikit-learn>=1.5.0
-imbalanced-learn>=0.12.3
+# ── Data processing ────────────────────────────────────────────────
+pandas==2.2.2
+numpy==1.26.4
+scikit-learn==1.5.1
+imbalanced-learn==0.12.3
 
-# ---- ONNX Export (optional!) ----
-onnx>=1.16.0
-onnxruntime>=1.18.0
-onnxruntime-tools>=1.17.0
+# ── Evaluation visualisation  (Phase 3.2) ─────────────────────────
+# All four are required by 04_evaluate_model.py and 05_evaluate_standalone.py
+matplotlib==3.9.2
+seaborn==0.13.2
+# (wordcloud is optional — only needed if you add word-cloud plots yourself)
+# wordcloud==1.9.3
 
-# ---- Visualization / Reports ----
-matplotlib>=3.9.0
-seaborn>=0.13.2
-wordcloud>=1.9.3
+# ── ONNX Export  (used by 03_export_model.py) ─────────────────────
+# Install these only if you need ONNX export; they are NOT needed for
+# training or evaluation alone.
+onnx==1.16.1
+onnxruntime==1.18.1
+# optimum is required by 03_export_model.py for ORTModelForSequenceClassification
+optimum==1.21.4
 
-# ---- Utilities ----
-fastapi>=0.115.0
-uvicorn[standard]>=0.30.0
-pydantic>=2.8.0
-tqdm>=4.66.0
-python-dotenv>=1.0.1
+# ── Inference server  (scripts/sentiment-server/app.py) ───────────
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.8.2
+
+# ── Utilities ─────────────────────────────────────────────────────
+tqdm==4.66.5
+python-dotenv==1.0.1

@@ -5,6 +5,10 @@ import { Portal } from "@/components/ui/Portal";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  DISTRESS_RISK_CONFIG,
+  type DistressRiskLevel,
+} from "@/lib/distress-risk";
 
 type JournalEntry = {
   id: string;
@@ -37,6 +41,12 @@ type DistressLog = {
   trigger: string | null;
   notes: string | null;
   created_at: string;
+};
+
+type UserRiskSnapshot = {
+  user_id: string;
+  risk_level: string;
+  total_points: number;
 };
 
 const getAnonymizedAlertId = (id: string) => {
@@ -72,12 +82,30 @@ export default function AdminDistressAlertsPage() {
   const [conversationsByUser, setConversationsByUser] = useState<Record<string, Conversation>>({});
   const [assignmentSelections, setAssignmentSelections] = useState<Record<string, string>>({});
   const [selectedAlert, setSelectedAlert] = useState<DistressLog | null>(null);
+  const [riskByUser, setRiskByUser] = useState<Map<string, UserRiskSnapshot>>(new Map());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
+
+  // ── Risk badge (shared inline component) ──────────────────────────────────
+  const RiskBadge = ({ userId }: { userId: string }) => {
+    const snap = riskByUser.get(userId);
+    if (!snap) return <span className="text-[10px] text-dark-text/40 font-inter italic">No data</span>;
+    const lvl = snap.risk_level as DistressRiskLevel;
+    const cfg = DISTRESS_RISK_CONFIG[lvl] ?? DISTRESS_RISK_CONFIG["Low Risk"];
+    return (
+      <span
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-poppins font-medium whitespace-nowrap"
+        style={{ backgroundColor: cfg.bgColor, color: cfg.color }}
+        title={`${snap.total_points} point${snap.total_points !== 1 ? "s" : ""}`}
+      >
+        {cfg.emoji} {lvl}
+      </span>
+    );
+  };
 
   useEffect(() => {
     if (!currentUser) return;
@@ -154,10 +182,30 @@ export default function AdminDistressAlertsPage() {
             return acc;
           }, {});
 
+          // ── Fetch latest DRI snapshot per alert user ────────────────────
+          let rMap = new Map<string, UserRiskSnapshot>();
+          if (logUserIds.length > 0) {
+            const { data: riskRows } = await supabase
+              .from("distress_risk_assessments")
+              .select("user_id, risk_level, total_points, assessed_date")
+              .in("user_id", logUserIds)
+              .eq("lookback_days", 30)
+              .order("assessed_date", { ascending: false });
+
+            const seen = new Set<string>();
+            for (const row of (riskRows ?? [])) {
+              if (!seen.has(row.user_id)) {
+                seen.add(row.user_id);
+                rMap.set(row.user_id, row as UserRiskSnapshot);
+              }
+            }
+          }
+
           setLogs(sortedLogs);
           setEntriesByUser(groupEntriesByUser(entries));
           setCounselors(counselorProfiles);
           setConversationsByUser(conversationsByUserId);
+          setRiskByUser(rMap);
           setAssignmentSelections((prev) => {
             const next = { ...prev };
             sortedLogs.forEach((log) => {
@@ -440,14 +488,14 @@ export default function AdminDistressAlertsPage() {
                   <p className="mt-1 text-sm text-dark-text">{getResponseStatus(alert.notes)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">Counselor</p>
-                  <p className="mt-1 text-sm text-dark-text">{getProfileName(getAssignedCounselor(alert))}</p>
+                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">Distress Risk</p>
+                  <div className="mt-1">
+                    <RiskBadge userId={alert.user_id} />
+                  </div>
                 </div>
                 <div>
-                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">Latest entry</p>
-                  <p className="mt-1 text-sm text-dark-text">
-                    {entriesByUser[alert.user_id]?.[0]?.title || entriesByUser[alert.user_id]?.[0]?.content?.slice(0, 80) || "No entry found"}
-                  </p>
+                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">Counselor</p>
+                  <p className="mt-1 text-sm text-dark-text">{getProfileName(getAssignedCounselor(alert))}</p>
                 </div>
               </div>
 
@@ -477,6 +525,7 @@ export default function AdminDistressAlertsPage() {
                   <th>ALERT ID</th>
                   <th>TRIGGER</th>
                   <th>MOOD SCORE</th>
+                  <th>DISTRESS RISK</th>
                   <th>LAST ENTRY</th>
                   <th>COUNSELOR</th>
                   <th>RESPONSE</th>
@@ -495,6 +544,9 @@ export default function AdminDistressAlertsPage() {
                     </td>
                     <td>
                       <p className="text-sm font-poppins text-dark-text">{entriesByUser[alert.user_id]?.[0]?.mood || "—"}</p>
+                    </td>
+                    <td>
+                      <RiskBadge userId={alert.user_id} />
                     </td>
                     <td>
                       <p className="text-sm font-inter text-dark-text/60">
@@ -585,6 +637,12 @@ export default function AdminDistressAlertsPage() {
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Severity</p>
                   <p className="mt-1 text-sm font-poppins text-dark-text">{selectedAlert.severity || "Unknown"}</p>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Distress Risk Level</p>
+                  <div className="mt-1">
+                    <RiskBadge userId={selectedAlert.user_id} />
+                  </div>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Created</p>

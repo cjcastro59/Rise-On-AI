@@ -489,3 +489,19 @@ export function mapDbRowToAnalyticsEntry(row: {
     confidence: row.confidence,
   };
 }
+
+// =====================================================
+// RE-EXPORT: Wellness Assessment
+// Consumers can import computeWellnessScore from this module
+// rather than juggling two imports.
+// =====================================================
+export {
+  computeWellnessScore,
+  classifyWellnessLevel,
+  WELLNESS_LEVEL_CONFIG,
+} from "@/lib/wellness-assessment";
+export type {
+  WellnessLevel,
+  WellnessScoreInput,
+  WellnessScoreResult,
+} from "@/lib/wellness-assessment";
