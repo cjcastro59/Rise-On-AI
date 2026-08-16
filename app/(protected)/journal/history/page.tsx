@@ -20,6 +20,13 @@ type JournalEntry = {
   emotions: string[] | null;
   created_at: string;
   updated_at: string;
+  sentiment?: string | null;
+  sentiment_score?: number | null;
+  positive_percentage?: number | null;
+  negative_percentage?: number | null;
+  distress_percentage?: number | null;
+  confidence?: number | null;
+  sentiment_model?: string | null;
 };
 
 type MonthGroup = {
@@ -95,13 +102,20 @@ export default function JournalHistoryPage() {
     });
   };
 
-  const getSentiment = useCallback((mood: string | null, content: string | null): string => {
-    if (mood) {
-      const moodSentiment = getSentimentFromMood(mood);
+  const getSentiment = useCallback((entry: JournalEntry): string => {
+    // 1. Prefer AI-predicted sentiment stored directly in DB (post-save)
+    if (entry.sentiment) {
+      return entry.sentiment.charAt(0).toUpperCase() + entry.sentiment.slice(1);
+    }
+
+    // 2. Fallback: infer from selected mood
+    if (entry.mood) {
+      const moodSentiment = getSentimentFromMood(entry.mood);
       return moodSentiment.charAt(0).toUpperCase() + moodSentiment.slice(1);
     }
 
-    const textSentiment = analyzeSentiment(content);
+    // 3. Final fallback: keyword-based sentiment analyzer
+    const textSentiment = analyzeSentiment(entry.content);
     return textSentiment.charAt(0).toUpperCase() + textSentiment.slice(1);
   }, []);
 
@@ -118,7 +132,7 @@ export default function JournalHistoryPage() {
     }
 
     if (sentimentFilter !== "All") {
-      result = result.filter((entry) => getSentiment(entry.mood, entry.content) === sentimentFilter);
+      result = result.filter((entry) => getSentiment(entry) === sentimentFilter);
     }
 
     setFilteredEntries(result);
@@ -277,10 +291,10 @@ export default function JournalHistoryPage() {
                                 </h3>
                                 <span
                                   className={`px-2 py-1 rounded-full text-xs font-semibold ${getSentimentColor(
-                                    getSentiment(entry.mood, entry.content)
+                                    getSentiment(entry)
                                   )}`}
                                 >
-                                  {getSentiment(entry.mood, entry.content)}
+                                  {getSentiment(entry)}
                                 </span>
                               </div>
                               <p className="text-xs font-inter text-dark-text/60">

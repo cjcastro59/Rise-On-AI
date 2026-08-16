@@ -101,7 +101,7 @@ async function analyzeOne(
   mood: string | null
 ): Promise<PredictionResult> {
   const preprocessed = preprocessText(rawText);
-  if (!preprocessText) return {
+  if (!preprocessed) return {
     sentiment: "positive",
     positivePercentage: 0,
     negativePercentage: 0,

@@ -159,6 +159,36 @@ scripts/sentiment-server/.venv/
 **/.venv/
 venv/
 
-# Hugging Face cache (optional)
+# Hugging Face cache
 .huggingface/
 .cache/
+
+# ------------------------------
+# Sentiment Model Training (Phase 3.1 / 3.2)
+# ------------------------------
+# Virtual environments for training / server
+scripts/sentiment-model-training/.venv-training/
+scripts/sentiment-server/.venv/
+
+# Training data (raw and prepared - don't commit user-labeled data!)
+scripts/sentiment-model-training/data/
+scripts/sentiment-model-training/*.csv
+scripts/sentiment-model-training/*.jsonl
+
+# Trained model checkpoints, outputs, ONNX exports
+scripts/sentiment-model-training/outputs/
+scripts/sentiment-model-training/best_model/
+scripts/sentiment-model-training/trial_*/
+scripts/sentiment-model-training/*.safetensors
+scripts/sentiment-model-training/*.bin
+scripts/sentiment-model-training/*.onnx
+
+# Training logs
+scripts/sentiment-model-training/logs/
+
+# Exported model files for production (keep in separate storage!)
+scripts/sentiment-server/model/
+scripts/sentiment-server/*.safetensors
+scripts/sentiment-server/*.bin
+scripts/sentiment-server/*.onnx
+scripts/sentiment-server/onnx/

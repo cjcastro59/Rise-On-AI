@@ -45,7 +45,7 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 # ------------------------------
 MODEL_PATH = os.environ.get(
     "SENTIMENT_MODEL_PATH",
-    "your-finetuned-xlmlroberta-sentiment"
+    os.path.join(os.path.dirname(__file__), "..", "sentiment-model-training", "outputs", "best_model")
 )
 LABELS = ["positive", "negative", "distress"]
 MAX_SEQ_LEN = int(os.environ.get("MAX_SEQ_LEN", "256"))  # Reduced from 512 for speed!

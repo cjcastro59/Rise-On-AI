@@ -134,6 +134,32 @@ export default function JournalEditorPage() {
         return;
       }
 
+      // Re-run AI sentiment analysis for edited entry
+      try {
+        const sentimentRes = await fetch("/api/sentiment/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title,
+            content,
+            mood: selectedMood,
+            entryId,
+          }),
+        });
+        if (!sentimentRes.ok) {
+          const errBody = await sentimentRes.json().catch(() => ({}));
+          console.warn(
+            "Sentiment API returned non-ok status on edit, continuing with fallback distress check:",
+            errBody
+          );
+        }
+      } catch (sentErr) {
+        console.error(
+          "Failed to call sentiment API while editing (continuing anyway):",
+          sentErr
+        );
+      }
+
       await createDistressAlertForJournalEntry(supabase, {
         userId: user.id,
         entryId,
