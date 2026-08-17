@@ -1404,3 +1404,91 @@ DROP TRIGGER IF EXISTS update_distress_risk_updated_at ON public.distress_risk_a
 CREATE TRIGGER update_distress_risk_updated_at
     BEFORE UPDATE ON public.distress_risk_assessments
     FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+-- ==========================================
+-- PHASE 4.4 — ADAPTIVE CONVERSATIONAL INTELLIGENCE
+-- Safe to run multiple times (IF NOT EXISTS)
+-- ==========================================
+
+-- aci_responses table
+-- One row per (user_id, journal_entry_id).
+-- Stores the full ACI response so it is queryable without recomputing.
+CREATE TABLE IF NOT EXISTS public.aci_responses (
+    id UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+
+    -- The journal entry this response was generated for
+    journal_entry_id UUID REFERENCES public.journal_entries(id) ON DELETE SET NULL,
+
+    -- ACI output
+    response_category TEXT NOT NULL
+        CHECK (response_category IN ('positive', 'negative', 'distress')),
+    tone TEXT NOT NULL,
+    greeting TEXT NOT NULL,
+    message TEXT NOT NULL,
+    reflection TEXT NOT NULL,
+    suggestions JSONB NOT NULL DEFAULT '[]',
+    crisis_note TEXT,               -- NULL for non-distress responses
+    disclaimer TEXT NOT NULL,
+
+    -- Full context snapshot used to produce this response (for traceability)
+    context_used JSONB,
+
+    -- Metadata
+    generated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+    -- One response per entry per user (upsert target)
+    UNIQUE(user_id, journal_entry_id)
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_aci_responses_user_entry
+    ON public.aci_responses(user_id, journal_entry_id);
+
+CREATE INDEX IF NOT EXISTS idx_aci_responses_user_recent
+    ON public.aci_responses(user_id, generated_at DESC);
+
+-- RLS
+ALTER TABLE public.aci_responses ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view their own aci responses" ON public.aci_responses;
+CREATE POLICY "Users can view their own aci responses"
+    ON public.aci_responses
+    FOR SELECT
+    USING (auth.uid() = user_id OR public.is_current_user_admin_or_owner());
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE tablename = 'aci_responses'
+          AND policyname = 'Users can insert their own aci responses'
+    ) THEN
+        CREATE POLICY "Users can insert their own aci responses"
+            ON public.aci_responses
+            FOR INSERT
+            WITH CHECK (auth.uid() = user_id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE tablename = 'aci_responses'
+          AND policyname = 'Users can update their own aci responses'
+    ) THEN
+        CREATE POLICY "Users can update their own aci responses"
+            ON public.aci_responses
+            FOR UPDATE
+            USING (auth.uid() = user_id)
+            WITH CHECK (auth.uid() = user_id);
+    END IF;
+END $$;
+
+-- updated_at trigger
+DROP TRIGGER IF EXISTS update_aci_responses_updated_at ON public.aci_responses;
+CREATE TRIGGER update_aci_responses_updated_at
+    BEFORE UPDATE ON public.aci_responses
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();

@@ -8,6 +8,8 @@ import PageHeader from "@/components/layout/PageHeader";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { analyzeEntry, type AnalysisResult } from "@/lib/sentiment";
+import { useAdaptiveResponse } from "@/hooks/useAdaptiveResponse";
+import { ACI_CATEGORY_CONFIG } from "@/lib/adaptive-response";
 import Link from "next/link";
 
 type JournalEntry = {
@@ -21,21 +23,31 @@ type JournalEntry = {
   updated_at: string;
 };
 
+// ── Suggestion icons cycle ────────────────────────────────────────────────────
+const SUGGESTION_ICONS = ["🧘", "👥", "📖", "🌿", "💬", "🌟"];
+
 export default function AIAnalysisPage() {
   const [entry, setEntry] = useState<JournalEntry | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading,  setLoading]  = useState(true);
+
   const { user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const entryId = searchParams?.get("entryId");
   const supabase = useMemo(() => createClient(), []);
 
+  // ACI hook — fetches stored response for this entry
+  const {
+    response: aciResponse,
+    loading: aciLoading,
+    isRegenerating: aciRegenerating,
+    hasResponse: aciHasResponse,
+    regenerate: aciRegenerate,
+  } = useAdaptiveResponse(entryId);
+
   const fetchEntry = useCallback(async () => {
-    if (!user || !entryId) {
-      setLoading(false);
-      return;
-    }
+    if (!user || !entryId) { setLoading(false); return; }
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -49,7 +61,6 @@ export default function AIAnalysisPage() {
         router.push("/journal/history");
         return;
       }
-
       if (data) {
         setEntry(data);
         setAnalysis(analyzeEntry(data.content, data.mood));
@@ -62,69 +73,35 @@ export default function AIAnalysisPage() {
   }, [user, entryId, router, supabase]);
 
   useEffect(() => {
-    if (user) {
-      fetchEntry();
-    }
+    if (user) fetchEntry();
   }, [fetchEntry, user]);
 
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-  };
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString("en-US", {
+      weekday: "long", year: "numeric", month: "long", day: "numeric",
+    });
 
-  const getSentimentLabel = (sentiment: string): string => {
-    switch (sentiment) {
-      case "positive":
-        return "Mostly Positive";
-      case "negative":
-        return "Mostly Negative";
-      case "distress":
-        return "Distress Detected";
-      default:
-        return "Neutral";
-    }
-  };
+  const getSentimentLabel = (s: string) =>
+    s === "positive" ? "Mostly Positive" : s === "negative" ? "Mostly Negative" : "Distress Detected";
 
-  const getSentimentEmoji = (sentiment: string): string => {
-    switch (sentiment) {
-      case "positive":
-        return "😊";
-      case "negative":
-        return "😔";
-      case "distress":
-        return "⚠️";
-      default:
-        return "😐";
-    }
-  };
+  const getSentimentEmoji = (s: string) =>
+    s === "positive" ? "😊" : s === "negative" ? "😔" : "⚠️";
 
-  const getSentimentColor = (sentiment: string): string => {
-    switch (sentiment) {
-      case "positive":
-        return "from-success-green to-primary-blue";
-      case "negative":
-        return "from-warning-yellow to-error-red";
-      case "distress":
-        return "from-orange-400 to-red-400";
-      default:
-        return "from-primary-blue to-lavender";
-    }
-  };
+  const getSentimentColor = (s: string) =>
+    s === "positive" ? "from-success-green to-primary-blue"
+    : s === "negative" ? "from-warning-yellow to-error-red"
+    : "from-orange-400 to-red-400";
 
-  const getEmotionColor = (emotion: string): string => {
-    switch (emotion) {
-      case "Joy":
-      case "Hope":
-        return "bg-success-green/40 border-success-green/30";
-      case "Calm":
-        return "bg-[#A8DADC]/40 border-[#A8DADC]/30";
-      case "Anxiety":
-      case "Sadness":
-      case "Stress":
-        return "bg-error-red/35 border-error-red/30";
-      default:
-        return "bg-lavender/40 border-lavender/30";
-    }
-  };
+  const getEmotionColor = (e: string) =>
+    e === "Joy" || e === "Hope" ? "bg-success-green/40 border-success-green/30"
+    : e === "Calm" ? "bg-[#A8DADC]/40 border-[#A8DADC]/30"
+    : e === "Anxiety" || e === "Sadness" || e === "Stress" ? "bg-error-red/35 border-error-red/30"
+    : "bg-lavender/40 border-lavender/30";
+
+  const getEmotionEmoji = (e: string) =>
+    e === "Joy" ? "😊" : e === "Hope" ? "✨" : e === "Calm" ? "😌"
+    : e === "Anxiety" ? "😰" : e === "Sadness" ? "😢" : e === "Stress" ? "😵" : "😐";
 
   if (loading) {
     return (
@@ -145,10 +122,15 @@ export default function AIAnalysisPage() {
     );
   }
 
-  const sentimentLabel = getSentimentLabel(analysis.sentiment);
-  const sentimentEmoji = getSentimentEmoji(analysis.sentiment);
-  const sentimentColor = getSentimentColor(analysis.sentiment);
-  const wellnessScore = Math.round(analysis.sentimentScore / 10);
+  const sentimentLabel  = getSentimentLabel(analysis.sentiment);
+  const sentimentEmoji  = getSentimentEmoji(analysis.sentiment);
+  const sentimentColor  = getSentimentColor(analysis.sentiment);
+  const wellnessScore   = Math.round(analysis.sentimentScore / 10);
+
+  // ACI card config (falls back to "positive" style when loading)
+  const aciCfg = aciResponse
+    ? ACI_CATEGORY_CONFIG[aciResponse.response_category]
+    : ACI_CATEGORY_CONFIG["positive"];
 
   return (
     <>
@@ -166,7 +148,7 @@ export default function AIAnalysisPage() {
       />
 
       {/* Progress Steps */}
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex flex-wrap items-center gap-2 mb-6">
         <div className="flex items-center gap-2 px-3 py-1 bg-[#A8DADC]/40 rounded-full">
           <span className="text-sm">📝</span>
           <span className="text-sm font-poppins text-dark-text">Wrote Entry</span>
@@ -189,62 +171,50 @@ export default function AIAnalysisPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Column */}
+        {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
         <div className="space-y-6">
-          {/* Sentiment Breakdown Card */}
+          {/* Sentiment Breakdown */}
           <Card className="p-6 bg-white shadow-sm">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
               <span>📊</span>
               Sentiment Breakdown
             </h3>
             <div className="space-y-5">
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm font-inter text-dark-text">
-                  <span>Positive</span>
-                  <span className="font-semibold">{analysis.positivePercentage}%</span>
+              {[
+                { label: "Positive", pct: analysis.positivePercentage, color: "bg-gradient-to-r from-primary-blue to-success-green" },
+                { label: "Negative", pct: analysis.negativePercentage, color: "bg-error-red" },
+                { label: "Distress", pct: analysis.distressPercentage, color: "bg-gradient-to-r from-orange-400 to-red-400" },
+              ].map(({ label, pct, color }) => (
+                <div key={label} className="space-y-1">
+                  <div className="flex justify-between text-sm font-inter text-dark-text">
+                    <span>{label}</span>
+                    <span className="font-semibold">{pct}%</span>
+                  </div>
+                  <div className="h-3 bg-light-gray rounded-full overflow-hidden">
+                    <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
+                  </div>
                 </div>
-                <div className="h-3 bg-light-gray rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-primary-blue to-success-green rounded-full" style={{ width: `${analysis.positivePercentage}%` }}></div>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm font-inter text-dark-text">
-                  <span>Negative</span>
-                  <span className="font-semibold">{analysis.negativePercentage}%</span>
-                </div>
-                <div className="h-3 bg-light-gray rounded-full overflow-hidden">
-                  <div className="h-full bg-error-red rounded-full" style={{ width: `${analysis.negativePercentage}%` }}></div>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-sm font-inter text-dark-text">
-                  <span>Distress</span>
-                  <span className="font-semibold">{analysis.distressPercentage}%</span>
-                </div>
-                <div className="h-3 bg-light-gray rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-orange-400 to-red-400 rounded-full" style={{ width: `${analysis.distressPercentage}%` }}></div>
-                </div>
-              </div>
+              ))}
             </div>
           </Card>
 
-          {/* Detected Emotions Card */}
+          {/* Detected Emotions */}
           <Card className="p-6 bg-white shadow-sm">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
               <span>🌈</span>
               Detected Emotions
             </h3>
             <div className="flex flex-wrap gap-3">
-              {analysis.emotions.map((emotion, index) => (
-                <div key={index} className={`px-3 py-2 ${getEmotionColor(emotion)} rounded-full text-sm font-poppins text-dark-text flex items-center gap-2 border`}>
-                  <span className="text-base">{emotion === "Joy" ? "😊" : emotion === "Hope" ? "✨" : emotion === "Calm" ? "😌" : emotion === "Anxiety" ? "😰" : emotion === "Sadness" ? "😢" : emotion === "Stress" ? "😵" : "😐"}</span>
+              {analysis.emotions.map((emotion, i) => (
+                <div key={i} className={`px-3 py-2 ${getEmotionColor(emotion)} rounded-full text-sm font-poppins text-dark-text flex items-center gap-2 border`}>
+                  <span className="text-base">{getEmotionEmoji(emotion)}</span>
                   <span>{emotion} — {Math.round(analysis.sentimentScore / 2)}%</span>
                 </div>
               ))}
             </div>
           </Card>
 
-          {/* Key Phrases Card */}
+          {/* Key Phrases */}
           {analysis.keyPhrases.length > 0 && (
             <Card className="p-6 bg-white shadow-sm">
               <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
@@ -252,8 +222,8 @@ export default function AIAnalysisPage() {
                 Key Phrases Detected
               </h3>
               <div className="flex flex-wrap gap-3">
-                {analysis.keyPhrases.map((phrase, index) => (
-                  <span key={index} className="px-4 py-2 bg-[#EAF7F8] rounded-full text-sm font-inter text-dark-text border border-primary-blue/20">
+                {analysis.keyPhrases.map((phrase, i) => (
+                  <span key={i} className="px-4 py-2 bg-[#EAF7F8] rounded-full text-sm font-inter text-dark-text border border-primary-blue/20">
                     {phrase}
                   </span>
                 ))}
@@ -262,31 +232,128 @@ export default function AIAnalysisPage() {
           )}
         </div>
 
-        {/* Right Column */}
+        {/* ── RIGHT COLUMN ────────────────────────────────────────────── */}
         <div className="space-y-6">
-          {/* AI Reflection Card */}
-          <Card className="p-6 bg-white shadow-sm">
-            <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
-              <span>🤖</span>
-              AI Reflection
-            </h3>
-            <p className="text-base font-inter text-dark-text leading-relaxed mb-4">
-              {analysis.feedback}
-            </p>
-            <p className="text-base font-inter text-dark-text/80 leading-relaxed mb-4">
-              {analysis.reflection}
-            </p>
-            
-            <h4 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-3">Personalized Suggestions</h4>
-            <div className="space-y-3">
-              {analysis.suggestions.map((suggestion, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 bg-light-gray rounded-2xl">
-                  <span className="text-xl">{index === 0 ? "🧘" : index === 1 ? "👥" : "📖"}</span>
-                  <span className="text-sm font-inter text-dark-text">{suggestion}</span>
-                </div>
-              ))}
+
+          {/* ── ACI CARD: Adaptive Conversational Response ────────────── */}
+          <div
+            className="border-l-4 rounded-2xl"
+            style={{ borderLeftColor: aciCfg.borderColor }}
+          >
+          <Card className="p-6 bg-white shadow-sm rounded-l-none border-l-0">
+            {/* Card header */}
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 flex items-center gap-2">
+                <span>{aciCfg.emoji}</span>
+                {aciCfg.label}
+              </h3>
+              {!aciLoading && (
+                <button
+                  onClick={() => aciRegenerate()}
+                  disabled={aciRegenerating}
+                  className="text-[10px] font-poppins text-[#4EAAB3] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {aciRegenerating ? "Generating…" : "↻ Refresh"}
+                </button>
+              )}
             </div>
+            <p className="text-[11px] text-dark-text/50 font-inter mb-4">
+              Context-aware supportive response · based on your sentiment, wellness, and behavioral patterns
+            </p>
+
+            {aciLoading ? (
+              <p className="text-xs text-dark-text/50 py-4 text-center">
+                Generating your personalised response…
+              </p>
+            ) : !aciHasResponse || !aciResponse ? (
+              /* Not yet generated — fire-and-forget may still be running */
+              <div className="space-y-3">
+                <p className="text-xs text-dark-text/50 py-2">
+                  Your adaptive response is being prepared. It will appear here shortly after analysis completes.
+                </p>
+                <button
+                  onClick={() => aciRegenerate()}
+                  disabled={aciRegenerating}
+                  className="text-xs px-3 py-1.5 rounded-full border border-[#A8DADC] text-[#4EAAB3] font-poppins hover:bg-[#A8DADC]/10 disabled:opacity-50"
+                >
+                  {aciRegenerating ? "Generating…" : "Generate Now"}
+                </button>
+                {/* Fallback: show keyword-based feedback while waiting */}
+                <div className="mt-3 pt-3 border-t border-[#F5F5F5]">
+                  <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/40 mb-2">
+                    Entry-level feedback (keyword analysis)
+                  </p>
+                  <p className="text-sm font-inter text-dark-text/70 leading-relaxed">{analysis.feedback}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Crisis note — shown prominently when present */}
+                {aciResponse.crisis_note && (
+                  <div
+                    className="p-3 rounded-xl text-xs font-inter leading-relaxed border"
+                    style={{
+                      backgroundColor: aciCfg.bgColor + "50",
+                      borderColor: aciCfg.borderColor,
+                      color: aciCfg.color,
+                    }}
+                  >
+                    {aciResponse.crisis_note}
+                  </div>
+                )}
+
+                {/* Greeting */}
+                <p className="text-sm font-poppins font-semibold" style={{ color: aciCfg.color }}>
+                  {aciResponse.greeting}
+                </p>
+
+                {/* Main message */}
+                <p className="text-sm font-inter text-dark-text leading-relaxed">
+                  {aciResponse.message}
+                </p>
+
+                {/* Reflection prompt */}
+                <div
+                  className="p-3 rounded-xl border-l-2"
+                  style={{
+                    backgroundColor: aciCfg.bgColor + "40",
+                    borderLeftColor: aciCfg.borderColor,
+                  }}
+                >
+                  <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-1">
+                    Reflection Prompt
+                  </p>
+                  <p className="text-sm font-inter text-dark-text/80 leading-relaxed italic">
+                    {aciResponse.reflection}
+                  </p>
+                </div>
+
+                {/* Suggestions */}
+                {aciResponse.suggestions.length > 0 && (
+                  <div>
+                    <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-2">
+                      Suggestions
+                    </p>
+                    <div className="space-y-2">
+                      {aciResponse.suggestions.map((s, i) => (
+                        <div key={i} className="flex items-start gap-3 p-3 bg-light-gray rounded-xl">
+                          <span className="text-base shrink-0">{SUGGESTION_ICONS[i % SUGGESTION_ICONS.length]}</span>
+                          <span className="text-sm font-inter text-dark-text">{s}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Disclaimer — always present */}
+                <p className="text-[9px] text-dark-text/30 font-inter leading-relaxed pt-2 border-t border-[#F5F5F5]">
+                  {aciResponse.disclaimer}
+                </p>
+              </div>
+            )}
           </Card>
+          </div>
+          {/* ── END ACI CARD ──────────────────────────────────────────── */}
 
           {/* Emotional Wellness Score */}
           <Card className="p-8 text-center bg-white shadow-sm">
@@ -295,17 +362,16 @@ export default function AIAnalysisPage() {
               Emotional Wellness Score
             </h3>
             <div className="relative w-52 h-52 mx-auto mb-8">
-              {/* Progress Circle */}
               <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                 <circle cx="50" cy="50" r="45" fill="none" stroke="#E5E7EB" strokeWidth="10" />
-                <circle 
-                  cx="50" cy="50" r="45" 
-                  fill="none" 
-                  stroke="url(#gradient)" 
-                  strokeWidth="12" 
-                  strokeDasharray="283" 
-                  strokeDashoffset={283 - (analysis.sentimentScore / 100) * 283} 
-                  strokeLinecap="round" 
+                <circle
+                  cx="50" cy="50" r="45"
+                  fill="none"
+                  stroke="url(#gradient)"
+                  strokeWidth="12"
+                  strokeDasharray="283"
+                  strokeDashoffset={283 - (analysis.sentimentScore / 100) * 283}
+                  strokeLinecap="round"
                 />
                 <defs>
                   <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -327,13 +393,13 @@ export default function AIAnalysisPage() {
       {/* Bottom Actions */}
       <div className="mt-8 flex flex-col items-center gap-4">
         <div className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-3xl">
-          <Button 
+          <Button
             className="flex-1 max-w-xs py-4 rounded-full bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] text-[#4F4F4F] font-poppins font-medium text-base transition-opacity hover:opacity-90"
             onClick={() => router.push("/insights")}
           >
             View Mood Trends →
           </Button>
-          <Button 
+          <Button
             variant="secondary"
             className="flex-1 max-w-xs py-4 rounded-full border border-[#A8DADC] text-[#4F4F4F] font-poppins font-medium text-base bg-white transition-colors hover:bg-[#F5F5F5]"
             onClick={() => router.push("/journal/history")}
@@ -341,11 +407,9 @@ export default function AIAnalysisPage() {
             Save & Return
           </Button>
         </div>
-        <button 
-          className="text-[#F4A6A6] font-inter text-sm mt-2 flex items-center gap-2 hover:underline"
-          onClick={() => router.push("/support")}
-        >
-          Feeling distressed? <span className="font-semibold"> Get immediate support</span>
+        <button className="text-[#F4A6A6] font-inter text-sm mt-2 flex items-center gap-2 hover:underline" onClick={() => router.push("/support")}>
+          Feeling distressed?{" "}
+          <span className="font-semibold">Get immediate support</span>
         </button>
       </div>
     </>

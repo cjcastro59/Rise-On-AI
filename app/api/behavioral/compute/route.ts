@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ---- 2. Optional role escalation for admin/counselor ----
-    const { data: profile } = await supabase
-      .from("user_profiles")
+    const { data: profile } = await (supabase
+      .from("user_profiles") as any)
       .select("role")
       .eq("id", user.id)
       .single();
@@ -47,9 +47,9 @@ export async function POST(request: NextRequest) {
     const requestedUserId = body.userId;
     if (requestedUserId && requestedUserId !== user.id) {
       const isPrivileged =
-        profile?.role === "admin" ||
-        profile?.role === "owner" ||
-        profile?.role === "counselor";
+        (profile as any)?.role === "admin" ||
+        (profile as any)?.role === "owner" ||
+        (profile as any)?.role === "counselor";
       if (!isPrivileged) {
         return NextResponse.json(
           { error: "Forbidden — cannot compute indicators for another user" },
@@ -60,8 +60,8 @@ export async function POST(request: NextRequest) {
     }
 
     // ---- 4. Fetch user's journal entries (sentiment fields already stored) ----
-    const { data: journalRows, error: fetchError } = await supabase
-      .from("journal_entries")
+    const { data: journalRows, error: fetchError } = await (supabase
+      .from("journal_entries") as any)
       .select(
         "id, user_id, created_at, sentiment, sentiment_score, positive_percentage, negative_percentage, distress_percentage, confidence"
       )
@@ -120,8 +120,8 @@ export async function POST(request: NextRequest) {
         wellness_score_details: wellnessResult.details,
       };
 
-      const { data: existingRow, error: lookupError } = await supabase
-        .from("behavioral_indicators")
+      const { data: existingRow, error: lookupError } = await (supabase
+        .from("behavioral_indicators") as any)
         .select("id")
         .eq("user_id", targetUserId)
         .eq("window_end_date", indicators.windowEndDate)
@@ -135,26 +135,26 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (existingRow?.id) {
-        const { error: updateError } = await supabase
-          .from("behavioral_indicators")
+      if ((existingRow as any)?.id) {
+        const { error: updateError } = await (supabase
+          .from("behavioral_indicators") as any)
           .update(payload)
-          .eq("id", existingRow.id);
+          .eq("id", (existingRow as any).id);
         if (updateError) {
           console.error("[behavioral/compute] Failed to UPDATE indicators:", updateError);
         } else {
-          savedId = existingRow.id;
+          savedId = (existingRow as any).id;
         }
       } else {
-        const { data: insertResult, error: insertError } = await supabase
-          .from("behavioral_indicators")
+        const { data: insertResult, error: insertError } = await (supabase
+          .from("behavioral_indicators") as any)
           .insert(payload)
           .select("id")
           .single();
         if (insertError) {
           console.error("[behavioral/compute] Failed to INSERT indicators:", insertError);
         } else {
-          savedId = insertResult?.id ?? null;
+          savedId = (insertResult as any)?.id ?? null;
         }
       }
     }

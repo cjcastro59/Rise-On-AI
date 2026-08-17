@@ -80,7 +80,7 @@ export default function AdminFeedbackPage() {
           .limit(500);
 
         if (entries && feedbackRows.length < 20) {
-          const synthetic: FeedbackRow[] = entries.slice(0, 200).map((e) => {
+          const synthetic: FeedbackRow[] = entries.slice(0, 200).map((e: any) => {
             const conf = Number(e.confidence) || 0.8;
             const score = Number(e.sentiment_score) || 0;
             // Positive + high confidence = happy user; Distress = lower but still rating if counselor response later

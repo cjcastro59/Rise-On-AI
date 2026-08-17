@@ -41,9 +41,10 @@ export default function CounselorSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
+  const signOut = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
   // Change password modal
   const [showChangePw, setShowChangePw] = useState(false);

@@ -393,7 +393,56 @@ export interface Database {
           wellness_score_details?: Json | null;
         };
       };
-    };
+      aci_responses: {
+        Row: {
+          id: string;
+          user_id: string;
+          journal_entry_id: string | null;
+          response_category: string;
+          tone: string;
+          greeting: string;
+          message: string;
+          reflection: string;
+          suggestions: Json;
+          crisis_note: string | null;
+          disclaimer: string;
+          context_used: Json | null;
+          generated_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          journal_entry_id?: string | null;
+          response_category: string;
+          tone: string;
+          greeting: string;
+          message: string;
+          reflection: string;
+          suggestions?: Json;
+          crisis_note?: string | null;
+          disclaimer: string;
+          context_used?: Json | null;
+          generated_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          journal_entry_id?: string | null;
+          response_category?: string;
+          tone?: string;
+          greeting?: string;
+          message?: string;
+          reflection?: string;
+          suggestions?: Json;
+          crisis_note?: string | null;
+          disclaimer?: string;
+          context_used?: Json | null;
+          generated_at?: string;
+          updated_at?: string;
+        };
+      };
       distress_risk_assessments: {
         Row: {
           id: string;

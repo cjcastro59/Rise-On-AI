@@ -496,7 +496,7 @@ export default function MoodInsightsPage() {
               Write a few journal entries — indicators are computed automatically after each save.
             </p>
             <Link href="/journal">
-              <Button size="sm" variant="outline"
+              <Button size="sm" variant="secondary"
                 className="mt-2 text-xs border-[#A8DADC] text-[#A8DADC] hover:bg-[#A8DADC]/10">
                 Start Journaling →
               </Button>
@@ -738,7 +738,6 @@ export default function MoodInsightsPage() {
                         }`}
                         style={{
                           backgroundColor: isActive ? c.bgColor + "60" : "transparent",
-                          ringColor: c.borderColor,
                         }}
                       >
                         <div className="flex items-center gap-1.5">

@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
       : 10;
 
     // ---- 3. Resolve targetUserId with role check ----
-    const { data: profile } = await supabase
-      .from("user_profiles")
+    const { data: profile } = await (supabase
+      .from("user_profiles") as any)
       .select("role")
       .eq("id", user.id)
       .single();
@@ -39,9 +39,9 @@ export async function GET(request: NextRequest) {
     let targetUserId = user.id;
     if (userIdParam && userIdParam !== user.id) {
       const isPrivileged =
-        profile?.role === "admin" ||
-        profile?.role === "owner" ||
-        profile?.role === "counselor";
+        (profile as any)?.role === "admin" ||
+        (profile as any)?.role === "owner" ||
+        (profile as any)?.role === "counselor";
       if (!isPrivileged) {
         return NextResponse.json(
           { error: "Forbidden — cannot view another user's indicators" },
@@ -52,8 +52,8 @@ export async function GET(request: NextRequest) {
     }
 
     // ---- 4. Fetch stored indicators ----
-    const { data: rows, error } = await supabase
-      .from("behavioral_indicators")
+    const { data: rows, error } = await (supabase
+      .from("behavioral_indicators") as any)
       .select("*")
       .eq("user_id", targetUserId)
       .eq("lookback_days", lookbackDays)

@@ -435,10 +435,10 @@ export default function AdminUsersPage() {
                 const userEntries = journalEntries.filter((e: any) => e.user_id === u.id);
                 const avgMood = userEntries.length ? userEntries.reduce((a: number, e: any) => a + (Number(e.sentiment_score) || 0), 0) / userEntries.length : 0;
                 rows.push([
-                  u.id, u.email || "", u.first_name || "", u.last_name || "",
-                  u.role || "", u.status || "", String(u.mood_reminder_enabled ?? ""),
+                  u.id, (u as any).rawUser?.email || "", (u as any).rawUser?.first_name || "", (u as any).rawUser?.last_name || "",
+                  u.role || "", (u as any).rawUser?.is_active ? "active" : "inactive", String((u as any).rawUser?.mood_reminder_enabled ?? ""),
                   String(Math.round(avgMood * 100) / 100), String(entryCount),
-                  new Date(u.created_at || Date.now()).toISOString(),
+                  new Date((u as any).rawUser?.created_at || Date.now()).toISOString(),
                 ]);
               }
               const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");

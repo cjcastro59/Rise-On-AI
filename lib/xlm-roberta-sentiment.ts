@@ -1,5 +1,3 @@
-"use server";
-
 import {
   analyzeEntry as fallbackAnalyzeEntry,
   type AnalysisResult,
@@ -36,8 +34,9 @@ function getKeepAliveDispatcher(): unknown {
   if (keepAliveDispatcher) return keepAliveDispatcher;
   try {
     // Next.js uses undici for fetch; create a connection-pooled agent
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    /* eslint-disable */
     const undici = require("undici");
+    /* eslint-enable */
     if (undici && undici.Agent) {
       keepAliveDispatcher = new undici.Agent({
         keepAliveTimeout: 60_000,

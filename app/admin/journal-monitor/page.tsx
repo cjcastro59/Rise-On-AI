@@ -208,7 +208,7 @@ export default function AdminJournalMonitorPage() {
               for (const entry of entries.slice(0, 5000)) {
                 const lang = getLanguage(entry.content);
                 const wc = getWordCount(entry.content);
-                const cat = classifyEntry(entry);
+                const cat = analyzeSentiment(entry.content);
                 rows.push([
                   entry.id, entry.user_id, new Date(entry.created_at).toISOString(),
                   entry.mood || "", String(wc), lang,

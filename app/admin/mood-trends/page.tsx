@@ -180,10 +180,10 @@ export default function AdminMoodTrendsPage() {
               // Write summary at end for PDF/print context
               rows.push([]);
               rows.push(["SUMMARY"]);
-              rows.push(["Positive %", positivePercent]);
-              rows.push(["Negative %", negativePercent]);
-              rows.push(["Mixed %", mixedPercent]);
-              rows.push(["Distress %", distressPercent]);
+              rows.push(["Positive %", String(positivePercent)]);
+              rows.push(["Negative %", String(negativePercent)]);
+              rows.push(["Mixed %",    String(mixedPercent)]);
+              rows.push(["Distress %", String(distressPercent)]);
               rows.push(["Top Emotions", topEmotions.map(([k, v]) => `${k}:${v}`).join("; ")]);
               const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
               const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
