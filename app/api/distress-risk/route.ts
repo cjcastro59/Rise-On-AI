@@ -176,7 +176,11 @@ export async function GET(request: NextRequest) {
     }
 
     const latest = (rows ?? [])[0] ?? null;
-    return NextResponse.json({ ok: true, userId: auth.userId, lookbackDays, count: rows?.length ?? 0, latest, history: rows ?? [] });
+    // O5 (Phase 7): private SWR cache — distress risk only changes after a journal save.
+    return NextResponse.json(
+      { ok: true, userId: auth.userId, lookbackDays, count: rows?.length ?? 0, latest, history: rows ?? [] },
+      { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } }
+    );
   } catch (err: unknown) {
     console.error("[distress-risk GET] unexpected error:", err);
     return NextResponse.json({ error: "Internal server error", details: err instanceof Error ? err.message : "Unknown" }, { status: 500 });

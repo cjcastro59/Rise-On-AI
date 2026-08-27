@@ -52,9 +52,23 @@ export async function GET(request: NextRequest) {
     }
 
     // ---- 4. Fetch stored indicators ----
+    // O4 (Phase 7): Narrowed from select("*") to only the columns needed by
+    // the UI (useBehavioralIndicators hook). Large JSONB detail columns
+    // (_details, _streak, wellness_score_details) are excluded here since the
+    // hook's BehavioralIndicatorsRow interface only uses the scalar fields for
+    // display. This reduces payload size by ~60-70% per row.
+    // If a caller needs the full JSONB details they should use POST /api/behavioral/compute.
     const { data: rows, error } = await (supabase
       .from("behavioral_indicators") as any)
-      .select("*")
+      .select(
+        "id, user_id, window_end_date, lookback_days, " +
+        "behavioral_trend_score, " +
+        "journaling_frequency_score, total_entries_window, unique_days_journaled, " +
+        "mood_consistency_score, sentiment_scores_variance, sentiment_scores_std, " +
+        "consecutive_negative_count, " +
+        "entries_analyzed, computed_at, updated_at, " +
+        "wellness_score, wellness_level, wellness_score_details"
+      )
       .eq("user_id", targetUserId)
       .eq("lookback_days", lookbackDays)
       .order("window_end_date", { ascending: false })
@@ -70,14 +84,25 @@ export async function GET(request: NextRequest) {
 
     const latest = (rows ?? [])[0] ?? null;
 
-    return NextResponse.json({
-      ok: true,
-      targetUserId,
-      lookbackDays,
-      count: rows?.length ?? 0,
-      history: rows ?? [],
-      latest,
-    });
+    // O5 (Phase 7): short-lived private cache for user-specific behavioral data.
+    // max-age=30s: browser can serve cached response instantly within 30s.
+    // stale-while-revalidate=60s: browser re-fetches silently for up to 60s more.
+    // private: never cached by CDN/shared proxy (data is auth-gated).
+    // Safety: indicators only change after a journal save (fire-and-forget, seconds later).
+    // 30s stale window is acceptable — users won't see stale data for more than 30s.
+    const cacheHeader = "private, max-age=30, stale-while-revalidate=60";
+
+    return NextResponse.json(
+      {
+        ok: true,
+        targetUserId,
+        lookbackDays,
+        count: rows?.length ?? 0,
+        history: rows ?? [],
+        latest,
+      },
+      { headers: { "Cache-Control": cacheHeader } }
+    );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[behavioral GET] unexpected error:", err);

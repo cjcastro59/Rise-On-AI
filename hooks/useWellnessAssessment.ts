@@ -89,11 +89,15 @@ export interface UseWellnessAssessmentResult {
  * @param lookbackDays   Window that was used when computing. Default: 30.
  * @param historyLimit   Max rows returned for trend charts. Default: 90.
  * @param targetUserId   Only pass for admin/counselor viewing another user.
+ * @param includeDetails Pass true when the full wellness_score_details JSONB
+ *                       is needed (e.g. the Insights breakdown table).
+ *                       Default: false — reduces API payload size.
  */
 export function useWellnessAssessment(
   lookbackDays: number = 30,
   historyLimit: number = 90,
   targetUserId?: string,
+  includeDetails: boolean = false,
 ): UseWellnessAssessmentResult {
   const { user } = useAuth();
 
@@ -123,6 +127,10 @@ export function useWellnessAssessment(
       if (targetUserId && targetUserId !== user.id) {
         params.set("userId", targetUserId);
       }
+      // O4 (Phase 7): only request the full JSONB breakdown when caller needs it
+      if (includeDetails) {
+        params.set("details", "1");
+      }
 
       const res = await fetch(`/api/wellness?${params.toString()}`, {
         method: "GET",
@@ -148,7 +156,7 @@ export function useWellnessAssessment(
     } finally {
       setLoading(false);
     }
-  }, [user, lookbackDays, historyLimit, targetUserId]);
+  }, [user, lookbackDays, historyLimit, targetUserId, includeDetails]);
 
   // ── POST /api/wellness — on-demand recompute ────────────────────────────
   const triggerRecalculate = useCallback(async (): Promise<void> => {

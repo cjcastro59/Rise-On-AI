@@ -60,6 +60,10 @@ export async function GET(request: NextRequest) {
 
     const lookbackDays = Math.min(365, Math.max(1, parseInt(searchParams.get("lookbackDays") ?? "30", 10) || 30));
     const limit        = Math.min(90,  Math.max(1, parseInt(searchParams.get("limit")        ?? "30", 10) || 30));
+    // O4 (Phase 7): Only fetch wellness_score_details JSONB when the caller
+    // explicitly requests it via ?details=1. Dashboard banner and sparkline
+    // don't need the full computation breakdown.
+    const includeDetails = searchParams.get("details") === "1";
 
     const { data: rows, error } = await (supabase
       .from("behavioral_indicators") as any)
@@ -68,7 +72,8 @@ export async function GET(request: NextRequest) {
         "behavioral_trend_score, journaling_frequency_score, " +
         "mood_consistency_score, consecutive_negative_count, " +
         "entries_analyzed, wellness_score, wellness_level, " +
-        "wellness_score_details, computed_at, updated_at",
+        "computed_at, updated_at" +
+        (includeDetails ? ", wellness_score_details" : ""),
       )
       .eq("user_id", auth.userId)
       .eq("lookback_days", lookbackDays)
@@ -81,7 +86,12 @@ export async function GET(request: NextRequest) {
     }
 
     const latest = (rows ?? [])[0] ?? null;
-    return NextResponse.json({ ok: true, userId: auth.userId, lookbackDays, count: rows?.length ?? 0, latest, history: rows ?? [] });
+    // O5 (Phase 7): short-lived private SWR cache — wellness data only changes
+    // after a journal save. 30s max-age + 60s stale-while-revalidate is safe.
+    return NextResponse.json(
+      { ok: true, userId: auth.userId, lookbackDays, count: rows?.length ?? 0, latest, history: rows ?? [] },
+      { headers: { "Cache-Control": "private, max-age=30, stale-while-revalidate=60" } }
+    );
   } catch (err: unknown) {
     console.error("[wellness GET] unexpected error:", err);
     return NextResponse.json({ error: "Internal server error", details: err instanceof Error ? err.message : "Unknown" }, { status: 500 });

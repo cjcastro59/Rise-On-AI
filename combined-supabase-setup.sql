@@ -1492,3 +1492,34 @@ DROP TRIGGER IF EXISTS update_aci_responses_updated_at ON public.aci_responses;
 CREATE TRIGGER update_aci_responses_updated_at
     BEFORE UPDATE ON public.aci_responses
     FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+-- ==========================================
+-- PHASE 7 — SYSTEM OPTIMIZATION INDEXES
+-- Safe to run multiple times (IF NOT EXISTS)
+-- ==========================================
+
+-- ── mood_logs: missing index found during Phase 7 baseline audit ─────────────
+-- useMoodTrend queries mood_logs on every page load for all time-range modes.
+-- Without this index, Supabase does a full table scan filtered by user_id.
+-- Baseline: full sequential scan on mood_logs.
+-- After: index seek → O(log n) per user + range scan on created_at.
+CREATE INDEX IF NOT EXISTS idx_mood_logs_user_created
+    ON public.mood_logs(user_id, created_at DESC);
+
+-- ── journal_entries: compound index for mood trend queries ───────────────────
+-- useMoodTrend also queries journal_entries by user + date range.
+-- idx_journal_entries_user_created (created in Phase 4.1) already covers this.
+-- No additional index needed — documented here for audit completeness.
+
+-- ── behavioral_indicators: index on lookback_days for GET /api/behavioral ────
+-- The GET query filters by (user_id, lookback_days, window_end_date DESC).
+-- The existing idx_behavioral_indicators_user_date covers user_id + date.
+-- Adding lookback_days to a partial index for the common case (30 days):
+CREATE INDEX IF NOT EXISTS idx_behavioral_indicators_30day
+    ON public.behavioral_indicators(user_id, window_end_date DESC)
+    WHERE lookback_days = 30;
+
+-- ── distress_risk_assessments: partial index for the common case ─────────────
+CREATE INDEX IF NOT EXISTS idx_distress_risk_30day
+    ON public.distress_risk_assessments(user_id, assessed_date DESC)
+    WHERE lookback_days = 30;

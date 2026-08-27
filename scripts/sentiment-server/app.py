@@ -273,3 +273,105 @@ async def add_process_time_header(request: Request, call_next):
     process_time = (time.time() - start_time) * 1000
     response.headers["X-Process-Time-Ms"] = f"{process_time:.1f}"
     return response
+
+
+# ==============================================================================
+# Phase 6 — Explainable AI: POST /explain
+# ==============================================================================
+#
+# DESIGN DECISION: OFF BY DEFAULT IN PRODUCTION
+# ──────────────────────────────────────────────
+# This endpoint uses Integrated Gradients (captum) which adds ~50–500ms
+# latency and requires an extra pip install (captum>=0.7.0).
+# It is DISABLED unless the server is started with USE_EXPLAIN=1:
+#
+#   USE_EXPLAIN=1 uvicorn app:app --host 0.0.0.0 --port 8000
+#
+# This ensures the production /predict endpoint is NEVER affected.
+# The /explain endpoint is only called when a user explicitly requests
+# an explanation in the UI — never automatically on journal save.
+#
+# If USE_EXPLAIN=0 (default), the endpoint returns a clear 503 response
+# explaining why it is disabled, so the Next.js API route can degrade
+# gracefully and show the user that IG is not available.
+#
+# NEVER call /explain from the fire-and-forget behavioral chain.
+# ==============================================================================
+
+USE_EXPLAIN = os.environ.get("USE_EXPLAIN", "0") == "1"
+
+class ExplainRequest(BaseModel):
+    inputs: str
+    num_steps: int = 50
+    target_class: Optional[int] = None  # None = predict and explain predicted class
+
+
+@app.post("/explain")
+def explain(req: ExplainRequest):
+    """
+    On-demand Integrated Gradients explanation for a single text.
+
+    Returns:
+      - predicted_label: str
+      - predicted_prob: float
+      - all_probs: {positive, negative, distress}
+      - word_attributions: [{word, score, subword_tokens}]
+      - disclaimer: str
+      - error: str | None
+
+    NOTE: This endpoint is disabled unless USE_EXPLAIN=1.
+    NOTE: Requires `pip install captum>=0.7.0` in the server virtualenv.
+    """
+    if not USE_EXPLAIN:
+        return {
+            "ok": False,
+            "available": False,
+            "error": (
+                "Integrated Gradients explanation is disabled on this server instance. "
+                "Start the server with USE_EXPLAIN=1 to enable it. "
+                "This feature is intentionally OFF in production to protect inference latency."
+            ),
+            "word_attributions": [],
+        }
+
+    if DEMO_MODE:
+        return {
+            "ok": False,
+            "available": False,
+            "error": "Server is running in DEMO MODE — no real model loaded. Load a fine-tuned model to use /explain.",
+            "word_attributions": [],
+        }
+
+    # Lazily import explain_text from explain.py (same directory)
+    try:
+        import sys as _sys
+        import os as _os
+        _this_dir = _os.path.dirname(_os.path.abspath(__file__))
+        if _this_dir not in _sys.path:
+            _sys.path.insert(0, _this_dir)
+        from explain import explain_text
+    except ImportError as e:
+        return {
+            "ok": False,
+            "available": False,
+            "error": f"Could not import explain.py: {e}",
+            "word_attributions": [],
+        }
+
+    try:
+        result = explain_text(
+            text=req.inputs,
+            model_path=MODEL_PATH,
+            num_steps=req.num_steps,
+            target_class=req.target_class,
+        )
+        result["ok"] = True
+        result["available"] = True
+        return result
+    except Exception as exc:
+        return {
+            "ok": False,
+            "available": False,
+            "error": f"Explanation failed: {exc}",
+            "word_attributions": [],
+        }

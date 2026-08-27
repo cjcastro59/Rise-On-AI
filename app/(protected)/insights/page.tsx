@@ -223,7 +223,7 @@ export default function MoodInsightsPage() {
     loading: wellnessLoading,
     isRecalculating: wellnessRecalculating,
     triggerRecalculate,
-  } = useWellnessAssessment(30, 90);
+  } = useWellnessAssessment(30, 90, undefined, true); // includeDetails=true for breakdown table
 
   // ── Distress Risk Indicator ────────────────────────────────────────────────
   const {
@@ -299,13 +299,22 @@ export default function MoodInsightsPage() {
     return entries.filter((e) => new Date(e.created_at) >= cutoff);
   };
 
+  // ── Memoised per-entry analysis ───────────────────────────────────────────
+  // Baseline: analyzeEntry() (full keyword scoring) was called on every render
+  // for every entry. Fix: compute once per entries array change → O(1) lookup.
+  const entryAnalysisMap = useMemo(() => {
+    const m = new Map<string, ReturnType<typeof analyzeEntry>>();
+    entries.forEach(e => m.set(e.id, analyzeEntry(e.content, e.mood)));
+    return m;
+  }, [entries]);
+
   const getEntrySentiment = (
     entry: JournalEntry
   ): "positive" | "negative" | "distress" =>
-    analyzeEntry(entry.content, entry.mood).sentiment;
+    entryAnalysisMap.get(entry.id)?.sentiment ?? analyzeEntry(entry.content, entry.mood).sentiment;
 
   const getEntryAnalysis = (entry: JournalEntry) =>
-    analyzeEntry(entry.content, entry.mood);
+    entryAnalysisMap.get(entry.id) ?? analyzeEntry(entry.content, entry.mood);
 
   const getEmotionCategory = (
     entry: JournalEntry
@@ -1274,6 +1283,24 @@ export default function MoodInsightsPage() {
             </div>
           </Card>
         </div>
+      </div>
+
+      {/* ── Quick nav to dedicated Mood Trends visualization page ────── */}
+      <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-light-gray">
+        <div>
+          <p className="text-sm font-poppins font-semibold text-dark-text">
+            📊 Mood Trend Visualization
+          </p>
+          <p className="text-xs text-dark-text/50 font-inter mt-0.5">
+            Full charts: Distribution · Weekly · Monthly · Wellness Trend · Behavioral Trend · Distress Risk
+          </p>
+        </div>
+        <Link
+          href="/mood-trends"
+          className="shrink-0 px-4 py-2 bg-[#A8DADC] hover:bg-[#4EAAB3] text-white text-xs font-poppins font-semibold rounded-full transition-colors"
+        >
+          View All Charts →
+        </Link>
       </div>
     </>
   );

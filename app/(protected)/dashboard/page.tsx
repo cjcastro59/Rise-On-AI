@@ -110,11 +110,22 @@ export default function DashboardPage() {
   const calculateStats = useCallback((entries: any[]) => {
     const totalEntries = entries.length;
 
+    // O5 (Phase 7): compute analyzeEntry once per entry and cache in a Map.
+    // Baseline: called twice per entry (once for avgMoodScore, once for positivityThisWeek).
+    // After: one call per entry → ~50% reduction in keyword analysis work.
+    const analysisCache = new Map<string, ReturnType<typeof analyzeEntry>>();
+    const getAnalysis = (entry: any) => {
+      const key = entry.id ?? (entry.content + entry.mood);
+      if (!analysisCache.has(key)) {
+        analysisCache.set(key, analyzeEntry(entry.content || "", entry.mood));
+      }
+      return analysisCache.get(key)!;
+    };
+
     let totalScore = 0;
     let scoreCount = 0;
     entries.forEach(entry => {
-      const analysis = analyzeEntry(entry.content || "", entry.mood);
-      totalScore += analysis.sentimentScore / 10;
+      totalScore += getAnalysis(entry).sentimentScore / 10;
       scoreCount++;
     });
     const avgMoodScore = scoreCount > 0 ? parseFloat((totalScore / scoreCount).toFixed(1)) : 0;
@@ -125,8 +136,7 @@ export default function DashboardPage() {
 
     let positiveCount = 0;
     thisWeekEntries.forEach(entry => {
-      const analysis = analyzeEntry(entry.content || "", entry.mood);
-      if (analysis.sentiment === "positive") positiveCount++;
+      if (getAnalysis(entry).sentiment === "positive") positiveCount++;
     });
     const positivityThisWeek = thisWeekEntries.length > 0 ? Math.round((positiveCount / thisWeekEntries.length) * 100) : 0;
 
@@ -479,6 +489,13 @@ export default function DashboardPage() {
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">View Insights</p>
                 <p className="text-xs text-dark-text/60 font-inter">Analyze your mood trends</p>
+              </div>
+            </Link>
+            <Link href="/mood-trends" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray transition-all">
+              <Image src="/icons/trends.svg" alt="Mood Trends" width={20} height={20} className="object-contain" />
+              <div className="flex-1">
+                <p className="font-poppins font-medium text-dark-text text-sm">Mood Trends</p>
+                <p className="text-xs text-dark-text/60 font-inter">Charts: distribution, wellness, risk</p>
               </div>
             </Link>
           </div>

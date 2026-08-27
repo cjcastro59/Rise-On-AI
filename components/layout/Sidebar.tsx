@@ -37,26 +37,28 @@ export default function Sidebar({ userName }: SidebarProps) {
     }
   }, [user, supabase]);
 
-  const isActive = (page: "dashboard" | "journal" | "history" | "insights" | "analysis" | "profile" | "settings" | "support") => {
+  const isActive = (page: "dashboard" | "journal" | "history" | "insights" | "analysis" | "profile" | "settings" | "support" | "mood-trends") => {
     switch (page) {
-      case "dashboard":
-        return pathname === "/dashboard";
-      case "journal":
-        return pathname === "/journal";
-      case "history":
-        return pathname === "/journal/history";
-      case "insights":
-        return pathname === "/insights";
-      case "analysis":
-        return pathname === "/analysis";
-      case "profile":
-        return pathname === "/profile";
-      case "settings":
-        return pathname === "/settings";
-      case "support":
-        return pathname === "/support";
-      default:
-        return false;
+      case "dashboard":    
+      return pathname === "/dashboard";
+      case "journal":      
+      return pathname === "/journal";
+      case "history":      
+      return pathname === "/journal/history";
+      case "insights":     
+      return pathname === "/insights";
+      case "analysis":     
+      return pathname === "/analysis";
+      case "mood-trends":  
+      return pathname === "/mood-trends";
+      case "profile":      
+      return pathname === "/profile";
+      case "settings":     
+      return pathname === "/settings";
+      case "support":      
+      return pathname === "/support";
+      default:             
+      return false;
     }
   };
 
@@ -122,6 +124,17 @@ export default function Sidebar({ userName }: SidebarProps) {
           >
             <Image src="/icons/mood-insights.svg" alt="Mood Insights" width={18} height={18} className="object-contain" />
             Mood Insights
+          </Link>
+          <Link
+            href="/mood-trends"
+            className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${
+              isActive("mood-trends")
+                ? "bg-[#A8DADC]/20 text-[#A8DADC]"
+                : "text-white/70 hover:text-white hover:bg-white/5"
+            }`}
+          >
+            <Image src="/icons/trends.svg" alt="Mood Trends" width={18} height={18} className="object-contain" />
+            Mood Trends
           </Link>
           <Link
             href="/analysis"
