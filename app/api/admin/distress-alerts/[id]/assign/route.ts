@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
-import { appendActionNote, getAuthorizedAdminClient } from "../../_utils";
+import { appendActionNote, getAuthorizedAdminClient, isValidUUID } from "../../_utils";
 
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  // validate UUID format before any DB query
+  if (!isValidUUID(params.id)) {
+    return NextResponse.json({ error: "Invalid alert ID format." }, { status: 400 });
+  }
+
   const auth = await getAuthorizedAdminClient();
   if ("error" in auth) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });

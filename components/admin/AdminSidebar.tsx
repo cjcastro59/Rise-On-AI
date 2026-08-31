@@ -141,14 +141,7 @@ export default function AdminSidebar() {
             >
               <Image src="/icons/ai-sentiment.svg" alt="Sentiment Monitor" width={16} height={16} className="object-contain" /> Sentiment Monitor
             </Link>
-            <Link
-              href="/admin/feedback"
-              className={`flex items-center gap-2 px-2 py-1 rounded-lg text-xs font-poppins transition-all ${
-                pathname === "/admin/feedback" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-              }`}
-            >
-              <Image src="/icons/mood.svg" alt="Feedback" width={16} height={16} className="object-contain" /> Feedback
-            </Link>
+            {/* Feedback page removed — not necessary for system operation */}
           </div>
         </div>
 

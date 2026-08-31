@@ -127,5 +127,22 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/journal/:path*", "/insights/:path*", "/analysis/:path*", "/profile/:path*", "/settings/:path*", "/support/:path*", "/admin/:path*", "/counselor/:path*", "/login", "/register", "/setup-2fa", "/forgot-password", "/reset-password", "/privacy-policy"],
+  matcher: [
+    "/dashboard/:path*",
+    "/journal/:path*",
+    "/insights/:path*",
+    "/mood-trends/:path*",   // S1: was missing — protected route now guarded
+    "/analysis/:path*",
+    "/profile/:path*",
+    "/settings/:path*",
+    "/support/:path*",
+    "/admin/:path*",
+    "/counselor/:path*",
+    "/login",
+    "/register",
+    "/setup-2fa",
+    "/forgot-password",
+    "/reset-password",
+    "/privacy-policy",
+  ],
 };

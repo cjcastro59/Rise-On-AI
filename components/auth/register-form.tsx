@@ -151,28 +151,26 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
         return;
       }
 
-      // First, let's store the profile data in localStorage in case we need it after email confirmation!
-      localStorage.setItem('pendingProfileData', JSON.stringify(formData));
+      // S8 (Phase 8): Use sessionStorage instead of localStorage — data is
+      // cleared when the tab closes, never persisted cross-tab/cross-device.
+      // Reduces the window in which PII is accessible to other scripts on the page.
+      sessionStorage.setItem('pendingProfileData', JSON.stringify(formData));
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
-          // Optional: disable email confirmation in Supabase dashboard for dev!
-          data: {
-            // We can put some data here but full profile needs to be in user_profiles
-          },
+          data: {},
           captchaToken: recaptchaToken,
         }
       });
 
-      console.log('Auth signUp response:', { authData, authError });
+      // S7 (Phase 8): removed console.log('Auth signUp response:', ...) — exposed auth tokens and error details
 
       if (authError) {
-        localStorage.removeItem('pendingProfileData');
-        // Handle rate limit errors with a friendly message
+        sessionStorage.removeItem('pendingProfileData');
         if (authError.message.toLowerCase().includes("rate limit") || authError.message.toLowerCase().includes("too many")) {
-          setError("Too many signups! Please wait a few minutes or log in. For development, you can disable email confirmation in your Supabase dashboard (Authentication → Providers → Email).");
+          setError("Too many sign-up attempts. Please wait a few minutes and try again.");
         } else {
           setError(authError.message);
         }
@@ -180,10 +178,9 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       }
 
       if (authData.user) {
-        console.log('User created! Now upserting complete profile...');
+        // S7 (Phase 8): removed console.log('User created! Now upserting complete profile...')
 
-        // Prepare ALL profile data
-        const profileData: any = {
+        const profileData: Record<string, unknown> = {
           id: authData.user.id,
           username: formData.username,
           email: formData.email,
@@ -199,38 +196,32 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
           two_factor_secret: null,
         };
 
-        console.log('Full profile data:', profileData);
+        // S7 (Phase 8): removed console.log('Full profile data:', profileData) — exposed PII
 
-        // Use UPSERT! This will insert or update if the row already exists (from the trigger!)
         const { error: upsertError } = await supabase
           .from('user_profiles')
           .upsert(profileData, { onConflict: 'id' })
           .select();
 
         if (upsertError) {
-          console.error('Upsert failed!', upsertError);
+          console.error('[register] Profile upsert failed.');
           setError(`Profile setup failed: ${upsertError.message}`);
-          localStorage.removeItem('pendingProfileData');
+          sessionStorage.removeItem('pendingProfileData');
           return;
         }
 
-        localStorage.removeItem('pendingProfileData');
-        console.log('Profile setup complete!');
+        sessionStorage.removeItem('pendingProfileData');
+        // S7 (Phase 8): removed console.log('Profile setup complete!') and 'Session exists but no user?'
 
-        // Redirect to 2FA setup
         router.push('/setup-2fa');
         router.refresh();
-      } else if (authData.session) {
-        // If user is auto-confirmed (email confirmation off), we should have a user
-        console.log('Session exists but no user?');
       } else {
-        // Email confirmation is enabled - user needs to confirm first!
-        setError('Please check your email to confirm your account! We saved your profile info.');
-        // We can keep pendingProfileData in localStorage for after confirmation
-        updateStep(1); // Or show a message
+        // Email confirmation enabled — user must confirm before profile is applied
+        setError('Please check your email to confirm your account before continuing.');
+        updateStep(1);
       }
     } catch (err) {
-      console.error('Unexpected error in handleRegister:', err);
+      console.error('[register] Unexpected error during registration.');
       setError("An unexpected error occurred.");
     } finally {
       setLoading(false);
