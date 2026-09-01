@@ -170,6 +170,7 @@ Your continued use of Rise On AI after any update constitutes your acknowledgeme
 11. GOVERNING LAW
 
 This Privacy Notice is governed by and construed in accordance with the laws of the Republic of the Philippines, including Republic Act No. 10173 (Data Privacy Act of 2012), its Implementing Rules and Regulations, and applicable issuances of the National Privacy Commission (NPC).
+`;
 
 export function PrivacyPolicyModal({ onClose }: PrivacyPolicyModalProps) {
   const { hasPermission } = useRBAC();
