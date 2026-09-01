@@ -143,7 +143,7 @@ export default function Setup2FAPage() {
         .eq("id", user.id)
         .single();
 
-      if (!profile) {
+      if (!existing) {
         await supabase.from("user_profiles").insert({
           id: user.id,
           email: user.email,
