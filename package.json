@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev":          "next dev",
-    "build":        "next build",
-    "start":        "next start",
-    "lint":         "next lint",
-    "test":         "vitest run",
-    "test:watch":   "vitest",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:coverage":"vitest run --coverage",
-    "test:ui":      "vitest --ui"
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@getbrevo/brevo": "^6.0.2",
