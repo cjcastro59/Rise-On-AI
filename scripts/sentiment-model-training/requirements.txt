@@ -17,7 +17,7 @@
 
 # ── Core deep learning ─────────────────────────────────────────────
 torch==2.3.1
-transformers==4.44.2
+transformers==4.43.4
 sentencepiece==0.2.0
 protobuf==5.27.3
 datasets==2.21.0

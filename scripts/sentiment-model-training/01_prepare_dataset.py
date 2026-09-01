@@ -308,22 +308,48 @@ def balance_dataset(df: pd.DataFrame, strategy: str = "weights") -> tuple[pd.Dat
 
 
 def split_dataset(df: pd.DataFrame, train_frac=0.75, val_frac=0.125):
-    """Stratified train/val/test split."""
+    """Stratified train/val/test split.
+
+    Stratifies on label+language when all strata have >= 2 members in each
+    split; falls back to label-only stratification when any stratum is too
+    small (e.g. 'mixed' language category with very few samples).
+    """
     from sklearn.model_selection import train_test_split
 
-    strat = df["label"].astype(str) + "|" + df["language"].fillna("unknown")
-    train, rest = train_test_split(
-        df, test_size=1.0 - train_frac,
-        random_state=RANDOM_SEED,
-        stratify=strat,
-    )
-    rest_strat = rest["label"].astype(str) + "|" + rest["language"].fillna("unknown")
+    def _safe_split(data, test_size, strat_col):
+        """Try stratified split; fall back to label-only if a stratum is too small."""
+        min_count = data[strat_col].value_counts().min()
+        # Need at least 2 per stratum so that each split gets >= 1
+        if min_count >= 2:
+            try:
+                return train_test_split(
+                    data, test_size=test_size,
+                    random_state=RANDOM_SEED,
+                    stratify=data[strat_col],
+                )
+            except ValueError:
+                pass
+        # Fallback: stratify on label only
+        return train_test_split(
+            data, test_size=test_size,
+            random_state=RANDOM_SEED,
+            stratify=data["label"],
+        )
+
+    # Build combined strat column
+    df = df.copy()
+    df["_strat"] = df["label"].astype(str) + "|" + df["language"].fillna("unknown")
+
+    train, rest = _safe_split(df, test_size=1.0 - train_frac, strat_col="_strat")
+
     val_frac_of_rest = val_frac / (1.0 - train_frac)
-    val, test = train_test_split(
-        rest, test_size=1.0 - val_frac_of_rest,
-        random_state=RANDOM_SEED,
-        stratify=rest_strat,
-    )
+    rest = rest.copy()
+    rest["_strat"] = rest["label"].astype(str) + "|" + rest["language"].fillna("unknown")
+    val, test = _safe_split(rest, test_size=1.0 - val_frac_of_rest, strat_col="_strat")
+
+    for split in (train, val, test):
+        split.drop(columns=["_strat"], inplace=True, errors="ignore")
+
     return train.reset_index(drop=True), val.reset_index(drop=True), test.reset_index(drop=True)
 
 
