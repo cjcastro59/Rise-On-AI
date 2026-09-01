@@ -200,7 +200,6 @@ export default function MoodInsightsPage() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const supabase = useMemo(() => createClient(), []);
-
   const {
     data: moodTrendData,
     loading: moodTrendLoading,

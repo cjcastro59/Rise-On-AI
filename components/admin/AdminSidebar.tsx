@@ -141,7 +141,6 @@ export default function AdminSidebar() {
             >
               <Image src="/icons/ai-sentiment.svg" alt="Sentiment Monitor" width={16} height={16} className="object-contain" /> Sentiment Monitor
             </Link>
-            {/* Feedback page removed — not necessary for system operation */}
           </div>
         </div>
 

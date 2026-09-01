@@ -10,47 +10,18 @@ interface PrivacyPolicyModalProps {
   onClose: () => void;
 }
 
-// ── S13 (Phase 8): RA 10173 — Philippines Data Privacy Act of 2012 ────────────
-// The previous default privacy policy was a generic placeholder that did not
-// comply with the Data Privacy Act of 2012 (Republic Act No. 10173) and its
-// Implementing Rules and Regulations (IRR).
-//
-// RA 10173 requires the following to be disclosed to data subjects:
-//   1. Identity and contact details of the personal information controller (PIC)
-//   2. Purpose and legal basis for processing personal data
-//   3. Scope and method of collection
-//   4. Recipients or classes of recipients of personal data
-//   5. Rights of data subjects (Sections 16–18, RA 10173)
-//   6. Retention period
-//   7. Automated decision-making (if any)
-//   8. Breach notification commitment
-//   9. Reference to the National Privacy Commission (NPC)
-//  10. How to exercise rights (complaints, erasure, portability)
-//
-// This default policy satisfies all of the above requirements.
-// System admins/owners should customize the PIC name, DPO contact, and
-// institution-specific details before deploying to production.
-// ─────────────────────────────────────────────────────────────────────────────
-
 const RA_10173_POLICY = `PRIVACY NOTICE
 Rise On AI — AI-Assisted Mental Wellness Monitoring System
 Effective Date: ${new Date().toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}
 
 This Privacy Notice is issued in compliance with Republic Act No. 10173, known as the Data Privacy Act of 2012 (DPA), and its Implementing Rules and Regulations (IRR).
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 1. IDENTITY OF THE PERSONAL INFORMATION CONTROLLER (PIC)
 
-Rise On AI is operated by [Institution/Organization Name], hereinafter referred to as the "Personal Information Controller" or "PIC."
-
-Data Protection Officer (DPO):
-  Name: [DPO Name]
-  Email: [dpo@institution.edu.ph]
-  Address: [Institution Address]
+Rise On AI is operated by Rise On AI Organization, hereinafter referred to as the "Personal Information Controller" or "PIC."
 
 For privacy-related concerns, please contact the DPO using the details above.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 2. PERSONAL DATA WE COLLECT
 
 We collect the following categories of personal data:
@@ -73,7 +44,6 @@ c) Technical Data
    • Usage timestamps (entry creation/update dates)
    • Device and browser information collected incidentally during session management
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 3. PURPOSES AND LEGAL BASIS FOR PROCESSING
 
 We process your personal data for the following purposes:
@@ -98,7 +68,6 @@ d) Consent (Section 12(a), RA 10173)
 
 Sensitive personal information (your journal entries and emotional data) is processed only on the basis of your explicit consent given at registration and reinforced by your voluntary use of the journaling feature.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 4. DATA SHARING AND RECIPIENTS
 
 We do not sell, rent, or commercially exploit your personal data.
@@ -118,7 +87,6 @@ c) Legal Disclosure
 
 In all cases, data sharing is limited to what is strictly necessary for the stated purpose.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 5. DATA RETENTION
 
 We retain your personal data for the following periods:
@@ -130,7 +98,6 @@ We retain your personal data for the following periods:
 
 Upon the expiry of the retention period, personal data will be securely deleted or irreversibly anonymized.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 6. YOUR RIGHTS AS A DATA SUBJECT (Sections 16–18, RA 10173)
 
 Under the Data Privacy Act of 2012, you have the following rights:
@@ -161,7 +128,6 @@ g) Right to Lodge a Complaint
 
 To exercise any of these rights, please contact our Data Protection Officer using the details in Section 1 of this Notice. We will respond within fifteen (15) working days of receiving your request.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 7. AUTOMATED DECISION-MAKING AND AI PROCESSING
 
 Rise On AI uses artificial intelligence (XLM-RoBERTa, a multilingual language model) to analyze your journal entries and produce:
@@ -174,7 +140,6 @@ Rise On AI uses artificial intelligence (XLM-RoBERTa, a multilingual language mo
 
 IMPORTANT DISCLAIMER: These AI-generated outputs are decision-support tools for self-reflection and counselor awareness only. They do NOT constitute clinical diagnoses, medical assessments, psychiatric evaluations, or professional mental health advice. No automated decision with legal or similarly significant effect is made solely on the basis of these outputs. All outputs require human review before any intervention is taken.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 8. DATA SECURITY
 
 We implement the following security measures to protect your personal data:
@@ -187,7 +152,6 @@ We implement the following security measures to protect your personal data:
 
 Despite these measures, no system can guarantee absolute security. In the event of a personal data breach that is likely to result in a risk to your rights and freedoms, we will notify affected data subjects and the National Privacy Commission within 72 hours of becoming aware of the breach, in accordance with Section 20(f) of RA 10173 and NPC Circular 16-03.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 9. COOKIES AND SESSION MANAGEMENT
 
 We use session cookies managed by Supabase Authentication to maintain your login session. These cookies are:
@@ -197,27 +161,15 @@ We use session cookies managed by Supabase Authentication to maintain your login
 
 We do not use third-party advertising or tracking cookies.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 10. CHANGES TO THIS NOTICE
 
 We may update this Privacy Notice from time to time to reflect changes in our practices or applicable law. When we make material changes, we will update the "Effective Date" at the top of this Notice and, where required, notify you through the platform or by email.
 
 Your continued use of Rise On AI after any update constitutes your acknowledgement of the revised Notice.
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 11. GOVERNING LAW
 
 This Privacy Notice is governed by and construed in accordance with the laws of the Republic of the Philippines, including Republic Act No. 10173 (Data Privacy Act of 2012), its Implementing Rules and Regulations, and applicable issuances of the National Privacy Commission (NPC).
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-For questions or concerns about this Privacy Notice or our data processing practices, please contact:
-
-Data Protection Officer
-[Institution/Organization Name]
-Email: [dpo@institution.edu.ph]
-Address: [Institution Address]
-Contact Number: [+63 XXX XXX XXXX]
-`;
 
 export function PrivacyPolicyModal({ onClose }: PrivacyPolicyModalProps) {
   const { hasPermission } = useRBAC();

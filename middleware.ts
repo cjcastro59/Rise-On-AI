@@ -131,7 +131,7 @@ export const config = {
     "/dashboard/:path*",
     "/journal/:path*",
     "/insights/:path*",
-    "/mood-trends/:path*",   // S1: was missing — protected route now guarded
+    "/mood-trends/:path*",  
     "/analysis/:path*",
     "/profile/:path*",
     "/settings/:path*",

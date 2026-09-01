@@ -16,17 +16,17 @@ import { QRCodeSVG } from "qrcode.react";
 const MAX_VERIFY_ATTEMPTS = 5;
 
 export default function Setup2FAPage() {
-  const [otpAuthUrl,        setOtpAuthUrl]        = useState("");
-  const [secret,            setSecret]            = useState("");
-  const [secretVisible,     setSecretVisible]     = useState(false); // S5: hidden by default
-  const [verificationCode,  setVerificationCode]  = useState("");
-  const [loading,           setLoading]           = useState(false);
-  const [error,             setError]             = useState("");
-  const [success,           setSuccess]           = useState("");
-  const [step,              setStep]              = useState(1); // 1=intro, 2=setup, 3=complete
-  const [verifyAttempts,    setVerifyAttempts]    = useState(0); // S6: lockout counter
+  const [otpAuthUrl, setOtpAuthUrl] = useState("");
+  const [secret, setSecret] = useState("");
+  const [secretVisible, setSecretVisible] = useState(false); // S5: hidden by default
+  const [verificationCode, setVerificationCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError]  = useState("");
+  const [success, setSuccess] = useState("");
+  const [step, setStep] = useState(1); // 1=intro, 2=setup, 3=complete
+  const [verifyAttempts, setVerifyAttempts]    = useState(0); // S6: lockout counter
   const { user, loading: authLoading } = useAuth();
-  const router  = useRouter();
+  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
   const initializeAuthenticator = useCallback(async () => {
@@ -43,11 +43,11 @@ export default function Setup2FAPage() {
 
       if (!profile) {
         await supabase.from("user_profiles").insert({
-          id:                 user.id,
-          email:              user.email,
-          role:               "user",
+          id: user.id,
+          email: user.email,
+          role: "user",
           two_factor_enabled: false,
-          two_factor_secret:  null,
+          two_factor_secret: null,
         });
       }
 
@@ -143,14 +143,14 @@ export default function Setup2FAPage() {
         .eq("id", user.id)
         .single();
 
-      if (!existing) {
+      if (!profile) {
         await supabase.from("user_profiles").insert({
-          id:                  user.id,
-          email:               user.email,
-          role:                "user",
-          two_factor_enabled:  false,
-          two_factor_secret:   null,
-          two_factor_skipped:  true,
+          id: user.id,
+          email: user.email,
+          role: "user",
+          two_factor_enabled: false,
+          two_factor_secret: null,
+          two_factor_skipped: true,
         });
       } else {
         await supabase
@@ -213,7 +213,7 @@ export default function Setup2FAPage() {
                       Authenticator App
                     </div>
                     <div className="text-xs font-inter text-dark-text/60">
-                      Use Google Authenticator, Authy, or similar
+                      Use Google Authenticator
                     </div>
                   </div>
                 </Button>
