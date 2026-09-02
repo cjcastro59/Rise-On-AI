@@ -1,0 +1,91 @@
+# =============================================================================
+# Rollback Workflow — Rise On AI
+# =============================================================================
+# Manually triggered from GitHub Actions UI.
+# Redeploys a specific previous deployment URL to production.
+#
+# How to use:
+#   1. Go to GitHub → Actions → "Rollback Production"
+#   2. Click "Run workflow"
+#   3. Paste the Vercel deployment URL you want to restore
+#      (e.g. https://rise-on-ai-xxxx.vercel.app)
+#   4. Click "Run workflow"
+#
+# To find previous deployment URLs:
+#   - Vercel Dashboard → your project → Deployments tab
+#   - Each past deployment has its own immutable URL
+#
+# Required GitHub Secrets (same as deploy.yml):
+#   VERCEL_TOKEN
+#   VERCEL_ORG_ID
+#   VERCEL_PROJECT_ID
+# =============================================================================
+
+name: Rollback Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_url:
+        description: "Vercel deployment URL to promote back to production (e.g. https://rise-on-ai-xxxx.vercel.app)"
+        required: true
+        type: string
+      reason:
+        description: "Reason for rollback (for audit trail)"
+        required: false
+        default: "Manual rollback"
+        type: string
+
+jobs:
+  rollback:
+    name: Rollback to previous deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # ── 1. Checkout (needed for Vercel CLI context) ────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Install Vercel CLI ──────────────────────────────────────────────
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # ── 3. Validate the provided URL ──────────────────────────────────────
+      - name: Validate deployment URL
+        run: |
+          URL="${{ github.event.inputs.deployment_url }}"
+          if [[ ! "$URL" =~ ^https://.*\.vercel\.app ]]; then
+            echo "❌ Invalid deployment URL: $URL"
+            echo "URL must be a vercel.app URL (e.g. https://rise-on-ai-xxxx.vercel.app)"
+            exit 1
+          fi
+          echo "✅ URL looks valid: $URL"
+
+      # ── 4. Promote the selected deployment to production alias ────────────
+      # `vercel alias` points the production domain at the given deployment URL
+      - name: Promote deployment to production
+        run: |
+          echo "Rolling back to: ${{ github.event.inputs.deployment_url }}"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          vercel alias set \
+            "${{ github.event.inputs.deployment_url }}" \
+            rise-on-ai.vercel.app \
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --scope=${{ secrets.VERCEL_ORG_ID }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # ── 5. Write rollback summary ──────────────────────────────────────────
+      - name: Write rollback summary
+        run: |
+          echo "### ↩️ Rollback Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Restored URL | ${{ github.event.inputs.deployment_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Production domain | https://rise-on-ai.vercel.app |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered by | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Reason | ${{ github.event.inputs.reason }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Timestamp | $(date -u '+%Y-%m-%d %H:%M:%S UTC') |" >> $GITHUB_STEP_SUMMARY

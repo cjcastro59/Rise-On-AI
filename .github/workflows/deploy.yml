@@ -1,0 +1,103 @@
+# =============================================================================
+# Deploy Workflow — Rise On AI
+# =============================================================================
+# Runs ONLY on push to main AND only after the CI workflow passes.
+# Pipeline: CI passes → Deploy to Vercel production
+#
+# Required GitHub Secrets (Settings → Secrets → Actions):
+#   VERCEL_TOKEN          — Vercel personal access token
+#   VERCEL_ORG_ID         — from `vercel link` or Vercel project settings
+#   VERCEL_PROJECT_ID     — from `vercel link` or Vercel project settings
+#   NEXT_PUBLIC_SUPABASE_URL
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY
+#   NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+#   RECAPTCHA_SECRET_KEY
+#   SUPABASE_SERVICE_ROLE_KEY
+#   SENTIMENT_MODEL_API_URL
+#   HUGGINGFACE_API_KEY
+# =============================================================================
+
+name: Deploy to Vercel
+
+on:
+  workflow_run:
+    workflows: ["CI"]         # only runs after CI workflow
+    types: [completed]
+    branches: [main]          # only for main branch
+
+# Prevent concurrent deploys — queue them instead
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Vercel Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Only deploy if CI passed — never deploy a broken build
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      # ── 1. Checkout the exact commit that passed CI ────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      # ── 2. Node.js setup ───────────────────────────────────────────────────
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # ── 3. Install Vercel CLI ──────────────────────────────────────────────
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # ── 4. Pull Vercel project settings ───────────────────────────────────
+      - name: Pull Vercel environment info
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # ── 5. Build on Vercel's infrastructure ───────────────────────────────
+      - name: Build project via Vercel
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # ── 6. Deploy prebuilt output to production ────────────────────────────
+      - name: Deploy to Vercel production
+        id: deploy
+        run: |
+          DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "deploy_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $DEPLOY_URL"
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # ── 7. Post deployment URL as a commit status ──────────────────────────
+      - name: Report deployment URL
+        run: |
+          echo "### ✅ Deployed to Production" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** ${{ steps.deploy.outputs.deploy_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.event.workflow_run.head_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`main\`" >> $GITHUB_STEP_SUMMARY
+
+      # ── 8. Notify on failure ───────────────────────────────────────────────
+      - name: Notify on deploy failure
+        if: failure()
+        run: |
+          echo "### ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The deployment to Vercel failed." >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.event.workflow_run.head_sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To rollback, go to **Actions → Rollback Production** and run it manually." >> $GITHUB_STEP_SUMMARY

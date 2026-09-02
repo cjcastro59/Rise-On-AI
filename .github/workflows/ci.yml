@@ -1,0 +1,90 @@
+# =============================================================================
+# CI Workflow — Rise On AI
+# =============================================================================
+# Runs on every push and pull request to any branch.
+# Pipeline: Install → Lint → Test → Build
+#
+# This workflow does NOT deploy. Deployment is handled by deploy.yml
+# which only runs after this workflow passes on the main branch.
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]          # every branch
+  pull_request:
+    branches: ["**"]          # every PR target
+
+# Cancel in-progress runs for the same branch/PR to save minutes
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Lint · Test · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Node.js setup with npm cache ────────────────────────────────────
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # ── 3. Install dependencies (clean install, respects package-lock.json) ─
+      - name: Install dependencies
+        run: npm ci
+
+      # ── 4. Lint ─────────────────────────────────────────────────────────────
+      # Uses next lint (ESLint with Next.js core-web-vitals rules).
+      # Fails the pipeline on any ESLint error.
+      - name: Lint
+        run: npm run lint
+
+      # ── 5. Run tests ────────────────────────────────────────────────────────
+      # Runs the full vitest suite (unit + integration + ai + security).
+      # --reporter=verbose gives per-test output in the Actions log.
+      # Environment variables are dummies — tests must not call real APIs.
+      - name: Run tests
+        run: npm run test -- --reporter=verbose
+        env:
+          # Provide dummy values so env-dependent imports don't throw at import time.
+          # Tests themselves must mock Supabase and external APIs.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_RECAPTCHA_SITE_KEY: "dummy-recaptcha-key"
+          SUPABASE_SERVICE_ROLE_KEY: "dummy-service-role-key"
+          SENTIMENT_MODEL_API_URL: "https://dummy.huggingface.co/models/test"
+          HUGGINGFACE_API_KEY: "hf_dummy"
+
+      # ── 6. Build ────────────────────────────────────────────────────────────
+      # Runs next build to catch TypeScript and webpack errors before deploy.
+      # Uses real Supabase public vars (non-secret, already public in the app).
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${{ secrets.NEXT_PUBLIC_RECAPTCHA_SITE_KEY }}
+          RECAPTCHA_SECRET_KEY: ${{ secrets.RECAPTCHA_SECRET_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SENTIMENT_MODEL_API_URL: ${{ secrets.SENTIMENT_MODEL_API_URL }}
+          HUGGINGFACE_API_KEY: ${{ secrets.HUGGINGFACE_API_KEY }}
+
+      # ── 7. Upload build artifact (for deploy workflow to consume) ──────────
+      - name: Upload .next build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build-${{ github.sha }}
+          path: |
+            .next/
+            public/
+          retention-days: 1   # only needed for same-run deploy
