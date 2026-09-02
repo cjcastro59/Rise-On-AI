@@ -88,3 +88,68 @@ jobs:
             .next/
             public/
           retention-days: 1   # only needed for same-run deploy
+
+  # ---------------------------------------------------------------------------
+  # Auto-tag job — only runs on push to main, after ci job passes
+  # ---------------------------------------------------------------------------
+  # Reads the version from package.json and creates an annotated Git tag
+  # (e.g. v2.0.1) if that tag does not already exist.
+  #
+  # How to trigger a new tag:
+  #   1. Bump the version in package.json  (npm version patch / minor / major)
+  #   2. Commit and push to main
+  #   3. This job creates the tag automatically — no manual git tag needed
+  # ---------------------------------------------------------------------------
+  auto-tag:
+    name: Auto-tag version from package.json
+    runs-on: ubuntu-latest
+    needs: ci                          # only runs if CI passes
+    timeout-minutes: 5
+
+    # Only tag on direct pushes to main — not on PRs
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    # Write permission needed to push tags back to the repo
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0               # full history needed to check existing tags
+
+      - name: Read version from package.json
+        id: pkg
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=v$VERSION" >> $GITHUB_OUTPUT
+          echo "Detected version: v$VERSION"
+
+      - name: Check if tag already exists
+        id: tag_check
+        run: |
+          TAG="${{ steps.pkg.outputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Tag $TAG already exists — skipping."
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Tag $TAG does not exist — will create."
+          fi
+
+      - name: Create and push annotated tag
+        if: steps.tag_check.outputs.exists == 'false'
+        run: |
+          TAG="${{ steps.pkg.outputs.version }}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG — auto-tagged by CI on $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push origin "$TAG"
+          echo "### 🏷️ Tagged $TAG" >> $GITHUB_STEP_SUMMARY
+          echo "Commit: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Report skipped tagging
+        if: steps.tag_check.outputs.exists == 'true'
+        run: |
+          echo "### ⏭️ Tag ${{ steps.pkg.outputs.version }} already exists — skipped" >> $GITHUB_STEP_SUMMARY
