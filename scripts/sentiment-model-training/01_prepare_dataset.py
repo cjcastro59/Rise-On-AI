@@ -132,7 +132,7 @@ def normalize_label(raw) -> str | None:
 # ------------------------------
 SYNTH = {
     "positive": [
-        # English
+        # ── English ───────────────────────────────────────────────────────────
         "I feel so happy and grateful for everything today.",
         "Spent a wonderful day with my family and loved ones.",
         "Finally finished my project! Proud of my progress.",
@@ -143,7 +143,37 @@ SYNTH = {
         "Everything is going well. I feel calm and at peace.",
         "Got accepted! My hard work really paid off.",
         "Grateful for another chance to be alive and healthy.",
-        # Tagalog
+        "Woke up feeling refreshed and ready to take on the day.",
+        "I passed my exam and I could not be more relieved and happy.",
+        "My mentor gave me really encouraging feedback today.",
+        "Reconnected with an old friend and it felt so good.",
+        "I cooked a meal from scratch and it actually tasted amazing.",
+        "Feeling optimistic about the future for the first time in a while.",
+        "Small acts of kindness from strangers lifted my mood today.",
+        "I finally started that hobby I kept putting off — feels great.",
+        "My team supported me through a tough presentation and we nailed it.",
+        "Celebrated a small milestone and it reminded me how far I have come.",
+        "I feel proud of myself for getting through a difficult week.",
+        "Journaling every day has genuinely improved my mental clarity.",
+        "Today was simple but peaceful. That is enough for me.",
+        "I received a kind message from a friend out of nowhere.",
+        "My anxiety was low today and I felt like myself again.",
+        "I smiled more today than I have in a long time.",
+        "Got promoted at work after months of hard effort.",
+        "My family called just to check on me — felt really loved.",
+        "Finished a book I have been meaning to read for years.",
+        "Feeling content. Not everything has to be perfect to be good.",
+        "I helped someone today and it gave me a genuine sense of purpose.",
+        "The sunrise this morning made me feel grateful to be alive.",
+        "I finally forgave myself for a past mistake. It feels lighter.",
+        "Had a deep honest conversation with someone I trust.",
+        "My hard work is slowly paying off and I can feel the momentum.",
+        "Today I chose to focus on what I can control, and it helped.",
+        "I went for a walk and it completely reset my mood.",
+        "Feeling energized and ready to tackle my goals.",
+        "I love the progress I am making even if it is slow.",
+        "Things are not perfect but I am genuinely doing better.",
+        # ── Tagalog / Taglish ────────────────────────────────────────────────
         "Sobrang saya ko ngayong araw na ito, maraming salamat sa lahat.",
         "Masayang kasama ang pamilya ngayong weekend.",
         "Matagumpay kong natapos ang aking mga gawain, proud ako!",
@@ -154,9 +184,30 @@ SYNTH = {
         "Maayos ang lahat sa araw na ito, payapa ang isip ko.",
         "Pumasa ako sa pagsusulit! Sulit ang lahat ng pagod ko.",
         "Salamat sa panibagong araw na mabuti at malusog ang kalagayan ko.",
+        "Nag-uusap kami ng pamilya namin ngayong gabi at masaya talaga.",
+        "Natupad ko na ang isang pangarap ko — parang hindi pa rin totoo.",
+        "Nakakuha ako ng positibong feedback mula sa aking guro ngayon.",
+        "Nakaramdam ako ng tunay na kaginhawaan pagkatapos ng mahabang araw.",
+        "Nagsimula na ako ng bagong hobby at sobrang saya ng feeling.",
+        "Ramdam ko ang pagmamahal ng aking mga mahal sa buhay ngayon.",
+        "Masaya ako kahit maliit lang ang nangyari ngayon — sapat na.",
+        "Nakakatulong ako sa kapwa at nakaramdam ako ng tunay na layunin.",
+        "Ang simpleng araw ngayon ay nagbigay sa akin ng kapayapaan.",
+        "Slowly pero siguradong nag-iimprove na ang kalagayan ko.",
+        "Nagpasalamat ako ngayon sa kahit na maliliit na bagay.",
+        "Natulog nang maayos at gumising nang masaya at puno ng lakas.",
+        "Pinuri ako ng aking boss sa trabaho ngayon — sobrang inspiring!",
+        "Naramdaman ko ang tunay na kasiyahan habang nagpe-pray ngayong umaga.",
+        "Kaya ko pala ang mga bagay na akala ko ay imposible — proud ako.",
+        "Kahit mahirap ang buhay, may dahilan pa rin akong mag-smile ngayon.",
+        "Natuwa ang aking puso sa simpleng mensahe ng aking kaibigan.",
+        "Ramdam ko na okay na ang lahat kahit hindi pa perpekto.",
+        "Puno ng pasasalamat ang puso ko ngayong araw na ito.",
+        "Napatunayan ko sa sarili ko na kaya ko pa — at masaya ako doon.",
     ],
+
     "negative": [
-        # English
+        # ── English ───────────────────────────────────────────────────────────
         "I feel sad and lonely today, nothing seems right.",
         "Everything at work is going wrong, I feel so overwhelmed.",
         "I miss my family so much, it hurts being far away.",
@@ -167,7 +218,37 @@ SYNTH = {
         "Stressed about money and deadlines all week.",
         "Feeling empty, like nothing brings joy anymore.",
         "Regretting my decisions from the past few days.",
-        # Tagalog
+        "I have been crying on and off for no clear reason.",
+        "My anxiety is making everything harder than it should be.",
+        "I feel invisible to the people around me.",
+        "The pressure is getting to me and I do not know how to cope.",
+        "I snapped at someone I care about today and I feel terrible.",
+        "Woke up dreading the day before it even started.",
+        "I have been avoiding my responsibilities because I feel stuck.",
+        "Nothing I do feels good enough lately.",
+        "I feel like I am falling behind everyone else in life.",
+        "Lost my motivation completely and cannot seem to find it again.",
+        "The loneliness is really getting to me these days.",
+        "I keep overthinking everything and it is exhausting my mind.",
+        "I feel like a burden to the people closest to me.",
+        "My mood has been low for weeks and I am not sure why.",
+        "I do not feel like myself anymore and that scares me a little.",
+        "I said something wrong and now the tension is unbearable.",
+        "I have been isolating myself because I do not have the energy to socialize.",
+        "Failed again at something I worked really hard for.",
+        "Today felt pointless, like I was just going through the motions.",
+        "I am exhausted from pretending everything is fine.",
+        "I feel disconnected from people I used to be close to.",
+        "My self-confidence has been really low lately.",
+        "It is hard to get out of bed when everything feels gray.",
+        "I made a mistake and cannot stop beating myself up over it.",
+        "Feeling frustrated and stuck with no clear direction.",
+        "I am struggling to focus on anything meaningful right now.",
+        "Nothing excites me anymore, even things I used to love.",
+        "I feel like I am carrying too much weight on my own.",
+        "The future feels uncertain and that is weighing on me heavily.",
+        "I am trying to hold it together but some days it is just too much.",
+        # ── Tagalog / Taglish ────────────────────────────────────────────────
         "Malungkot ako ngayon at mag-isa, parang wala nang tama.",
         "Lahat ng ginagawa ko ay mali, sobrang pagod na ako.",
         "Miss na miss ko na ang pamilya ko, masakit ang malayo sa kanila.",
@@ -178,9 +259,30 @@ SYNTH = {
         "Stress na stress ako sa pera at mga gawain ngayong linggo.",
         "Para akong walang nararamdaman, walang nagpapasaya sa akin.",
         "Pinagsisisihan ko ang mga naging desisyon ko nitong nakaraang mga araw.",
+        "Umiyak ako nang walang malinaw na dahilan ngayon.",
+        "Hindi ko maintindihan kung bakit ganito ang nararamdaman ko.",
+        "Parang invisible ako sa mga taong nakapaligid sa akin.",
+        "Napakaraming pressure at hindi ko alam kung paano makayanan.",
+        "Nagalit ako sa taong mahal ko at sobrang guilty ko ngayon.",
+        "Gumising ako na dread na agad ang buong araw bago pa man magsimula.",
+        "Iniiwasan ko na ang aking mga responsibilidad kasi nado-down ako.",
+        "Hindi na talaga ako makahanap ng dahilan para maging masaya.",
+        "Parang lahat ay mas mabilis na umuusad kaysa sa akin.",
+        "Nawala na ang aking motibasyon at hindi ko na mahanap pa.",
+        "Ang kalungkutan ay talagang nakakaapekto na sa akin ngayon.",
+        "Sobrang o-overthink ko ang lahat kaya pagod na ang utak ko.",
+        "Pakiramdam ko ay burden ako sa mga mahal ko sa buhay.",
+        "Matagal na akong nararamdamang down at hindi ko alam kung bakit.",
+        "Hindi ko na alam kung sino na ako at nakakatakot iyon.",
+        "Nagkamali ako at hindi ko mapigilan ang mag-isip-isip tungkol doon.",
+        "Sarili ko na lang ang nakakasama ko dahil wala na akong lakas para makisama.",
+        "Nabigo na naman sa isang bagay na pinaghandaan ko nang maigi.",
+        "Walang saysay ang araw ngayon, parang automato lang ang ginagawa ko.",
+        "Pagod na ako sa pagpapanggap na okay ang lahat.",
     ],
+
     "distress": [
-        # English
+        # ── English ───────────────────────────────────────────────────────────
         "I don't want to live anymore, nothing matters to me now.",
         "I've been thinking about hurting myself all week.",
         "Nobody can save me from this pain, I'm losing my mind.",
@@ -191,7 +293,37 @@ SYNTH = {
         "I keep seeing no way out of this suffering.",
         "If tomorrow comes I don't know if I can keep going anymore.",
         "I've hidden pills because I want to stop feeling everything.",
-        # Tagalog
+        "I have been making plans to end my life because I cannot take this anymore.",
+        "Every morning I wake up wishing I had not.",
+        "I feel completely worthless and like the world would be better without me.",
+        "I am so tired of fighting just to survive every single day.",
+        "I told someone I was fine but inside I want to disappear forever.",
+        "I have been researching methods because I am serious about ending this.",
+        "I cut myself last night just to feel something other than numbness.",
+        "There is no reason for me to continue existing.",
+        "I gave away some of my things because I am not planning to need them.",
+        "I have not slept in days because I am terrified of my own thoughts.",
+        "I feel like a complete failure and see no future for myself.",
+        "I keep thinking that everyone I love would be better off if I was gone.",
+        "I stopped eating because I do not think I deserve to take care of myself.",
+        "I am at the edge and one more thing might push me over.",
+        "I cannot breathe through this pain anymore, I want it to stop permanently.",
+        "I texted my best friend goodbye but they did not take me seriously.",
+        "I am not looking for comfort. I have already decided.",
+        "Every day I think about jumping. I just have not done it yet.",
+        "I have a plan and I know exactly what I will do.",
+        "I am saying goodbye in this journal because no one else will listen.",
+        "I feel so trapped that death feels like the only exit.",
+        "I have been hurting myself every week and hiding the scars.",
+        "Nobody would notice if I stopped showing up tomorrow.",
+        "I have lost the will to fight this battle anymore.",
+        "I am reaching out because I am scared of what I am capable of tonight.",
+        "I think about crashing my car on purpose when I am driving.",
+        "I wrote down who gets my stuff if something happens to me.",
+        "There is no version of the future where things get better for me.",
+        "My last hope is gone and I have nothing left to hold on to.",
+        "I am exhausted of waking up every day just to feel this way.",
+        # ── Tagalog / Taglish ────────────────────────────────────────────────
         "Ayaw ko nang mabuhay, wala nang saysay ang lahat para sa akin.",
         "Buong linggo ko nang iniisip na saktan ang sarili ko.",
         "Walang makapagliligtas sa akin sa sakit na ito, nababaliw na ako.",
@@ -202,16 +334,82 @@ SYNTH = {
         "Wala na akong makitang paraan para makaalis sa paghihirap na ito.",
         "Kung darating ang bukas, hindi ko na alam kung kaya ko pa bang magpatuloy.",
         "Nagtago ako ng mga gamot dahil gusto ko nang itigil ang lahat ng nararamdaman ko.",
+        "Gumigising ako araw-araw na sana hindi na ako nagising pa.",
+        "Pakiramdam ko walang silbi ang aking buhay at mas magiging mabuti ang lahat kung wala ako.",
+        "Napagod na ako sa pakikipaglaban sa bawat araw para mabuhay.",
+        "Sinabihan ko siya na okay ako pero sa loob ko, gusto ko nang mawala.",
+        "Pinag-aralan ko na kung paano ito gagawin kasi seryoso na ako.",
+        "Nagpapugto-pugto na ako at tinatago ko ang mga sugat.",
+        "Wala nang dahilan para magpatuloy ang aking pag-iral.",
+        "Ibinigay ko na ang ilan sa aking mga gamit kasi hindi ko na kailangan.",
+        "Hindi na ako makatulog nang maayos sa takot sa sarili kong isipan.",
+        "Lubos na akong nabigo at wala na akong nakikitang kinabukasan para sa akin.",
+        "Palagi kong iniisip na mas magiging masaya ang lahat kung wala ako.",
+        "Tinanggihan ko nang kumain dahil hindi ko nararamdamang karapat-dapat akong alagaan ang sarili.",
+        "Nasa gilid na ako at isa pang bagay ang maaring magtulak sa akin.",
+        "Hindi ko na kaya ang sakit na ito, gusto ko na itong tumigil — permanente.",
+        "Nagtext na ako ng paalam sa kaibigan ko pero hindi siya naniniwala.",
+        "Hindi na ako naghahanap ng aliw. Napagdesisyunan ko na.",
+        "Iniisip ko kung paano mag-crash ng sasakyan habang nagmamaneho.",
+        "Isinulat ko na kung sino ang makakakuha ng gamit ko kung may mangyari.",
+        "Wala nang bersyon ng kinabukasan na magiging mabuti para sa akin.",
+        "Napagod na ako sa paggising araw-araw para lang maramdaman ito.",
+    ],
+}
+
+# ── Ambiguous / mixed-emotion samples (harder classification cases) ──────────
+# These are realistic journal entries that contain mixed signals.
+# They push the model to learn nuanced boundaries between classes.
+SYNTH_AMBIGUOUS = {
+    "positive": [
+        # Recovering / bittersweet but ultimately positive
+        "It was a tough week but I made it through. Feeling relieved and proud.",
+        "I cried a lot today but also laughed with my best friend. Life is strange.",
+        "Things are still uncertain but I chose to focus on what I am grateful for.",
+        "I am not fully okay yet but I feel progress and that matters.",
+        "Struggled with negative thoughts but managed to redirect them. Small win.",
+        "After a hard month, today finally felt like things might be turning around.",
+        "Masakit pa rin pero lumaban ako ngayon at proud ako sa sarili ko.",
+        "Hindi pa okay ang lahat pero may saysay pa rin ang buhay.",
+    ],
+    "negative": [
+        # Clearly struggling but no suicidal/self-harm content
+        "I told myself I was fine but honestly I have been falling apart quietly.",
+        "I smiled at work but came home and just stared at the ceiling for hours.",
+        "I keep functioning but inside I feel completely hollow and disconnected.",
+        "My grades are slipping and I feel like no matter what I try, it is not enough.",
+        "I do not want to die but I also do not want to feel like this anymore.",
+        "Some days I just do not see the point but I keep going anyway.",
+        "Okay lang sabi ko sa lahat pero sa totoo lang, nanghihina na ako.",
+        "Lumalaban pa rin ako pero pagod na pagod na talaga ang puso ko.",
+    ],
+    "distress": [
+        # Distress signals mixed with denial or minimizing language
+        "I keep telling myself it is fine but I have been thinking about not waking up.",
+        "I do not want to worry anyone so I smile, but I have a plan and I am scared of myself.",
+        "Maybe I am overreacting but I have been stockpiling pills just in case.",
+        "I know it sounds dramatic but I genuinely do not see a reason to keep going.",
+        "I am not sure if what I am feeling is normal or if I need help urgently.",
+        "I do not want to die but I want the pain to stop and I cannot think of another way.",
+        "Sinasabi ko sa sarili ko na okay lang pero lagi ko nang iniisip na mawala.",
+        "Baka dramatic lang ako pero seryoso na rin ang aking mga iniisip tungkol sa pag-alis.",
     ],
 }
 
 
 def generate_synthetic(n_per_class: int = 200) -> pd.DataFrame:
-    """Generate a realistic synthetic Taglish dataset for demos/testing."""
+    """Generate a realistic synthetic Taglish dataset for demos/testing.
+
+    Combines the main SYNTH pool with SYNTH_AMBIGUOUS to ensure the model
+    sees mixed-emotion and boundary-case entries during training.
+    """
     rows = []
     for label, texts in SYNTH.items():
+        # Merge ambiguous samples into the main pool for this label
+        ambiguous = SYNTH_AMBIGUOUS.get(label, [])
+        full_pool = texts + ambiguous
         rng = np.random.RandomState(RANDOM_SEED + LABEL2IDX[label])
-        pool = texts * max(1, (n_per_class // len(texts) + 1))
+        pool = full_pool * max(1, (n_per_class // len(full_pool) + 1))
         rng.shuffle(pool)
         for t in pool[:n_per_class]:
             # Inject a little realistic text noise
@@ -225,6 +423,10 @@ def generate_synthetic(n_per_class: int = 200) -> pd.DataFrame:
                         "anyway",
                         "thanks for listening",
                         "salmat sa pakikinig",
+                        "hindi ko alam",
+                        "just needed to write this down",
+                        "ewan ko ba",
+                        "whatever happens",
                     ]
                 )
             rows.append(
