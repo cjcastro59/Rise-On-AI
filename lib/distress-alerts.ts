@@ -1,4 +1,4 @@
-import { analyzeSentiment, type Sentiment } from "@/lib/sentiment";
+import type { Sentiment } from "@/lib/sentiment";
 
 type SupabaseClientLike = {
   from: (table: string) => any;
@@ -25,21 +25,18 @@ const buildTrigger = (alert: DistressAlert, entryId?: string | null) => {
 };
 
 export const getJournalDistressAlert = ({
-  title,
-  content,
   mood,
   existingSentiment,
 }: Pick<JournalAlertInput, "title" | "content" | "mood"> & {
   existingSentiment?: Sentiment | null | undefined;
 }): DistressAlert | null => {
-  const textToAnalyze = [title, content].filter(Boolean).join("\n");
-  const finalSentiment: Sentiment =
-    existingSentiment || analyzeSentiment(textToAnalyze);
-
-  if (finalSentiment === "distress") {
+  // Use the ML-predicted sentiment exclusively — no keyword scanning.
+  // If the ML result is not yet available, err on the side of caution only
+  // when the user explicitly chose the "Overwhelmed" mood.
+  if (existingSentiment === "distress") {
     return {
       severity: "critical",
-      trigger: "Critical distress language detected",
+      trigger: "Critical distress detected by ML model",
     };
   }
 
@@ -55,7 +52,7 @@ export const getJournalDistressAlert = ({
 
 export const createDistressAlertForJournalEntry = async (
   supabase: SupabaseClientLike,
-  input: JournalAlertInput
+  input: JournalAlertInput & { existingSentiment?: Sentiment | null }
 ) => {
   const alert = getJournalDistressAlert(input);
   if (!alert) return;

@@ -1,5 +1,4 @@
 import {
-  analyzeEntry as fallbackAnalyzeEntry,
   type AnalysisResult,
   type Sentiment,
 } from "@/lib/sentiment";
@@ -187,17 +186,18 @@ export async function analyzeWithXLMRoBERTa(
     return { ...modelResult, model: "xlm-roberta-finetuned" };
   }
 
-  // FALLBACK to keyword-based analyzer
-  const fallback = fallbackAnalyzeEntry(text, mood);
+  // ML model unavailable — return a clearly-labelled neutral result.
+  // Callers should treat confidence=0 as "unanalysed" and re-queue.
+  console.warn("[XLM-RoBERTa] Model unavailable and no fallback is configured.");
   return {
-    sentiment: fallback.sentiment,
-    positivePercentage: fallback.positivePercentage,
-    negativePercentage: fallback.negativePercentage,
-    distressPercentage: fallback.distressPercentage,
-    confidence: 0.7,
-    sentimentScore: fallback.sentimentScore,
+    sentiment: "positive" as Sentiment,
+    positivePercentage: 0,
+    negativePercentage: 0,
+    distressPercentage: 0,
+    confidence: 0,
+    sentimentScore: 0,
     raw: null,
-    model: "fallback-keyword",
+    model: "ml-unavailable",
   };
 }
 
@@ -206,17 +206,18 @@ export async function analyzeWithXLMRoBERTaLegacy(
   mood: string | null = null
 ): Promise<AnalysisResult> {
   const xlm = await analyzeWithXLMRoBERTa(text, mood);
-  const legacy = fallbackAnalyzeEntry(text, mood);
   return {
     sentiment: xlm.sentiment,
     sentimentScore: xlm.sentimentScore,
     positivePercentage: xlm.positivePercentage,
     negativePercentage: xlm.negativePercentage,
     distressPercentage: xlm.distressPercentage,
-    emotions: legacy.emotions,
-    keyPhrases: legacy.keyPhrases,
-    feedback: legacy.feedback,
-    reflection: legacy.reflection,
-    suggestions: legacy.suggestions,
+    // Rich fields (emotions, feedback, etc.) are generated server-side by the
+    // ACI pipeline and stored in the DB — they are not reproduced here.
+    emotions: [],
+    keyPhrases: [],
+    feedback: "",
+    reflection: "",
+    suggestions: [],
   };
 }

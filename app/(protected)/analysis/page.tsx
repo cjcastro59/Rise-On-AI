@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import PageHeader from "@/components/layout/PageHeader";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { analyzeEntry, type AnalysisResult } from "@/lib/sentiment";
+import type { AnalysisResult } from "@/lib/sentiment";
 import { useAdaptiveResponse } from "@/hooks/useAdaptiveResponse";
 import { ACI_CATEGORY_CONFIG } from "@/lib/adaptive-response";
 import {
@@ -27,6 +27,16 @@ type JournalEntry = {
   emotions: string[] | null;
   created_at: string;
   updated_at: string;
+  // ML-predicted columns stored at save time
+  sentiment?: string | null;
+  sentiment_score?: number | null;
+  positive_percentage?: number | null;
+  negative_percentage?: number | null;
+  distress_percentage?: number | null;
+  confidence?: number | null;
+  feedback?: string | null;
+  reflection?: string | null;
+  suggestions?: string[] | null;
 };
 
 // ── Suggestion icons cycle ────────────────────────────────────────────────────
@@ -107,7 +117,25 @@ export default function AIAnalysisPage() {
       }
       if (data) {
         setEntry(data);
-        setAnalysis(analyzeEntry(data.content, data.mood));
+        // Build AnalysisResult from the ML-predicted columns stored in the DB.
+        // Sentiment score is stored 0-100 by the analyse route.
+        const sentiment = (data.sentiment ?? "positive") as AnalysisResult["sentiment"];
+        const sentimentScore = data.sentiment_score ?? (sentiment === "positive" ? 75 : sentiment === "distress" ? 10 : 35);
+        const positivePercentage = data.positive_percentage ?? (sentiment === "positive" ? 75 : 15);
+        const negativePercentage = data.negative_percentage ?? (sentiment === "negative" ? 70 : 20);
+        const distressPercentage = data.distress_percentage ?? (sentiment === "distress" ? 80 : 5);
+        setAnalysis({
+          sentiment,
+          sentimentScore,
+          positivePercentage,
+          negativePercentage,
+          distressPercentage,
+          emotions: Array.isArray(data.emotions) ? data.emotions : [],
+          keyPhrases: [],
+          feedback: data.feedback ?? "",
+          reflection: data.reflection ?? "",
+          suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
+        });
       }
     } catch (error) {
       console.error("Error fetching entry:", error);

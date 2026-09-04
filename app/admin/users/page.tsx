@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 import { ViewUserModal } from "@/components/admin/ViewUserModal";
-import { analyzeSentiment } from "@/lib/sentiment";
 import { EyeIcon } from "@/components/ui/icons/EyeIcon";
 import { PowerIcon } from "@/components/ui/icons/PowerIcon";
 import { TrashIcon } from "@/components/ui/icons/TrashIcon";
@@ -325,15 +324,21 @@ export default function AdminUsersPage() {
       ? Math.round(moods.reduce((sum, mood) => sum + (moodToScore[mood] || 5), 0) / moods.length)
       : null;
 
-    // Sentiment analysis from entries
+    // Derive overall sentiment from stored ML predictions.
+    // Count majority sentiment across entries; fall back to mood when absent.
     let sentiment = "No Data";
     let activityStatus = "Inactive";
     if (userEntries.length > 0) {
-      const allText = userEntries.map(e => (e.title || "") + " " + (e.content || "")).join(" ");
-      const sent = analyzeSentiment(allText);
-      if (sent === "positive") sentiment = "Positive";
-      else if (sent === "negative") sentiment = "Negative";
-      else sentiment = "Neutral";
+      const counts = { positive: 0, negative: 0, distress: 0 };
+      for (const e of userEntries) {
+        const s = (e.sentiment as string | null) ?? "";
+        if (s === "positive") counts.positive++;
+        else if (s === "distress") counts.distress++;
+        else if (s === "negative") counts.negative++;
+      }
+      if (counts.distress > 0) sentiment = "Distress";
+      else if (counts.negative >= counts.positive) sentiment = "Negative";
+      else if (counts.positive > 0) sentiment = "Positive";
 
       // Determine activity status
       const daysSinceLastActive = lastEntry

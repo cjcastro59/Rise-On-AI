@@ -16,7 +16,6 @@ import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
-import { analyzeSentiment, getSentimentFromMood, analyzeEntry } from "@/lib/sentiment";
 
 interface DauPoint {
   date: string;
@@ -192,15 +191,15 @@ export default function AdminDashboardPage() {
         peakCount: peak.count,
       });
 
-      // Calculate mood distribution
+      // Calculate mood distribution from stored ML sentiment column
       const moodCounts = { positive: 0, negative: 0, distress: 0 };
-      const { data: allEntries } = await supabase.from("journal_entries").select("mood, content");
+      const { data: allEntries } = await supabase.from("journal_entries").select("mood, sentiment");
       
       (allEntries || []).forEach((entry: any) => {
-        const analysis = analyzeEntry(entry.content, entry.mood);
-        if (analysis.sentiment === "distress") {
+        const s = (entry.sentiment as string | null) ?? "positive";
+        if (s === "distress") {
           moodCounts.distress++;
-        } else if (analysis.sentiment === "positive") {
+        } else if (s === "positive") {
           moodCounts.positive++;
         } else {
           moodCounts.negative++;
@@ -253,17 +252,17 @@ export default function AdminDashboardPage() {
           setFirstUserDate(firstUsers[0].created_at);
         }
 
-        const { data: entries, error: entriesError } = await supabase.from("journal_entries").select("mood, content").order("created_at", { ascending: false });
+        const { data: entries, error: entriesError } = await supabase.from("journal_entries").select("mood, content, sentiment").order("created_at", { ascending: false });
         if (entriesError) console.error("entriesError:", entriesError);
 
+        // Use the ML-predicted sentiment column stored at save time.
+        // Fall back to the mood name only when sentiment is absent.
         const positiveEntries = (entries || []).filter((entry: any) => {
-          const text = (entry.content || "").toLowerCase();
+          const s = entry.sentiment as string | null;
+          if (s) return s === "positive";
+          // No ML result yet — use mood name as a conservative proxy
           const mood = (entry.mood || "").toLowerCase();
-          const positiveKeywords = ["happy", "calm", "excited", "grateful", "peaceful", "content", "hopeful", "optimistic", "proud", "glad", "joy", "love"];
-          const negativeKeywords = ["sad", "anxious", "frustrated", "overwhelmed", "angry", "worried", "stress", "depressed", "lonely", "hopeless", "afraid", "tired"];
-          const hasPositive = positiveKeywords.some((word) => text.includes(word) || mood.includes(word));
-          const hasNegative = negativeKeywords.some((word) => text.includes(word) || mood.includes(word));
-          return hasPositive && !hasNegative;
+          return ["happy", "calm", "excited"].includes(mood);
         });
 
         setStats({

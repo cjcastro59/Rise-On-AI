@@ -33,7 +33,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { preprocessText } from "@/lib/xlm-roberta-sentiment";
-import { analyzeSentiment } from "@/lib/sentiment";
 import {
   buildExplainabilityResult,
   processIntegratedGradients,
@@ -119,9 +118,9 @@ export async function POST(request: NextRequest) {
     const negProb = (e.negative_percentage ?? 30) / 100;
     const dstProb = (e.distress_percentage ?? 10) / 100;
 
-    // 5. Run independent keyword analysis for agreement signal
-    //    (uses the fallback analyzer, not XLM-R — independent cross-check)
-    const kwSentiment: Sentiment = analyzeSentiment(e.content ?? "");
+    // 5. Keyword agreement — disabled (ML-only mode).
+    //    Pass null so buildExplainabilityResult marks it "keyword_unavailable".
+    const kwSentiment: Sentiment | null = null;
 
     // 6. Call Python /explain for Integrated Gradients
     //    Hard timeout: 30 seconds (IG on CPU can take 10–25s for long texts)

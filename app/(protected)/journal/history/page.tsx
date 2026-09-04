@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import PageHeader from "@/components/layout/PageHeader";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { analyzeSentiment, getSentimentFromMood } from "@/lib/sentiment";
+import { getSentimentFromMood } from "@/lib/sentiment";
 import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 
 type JournalEntry = {
@@ -103,20 +103,18 @@ export default function JournalHistoryPage() {
   };
 
   const getSentiment = useCallback((entry: JournalEntry): string => {
-    // 1. Prefer AI-predicted sentiment stored directly in DB (post-save)
+    // 1. Prefer ML-predicted sentiment stored directly in DB (post-save)
     if (entry.sentiment) {
       return entry.sentiment.charAt(0).toUpperCase() + entry.sentiment.slice(1);
     }
 
-    // 2. Fallback: infer from selected mood
+    // 2. Fallback: infer from selected mood name
     if (entry.mood) {
       const moodSentiment = getSentimentFromMood(entry.mood);
       return moodSentiment.charAt(0).toUpperCase() + moodSentiment.slice(1);
     }
 
-    // 3. Final fallback: keyword-based sentiment analyzer
-    const textSentiment = analyzeSentiment(entry.content);
-    return textSentiment.charAt(0).toUpperCase() + textSentiment.slice(1);
+    return "Positive";
   }, []);
 
   const applyFilters = useCallback(() => {

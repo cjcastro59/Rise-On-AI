@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useMoodTrend } from "@/hooks/useMoodTrend";
 import { useWellnessAssessment } from "@/hooks/useWellnessAssessment";
-import { getSentimentFromMood, analyzeSentiment, analyzeEntry } from "@/lib/sentiment";
+import { getSentimentFromMood } from "@/lib/sentiment";
 import { WELLNESS_LEVEL_CONFIG, type WellnessLevel } from "@/lib/wellness-assessment";
 
 // ── Compact sparkline (SVG path, no library needed) ──────────────────────────
@@ -110,25 +110,19 @@ export default function DashboardPage() {
   const calculateStats = useCallback((entries: any[]) => {
     const totalEntries = entries.length;
 
-    // O5 (Phase 7): compute analyzeEntry once per entry and cache in a Map.
-    // Baseline: called twice per entry (once for avgMoodScore, once for positivityThisWeek).
-    // After: one call per entry → ~50% reduction in keyword analysis work.
-    const analysisCache = new Map<string, ReturnType<typeof analyzeEntry>>();
-    const getAnalysis = (entry: any) => {
-      const key = entry.id ?? (entry.content + entry.mood);
-      if (!analysisCache.has(key)) {
-        analysisCache.set(key, analyzeEntry(entry.content || "", entry.mood));
-      }
-      return analysisCache.get(key)!;
+    // Use the ML-predicted sentiment_score column for avg mood, and the
+    // sentiment column for positivity — no keyword analysis.
+    const toScore = (entry: any): number => {
+      if (entry.sentiment_score != null) return entry.sentiment_score / 10;
+      const s = (entry.sentiment as string | null) ?? getSentimentFromMood(entry.mood);
+      if (s === "positive") return 7.5;
+      if (s === "distress") return 1.0;
+      return 3.5;
     };
 
     let totalScore = 0;
-    let scoreCount = 0;
-    entries.forEach(entry => {
-      totalScore += getAnalysis(entry).sentimentScore / 10;
-      scoreCount++;
-    });
-    const avgMoodScore = scoreCount > 0 ? parseFloat((totalScore / scoreCount).toFixed(1)) : 0;
+    entries.forEach(entry => { totalScore += toScore(entry); });
+    const avgMoodScore = entries.length > 0 ? parseFloat((totalScore / entries.length).toFixed(1)) : 0;
 
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -136,7 +130,8 @@ export default function DashboardPage() {
 
     let positiveCount = 0;
     thisWeekEntries.forEach(entry => {
-      if (getAnalysis(entry).sentiment === "positive") positiveCount++;
+      const s = (entry.sentiment as string | null) ?? getSentimentFromMood(entry.mood);
+      if (s === "positive") positiveCount++;
     });
     const positivityThisWeek = thisWeekEntries.length > 0 ? Math.round((positiveCount / thisWeekEntries.length) * 100) : 0;
 

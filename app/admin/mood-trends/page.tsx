@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import { analyzeSentiment } from "@/lib/sentiment";
+import { getSentimentFromMood } from "@/lib/sentiment";
 import {
   WELLNESS_LEVEL_CONFIG,
   classifyWellnessLevel,
@@ -16,17 +16,15 @@ interface JournalEntryRow {
   mood: string | null;
   content: string | null;
   emotions: string[] | null;
+  sentiment?: string | null;
 }
 
-const positiveWords = ["happy", "calm", "hopeful", "grateful", "peaceful", "joy", "love", "content", "safe", "good", "better", "relieved", "excited", "optimistic"];
-const negativeWords = ["sad", "anxious", "angry", "stress", "stressed", "worried", "overwhelmed", "lonely", "depressed", "frustrated", "hurt", "afraid", "panic", "tired"];
-const distressWords = ["panic", "suicidal", "hurt", "unsafe", "hopeless", "worthless", "afraid", "overwhelmed"];
-
-function classifyEntry(entry: JournalEntryRow) {
-  // Use our analyzeSentiment function
-  const sentiment = analyzeSentiment(entry.content);
-  if (sentiment === "distress") return "Distress";
-  if (sentiment === "positive") return "Positive";
+function classifyEntry(entry: JournalEntryRow): string {
+  // Use the ML-predicted sentiment stored at save time.
+  // Fall back to mood-name mapping when the column is absent.
+  const s = entry.sentiment ?? getSentimentFromMood(entry.mood);
+  if (s === "distress") return "Distress";
+  if (s === "positive") return "Positive";
   return "Negative";
 }
 
@@ -51,7 +49,7 @@ export default function AdminMoodTrendsPage() {
     const loadEntries = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase.from("journal_entries").select("id, created_at, mood, content, emotions").order("created_at", { ascending: false });
+        const { data, error } = await supabase.from("journal_entries").select("id, created_at, mood, content, emotions, sentiment").order("created_at", { ascending: false });
         if (!error) {
           setEntries((data as JournalEntryRow[]) || []);
         }

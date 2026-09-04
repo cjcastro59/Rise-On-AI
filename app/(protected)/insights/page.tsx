@@ -12,7 +12,7 @@ import { useMoodTrend, type MoodTrendRange } from "@/hooks/useMoodTrend";
 import { useBehavioralIndicators } from "@/hooks/useBehavioralIndicators";
 import { useWellnessAssessment } from "@/hooks/useWellnessAssessment";
 import { useDistressRisk } from "@/hooks/useDistressRisk";
-import { analyzeEntry } from "@/lib/sentiment";
+import { getSentimentFromMood, type Sentiment } from "@/lib/sentiment";
 import {
   WELLNESS_LEVEL_CONFIG,
   type WellnessLevel,
@@ -30,6 +30,9 @@ type JournalEntry = {
   mood: string | null;
   emotions: string[] | null;
   created_at: string;
+  /** ML-predicted sentiment stored at save time */
+  sentiment?: string | null;
+  sentiment_score?: number | null;
 };
 
 const TIME_RANGES: MoodTrendRange[] = ["Week", "Month", "3 Months", "All Time"];
@@ -246,7 +249,7 @@ export default function MoodInsightsPage() {
     try {
       const { data, error } = await supabase
         .from("journal_entries")
-        .select("id, content, mood, emotions, created_at")
+        .select("id, content, mood, emotions, created_at, sentiment, sentiment_score")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -298,22 +301,21 @@ export default function MoodInsightsPage() {
     return entries.filter((e) => new Date(e.created_at) >= cutoff);
   };
 
-  // ── Memoised per-entry analysis ───────────────────────────────────────────
-  // Baseline: analyzeEntry() (full keyword scoring) was called on every render
-  // for every entry. Fix: compute once per entries array change → O(1) lookup.
-  const entryAnalysisMap = useMemo(() => {
-    const m = new Map<string, ReturnType<typeof analyzeEntry>>();
-    entries.forEach(e => m.set(e.id, analyzeEntry(e.content, e.mood)));
-    return m;
-  }, [entries]);
+  // ── Per-entry sentiment helpers (ML column, no keyword scanning) ─────────
 
-  const getEntrySentiment = (
-    entry: JournalEntry
-  ): "positive" | "negative" | "distress" =>
-    entryAnalysisMap.get(entry.id)?.sentiment ?? analyzeEntry(entry.content, entry.mood).sentiment;
+  const getEntrySentiment = (entry: JournalEntry): Sentiment => {
+    if (entry.sentiment) return entry.sentiment as Sentiment;
+    return getSentimentFromMood(entry.mood);
+  };
 
-  const getEntryAnalysis = (entry: JournalEntry) =>
-    entryAnalysisMap.get(entry.id) ?? analyzeEntry(entry.content, entry.mood);
+  /** Sentiment score 0-100 derived from the stored column, or a mood-based default. */
+  const getEntrySentimentScore = (entry: JournalEntry): number => {
+    if (entry.sentiment_score != null) return entry.sentiment_score;
+    const s = getEntrySentiment(entry);
+    if (s === "positive") return 75;
+    if (s === "distress") return 10;
+    return 35;
+  };
 
   const getEmotionCategory = (
     entry: JournalEntry
@@ -343,7 +345,7 @@ export default function MoodInsightsPage() {
   const avgScoreLastWeek =
     lastWeekEntries.length > 0
       ? lastWeekEntries.reduce((sum, e) => {
-          return sum + getEntryAnalysis(e).sentimentScore / 10;
+          return sum + getEntrySentimentScore(e) / 10;
         }, 0) / lastWeekEntries.length
       : 5;
   const moodGrowth = Math.round((avgScoreLastWeek - 5) * 10);

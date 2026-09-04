@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { analyzeSentiment, getSentimentFromMood, getMoodCategory, MoodCategory, Sentiment } from "@/lib/sentiment";
+import { getSentimentFromMood, type Sentiment } from "@/lib/sentiment";
 
 interface JournalEntryRow {
   id: string;
@@ -13,11 +13,9 @@ interface JournalEntryRow {
   mood: string | null;
   content: string | null;
   emotions: string[] | null;
+  /** ML-predicted sentiment stored at save time */
+  sentiment?: string | null;
 }
-
-const positiveWords = ["happy", "calm", "hopeful", "grateful", "peaceful", "joy", "love", "content", "safe", "good", "better", "relieved", "excited", "optimistic"];
-const negativeWords = ["sad", "anxious", "angry", "stress", "stressed", "worried", "overwhelmed", "lonely", "depressed", "frustrated", "hurt", "afraid", "panic", "tired"];
-const distressWords = ["panic", "suicidal", "hurt", "unsafe", "hopeless", "worthless", "afraid", "overwhelmed"];
 
 const moodEmojiMap: Record<string, string> = {
   "Happy": "😊",
@@ -28,16 +26,6 @@ const moodEmojiMap: Record<string, string> = {
   "Excited": "🎉",
   "Confused": "😕",
   "Overwhelmed": "😵"
-};
-
-const moodCategoryEmojiMap: Record<MoodCategory, string> = {
-  "happy": "😊",
-  "calm": "😌",
-  "excited": "🎉",
-  "anxious": "😰",
-  "sad": "😢",
-  "frustrated": "😤",
-  "overwhelmed": "😵"
 };
 
 function getWordCount(content: string | null) {
@@ -55,52 +43,35 @@ function getLanguage(content: string | null) {
   return "English";
 }
 
-function getMoodTag(content: string | null, mood: string | null, emotions: string[] | null) {
+function getMoodTag(content: string | null, mood: string | null, emotions: string[] | null, sentiment?: string | null) {
   // If user selected a mood, use that with emoji
   if (mood && moodEmojiMap[mood]) {
     return `${moodEmojiMap[mood]} ${mood}`;
   }
-  
-  // Otherwise, use our new sentiment analysis
-  const sentiment = analyzeSentiment(content);
-  
-  if (sentiment === "distress") {
+
+  // Use the ML-predicted sentiment stored in the DB
+  const s = (sentiment ?? getSentimentFromMood(mood)) as Sentiment;
+
+  if (s === "distress") {
     return "🚨 Distress";
   }
-  
-  const moodCategory = getMoodCategory(content, mood);
-  
-  if (sentiment === "positive") {
-    return `${moodCategoryEmojiMap[moodCategory]} Positive`;
+  if (s === "positive") {
+    return "😊 Positive";
   }
-  
-  if (sentiment === "negative") {
-    return `${moodCategoryEmojiMap[moodCategory]} Negative`;
-  }
-  
-  return `${moodCategoryEmojiMap[moodCategory]} Negative`;
+  return "😔 Negative";
 }
 
-function getSentimentPercent(content: string | null, mood: string | null, emotions: string[] | null) {
-  let sentiment = analyzeSentiment(content);
-  
-  if (mood) {
-    sentiment = getSentimentFromMood(mood);
-  }
-  
-  if (sentiment === "distress") {
+function getSentimentPercent(content: string | null, mood: string | null, emotions: string[] | null, sentiment?: string | null) {
+  // Prefer stored ML sentiment; fall back to mood-name mapping
+  const s = (sentiment ?? getSentimentFromMood(mood)) as Sentiment;
+
+  if (s === "distress") {
     return { label: "Distress", percent: 95, color: "bg-red-100 text-red-600" };
   }
-  
-  if (sentiment === "negative") {
+  if (s === "negative") {
     return { label: "Negative", percent: 70, color: "bg-[#F4A6A6]/20 text-[#F4A6A6]" };
   }
-  
-  if (sentiment === "positive") {
-    return { label: "Positive", percent: 75, color: "bg-[#52B788]/20 text-[#52B788]" };
-  }
-  
-  return { label: "Negative", percent: 70, color: "bg-[#F4A6A6]/20 text-[#F4A6A6]" };
+  return { label: "Positive", percent: 75, color: "bg-[#52B788]/20 text-[#52B788]" };
 }
 
 function isSameDay(dateString: string, target: Date) {
@@ -140,7 +111,7 @@ export default function AdminJournalMonitorPage() {
         setError(null);
         const { data, error: fetchError } = await supabase
           .from("journal_entries")
-          .select("id, user_id, created_at, mood, content, emotions")
+          .select("id, user_id, created_at, mood, content, emotions, sentiment")
           .order("created_at", { ascending: false });
 
         if (fetchError) {
@@ -185,7 +156,7 @@ export default function AdminJournalMonitorPage() {
     .slice(0, 3);
   
   const distressSignals = entries.filter((entry) => {
-    return analyzeSentiment(entry.content) === "distress";
+    return (entry.sentiment as string | null) === "distress";
   }).length;
 
   // Pagination calculations
@@ -208,7 +179,7 @@ export default function AdminJournalMonitorPage() {
               for (const entry of entries.slice(0, 5000)) {
                 const lang = getLanguage(entry.content);
                 const wc = getWordCount(entry.content);
-                const cat = analyzeSentiment(entry.content);
+                const cat = (entry.sentiment as string | null) ?? "unknown";
                 rows.push([
                   entry.id, entry.user_id, new Date(entry.created_at).toISOString(),
                   entry.mood || "", String(wc), lang,
@@ -375,7 +346,7 @@ export default function AdminJournalMonitorPage() {
               ) : (
                 <>
                   {currentEntries.map((entry) => {
-                    const sentiment = getSentimentPercent(entry.content, entry.mood, entry.emotions);
+                    const sentiment = getSentimentPercent(entry.content, entry.mood, entry.emotions, entry.sentiment);
                     return (
                       <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="py-4 px-3">
@@ -391,7 +362,7 @@ export default function AdminJournalMonitorPage() {
                           <span className="px-2 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-semibold font-poppins text-dark-text">{getLanguage(entry.content)}</span>
                         </td>
                         <td className="py-4 px-3">
-                          <p className="text-sm font-poppins text-dark-text">{getMoodTag(entry.content, entry.mood, entry.emotions)}</p>
+                          <p className="text-sm font-poppins text-dark-text">{getMoodTag(entry.content, entry.mood, entry.emotions, entry.sentiment)}</p>
                         </td>
                         <td className="py-4 px-3">
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${sentiment.color}`}>
