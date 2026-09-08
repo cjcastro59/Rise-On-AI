@@ -211,16 +211,35 @@ export async function POST(request: NextRequest) {
     const auth = await resolveTarget(supabase, body.userId);
     if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
-    const response = await generateAndPersistACI(supabase, auth.userId, body.entryId);
+    const generated = await generateAndPersistACI(supabase, auth.userId, body.entryId);
 
-    if (!response) {
+    if (!generated) {
       return NextResponse.json(
         { error: "Could not generate ACI response — entry may not have a stored sentiment yet" },
         { status: 422 },
       );
     }
 
-    return NextResponse.json({ ok: true, response });
+    // Re-fetch the persisted DB row so the response shape is always snake_case
+    // (matching the StoredACIResponse type the client expects from both GET and POST).
+    const { data: row, error: fetchErr } = await (supabase
+      .from("aci_responses") as any)
+      .select("*")
+      .eq("user_id",          auth.userId)
+      .eq("journal_entry_id", body.entryId)
+      .maybeSingle();
+
+    if (fetchErr) {
+      console.error("[aci POST] re-fetch after upsert failed:", fetchErr);
+      // Generation succeeded — return a 207 so the client knows it worked
+      // even if we couldn't read the row back immediately.
+      return NextResponse.json(
+        { ok: true, response: null, warning: "Generated but could not re-fetch the stored row." },
+        { status: 207 },
+      );
+    }
+
+    return NextResponse.json({ ok: true, response: row ?? null });
   } catch (err: unknown) {
     console.error("[aci POST] unexpected error:", err);
     return NextResponse.json(

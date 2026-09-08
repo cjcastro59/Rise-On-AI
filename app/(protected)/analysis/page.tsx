@@ -216,6 +216,32 @@ export default function AIAnalysisPage() {
     e === "Joy" ? "😊" : e === "Hope" ? "✨" : e === "Calm" ? "😌"
     : e === "Anxiety" ? "😰" : e === "Sadness" ? "😢" : e === "Stress" ? "😵" : "😐";
 
+  /**
+   * Map an emotion label to its best matching ML probability percentage.
+   * Positive-valence emotions → positivePercentage
+   * Negative-valence emotions → negativePercentage
+   * Distress label           → distressPercentage
+   * When explainResult is available, use its per-class probabilities (more accurate).
+   */
+  const getEmotionPct = (emotion: string): number => {
+    const positiveEmotions = new Set(["Joy", "Hope", "Calm"]);
+    const negativeEmotions = new Set(["Anxiety", "Sadness", "Stress"]);
+    const distressEmotions = new Set(["Distress"]);
+
+    if (explainResult) {
+      const p = explainResult.inputProbabilities;
+      if (positiveEmotions.has(emotion)) return Math.round(p.positive * 100);
+      if (negativeEmotions.has(emotion)) return Math.round(p.negative * 100);
+      if (distressEmotions.has(emotion)) return Math.round(p.distress * 100);
+      return Math.round(Math.max(p.positive, p.negative, p.distress) * 100);
+    }
+
+    if (positiveEmotions.has(emotion)) return analysis?.positivePercentage ?? 0;
+    if (negativeEmotions.has(emotion)) return analysis?.negativePercentage ?? 0;
+    if (distressEmotions.has(emotion)) return analysis?.distressPercentage ?? 0;
+    return analysis?.positivePercentage ?? 0;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -331,7 +357,7 @@ export default function AIAnalysisPage() {
               {analysis.emotions.map((emotion, i) => (
                 <div key={i} className={`px-3 py-2 ${getEmotionColor(emotion)} rounded-full text-sm font-poppins text-dark-text flex items-center gap-2 border`}>
                   <span className="text-base">{getEmotionEmoji(emotion)}</span>
-                  <span>{emotion} — {Math.round(analysis.sentimentScore / 2)}%</span>
+                  <span>{emotion} — {getEmotionPct(emotion)}%</span>
                 </div>
               ))}
             </div>

@@ -115,16 +115,17 @@ export default function AdminSentimentMonitoringPage() {
   const totalEntries = entries.length;
 
   // AI Accuracy (confidence-weighted agreement between predicted sentiment and mood-based expected sentiment)
-  const agreement = useMemo(() => {
-    if (totalEntries === 0) return 95.0;
+  // Returns null when there is no data to avoid showing a fabricated fallback.
+  const agreement = useMemo((): number | null => {
+    if (totalEntries === 0) return null;
     let matched = 0;
     let considered = 0;
     for (const e of entries) {
       if (!e.sentiment || !e.mood) continue;
       const moodLower = (e.mood || "").toLowerCase();
       let expected: string | null = null;
-      if (["happy", "excited", "calm", "😊", "🎉", "😌"].some(t => moodLower.includes(t))) expected = "positive";
-      else if (["sad", "overwhelmed", "frustrated", "😢", "😰", "😤"].some(t => moodLower.includes(t))) {
+      if (["happy", "excited", "calm"].some(t => moodLower.includes(t))) expected = "positive";
+      else if (["sad", "overwhelmed", "frustrated"].some(t => moodLower.includes(t))) {
         expected = e.sentiment === "distress" ? "distress" : "negative";
       }
       if (expected) {
@@ -132,32 +133,49 @@ export default function AdminSentimentMonitoringPage() {
         if (e.sentiment === expected) matched += Math.max(0.5, Number(e.confidence) || 0.7);
       }
     }
-    if (considered === 0) return 95.0;
-    return Math.min(99.5, Math.max(85, (matched / considered) * 100));
+    if (considered === 0) return null;
+    return Math.min(99.5, Math.max(0, (matched / considered) * 100));
   }, [entries, totalEntries]);
 
-  // Avg confidence as proxy for "process time" (model quality metric)
-  const avgConfidence = useMemo(() => {
-    if (totalEntries === 0) return 0.88;
-    const sum = entries.reduce((acc, e) => acc + (Number(e.confidence) || 0), 0);
-    return sum / totalEntries;
+  // Avg confidence — null when no entries so we never show a fabricated fallback.
+  const avgConfidence = useMemo((): number | null => {
+    if (totalEntries === 0) return null;
+    const withConf = entries.filter(e => e.confidence != null);
+    if (withConf.length === 0) return null;
+    const sum = withConf.reduce((acc, e) => acc + (Number(e.confidence) || 0), 0);
+    return sum / withConf.length;
   }, [entries, totalEntries]);
 
-  // Language distribution
+  // Language distribution — confidence averages are derived from real entries, not randomized.
   const languageStats = useMemo(() => {
     const sample = entries.slice(0, 500);
     let tagalog = 0, taglish = 0, english = 0;
+    let tagalogConfSum = 0, tagalogConfCount = 0;
+    let englishConfSum = 0, englishConfCount = 0;
     for (const e of sample) {
       const lang = detectLanguage(`${e.title || ""} ${e.content || ""}`);
-      if (lang === "Tagalog") tagalog++;
-      else if (lang === "Taglish") taglish++;
-      else english++;
+      const conf = Number(e.confidence) || 0;
+      if (lang === "Tagalog") {
+        tagalog++;
+        if (e.confidence != null) { tagalogConfSum += conf; tagalogConfCount++; }
+      } else if (lang === "Taglish") {
+        taglish++;
+        // Count Taglish confidence toward both pools (half weight each)
+        if (e.confidence != null) {
+          tagalogConfSum += conf * 0.5; tagalogConfCount += 0.5;
+          englishConfSum += conf * 0.5; englishConfCount += 0.5;
+        }
+      } else {
+        english++;
+        if (e.confidence != null) { englishConfSum += conf; englishConfCount++; }
+      }
     }
     const total = sample.length || 1;
     return {
       tagalogPct: ((tagalog + 0.5 * taglish) / total) * 100,
-      englishAcc: 97.5 + Math.random() * 1.5,
-      tagalogAcc: 94.5 + Math.random() * 2,
+      // Average confidence per language group as a percentage; null when no data
+      englishAcc: englishConfCount > 0 ? (englishConfSum / englishConfCount) * 100 : null,
+      tagalogAcc: tagalogConfCount > 0 ? (tagalogConfSum / tagalogConfCount) * 100 : null,
     };
   }, [entries]);
 
@@ -300,8 +318,12 @@ export default function AdminSentimentMonitoringPage() {
             <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">✅</div>
             <div className="text-right flex-1">
               <p className="text-xs text-dark-text/70 font-poppins">AI ACCURACY</p>
-              <p className="text-2xl font-dm-serif text-dark-text">{fmtPct(agreement)}</p>
-              <p className="text-xs text-[#52B788] font-poppins">XLM-RoBERTa v2.1</p>
+              <p className="text-2xl font-dm-serif text-dark-text">
+                {agreement != null ? fmtPct(agreement) : "—"}
+              </p>
+              <p className="text-xs text-dark-text/50 font-poppins">
+                {agreement != null ? "mood-sentiment agreement" : "No labelled data yet"}
+              </p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-green-400 to-emerald-300 rounded-full"></div>
@@ -311,7 +333,9 @@ export default function AdminSentimentMonitoringPage() {
             <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">⚡</div>
             <div className="text-right flex-1">
               <p className="text-xs text-dark-text/70 font-poppins">AVG CONFIDENCE</p>
-              <p className="text-2xl font-dm-serif text-dark-text">{fmtPct(avgConfidence * 100)}</p>
+              <p className="text-2xl font-dm-serif text-dark-text">
+                {avgConfidence != null ? fmtPct(avgConfidence * 100) : "—"}
+              </p>
               <p className="text-xs text-dark-text/70 font-poppins">{totalEntries.toLocaleString()} entries</p>
             </div>
           </div>
@@ -373,7 +397,7 @@ export default function AdminSentimentMonitoringPage() {
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 bg-[#52B788]/20 rounded-full text-xs font-semibold font-poppins text-[#52B788]">
-                  English {fmtPct(languageStats.englishAcc)}
+                  English {languageStats.englishAcc != null ? fmtPct(languageStats.englishAcc) : "—"}
                 </span>
               </div>
               <div className="flex items-center gap-2">

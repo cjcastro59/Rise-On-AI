@@ -157,18 +157,23 @@ export function useAdaptiveResponse(
         body: JSON.stringify({ entryId }),
       });
 
-      if (!res.ok) {
+      if (!res.ok && res.status !== 207) {
         const json = await res.json().catch(() => ({})) as { error?: string };
         throw new Error(json?.error ?? `POST /api/aci returned ${res.status}`);
       }
 
-      // POST returns the response directly; update state immediately
-      const data = await res.json() as { response?: StoredACIResponse | null };
+      // POST now returns the persisted DB row (snake_case StoredACIResponse).
+      // On a 207 the row may be null — fall back to a GET refetch in that case.
+      const data = await res.json() as { ok: boolean; response?: StoredACIResponse | null };
       const row = data.response ?? null;
-      if (row && !Array.isArray(row.suggestions)) {
-        row.suggestions = [];
+
+      if (row) {
+        if (!Array.isArray(row.suggestions)) row.suggestions = [];
+        setResponse(row);
+      } else {
+        // Generation succeeded but re-fetch failed server-side — poll once.
+        await refetch();
       }
-      setResponse(row);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       console.error("[useAdaptiveResponse] regenerate error:", msg);

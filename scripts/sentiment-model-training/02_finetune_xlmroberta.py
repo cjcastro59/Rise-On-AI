@@ -63,9 +63,9 @@ class TrainConfig:
     # Training
     learning_rate: float = 3e-5
     num_train_epochs: int = 6
-    per_device_train_batch_size: int = 16
-    per_device_eval_batch_size: int = 32
-    gradient_accumulation_steps: int = 1
+    per_device_train_batch_size: int = 8   # MX330 has 2GB VRAM — keep small
+    per_device_eval_batch_size: int = 16
+    gradient_accumulation_steps: int = 2   # effective batch = 8×2 = 16
     warmup_ratio: float = 0.1
     weight_decay: float = 0.01
     fp16: bool = True  # auto-disabled on CPU

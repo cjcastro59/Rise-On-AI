@@ -12,16 +12,16 @@ import { TrashIcon } from "@/components/ui/icons/TrashIcon";
 
 const PAGE_SIZE = 10;
 
-// Mood to score mapping
+// Mood to score mapping — keys match bare mood strings stored in the DB
 const moodToScore: Record<string, number> = {
-  "😊 Happy": 8,
-  "😐 Neutral": 5,
-  "😢 Sad": 3,
-  "😤 Frustrated": 4,
-  "😌 Calm": 7,
-  "🎉 Excited": 9,
-  "😕 Confused": 5,
-  "😰 Overwhelmed": 2,
+  "Happy": 8,
+  "Neutral": 5,
+  "Sad": 3,
+  "Frustrated": 4,
+  "Calm": 7,
+  "Excited": 9,
+  "Confused": 5,
+  "Overwhelmed": 2,
 };
 
 const getLastActive = (dateStr: string | null) => {
@@ -631,7 +631,7 @@ export default function AdminUsersPage() {
                     <p className="text-sm font-poppins text-dark-text">{user.avgMood}</p>
                   </td>
                   <td className="py-4 px-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.sentiment === "Positive" ? "bg-[#52B788]/20 text-[#52B788]" : user.sentiment === "Neutral" ? "bg-primary-blue/30 text-dark-text/80" : user.sentiment === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : "bg-gray-100 text-dark-text/60"}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.sentiment === "Positive" ? "bg-[#52B788]/20 text-[#52B788]" : user.sentiment === "Neutral" ? "bg-primary-blue/30 text-dark-text/80" : user.sentiment === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : user.sentiment === "Distress" ? "bg-red-100 text-red-600" : "bg-gray-100 text-dark-text/60"}`}>
                       {user.sentiment}
                     </span>
                   </td>

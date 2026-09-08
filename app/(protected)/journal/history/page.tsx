@@ -49,11 +49,13 @@ export default function JournalHistoryPage() {
   const { openConfirmation } = useConfirmation();
 
   const fetchEntries = useCallback(async () => {
+    if (!user) return;
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from("journal_entries")
         .select("*")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -67,7 +69,7 @@ export default function JournalHistoryPage() {
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, user]);
 
   const deleteEntry = (id: string, e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation to entry
@@ -92,7 +94,7 @@ export default function JournalHistoryPage() {
           }
 
           // Update local state to remove the deleted entry
-          setEntries(entries.filter(entry => entry.id !== id));
+          setEntries(prev => prev.filter(entry => entry.id !== id));
         } catch (error) {
           console.error("Error deleting entry:", error);
         } finally {

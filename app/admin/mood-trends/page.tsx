@@ -128,7 +128,6 @@ export default function AdminMoodTrendsPage() {
   const totalEntries = entries.length || 1;
   const positivePercent = Math.round(((categories.Positive || 0) / totalEntries) * 100);
   const negativePercent = Math.round(((categories.Negative || 0) / totalEntries) * 100);
-  const mixedPercent = Math.round(((categories.Mixed || 0) / totalEntries) * 100);
   const distressPercent = Math.round(((categories.Distress || 0) / totalEntries) * 100);
 
   const lastSevenDays = Array.from({ length: 7 }, (_, index) => {
@@ -141,6 +140,12 @@ export default function AdminMoodTrendsPage() {
     if (dayEntries.length === 0) return 0;
     const positives = dayEntries.filter((entry) => classifyEntry(entry) === "Positive").length;
     return Math.round((positives / dayEntries.length) * 100);
+  });
+  const dailyDistressScores = lastSevenDays.map((day) => {
+    const dayEntries = entries.filter((entry) => isSameDay(entry.created_at, day));
+    if (dayEntries.length === 0) return 0;
+    const distressed = dayEntries.filter((entry) => classifyEntry(entry) === "Distress").length;
+    return Math.round((distressed / dayEntries.length) * 100);
   });
 
   const emotionCounts = entries.reduce((acc, entry) => {
@@ -180,7 +185,6 @@ export default function AdminMoodTrendsPage() {
               rows.push(["SUMMARY"]);
               rows.push(["Positive %", String(positivePercent)]);
               rows.push(["Negative %", String(negativePercent)]);
-              rows.push(["Mixed %",    String(mixedPercent)]);
               rows.push(["Distress %", String(distressPercent)]);
               rows.push(["Top Emotions", topEmotions.map(([k, v]) => `${k}:${v}`).join("; ")]);
               const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
@@ -225,16 +229,6 @@ export default function AdminMoodTrendsPage() {
           </div>
           <div className="h-1 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full"></div>
         </Card>
-        <Card className="p-5 bg-[#eef3f8]">
-          <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center text-2xl">😕</div>
-            <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">MIXED / UNCERTAIN</p>
-              <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : `${mixedPercent}%`}</p>
-            </div>
-          </div>
-          <div className="h-1 bg-gradient-to-r from-purple-400 to-pink-300 rounded-full"></div>
-        </Card>
         <Card className="p-5 border-l-4 border-l-[#F4A6A6] bg-[#eef3f8]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">😫</div>
@@ -255,9 +249,23 @@ export default function AdminMoodTrendsPage() {
           </div>
           <div className="h-56 flex items-end justify-between gap-2 px-2">
             {dailyScores.map((score, index) => (
-              <div key={`${score}-${index}`} className="flex-1 flex flex-col items-center gap-2">
-                <div className="w-full rounded-t-lg bg-[#52B788]" style={{ height: `${Math.max(score, 8)}%` }}></div>
-                <span className="text-xs text-dark-text/70 font-poppins">{lastSevenDays[index].toLocaleDateString("en", { weekday: "short" })}</span>
+              <div key={`day-${index}`} className="flex-1 flex flex-col items-center gap-1">
+                {/* Grouped bars: positive (green) + distress (red) side-by-side */}
+                <div className="w-full flex items-end justify-center gap-0.5">
+                  <div
+                    className="flex-1 rounded-t-sm bg-[#52B788]"
+                    style={{ height: `${Math.max(score, 4)}px`, maxHeight: "196px" }}
+                    title={`Positive: ${score}%`}
+                  />
+                  <div
+                    className="flex-1 rounded-t-sm bg-[#F4A6A6]"
+                    style={{ height: `${Math.max(dailyDistressScores[index], 4)}px`, maxHeight: "196px" }}
+                    title={`Distress: ${dailyDistressScores[index]}%`}
+                  />
+                </div>
+                <span className="text-xs text-dark-text/70 font-poppins">
+                  {lastSevenDays[index].toLocaleDateString("en", { weekday: "short" })}
+                </span>
               </div>
             ))}
           </div>

@@ -269,7 +269,7 @@ export default function AdminDashboardPage() {
           totalUsers: userCount || 0,
           totalEntries: entryCount || 0,
           positiveRate: entryCount ? Math.round((positiveEntries.length / entryCount) * 100) : 0,
-          activeAlerts: alertsData?.length || 0,
+          activeAlerts: distressCount || 0,
           totalDistressLogs: distressCount || 0,
           newUsersToday: newUsersTodayCount || 0,
         });
@@ -734,54 +734,68 @@ export default function AdminDashboardPage() {
           <Card variant="white" className="p-5">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-[#52B788]/20 rounded-lg flex items-center justify-center">⚙️</div>
-              <p className="text-xs font-poppins text-dark-text/70">SYSTEM HEALTH</p>
+              <p className="text-xs font-poppins text-dark-text/70">PLATFORM OVERVIEW</p>
             </div>
             <div className="space-y-3">
+              {/* Row 1: Total users registered */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-[#52B788]"></span>
-                  <span className="text-sm font-poppins text-dark-text">AI Module</span>
+                  <span className="text-sm font-poppins text-dark-text">Registered Users</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-dark-text/70 font-inter">Online</span>
+                  <span className="text-xs text-dark-text/70 font-inter">{loading ? "…" : (stats.totalUsers || 0).toLocaleString()}</span>
                   <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full w-full bg-gradient-to-r from-[#52B788] to-[#A8DADC]"></div>
+                    <div className="h-full bg-gradient-to-r from-[#52B788] to-[#A8DADC]" style={{ width: "100%" }}></div>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#52B788]"></span>
-                  <span className="text-sm font-poppins text-dark-text">Database</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-dark-text/70 font-inter">Healthy</span>
-                  <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full w-[95%] bg-gradient-to-r from-[#A8DADC] to-[#52B788]"></div>
-                  </div>
-                </div>
-              </div>
+              {/* Row 2: Total journal entries */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-[#A8DADC]"></span>
-                  <span className="text-sm font-poppins text-dark-text">API Response</span>
+                  <span className="text-sm font-poppins text-dark-text">Journal Entries</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-dark-text/70 font-inter">142ms</span>
+                  <span className="text-xs text-dark-text/70 font-inter">{loading ? "…" : (stats.totalEntries || 0).toLocaleString()}</span>
                   <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full w-[80%] bg-gradient-to-r from-[#A8DADC] to-[#FFB700]"></div>
+                    <div className="h-full bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB]" style={{ width: "100%" }}></div>
                   </div>
                 </div>
               </div>
+              {/* Row 3: Positive rate */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#FFB700]"></span>
-                  <span className="text-sm font-poppins text-dark-text">Storage Usage</span>
+                  <span className="w-2 h-2 rounded-full bg-[#52B788]"></span>
+                  <span className="text-sm font-poppins text-dark-text">Positive Rate</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-dark-text/70 font-inter">74%</span>
+                  <span className="text-xs text-dark-text/70 font-inter">{loading ? "…" : `${stats.positiveRate ?? 0}%`}</span>
                   <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full w-[74%] bg-gradient-to-r from-[#FFE8A1] to-[#FFB700]"></div>
+                    <div
+                      className="h-full bg-gradient-to-r from-[#52B788] to-[#B7E4C7]"
+                      style={{ width: `${stats.positiveRate ?? 0}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              {/* Row 4: Total distress logs */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#F4A6A6]"></span>
+                  <span className="text-sm font-poppins text-dark-text">Distress Logs</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-dark-text/70 font-inter">{loading ? "…" : (stats.totalDistressLogs || 0).toLocaleString()}</span>
+                  <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#F4A6A6] to-[#FFB700]"
+                      style={{
+                        width: stats.totalEntries
+                          ? `${Math.min(100, Math.round((stats.totalDistressLogs / stats.totalEntries) * 100 * 5))}%`
+                          : "0%",
+                      }}
+                    ></div>
                   </div>
                 </div>
               </div>

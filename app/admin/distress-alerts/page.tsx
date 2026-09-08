@@ -584,30 +584,69 @@ export default function AdminDistressAlertsPage() {
         </Card>
       </div>
 
-      {/* Trend Chart */}
+      {/* Trend Chart — built from real distress_logs data */}
       <Card className="p-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-8 h-8 bg-error-red/20 rounded-lg flex items-center justify-center">📉</div>
           <p className="text-xs font-poppins text-dark-text/60">DISTRESS ALERT TREND — LAST 30 DAYS</p>
         </div>
-        <div className="relative h-40">
-          <div className="absolute inset-0 bg-gradient-to-t from-error-red/20 to-transparent rounded-lg"></div>
-          <svg className="absolute bottom-0 left-0 right-0 h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
-            <path
-              d="M0 20 Q10 18 20 19 T40 18 T60 15 T80 16 T100 14"
-              fill="none"
-              stroke="#F4A6A6"
-              strokeWidth="1.5"
-            />
-          </svg>
-          <div className="absolute bottom-0 left-0 right-0 flex justify-between px-4 pb-2">
-            <span className="text-xs text-dark-text/60 font-poppins">Apr 28</span>
-            <span className="text-xs text-dark-text/60 font-poppins">May 5</span>
-            <span className="text-xs text-dark-text/60 font-poppins">May 12</span>
-            <span className="text-xs text-dark-text/60 font-poppins">May 19</span>
-            <span className="text-xs text-dark-text/60 font-poppins">May 28</span>
-          </div>
-        </div>
+        {(() => {
+          // Build a 30-day bucket array from the already-loaded logs
+          const today = new Date();
+          today.setHours(23, 59, 59, 999);
+          const days = Array.from({ length: 30 }, (_, i) => {
+            const d = new Date(today);
+            d.setDate(d.getDate() - (29 - i));
+            return d;
+          });
+
+          const counts = days.map((day) =>
+            logs.filter((log) => {
+              const d = new Date(log.created_at);
+              return (
+                d.getFullYear() === day.getFullYear() &&
+                d.getMonth() === day.getMonth() &&
+                d.getDate() === day.getDate()
+              );
+            }).length
+          );
+
+          const maxCount = Math.max(...counts, 1);
+
+          // Show only 6 evenly-spaced x-axis labels
+          const labelIndices = [0, 6, 12, 18, 24, 29];
+
+          return (
+            <div>
+              <div className="flex items-end gap-1 h-32">
+                {counts.map((count, i) => {
+                  const heightPct = Math.max((count / maxCount) * 100, count > 0 ? 8 : 2);
+                  return (
+                    <div
+                      key={i}
+                      className="flex-1 rounded-t-sm transition-all duration-300"
+                      style={{
+                        height: `${heightPct}%`,
+                        backgroundColor: count > 0 ? "#F4A6A6" : "#f3f4f6",
+                      }}
+                      title={`${days[i].toLocaleDateString("en-US", { month: "short", day: "numeric" })}: ${count} alert${count !== 1 ? "s" : ""}`}
+                    />
+                  );
+                })}
+              </div>
+              <div className="flex justify-between mt-2 px-0.5">
+                {labelIndices.map((idx) => (
+                  <span key={idx} className="text-[10px] text-dark-text/50 font-poppins">
+                    {days[idx].toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </span>
+                ))}
+              </div>
+              {logs.length === 0 && !loading && (
+                <p className="text-xs text-dark-text/40 text-center mt-3 font-inter">No distress alerts in the last 30 days.</p>
+              )}
+            </div>
+          );
+        })()}
       </Card>
 
       {selectedAlert && (

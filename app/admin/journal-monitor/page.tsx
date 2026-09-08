@@ -15,6 +15,11 @@ interface JournalEntryRow {
   emotions: string[] | null;
   /** ML-predicted sentiment stored at save time */
   sentiment?: string | null;
+  positive_percentage?: number | null;
+  negative_percentage?: number | null;
+  distress_percentage?: number | null;
+  confidence?: number | null;
+  sentiment_model?: string | null;
 }
 
 const moodEmojiMap: Record<string, string> = {
@@ -61,16 +66,31 @@ function getMoodTag(content: string | null, mood: string | null, emotions: strin
   return "😔 Negative";
 }
 
-function getSentimentPercent(content: string | null, mood: string | null, emotions: string[] | null, sentiment?: string | null) {
-  // Prefer stored ML sentiment; fall back to mood-name mapping
-  const s = (sentiment ?? getSentimentFromMood(mood)) as Sentiment;
-
-  if (s === "distress") {
-    return { label: "Distress", percent: 95, color: "bg-red-100 text-red-600" };
+function getSentimentPercent(
+  content: string | null,
+  mood: string | null,
+  emotions: string[] | null,
+  sentiment?: string | null,
+  positivePct?: number | null,
+  negativePct?: number | null,
+  distressPct?: number | null,
+) {
+  // Use stored ML percentage columns when available
+  if (sentiment === "distress") {
+    const pct = Math.round(distressPct ?? 95);
+    return { label: "Distress", percent: pct, color: "bg-red-100 text-red-600" };
   }
-  if (s === "negative") {
-    return { label: "Negative", percent: 70, color: "bg-[#F4A6A6]/20 text-[#F4A6A6]" };
+  if (sentiment === "negative") {
+    const pct = Math.round(negativePct ?? 70);
+    return { label: "Negative", percent: pct, color: "bg-[#F4A6A6]/20 text-[#F4A6A6]" };
   }
+  if (sentiment === "positive") {
+    const pct = Math.round(positivePct ?? 75);
+    return { label: "Positive", percent: pct, color: "bg-[#52B788]/20 text-[#52B788]" };
+  }
+  // Fallback: derive from mood name
+  const s = getSentimentFromMood(mood) as Sentiment;
+  if (s === "negative") return { label: "Negative", percent: 70, color: "bg-[#F4A6A6]/20 text-[#F4A6A6]" };
   return { label: "Positive", percent: 75, color: "bg-[#52B788]/20 text-[#52B788]" };
 }
 
@@ -111,7 +131,7 @@ export default function AdminJournalMonitorPage() {
         setError(null);
         const { data, error: fetchError } = await supabase
           .from("journal_entries")
-          .select("id, user_id, created_at, mood, content, emotions, sentiment")
+          .select("id, user_id, created_at, mood, content, emotions, sentiment, positive_percentage, negative_percentage, distress_percentage, confidence, sentiment_model")
           .order("created_at", { ascending: false });
 
         if (fetchError) {
@@ -346,7 +366,17 @@ export default function AdminJournalMonitorPage() {
               ) : (
                 <>
                   {currentEntries.map((entry) => {
-                    const sentiment = getSentimentPercent(entry.content, entry.mood, entry.emotions, entry.sentiment);
+                    const sentiment = getSentimentPercent(
+                      entry.content,
+                      entry.mood,
+                      entry.emotions,
+                      entry.sentiment,
+                      entry.positive_percentage,
+                      entry.negative_percentage,
+                      entry.distress_percentage,
+                    );
+                    const isProcessed = !!(entry.confidence != null && entry.sentiment_model);
+                    const confidencePct = entry.confidence != null ? Math.round(entry.confidence * 100) : null;
                     return (
                       <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="py-4 px-3">
@@ -370,7 +400,15 @@ export default function AdminJournalMonitorPage() {
                           </span>
                         </td>
                         <td className="py-4 px-3">
-                          <span className="px-2 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-semibold font-poppins text-dark-text">Done</span>
+                          {isProcessed ? (
+                            <span className="px-2 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-semibold font-poppins text-dark-text">
+                              ✓ {confidencePct}% conf.
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 bg-gray-100 rounded-full text-xs font-semibold font-poppins text-dark-text/50">
+                              Pending
+                            </span>
+                          )}
                         </td>
                       </tr>
                     );
