@@ -128,10 +128,16 @@ export function useAdaptiveResponse(
 
       const data = await res.json() as { response?: StoredACIResponse | null };
 
-      // Parse suggestions — DB returns a JSON array; ensure it's a plain string[]
       const row = data.response ?? null;
       if (row && !Array.isArray(row.suggestions)) {
-        row.suggestions = [];
+        try {
+          row.suggestions = typeof row.suggestions === "string"
+            ? JSON.parse(row.suggestions)
+            : [];
+          if (!Array.isArray(row.suggestions)) row.suggestions = [];
+        } catch {
+          row.suggestions = [];
+        }
       }
       setResponse(row);
     } catch (err) {
@@ -168,7 +174,17 @@ export function useAdaptiveResponse(
       const row = data.response ?? null;
 
       if (row) {
-        if (!Array.isArray(row.suggestions)) row.suggestions = [];
+        if (!Array.isArray(row.suggestions)) {
+          // Supabase JSONB can return as a string — parse it
+          try {
+            row.suggestions = typeof row.suggestions === "string"
+              ? JSON.parse(row.suggestions)
+              : [];
+            if (!Array.isArray(row.suggestions)) row.suggestions = [];
+          } catch {
+            row.suggestions = [];
+          }
+        }
         setResponse(row);
       } else {
         // Generation succeeded but re-fetch failed server-side — poll once.

@@ -266,8 +266,8 @@ export default function AIAnalysisPage() {
   const sentimentColor  = getSentimentColor(analysis.sentiment);
   const wellnessScore   = Math.round(analysis.sentimentScore / 10);
 
-  // ACI card config
-  const aciCfg = aciResponse
+  // ACI card config — fallback to "positive" if response_category is missing/invalid
+  const aciCfg = (aciResponse && ACI_CATEGORY_CONFIG[aciResponse.response_category])
     ? ACI_CATEGORY_CONFIG[aciResponse.response_category]
     : ACI_CATEGORY_CONFIG["positive"];
 
@@ -449,11 +449,11 @@ export default function AIAnalysisPage() {
                   <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-1">Reflection Prompt</p>
                   <p className="text-sm font-inter text-dark-text/80 leading-relaxed italic">{aciResponse.reflection}</p>
                 </div>
-                {aciResponse.suggestions.length > 0 && (
+                {Array.isArray(aciResponse.suggestions) && aciResponse.suggestions.length > 0 && (
                   <div>
                     <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-2">Suggestions</p>
                     <div className="space-y-2">
-                      {aciResponse.suggestions.map((s, i) => (
+                      {(aciResponse.suggestions as string[]).map((s, i) => (
                         <div key={i} className="flex items-start gap-3 p-3 bg-light-gray rounded-xl">
                           <span className="text-base shrink-0">{SUGGESTION_ICONS[i % SUGGESTION_ICONS.length]}</span>
                           <span className="text-sm font-inter text-dark-text">{s}</span>
