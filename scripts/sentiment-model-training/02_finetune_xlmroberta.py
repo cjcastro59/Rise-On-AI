@@ -29,6 +29,7 @@ import torch
 from datasets import Dataset, DatasetDict
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 from tqdm.auto import tqdm
+from transformers import Trainer
 
 # ------------------------------
 # PATHS
@@ -56,20 +57,20 @@ class TrainConfig:
 
     # LoRA / PEFT
     use_lora: bool = True
-    lora_r: int = 16
-    lora_alpha: int = 32
-    lora_dropout: float = 0.05
+    lora_r: int = 32
+    lora_alpha: int = 64
+    lora_dropout: float = 0.1
 
     # Training
-    learning_rate: float = 3e-5
-    num_train_epochs: int = 6
-    per_device_train_batch_size: int = 8   # MX330 has 2GB VRAM — keep small
+    learning_rate: float = 1e-4   # higher LR helps LoRA converge faster
+    num_train_epochs: int = 6     # more epochs needed for 3-class separation
+    per_device_train_batch_size: int = 8
     per_device_eval_batch_size: int = 16
-    gradient_accumulation_steps: int = 2   # effective batch = 8×2 = 16
-    warmup_ratio: float = 0.1
+    gradient_accumulation_steps: int = 2
+    warmup_ratio: float = 0.15
     weight_decay: float = 0.01
-    fp16: bool = True  # auto-disabled on CPU
-    early_stopping_patience: int = 4
+    fp16: bool = True
+    early_stopping_patience: int = 5
 
     # HP search
     hp_trials: int = 1  # >1 = random search
@@ -178,9 +179,9 @@ def build_model_and_tokenizer(cfg: TrainConfig):
 
     # ---- LoRA / PEFT ----
     if cfg.use_lora:
-        # For XLM-R, we target the query/value matrices in attention
+        # XLM-RoBERTa attention layer names are "query" and "value"
         try:
-            target_modules = ["q_proj", "v_proj"]
+            target_modules = ["query", "value"]
             lora_cfg = LoraConfig(
                 r=cfg.lora_r,
                 lora_alpha=cfg.lora_alpha,
@@ -196,14 +197,47 @@ def build_model_and_tokenizer(cfg: TrainConfig):
 
     return tokenizer, model, fp16_flag
 
+# ------------------------------
+# WEIGHTED-LOSS TRAINER
+# Applies class weights so the rare/critical distress class
+# gets proportionally higher gradient signal.
+# ------------------------------
+try:
+    from transformers import Trainer as _BaseTrainer
+except ImportError:
+    _BaseTrainer = object  # type: ignore
+
+class WeightedLossTrainer(_BaseTrainer):
+    """HuggingFace Trainer subclass that applies per-class loss weights."""
+
+    def __init__(self, *args, class_weights=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._class_weights = class_weights  # torch.Tensor of shape (num_labels,)
+
+    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+        import torch
+        import torch.nn.functional as F
+
+        labels = inputs.get("labels")
+        outputs = model(**inputs)
+        logits = outputs.get("logits")
+
+        if self._class_weights is not None and labels is not None:
+            weights = self._class_weights.to(logits.device)
+            loss = F.cross_entropy(logits, labels, weight=weights)
+        else:
+            loss = outputs.get("loss") or F.cross_entropy(logits, labels)
+
+        return (loss, outputs) if return_outputs else loss
+
 
 # ------------------------------
 # TRAINER RUN (single HP trial)
 # ------------------------------
 def run_trial(cfg: TrainConfig, tokenized_ds: DatasetDict, trial_idx: int) -> dict:
+    import torch
     from transformers import (
         TrainingArguments,
-        Trainer,
         EarlyStoppingCallback,
     )
 
@@ -212,6 +246,19 @@ def run_trial(cfg: TrainConfig, tokenized_ds: DatasetDict, trial_idx: int) -> di
     trial_out.mkdir(parents=True, exist_ok=True)
 
     tokenizer, model, fp16_flag = build_model_and_tokenizer(cfg)
+
+    # Build class weights — give distress 3× weight so the model
+    # can't ignore it even when loss from majority classes dominates.
+    label_counts = {LABEL2IDX[l]: 0 for l in LABELS}
+    for row in tokenized_ds["train"]:
+        label_counts[row["label"]] += 1
+    total = sum(label_counts.values())
+    # Weighted inverse-frequency, with distress boosted an extra 1.5×
+    raw_weights = [total / (len(LABELS) * label_counts[i]) for i in range(len(LABELS))]
+    # Index 2 = distress → multiply by 1.5
+    raw_weights[LABEL2IDX["distress"]] *= 1.5
+    class_weights = torch.tensor(raw_weights, dtype=torch.float32)
+    print(f"[CLASS WEIGHTS] positive={class_weights[0]:.3f}  negative={class_weights[1]:.3f}  distress={class_weights[2]:.3f}")
 
     args = TrainingArguments(
         output_dir=str(trial_out),
@@ -239,13 +286,14 @@ def run_trial(cfg: TrainConfig, tokenized_ds: DatasetDict, trial_idx: int) -> di
         push_to_hub=False,
     )
 
-    trainer = Trainer(
+    trainer = WeightedLossTrainer(
         model=model,
         args=args,
         train_dataset=tokenized_ds["train"],
         eval_dataset=tokenized_ds["val"],
         tokenizer=tokenizer,
         compute_metrics=compute_metrics,
+        class_weights=class_weights,
         callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.early_stopping_patience)],
     )
 

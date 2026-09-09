@@ -7,7 +7,7 @@ from pathlib import Path
 
 # ── Config ────────────────────────────────────────────────────────────────
 REPO_ID   = "cjcastro/xlm-roberta-Rise-On-AI"
-MODEL_DIR = Path(__file__).parent / "outputs" / "trial_00" / "checkpoint-86"
+MODEL_DIR = Path(__file__).parent / "outputs" / "best_model"
 
 FILES_TO_UPLOAD = [
     "config.json",
@@ -16,6 +16,7 @@ FILES_TO_UPLOAD = [
     "special_tokens_map.json",
     "tokenizer.json",
     "tokenizer_config.json",
+    "training_config.json",
 ]
 # ─────────────────────────────────────────────────────────────────────────
 
