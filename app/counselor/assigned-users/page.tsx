@@ -76,6 +76,10 @@ export default function CounselorAssignedUsersPage() {
             )
             .order("created_at", { ascending: false })
             .limit(500),
+        ]);
+
+        if (usersRes.error) {
+          console.error("Error fetching users:", usersRes.error);
         } else {
           const userList = usersRes.data || [];
           setUsers(userList);

@@ -31,11 +31,15 @@ export default async function ProtectedLayout({
   return (
     <div className="h-screen bg-gradient-to-r from-primary-blue to-lavender flex overflow-hidden">
       <Sidebar userName={userName} />
-      <main className="flex-1 min-h-0 p-8 overflow-y-auto">
-        <ProtectedContentWrapper userName={userName}>
-          {children}
-        </ProtectedContentWrapper>
-      </main>
+      {/* On mobile the sidebar is hidden and MobileNav renders a sticky top bar,
+          so the main area spans full width. The flex-col ensures the top bar + content stack. */}
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+          <ProtectedContentWrapper userName={userName}>
+            {children}
+          </ProtectedContentWrapper>
+        </main>
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import ProfileCard from "@/components/layout/ProfileCard";
+import MobileNav from "@/components/layout/MobileNav";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -82,17 +83,73 @@ export default function CounselorSidebar() {
     // Don't render until mounted to prevent hydration mismatch
     if (!isMounted) {
         return (
-            <aside className="w-64 bg-[#1E293B] text-white p-6 hidden md:flex md:flex-col md:h-full md:min-h-screen">
+            <>
+              {/* Mobile top bar skeleton */}
+              <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-[#1E293B] text-white shadow-md">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 bg-gray-600 rounded-lg animate-pulse" />
+                  <div className="h-4 w-20 bg-gray-600 rounded animate-pulse" />
+                </div>
+              </header>
+              {/* Desktop sidebar skeleton */}
+              <aside className="w-64 bg-[#1E293B] text-white p-6 hidden md:flex md:flex-col md:h-full md:min-h-screen">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="w-9 h-9 bg-gray-600 rounded-lg animate-pulse" />
                     <div className="h-6 w-24 bg-gray-600 rounded animate-pulse" />
                 </div>
-            </aside>
+              </aside>
+            </>
         );
     }
 
     return (
-        <aside className="w-64 bg-[#1E293B] text-white p-6 hidden md:flex md:flex-col md:h-full md:min-h-screen">
+        <>
+          {/* ── Mobile navigation drawer ──────────────────────────────────── */}
+          <MobileNav
+            panelLabel="Counselor Panel"
+            sections={[
+              {
+                label: "Main",
+                items: [
+                  { href: "/counselor/dashboard",       label: "Dashboard",      icon: "/icons/dashboard.svg",    iconAlt: "Dashboard" },
+                  { href: "/counselor/cases",            label: "Cases",          icon: "/icons/crisis-report.svg",iconAlt: "Cases", badge: distressAlertCount },
+                  { href: "/counselor/assigned-users",   label: "Assigned Users", icon: "/icons/account.svg",      iconAlt: "Assigned Users" },
+                ],
+              },
+              {
+                label: "Support",
+                items: [
+                  { href: "/counselor/messages", label: "Messages", icon: "/icons/crisis-support.svg", iconAlt: "Messages" },
+                  { href: "/counselor/notes",    label: "Notes",    icon: "/icons/journal.svg",        iconAlt: "Notes" },
+                ],
+              },
+              {
+                label: "System",
+                items: [
+                  { href: "/counselor/settings", label: "Settings", icon: "/icons/settings.svg", iconAlt: "Settings", iconClass: "filter invert brightness-200" },
+                ],
+              },
+            ]}
+            bottomItems={
+              <>
+                <ProfileCard
+                  href="/counselor/profile"
+                  avatarUrl={userProfile?.avatar_url}
+                  name={getDisplayName()}
+                  role={roleLabel}
+                />
+                <form action="/api/auth/signout" method="post">
+                  <Button variant="secondary" className="w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
+                    <Image src="/icons/logout.svg" alt="Log Out" width={20} height={20} className="object-contain" />
+                    Log Out
+                  </Button>
+                </form>
+              </>
+            }
+          />
+
+          {/* ── Desktop sidebar (hidden on mobile) ────────────────────────── */}
+          <aside className="w-64 bg-[#1E293B] text-white p-6 hidden md:flex md:flex-col md:h-full md:min-h-screen">
             <div className="mb-6">
                 <div className="flex items-center gap-3">
                     <Image
@@ -182,5 +239,6 @@ export default function CounselorSidebar() {
                 </form>
             </div>
         </aside>
+    </>
     );
 }

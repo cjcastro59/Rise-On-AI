@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import ProfileCard from "@/components/layout/ProfileCard";
+import MobileNav from "@/components/layout/MobileNav";
 import { useAuth } from "@/hooks/useAuth";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useMemo, useState } from "react";
@@ -74,7 +75,67 @@ export default function AdminSidebar() {
     : "User";
 
   return (
-    <aside className="w-64 bg-[#1E293B] text-white p-4 hidden md:flex md:h-screen md:flex-col md:overflow-hidden">
+    <>
+      {/* ── Mobile navigation drawer ────────────────────────────────────── */}
+      <MobileNav
+        panelLabel="Admin Panel"
+        sections={[
+          {
+            label: "Main",
+            items: [
+              { href: "/admin/dashboard", label: "Dashboard",        icon: "/icons/dashboard.svg",   iconAlt: "Dashboard" },
+              { href: "/admin/users",     label: "User Management",  icon: "/icons/account.svg",     iconAlt: "Users" },
+            ],
+          },
+          {
+            label: "Analytics",
+            items: [
+              { href: "/admin/journal-monitor",      label: "Journal Monitor",   icon: "/icons/journal.svg",       iconAlt: "Journal Monitor" },
+              { href: "/admin/mood-trends",          label: "Mood Reports",      icon: "/icons/trends.svg",        iconAlt: "Mood Reports" },
+              { href: "/admin/sentiment-monitoring", label: "Sentiment Monitor", icon: "/icons/ai-sentiment.svg",  iconAlt: "Sentiment Monitor" },
+            ],
+          },
+          {
+            label: "Support",
+            items: [
+              { href: "/admin/support", label: "Support Chat", icon: "/icons/crisis-support.svg", iconAlt: "Support Chat" },
+            ],
+          },
+          {
+            label: "Safety",
+            items: [
+              { href: "/admin/distress-alerts", label: "Distress Alerts", icon: "/icons/crisis-support.svg", iconAlt: "Distress Alerts", badge: distressAlertCount },
+            ],
+          },
+          {
+            label: "System",
+            items: [
+              { href: "/admin/system-settings", label: "Settings",   icon: "/icons/settings.svg",     iconAlt: "Settings",   iconClass: "filter invert brightness-200" },
+              { href: "/admin/audit-logs",       label: "Audit Logs", icon: "/icons/data-export.svg",  iconAlt: "Audit Logs" },
+              { href: "/admin/profile",          label: "Profile",    icon: "/icons/account.svg",      iconAlt: "Profile" },
+            ],
+          },
+        ]}
+        bottomItems={
+          <>
+            <ProfileCard
+              href="/admin/profile"
+              avatarUrl={userProfile?.avatar_url}
+              name={getDisplayName()}
+              role={roleLabel}
+            />
+            <form action="/api/auth/signout" method="post">
+              <Button variant="secondary" size="sm" className="w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
+                <Image src="/icons/logout.svg" alt="Log Out" width={16} height={16} className="object-contain" />
+                Log Out
+              </Button>
+            </form>
+          </>
+        }
+      />
+
+      {/* ── Desktop sidebar (hidden on mobile) ──────────────────────────── */}
+      <aside className="w-64 bg-[#1E293B] text-white p-4 hidden md:flex md:h-screen md:flex-col md:overflow-hidden">
       <div className="mb-4 shrink-0">
         <div className="flex items-center gap-3">
           <Image 
@@ -218,5 +279,6 @@ export default function AdminSidebar() {
         </form>
       </div>
     </aside>
+    </>
   );
 }

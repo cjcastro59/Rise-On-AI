@@ -66,10 +66,11 @@ export interface XLMroBERTaPrediction {
 export function preprocessText(input: string | null): string {
   if (!input) return "";
   let text = input.trim();
-  // Normalize whitespace
+  // Step 2 — Normalize whitespace (text cleaning)
   text = text.replace(/\s+/g, " ");
-  // Unicode NFC normalization
+  // Step 3 — Unicode NFC normalization + lowercase (text normalization)
   text = text.normalize("NFC");
+  text = text.toLowerCase();
   // Strip HTML
   text = text.replace(/<[^>]*>/g, " ");
   // Strip URLs

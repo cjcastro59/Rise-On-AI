@@ -138,6 +138,12 @@ export function LoginForm() {
           setStep("2fa");
         } else {
           await applyPendingProfileData(data.session.user.id);
+          // Log login activity (fire-and-forget — never block redirect)
+          supabase.from("activity_logs").insert({
+            user_id: data.session.user.id,
+            action:  "login",
+            details: "User signed in",
+          }).catch(() => {/* ignore */});
           router.push("/dashboard");
           router.refresh();
         }
@@ -186,6 +192,12 @@ export function LoginForm() {
       if (verified) {
         if (userId) {
           await applyPendingProfileData(userId);
+          // Log login activity for 2FA path (fire-and-forget)
+          supabase.from("activity_logs").insert({
+            user_id: userId,
+            action:  "login",
+            details: "User signed in (2FA verified)",
+          }).catch(() => {/* ignore */});
           router.push("/dashboard");
           router.refresh();
         }

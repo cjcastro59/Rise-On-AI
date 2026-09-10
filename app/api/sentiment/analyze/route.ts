@@ -12,6 +12,7 @@ import {
 import { computeWellnessScore } from "@/lib/wellness-assessment";
 import { computeAndPersistDRI } from "@/app/api/distress-risk/route";
 import { generateAndPersistACI } from "@/app/api/aci/route";
+import { getMoodScore } from "@/lib/mood";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -172,6 +173,78 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
+
+      // Fire-and-forget: mood_logs upsert + mood_analytics daily aggregation
+      // Both are non-blocking — a failure here never affects the ML response.
+      void (async () => {
+        try {
+          const moodScore = getMoodScore(mood) ?? null;
+
+          // ── mood_logs ────────────────────────────────────────────────────
+          // Use the entry's created_at so the log timestamp matches the entry.
+          // We store the entryId in `notes` to make the row identifiable later.
+          await (supabase
+            .from("mood_logs") as any)
+            .insert({
+              user_id: user.id,
+              mood:    mood   ?? null,
+              score:   moodScore,
+              notes:   entryId ?? null,
+            });
+
+          // ── mood_analytics ───────────────────────────────────────────────
+          // Daily aggregation: one row per (user_id, date).
+          // We upsert so every journal save on the same calendar day updates
+          // the running average and dominant emotion.
+          // Fetch today's entries to recompute avg_mood_score + dominant_emotion.
+          const todayStart = new Date();
+          todayStart.setHours(0, 0, 0, 0);
+          const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+          const { data: todayEntries } = await (supabase
+            .from("journal_entries") as any)
+            .select("mood, sentiment_score, sentiment")
+            .eq("user_id", user.id)
+            .gte("created_at", todayStart.toISOString())
+            .lt("created_at", todayEnd.toISOString());
+
+          const rows = (todayEntries ?? []) as {
+            mood: string | null;
+            sentiment_score: number | null;
+            sentiment: string | null;
+          }[];
+
+          if (rows.length > 0) {
+            // avg_mood_score: average of sentiment_score (0-100) across today's entries
+            const scores = rows.map(r => r.sentiment_score).filter((s): s is number => s !== null);
+            const avgMoodScore = scores.length > 0
+              ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10
+              : null;
+
+            // dominant_emotion: most-frequent sentiment label today
+            const sentimentCounts: Record<string, number> = {};
+            rows.forEach(r => {
+              if (r.sentiment) sentimentCounts[r.sentiment] = (sentimentCounts[r.sentiment] ?? 0) + 1;
+            });
+            const dominantEmotion = Object.keys(sentimentCounts).length > 0
+              ? Object.entries(sentimentCounts).sort((a, b) => b[1] - a[1])[0][0]
+              : null;
+
+            const todayDate = todayStart.toISOString().slice(0, 10); // "YYYY-MM-DD"
+
+            await (supabase
+              .from("mood_analytics") as any)
+              .upsert({
+                user_id:          user.id,
+                date:             todayDate,
+                avg_mood_score:   avgMoodScore,
+                dominant_emotion: dominantEmotion,
+              }, { onConflict: "user_id,date" });
+          }
+        } catch (err) {
+          console.error("[sentiment/analyze] mood_logs/mood_analytics write failed:", err);
+        }
+      })();
 
       // Fire-and-forget: behavioral → wellness → DRI → ACI
       void recomputeBehavioralIndicators(user.id, entryId);

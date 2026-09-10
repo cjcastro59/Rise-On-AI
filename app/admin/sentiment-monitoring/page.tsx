@@ -402,7 +402,7 @@ export default function AdminSentimentMonitoringPage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-semibold font-poppins text-dark-text">
-                  Tagalog {fmtPct(languageStats.tagalogAcc)}
+                  Tagalog {languageStats.tagalogAcc != null ? fmtPct(languageStats.tagalogAcc) : "—"}
                 </span>
               </div>
             </div>

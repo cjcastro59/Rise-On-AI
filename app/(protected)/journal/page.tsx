@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { createDistressAlertForJournalEntry } from "@/lib/distress-alerts";
+import { getMoodScore } from "@/lib/mood";
 import Link from "next/link";
 
 const moods = [
@@ -163,7 +164,38 @@ export default function JournalEntryPage() {
         );
       }
 
-      // ---- 3. Distress alert logic ----
+      // ---- 3. Write mood_log + activity_log (fire-and-forget, never block save) ----
+      if (selectedMood) {
+        const moodScore = getMoodScore(selectedMood);
+        Promise.all([
+          // mood_logs: one row per journal save with the selected mood + numeric score
+          supabase.from("mood_logs").insert({
+            user_id:    user.id,
+            mood:       selectedMood,
+            score:      moodScore,
+            notes:      null,
+          }),
+          // activity_logs: record that the user created a journal entry
+          supabase.from("activity_logs").insert({
+            user_id: user.id,
+            action:  "journal_entry_created",
+            details: `Entry saved${selectedMood ? ` · mood: ${selectedMood}` : ""}`,
+          }),
+        ]).catch((err: unknown) =>
+          console.error("[journal/save] mood_logs/activity_logs write failed:", err)
+        );
+      } else {
+        // Even without a mood, still log the activity
+        supabase.from("activity_logs").insert({
+          user_id: user.id,
+          action:  "journal_entry_created",
+          details: "Entry saved (no mood selected)",
+        }).catch((err: unknown) =>
+          console.error("[journal/save] activity_logs write failed:", err)
+        );
+      }
+
+      // ---- 4. Distress alert logic ----
       await createDistressAlertForJournalEntry(supabase, {
         userId: user.id,
         entryId,

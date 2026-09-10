@@ -53,43 +53,33 @@ function toDateOnlyKey(isoString: string): string {
 // =====================================================
 // INDICATOR #1 — BEHAVIORAL TREND SCORE
 // -----------------------------------------------------
-// INPUT:
-//   entries[] — user's journal entries (any order) with sentiment and dates
-//   lookbackDays — window length in days (default 30)
+// DOCUMENTED FORMULA (Algorithm Discussion §Behavioral Analytics):
+//   BehavioralTrend = NegativeEntries / TotalEntries
 //
-// COMPUTATION (follows analyzeMoodTrend split-comparison pattern):
-//   1. Filter entries inside [now - lookbackDays, now]
-//   2. Sort oldest → newest
-//   3. If fewer than 2 entries → return 0 (insufficient data)
-//   4. Split chronologically into OLD half and NEW half
-//   5. Compute half-means of EITHER:
-//        a) sentiment_score (0-100) — authoritative when stored
-//        b) fallback: sentimentToSignedScore (+1/0/-1) × 33.33 + 50
-//   6. Compute delta = newHalfMean − oldHalfMean
-//   7. Apply exponential recency weighting inside each half
-//        (newest entry in half gets weight 1.0, oldest gets 0.5)
-//   8. Normalize delta to [-100, +100] by dividing by maxPossibleDelta
-//        (e.g., for score 0-100: max delta between half-means ≈ 100)
-//
-// NORMALIZATION:
-//   raw delta ∈ [-100, +100] is clamped and used as-is
+// Where:
+//   NegativeEntries = entries with sentiment "negative" OR "distress" in window
+//   TotalEntries    = all entries in window
 //
 // OUTPUT RANGE:
-//   -100  → sharply declining (new half much worse)
-//   -33+  → mild decline
-//     0   → stable or insufficient data
-//   +33+  → mild improvement
-//   +100  → sharply improving (new half much better)
+//   0.0  → all entries positive (best)
+//   0.5  → equal positive and negative
+//   1.0  → all entries negative/distress (worst)
+//
+// The score is stored as 0–100 (ratio × 100) to keep the same
+// unit scale as JournalingFrequency and MoodConsistency scores,
+// making weighted combination straightforward in the Wellness formula.
 // =====================================================
 export interface BehavioralTrendResult {
+  /** Documented formula: (NegativeEntries / TotalEntries) × 100  →  0–100 */
   score: number;
-  halfSplitDelta: number;
-  oldHalfMean: number;
-  newHalfMean: number;
+  /** Raw counts used in the formula */
+  negativeEntries: number;
+  positiveEntries: number;
+  distressEntries: number;
+  totalEntries: number;
   entriesInWindow: number;
   oldestEntry: string | null;
   newestEntry: string | null;
-  usedFallbackScores: boolean;
 }
 
 export function computeBehavioralTrendScore(
@@ -106,59 +96,39 @@ export function computeBehavioralTrendScore(
     })
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
-  if (inWindow.length < 2) {
+  const totalEntries = inWindow.length;
+
+  if (totalEntries === 0) {
     return {
       score: 0,
-      halfSplitDelta: 0,
-      oldHalfMean: 0,
-      newHalfMean: 0,
-      entriesInWindow: inWindow.length,
+      negativeEntries: 0,
+      positiveEntries: 0,
+      distressEntries: 0,
+      totalEntries: 0,
+      entriesInWindow: 0,
       oldestEntry: null,
       newestEntry: null,
-      usedFallbackScores: true,
     };
   }
 
-  let usedFallbackScores = false;
-  const scores = inWindow.map((e) => {
-    if (typeof e.sentiment_score === "number") {
-      return e.sentiment_score;
-    }
-    usedFallbackScores = true;
-    return sentimentToSignedScore(e.sentiment) * 33.33 + 50;
-  });
+  const negativeEntries = inWindow.filter(e => e.sentiment === "negative").length;
+  const distressEntries = inWindow.filter(e => e.sentiment === "distress").length;
+  const positiveEntries = inWindow.filter(e => e.sentiment === "positive").length;
 
-  const mid = Math.floor(scores.length / 2);
-  const oldScores = scores.slice(0, mid);
-  const newScores = scores.slice(mid);
-
-  function weightedHalfMean(arr: number[]): number {
-    if (arr.length === 0) return 50;
-    let weightedSum = 0;
-    let weightTotal = 0;
-    arr.forEach((val, i) => {
-      const weight = 0.5 + (0.5 * (i + 1)) / arr.length;
-      weightedSum += val * weight;
-      weightTotal += weight;
-    });
-    return weightedSum / weightTotal;
-  }
-
-  const oldHalfMean = weightedHalfMean(oldScores);
-  const newHalfMean = weightedHalfMean(newScores);
-  const delta = newHalfMean - oldHalfMean;
-
-  const normalized = clamp(delta, -100, 100);
+  // BehavioralTrend = NegativeEntries / TotalEntries (documented formula)
+  // Scaled to 0–100 to match the unit scale of the other indicators.
+  const ratio = (negativeEntries + distressEntries) / totalEntries;
+  const score = round2(ratio * 100);
 
   return {
-    score: round2(normalized),
-    halfSplitDelta: round2(delta),
-    oldHalfMean: round2(oldHalfMean),
-    newHalfMean: round2(newHalfMean),
-    entriesInWindow: inWindow.length,
+    score,
+    negativeEntries,
+    positiveEntries,
+    distressEntries,
+    totalEntries,
+    entriesInWindow: totalEntries,
     oldestEntry: inWindow[0].created_at,
-    newestEntry: inWindow[inWindow.length - 1].created_at,
-    usedFallbackScores,
+    newestEntry: inWindow[totalEntries - 1].created_at,
   };
 }
 

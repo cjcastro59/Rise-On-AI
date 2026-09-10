@@ -143,8 +143,12 @@ def preprocess(text: str) -> str:
     if not text:
         return ""
     text = text.strip()
+    # Step 2 — Text cleaning: normalize whitespace
     text = re.sub(r"\s+", " ", text)
+    # Step 3 — Text normalization: NFC + lowercase
     text = unicodedata.normalize("NFC", text)
+    text = text.lower()
+    # Strip HTML, URLs, emails
     text = re.sub(r"<[^>]*>", " ", text)
     text = re.sub(r"https?://[^\s]+", " ", text)
     text = re.sub(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", " ", text)

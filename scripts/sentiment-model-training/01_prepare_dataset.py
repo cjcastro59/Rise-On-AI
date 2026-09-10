@@ -62,6 +62,7 @@ def preprocess(text: str) -> str:
     t = text.strip()
     t = WS_RE.sub(" ", t)
     t = unicodedata.normalize("NFC", t)
+    t = t.lower()
     t = HTML_RE.sub(" ", t)
     t = URL_RE.sub(" ", t)
     t = EMAIL_RE.sub(" ", t)

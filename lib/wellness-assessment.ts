@@ -117,21 +117,35 @@ export interface WellnessScoreResult {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
+// Weights for the documented Wellness Score formula:
+//   WS = (w₁·BT_sub + w₂·JF_sub + w₃·CN_sub + w₄·MC_sub) × 10
+//
+// Where each indicator is normalised to [0, 1] before weighting:
+//   BT_sub = 1 − (BT / 100)          inverted — higher BT (more negative) → lower sub-score
+//   JF_sub = JF / 100                 direct — more journaling → higher sub-score
+//   CN_sub = 1 − clamp(CN / 7, 0, 1) inverted — long streak → lower sub-score (cap at 7)
+//   MC_sub = MC / 100                 direct — more consistent → higher sub-score
+//
+//   w₁ (Behavioral Trend)    = 0.40  primary indicator
+//   w₂ (Journaling Frequency)= 0.25  engagement proxy
+//   w₃ (Consecutive Negative)= 0.20  safety-critical streak indicator
+//   w₄ (Mood Consistency)    = 0.15  emotional stability
+//   Sum of weights           = 1.00  → WS ∈ [0.00, 10.00]
+
 const WEIGHT_TREND        = 0.40;
-const WEIGHT_FREQUENCY    = 0.20;
+const WEIGHT_FREQUENCY    = 0.25;
+const WEIGHT_STREAK       = 0.20;
 const WEIGHT_CONSISTENCY  = 0.15;
-const BASELINE_FLOOR      = 0.25;
-/** Number of consecutive negative entries that triggers the full penalty */
-const PENALTY_CAP         = 7;
-/** Maximum penalty deduction applied to the raw score */
-const PENALTY_WEIGHT      = 0.25;
+
+/** Consecutive-negative cap: streak ≥ this value → full penalty on CN sub-score */
+const CN_CAP = 7;
 
 // Input validity bounds (used for clamping & logging)
-const BTS_MIN  = -100;
-const BTS_MAX  =  100;
-const SCORE_MIN =   0;
+const BTS_MIN  =   0;
+const BTS_MAX  = 100;
+const SCORE_MIN =  0;
 const SCORE_MAX = 100;
-const STREAK_MIN =  0;
+const STREAK_MIN = 0;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -166,7 +180,6 @@ function sanitiseInput(raw: WellnessScoreInput): SanitisedInput {
     BTS_MIN, BTS_MAX,
   );
   if (bts !== raw.behavioralTrendScore) { clamped = true; console.warn(`[wellness] behavioralTrendScore out of range (${raw.behavioralTrendScore}) → clamped to ${bts}`); }
-
   const jfs = clamp(
     typeof raw.journalingFrequencyScore === "number" && isFinite(raw.journalingFrequencyScore)
       ? raw.journalingFrequencyScore : 0,
@@ -215,27 +228,22 @@ export function computeWellnessScore(
   // 1. Validate + sanitise inputs
   const s = sanitiseInput(input);
 
-  // 2. Map each indicator to [0, 1]
-  const trendSubScore       = clamp01((s.behavioralTrendScore + 100) / 200);
+  // 2. Normalise each indicator to [0, 1] sub-score
+  //    BT is inverted: high NegativeRatio (e.g. 0.8) → low sub-score (0.2)
+  const trendSubScore       = clamp01(1 - s.behavioralTrendScore / 100);
   const frequencySubScore   = clamp01(s.journalingFrequencyScore / 100);
+  const streakSubScore      = clamp01(1 - s.consecutiveNegativeCount / CN_CAP);
   const consistencySubScore = clamp01(s.moodConsistencyScore / 100);
 
-  // 3. Weighted sum + baseline floor
+  // 3. Documented formula: WS = (w₁·BT + w₂·JF + w₃·CN + w₄·MC) × 10
   const weightedRaw =
     trendSubScore       * WEIGHT_TREND       +
     frequencySubScore   * WEIGHT_FREQUENCY   +
-    consistencySubScore * WEIGHT_CONSISTENCY +
-    BASELINE_FLOOR;
+    streakSubScore      * WEIGHT_STREAK      +
+    consistencySubScore * WEIGHT_CONSISTENCY;
 
-  // 4. Consecutive-negative penalty
-  const streakPenalty =
-    clamp01(s.consecutiveNegativeCount / PENALTY_CAP) * PENALTY_WEIGHT;
-
-  // 5. Final raw score in [0, 1]
-  const rawScore = clamp01(weightedRaw - streakPenalty);
-
-  // 6. Scale to [0, 10]
-  const score = round2(rawScore * 10);
+  // 4. Scale to [0, 10]
+  const score = round2(clamp01(weightedRaw) * 10);
   const level = classifyWellnessLevel(score);
 
   return {
@@ -246,8 +254,8 @@ export function computeWellnessScore(
       frequencySubScore:   round2(frequencySubScore),
       consistencySubScore: round2(consistencySubScore),
       weightedRaw:         round2(weightedRaw),
-      streakPenalty:       round2(streakPenalty),
-      rawScore:            round2(rawScore),
+      streakPenalty:       round2(1 - streakSubScore),  // kept for interface compat
+      rawScore:            round2(clamp01(weightedRaw)),
       inputClamped:        s.inputClamped,
       sanitisedInput: {
         behavioralTrendScore:     s.behavioralTrendScore,

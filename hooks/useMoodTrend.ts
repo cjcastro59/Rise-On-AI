@@ -17,6 +17,18 @@ export interface MoodTrendPoint {
   count: number;
 }
 
+/**
+ * Mi frequency counts per sentiment class over the selected range.
+ * Implements the documented formula: Mi = Σ(j=1 to n) Eij
+ * where Eij is the emotional classification of journal entry j.
+ */
+export interface MoodFrequencyCounts {
+  positive: number;
+  negative: number;
+  distress: number;
+  total: number;
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // This app's week runs Saturday -> Friday. Returns the most recent Saturday
@@ -108,16 +120,40 @@ export function useMoodTrend(range: MoodTrendRange) {
   const [data, setData] = useState<MoodTrendPoint[]>([]);
   const [ticks, setTicks] = useState<string[] | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [sentimentCounts, setSentimentCounts] = useState<MoodFrequencyCounts>({
+    positive: 0, negative: 0, distress: 0, total: 0,
+  });
 
   const fetchTrend = useCallback(async () => {
     if (!user) {
       setData([]);
       setTicks(undefined);
+      setSentimentCounts({ positive: 0, negative: 0, distress: 0, total: 0 });
       setLoading(false);
       return;
     }
 
     setLoading(true);
+
+    // ── Helper: compute Mi frequency counts (documented formula) ──────────
+    // Mi = Σ(j=1 to n) Eij  — count entries per sentiment class in [start, end)
+    const computeMiCounts = async (
+      start: Date,
+      endExclusive: Date,
+    ): Promise<MoodFrequencyCounts> => {
+      const { data: rows } = await supabase
+        .from("journal_entries")
+        .select("sentiment")
+        .eq("user_id", user.id)
+        .gte("created_at", start.toISOString())
+        .lt("created_at", endExclusive.toISOString())
+        .not("sentiment", "is", null);
+      const entries = (rows ?? []) as { sentiment: string }[];
+      const positive = entries.filter(r => r.sentiment === "positive").length;
+      const negative = entries.filter(r => r.sentiment === "negative").length;
+      const distress = entries.filter(r => r.sentiment === "distress").length;
+      return { positive, negative, distress, total: positive + negative + distress };
+    };
     try {
       const now = new Date();
 
@@ -148,6 +184,7 @@ export function useMoodTrend(range: MoodTrendRange) {
         }
         setData(points);
         setTicks(undefined); // always show all 7 weekday ticks
+        setSentimentCounts(await computeMiCounts(start, endExclusive));
       } else if (range === "Month") {
         const start = new Date(now.getFullYear(), now.getMonth(), 1);
         const endExclusive = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -174,6 +211,7 @@ export function useMoodTrend(range: MoodTrendRange) {
         setData(points);
         const candidates = [1, 5, 10, 15, 20, 25, daysInMonth];
         setTicks(Array.from(new Set(candidates.filter((n) => n >= 1 && n <= daysInMonth))).map(String));
+        setSentimentCounts(await computeMiCounts(start, endExclusive));
       } else if (range === "3 Months") {
         // Daily buckets for a smooth trend line, sparse month-boundary ticks
         // ("May", "Jun", "Jul") so the X-axis stays readable.
@@ -204,6 +242,7 @@ export function useMoodTrend(range: MoodTrendRange) {
         }
         setData(points);
         setTicks(monthTicks);
+        setSentimentCounts(await computeMiCounts(start, endExclusive));
       } else {
         // All Time: one point per calendar month from the earliest record.
         const earliest = await fetchEarliestDate(supabase, user.id);
@@ -238,6 +277,7 @@ export function useMoodTrend(range: MoodTrendRange) {
         }
         setData(points);
         setTicks(undefined); // monthly points are already sparse; show them all
+        setSentimentCounts(await computeMiCounts(start, endExclusive));
       }
     } catch (error) {
       console.error("useMoodTrend error:", error);
@@ -256,5 +296,5 @@ export function useMoodTrend(range: MoodTrendRange) {
     ? Math.round((validPoints.reduce((sum, p) => sum + (p.score as number), 0) / validPoints.length) * 10) / 10
     : null;
 
-  return { data, loading, hasData, avgScore, ticks, refetch: fetchTrend };
+  return { data, loading, hasData, avgScore, ticks, sentimentCounts, refetch: fetchTrend };
 }
