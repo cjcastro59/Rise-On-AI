@@ -50,13 +50,13 @@ const REPORT_PATH_05 = resolve(OUTPUTS_DIR, "05_eval_report.json");
 // ── Metric targets (from documented requirements) ─────────────────────────────
 
 const TARGETS = {
-  accuracy:          { acceptable: 0.80, target: 0.88 },
-  f1_macro:          { acceptable: 0.75, target: 0.85 },
-  f1_weighted:       { acceptable: 0.78, target: 0.88 },
-  distress_recall:   { safety_min: 0.80 },          // safety-critical
-  distress_f1:       { acceptable: 0.70 },
-  positive_f1:       { acceptable: 0.70 },
-  negative_f1:       { acceptable: 0.65 },           // typically hardest class
+  accuracy: { acceptable: 0.80, target: 0.88 },
+  f1_macro: { acceptable: 0.75, target: 0.85 },
+  f1_weighted: { acceptable: 0.78, target: 0.88 },
+  distress_recall: { safety_min: 0.80 },          // safety-critical
+  distress_f1: { acceptable: 0.70 },
+  positive_f1: { acceptable: 0.70 },
+  negative_f1: { acceptable: 0.65 },           // typically hardest class
 } as const;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -208,17 +208,17 @@ describe("AI Evaluation — Fine-tuned XLM-RoBERTa (04_evaluation_report.json)",
     expect(correctPredictions).toBeGreaterThan(0);
   });
 
-  // ── Comparison: fine-tuned > keyword baseline ──────────────────────────────
-  it("TC-AI-14 | fine-tuned F1 macro exceeds keyword baseline", () => {
+  // ── Comparison: fine-tuned > baseline model ──────────────────────────────
+  it("TC-AI-14 | fine-tuned F1 macro exceeds baseline model", () => {
     if (!ft?.f1_macro || !report?.keyword?.f1_macro) return;
     console.info(
       `[AI] Fine-tuned F1 Macro: ${(ft.f1_macro * 100).toFixed(2)}%  |  ` +
-      `Keyword baseline: ${((report.keyword.f1_macro ?? 0) * 100).toFixed(2)}%`
+      `Baseline: ${((report.keyword.f1_macro ?? 0) * 100).toFixed(2)}%`
     );
     expect(ft.f1_macro).toBeGreaterThan(report.keyword.f1_macro ?? 0);
   });
 
-  it("TC-AI-15 | fine-tuned accuracy exceeds keyword baseline", () => {
+  it("TC-AI-15 | fine-tuned accuracy exceeds baseline model", () => {
     if (!ft?.accuracy || !report?.keyword?.accuracy) return;
     expect(ft.accuracy).toBeGreaterThan(report.keyword.accuracy ?? 0);
   });

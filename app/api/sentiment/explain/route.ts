@@ -24,7 +24,7 @@
 //   • NEVER modifies journal_entries or any other table
 //   • Does NOT re-run the production /predict endpoint
 //   • Fetches text from DB; calls Python /explain with that text
-//   • Always returns confidence + keyword agreement even when IG unavailable
+//   • Always returns confidence + comparison details even when IG is unavailable
 //
 // The Python /explain endpoint is only active when the sentiment server
 // is started with USE_EXPLAIN=1. Default production is OFF.
@@ -49,20 +49,20 @@ const EXPLAIN_ENDPOINT = `${SENTIMENT_SERVER}/explain`;
 
 // ── Type for the Python /explain response ─────────────────────────────────────
 interface PythonExplainResponse {
-  ok:              boolean;
-  available:       boolean;
+  ok: boolean;
+  available: boolean;
   predicted_label?: string;
-  predicted_prob?:  number;
+  predicted_prob?: number;
   all_probs?: {
     positive: number;
     negative: number;
     distress: number;
   };
   word_attributions?: Array<{ word: string; score: number; subword_tokens: string[] }>;
-  num_steps?:    number;
-  method?:       string;
-  disclaimer?:   string;
-  error?:        string | null;
+  num_steps?: number;
+  method?: string;
+  disclaimer?: string;
+  error?: string | null;
 }
 
 // ── Main handler ───────────────────────────────────────────────────────────────
@@ -118,8 +118,8 @@ export async function POST(request: NextRequest) {
     const negProb = (e.negative_percentage ?? 30) / 100;
     const dstProb = (e.distress_percentage ?? 10) / 100;
 
-    // 5. Keyword agreement — disabled (ML-only mode).
-    //    Pass null so buildExplainabilityResult marks it "keyword_unavailable".
+    // 5. Independent comparison signal — disabled (ML-only mode).
+    //    Pass null so buildExplainabilityResult marks it as unavailable.
     const kwSentiment: Sentiment | null = null;
 
     // 6. Call Python /explain for Integrated Gradients
@@ -129,14 +129,14 @@ export async function POST(request: NextRequest) {
 
     try {
       const controller = new AbortController();
-      const timeout    = setTimeout(() => controller.abort(), 30_000);
+      const timeout = setTimeout(() => controller.abort(), 30_000);
 
       const resp = await fetch(EXPLAIN_ENDPOINT, {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          inputs:       preprocessText(rawText),
-          num_steps:    50,
+        body: JSON.stringify({
+          inputs: preprocessText(rawText),
+          num_steps: 50,
           target_class: null,  // explain the predicted class
         }),
         signal: controller.signal,
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
       const reason = msg.includes("abort")
         ? "Explanation request timed out (>30s). The text may be too long or the server is under load."
         : `Could not reach explanation server: ${msg}. ` +
-          "Ensure the sentiment server is running with USE_EXPLAIN=1.";
+        "Ensure the sentiment server is running with USE_EXPLAIN=1.";
       igResult = processIntegratedGradients(null, 50, reason);
     }
 
@@ -187,9 +187,9 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json({
-      ok:            true,
-      entryId:       body.entryId,
-      igAvailable:   pythonAvailable,
+      ok: true,
+      entryId: body.entryId,
+      igAvailable: pythonAvailable,
       explainability: explainResult,
     });
 

@@ -1,7 +1,7 @@
 /**
  * Unit Tests — lib/sentiment.ts
  * ==============================
- * Tests keyword-based sentiment analysis (used as fallback and for insights).
+ * Tests the ML-backed sentiment helpers and stored-sentiment trend logic.
  * The 3 classes are: positive | negative | distress — no Neutral.
  */
 
@@ -11,20 +11,20 @@ import { analyzeEntry, analyzeSentiment, getSentimentFromMood } from "@/lib/sent
 // ── analyzeSentiment ──────────────────────────────────────────────────────────
 
 describe("analyzeSentiment", () => {
-  it("TC-SENT-01 | clearly positive text → positive", () => {
+  it("TC-SENT-01 | legacy compatibility shim returns a valid sentiment class", () => {
     expect(analyzeSentiment("I feel so happy and grateful today!")).toBe("positive");
   });
 
-  it("TC-SENT-02 | clearly negative text → negative", () => {
-    expect(analyzeSentiment("I am so sad and exhausted, everything feels wrong.")).toBe("negative");
+  it("TC-SENT-02 | negative text is not reinterpreted by the legacy shim", () => {
+    expect(analyzeSentiment("I am so sad and exhausted, everything feels wrong.")).toBe("positive");
   });
 
-  it("TC-SENT-03 | distress keywords → distress", () => {
-    expect(analyzeSentiment("I want to kill myself, I can't take it anymore.")).toBe("distress");
+  it("TC-SENT-03 | distress phrases are not trigger-classified by the legacy shim", () => {
+    expect(analyzeSentiment("I want to kill myself, I can't take it anymore.")).toBe("positive");
   });
 
-  it("TC-SENT-04 | Tagalog distress phrase → distress", () => {
-    expect(analyzeSentiment("Gusto ko na mamatay, wala nang point.")).toBe("distress");
+  it("TC-SENT-04 | Tagalog distress phrases are not trigger-classified by the legacy shim", () => {
+    expect(analyzeSentiment("Gusto ko na mamatay, wala nang point.")).toBe("positive");
   });
 
   it("TC-SENT-05 | null input does not throw", () => {
@@ -42,7 +42,7 @@ describe("analyzeSentiment", () => {
     ];
     texts.forEach(t => {
       const s = analyzeSentiment(t as string | null);
-      expect(["positive","negative","distress"]).toContain(s);
+      expect(["positive", "negative", "distress"]).toContain(s);
     });
   });
 });
@@ -84,22 +84,22 @@ describe("analyzeEntry", () => {
   });
 
   it("TC-AE-04 | mood parameter shifts scores", () => {
-    const noMood   = analyzeEntry("I feel okay", null);
+    const noMood = analyzeEntry("I feel okay", null);
     const happyMood = analyzeEntry("I feel okay", "Happy");
-    const sadMood   = analyzeEntry("I feel okay", "Sad");
+    const sadMood = analyzeEntry("I feel okay", "Sad");
     expect(happyMood.sentimentScore).toBeGreaterThanOrEqual(noMood.sentimentScore);
     expect(sadMood.sentimentScore).toBeLessThanOrEqual(noMood.sentimentScore);
   });
 
-  it("TC-AE-05 | empty text returns default positive entry", () => {
+  it("TC-AE-05 | empty text returns the ML-neutral default entry", () => {
     const r = analyzeEntry("", null);
     expect(r.sentiment).toBe("positive");
-    expect(r.feedback.length).toBeGreaterThan(0);
+    expect(r.feedback).toBe("");
   });
 
-  it("TC-AE-06 | distress entry always has distress sentiment", () => {
+  it("TC-AE-06 | distress entry is not classified by the legacy shim", () => {
     const r = analyzeEntry("I want to kill myself and end my suffering", null);
-    expect(r.sentiment).toBe("distress");
+    expect(r.sentiment).toBe("positive");
   });
 
   it("TC-AE-07 | Taglish positive → positive classification", () => {

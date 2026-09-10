@@ -1,6 +1,6 @@
 // =====================================================================
 // lib/explainability.ts  —  Phase 6
-// Explainable AI — Confidence + Keyword Agreement Layer
+// Explainable AI — Confidence + comparison signal layer
 // =====================================================================
 //
 // DESIGN RATIONALE
@@ -19,13 +19,12 @@
 //     • Ambiguous (<0.10) → probabilities nearly equal; treat with caution
 //     This is mathematically sound and requires no extra model calls.
 //
-//   LAYER 2 — Keyword Agreement Signal (cross-model validation)
-//     • The keyword-based analyzer (lib/sentiment.ts) independently
-//       classifies the text using lexical rules
-//     • When XLM-RoBERTa and keyword agree → "Models agree — stronger signal"
-//     • When they disagree → "Models differ — prediction may be uncertain"
-//     • IMPORTANT: keywords are NOT "words the XLM-R model attended to."
-//       They are independent signals. This is stated clearly in every output.
+//   LAYER 2 — Independent Comparison Signal
+//     • A separate comparison signal may be provided when an independent
+//       check is available.
+//     • When the comparison agrees → stronger signal
+//     • When it disagrees → the entry may be mixed or ambiguous
+//     • IMPORTANT: this is not the same as the model's attention or saliency.
 //
 //   LAYER 3 — On-demand Integrated Gradients (offline only)
 //     • Word-level attribution via captum, requested explicitly by user
@@ -51,62 +50,62 @@ export type ConfidenceLevel = "high" | "medium" | "low" | "ambiguous";
 
 export interface ConfidenceSignal {
   /** 0–1: probability assigned to the predicted class */
-  topClassProbability:    number;
+  topClassProbability: number;
   /** 0–1: probability of the second-ranked class */
   secondClassProbability: number;
   /** topClassProbability − secondClassProbability */
-  probabilityGap:         number;
+  probabilityGap: number;
   /** Human-readable confidence level */
-  level:                  ConfidenceLevel;
+  level: ConfidenceLevel;
   /** Display label */
-  label:                  string;
+  label: string;
   /** Colour config for UI */
-  color:                  string;
-  bgColor:                string;
+  color: string;
+  bgColor: string;
   /** One-sentence explanation for users */
-  explanation:            string;
+  explanation: string;
 }
 
 export type KeywordAgreement = "agree" | "disagree" | "keyword_unavailable";
 
 export interface KeywordAgreementSignal {
-  agreement:    KeywordAgreement;
+  agreement: KeywordAgreement;
   xlmSentiment: Sentiment;
   /** null when keyword analysis wasn't run */
-  kwSentiment:  Sentiment | null;
-  label:        string;
-  explanation:  string;
+  kwSentiment: Sentiment | null;
+  label: string;
+  explanation: string;
   /** Always present — users must understand what this signal means */
-  disclaimer:   string;
+  disclaimer: string;
 }
 
 export interface IntegratedGradientsResult {
   /** Whether IG was available (Python server /explain endpoint running) */
-  available:      boolean;
+  available: boolean;
   /** Per-word attribution scores, highest absolute value first */
   wordAttributions: WordAttribution[];
   /** Rendering-ready top-N tokens (absolute value ≥ threshold) */
   topInfluential: WordAttribution[];
   /** Metadata */
-  method:         "integrated_gradients";
-  numSteps:       number;
-  baseline:       "pad_token";
+  method: "integrated_gradients";
+  numSteps: number;
+  baseline: "pad_token";
   /** Required disclaimer — subword aggregation is an approximation */
-  disclaimer:     string;
+  disclaimer: string;
   /** Error message if IG call failed */
-  error?:         string;
+  error?: string;
 }
 
 export interface WordAttribution {
-  word:          string;
+  word: string;
   /** Sum of subword-token IG scores for this word */
-  score:         number;
+  score: number;
   /** Absolute score (for sorting/display) */
-  absScore:      number;
+  absScore: number;
   /** Normalised 0–1 relative to max absolute score in this result */
-  normalised:    number;
+  normalised: number;
   /** "positive" if score > 0, "negative" if score < 0, "neutral" near zero */
-  direction:     "positive" | "negative" | "neutral";
+  direction: "positive" | "negative" | "neutral";
 }
 
 export interface ExplainabilityResult {
@@ -116,9 +115,9 @@ export interface ExplainabilityResult {
     negative: number;
     distress: number;
   };
-  predictedSentiment:  Sentiment;
-  confidence:          ConfidenceSignal;
-  keywordAgreement:    KeywordAgreementSignal;
+  predictedSentiment: Sentiment;
+  confidence: ConfidenceSignal;
+  keywordAgreement: KeywordAgreementSignal;
   /** Populated only when /api/sentiment/explain was called */
   integratedGradients: IntegratedGradientsResult | null;
 }
@@ -126,9 +125,9 @@ export interface ExplainabilityResult {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const CONFIDENCE_THRESHOLDS = {
-  high:     0.40,
-  medium:   0.20,
-  low:      0.10,
+  high: 0.40,
+  medium: 0.20,
+  low: 0.10,
   // < 0.10 → ambiguous
 } as const;
 
@@ -136,27 +135,27 @@ const CONFIDENCE_CONFIG: Record<ConfidenceLevel, {
   label: string; color: string; bgColor: string; explanation: string;
 }> = {
   high: {
-    label:       "High Confidence",
-    color:       "#2D6A4F",
-    bgColor:     "#B7E4C7",
+    label: "High Confidence",
+    color: "#2D6A4F",
+    bgColor: "#B7E4C7",
     explanation: "The AI model is strongly confident in this prediction. The predicted class received significantly more probability than any other class.",
   },
   medium: {
-    label:       "Moderate Confidence",
-    color:       "#7B5E2A",
-    bgColor:     "#FFE8A1",
+    label: "Moderate Confidence",
+    color: "#7B5E2A",
+    bgColor: "#FFE8A1",
     explanation: "The AI model leans toward this prediction but has notable probability mass on another class. The prediction is likely correct but less certain.",
   },
   low: {
-    label:       "Low Confidence",
-    color:       "#9B3A1E",
-    bgColor:     "#F4A6A6",
-    explanation: "The AI model shows a weak preference for this class. There is meaningful probability on one or more other classes. Consider the keyword agreement signal for additional context.",
+    label: "Low Confidence",
+    color: "#9B3A1E",
+    bgColor: "#F4A6A6",
+    explanation: "The AI model shows a weak preference for this class. There is meaningful probability on one or more other classes. Consider the independent comparison signal for additional context.",
   },
   ambiguous: {
-    label:       "Ambiguous",
-    color:       "#6B7280",
-    bgColor:     "#E5E7EB",
+    label: "Ambiguous",
+    color: "#6B7280",
+    bgColor: "#E5E7EB",
     explanation: "The class probabilities are nearly equal. The model could not clearly distinguish between sentiment classes. This may indicate a mixed-sentiment entry or a borderline case.",
   },
 };
@@ -188,72 +187,70 @@ export function computeConfidenceSignal(
   ];
   probs.sort((a, b) => b[0] - a[0]);
 
-  const topProb    = round2(probs[0][0]);
+  const topProb = round2(probs[0][0]);
   const secondProb = round2(probs[1][0]);
-  const gap        = round2(topProb - secondProb);
+  const gap = round2(topProb - secondProb);
 
   let level: ConfidenceLevel;
-  if      (gap >= CONFIDENCE_THRESHOLDS.high)   level = "high";
-  else if (gap >= CONFIDENCE_THRESHOLDS.medium)  level = "medium";
-  else if (gap >= CONFIDENCE_THRESHOLDS.low)     level = "low";
-  else                                            level = "ambiguous";
+  if (gap >= CONFIDENCE_THRESHOLDS.high) level = "high";
+  else if (gap >= CONFIDENCE_THRESHOLDS.medium) level = "medium";
+  else if (gap >= CONFIDENCE_THRESHOLDS.low) level = "low";
+  else level = "ambiguous";
 
   const cfg = CONFIDENCE_CONFIG[level];
 
   return {
-    topClassProbability:    topProb,
+    topClassProbability: topProb,
     secondClassProbability: secondProb,
-    probabilityGap:         gap,
+    probabilityGap: gap,
     level,
-    label:                  cfg.label,
-    color:                  cfg.color,
-    bgColor:                cfg.bgColor,
-    explanation:            cfg.explanation,
+    label: cfg.label,
+    color: cfg.color,
+    bgColor: cfg.bgColor,
+    explanation: cfg.explanation,
   };
 }
 
-// ── Layer 2: Keyword Agreement Signal ────────────────────────────────────────
+// ── Layer 2: Independent Comparison Signal ───────────────────────────────────
 
 const KEYWORD_DISCLAIMER =
-  "The keyword analysis runs a separate rule-based system that is independent " +
-  "of the XLM-RoBERTa AI model. Agreement between the two systems provides " +
-  "additional confidence, but disagreement does NOT mean either is wrong — " +
-  "it means the entry may contain mixed signals or context that one approach " +
-  "handles better than the other. The keywords shown are NOT the words that " +
-  "caused the AI model to make its prediction.";
+  "This comparison signal comes from a separate, independent check and is not " +
+  "an explanation of which words the XLM-RoBERTa model attended to. Agreement " +
+  "can add confidence, while disagreement may indicate mixed or context-heavy " +
+  "language. The underlying AI prediction remains the authoritative result.";
 
 /**
- * Compare the XLM-RoBERTa predicted class against a keyword-based prediction.
- * Pass `kwSentiment: null` when keyword analysis was not run.
+ * Compare the XLM-RoBERTa predicted class against an independent comparison signal.
+ * Pass `kwSentiment: null` when no comparison check was run.
  */
 export function computeKeywordAgreement(
   xlmSentiment: Sentiment,
-  kwSentiment:  Sentiment | null,
+  kwSentiment: Sentiment | null,
 ): KeywordAgreementSignal {
   if (kwSentiment === null) {
     return {
-      agreement:    "keyword_unavailable",
+      agreement: "keyword_unavailable",
       xlmSentiment,
       kwSentiment,
-      label:        "Keyword analysis not run",
-      explanation:  "Keyword-based analysis was not available for this entry.",
-      disclaimer:   KEYWORD_DISCLAIMER,
+      label: "Comparison signal not available",
+      explanation: "An independent comparison check was not available for this entry.",
+      disclaimer: KEYWORD_DISCLAIMER,
     };
   }
 
   const agree = xlmSentiment === kwSentiment;
 
   return {
-    agreement:    agree ? "agree" : "disagree",
+    agreement: agree ? "agree" : "disagree",
     xlmSentiment,
     kwSentiment,
-    label:        agree
-      ? `Both analyses agree: ${xlmSentiment}`
-      : `Analyses differ: AI → ${xlmSentiment}, Keywords → ${kwSentiment}`,
-    explanation:  agree
-      ? "The AI model and the independent keyword analysis both predict the same sentiment class. This cross-validation provides additional confidence in the result."
-      : "The AI model and the keyword analysis predict different classes. This may indicate a complex or mixed-sentiment entry. The AI model's prediction is used as the authoritative result.",
-    disclaimer:   KEYWORD_DISCLAIMER,
+    label: agree
+      ? `Both checks agree: ${xlmSentiment}`
+      : `Checks differ: AI → ${xlmSentiment}, comparison → ${kwSentiment}`,
+    explanation: agree
+      ? "The AI model and the independent comparison signal predict the same sentiment class. This adds confidence in the result."
+      : "The AI model and the independent comparison signal predict different classes. This may indicate a complex or mixed-sentiment entry. The AI model's prediction remains the authoritative result.",
+    disclaimer: KEYWORD_DISCLAIMER,
   };
 }
 
@@ -281,14 +278,14 @@ export function processIntegratedGradients(
 ): IntegratedGradientsResult {
   if (error || !rawAttributions) {
     return {
-      available:        false,
+      available: false,
       wordAttributions: [],
-      topInfluential:   [],
-      method:           "integrated_gradients",
+      topInfluential: [],
+      method: "integrated_gradients",
       numSteps,
-      baseline:         "pad_token",
-      disclaimer:       IG_DISCLAIMER,
-      error:            error ?? "Integrated Gradients not available",
+      baseline: "pad_token",
+      disclaimer: IG_DISCLAIMER,
+      error: error ?? "Integrated Gradients not available",
     };
   }
 
@@ -297,16 +294,16 @@ export function processIntegratedGradients(
   const wordAttributions: WordAttribution[] = rawAttributions
     .filter(w => w.word.trim().length > 0)
     .map(w => {
-      const abs  = Math.abs(w.score);
+      const abs = Math.abs(w.score);
       const norm = round2(abs / maxAbs);
       return {
-        word:       w.word,
-        score:      round2(w.score),
-        absScore:   round2(abs),
+        word: w.word,
+        score: round2(w.score),
+        absScore: round2(abs),
         normalised: norm,
-        direction:  (w.score >  0.01 ? "positive"
-                  : w.score < -0.01 ? "negative"
-                  :                   "neutral") as "positive" | "negative" | "neutral",
+        direction: (w.score > 0.01 ? "positive"
+          : w.score < -0.01 ? "negative"
+            : "neutral") as "positive" | "negative" | "neutral",
       };
     })
     .sort((a, b) => b.absScore - a.absScore);
@@ -316,13 +313,13 @@ export function processIntegratedGradients(
     .slice(0, 12);  // cap display at 12 words
 
   return {
-    available:      true,
+    available: true,
     wordAttributions,
     topInfluential,
-    method:         "integrated_gradients",
+    method: "integrated_gradients",
     numSteps,
-    baseline:       "pad_token",
-    disclaimer:     IG_DISCLAIMER,
+    baseline: "pad_token",
+    disclaimer: IG_DISCLAIMER,
   };
 }
 
@@ -336,12 +333,12 @@ export function processIntegratedGradients(
  * probabilities (0–1) before calling this function.
  */
 export function buildExplainabilityResult(
-  posProb:      number,
-  negProb:      number,
-  dstProb:      number,
+  posProb: number,
+  negProb: number,
+  dstProb: number,
   xlmSentiment: Sentiment,
-  kwSentiment:  Sentiment | null,
-  ig:           IntegratedGradientsResult | null = null,
+  kwSentiment: Sentiment | null,
+  ig: IntegratedGradientsResult | null = null,
 ): ExplainabilityResult {
   return {
     inputProbabilities: {
@@ -349,9 +346,9 @@ export function buildExplainabilityResult(
       negative: round2(negProb),
       distress: round2(dstProb),
     },
-    predictedSentiment:  xlmSentiment,
-    confidence:          computeConfidenceSignal(posProb, negProb, dstProb, xlmSentiment),
-    keywordAgreement:    computeKeywordAgreement(xlmSentiment, kwSentiment),
+    predictedSentiment: xlmSentiment,
+    confidence: computeConfidenceSignal(posProb, negProb, dstProb, xlmSentiment),
+    keywordAgreement: computeKeywordAgreement(xlmSentiment, kwSentiment),
     integratedGradients: ig,
   };
 }
@@ -364,11 +361,11 @@ export { CONFIDENCE_CONFIG };
 export function igWordColor(attr: WordAttribution): { bg: string; text: string } {
   const alpha = Math.round(attr.normalised * 220 + 30);
   if (attr.direction === "positive") return {
-    bg:   `rgba(168, 218, 220, ${alpha / 255})`,
+    bg: `rgba(168, 218, 220, ${alpha / 255})`,
     text: "#1D6FA4",
   };
   if (attr.direction === "negative") return {
-    bg:   `rgba(244, 166, 166, ${alpha / 255})`,
+    bg: `rgba(244, 166, 166, ${alpha / 255})`,
     text: "#9B3A1E",
   };
   return { bg: "transparent", text: "#6B7280" };

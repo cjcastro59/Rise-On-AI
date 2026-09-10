@@ -62,7 +62,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { data: weekData, loading: weekMoodLoading, hasData: weekMoodHasData } = useMoodTrend("Week");
   const {
-    latest:  wellnessLatest,
+    latest: wellnessLatest,
     history: wellnessHistory,
     loading: wellnessLoading,
   } = useWellnessAssessment(30, 7);   // last 7 compute dates for sparkline
@@ -110,8 +110,8 @@ export default function DashboardPage() {
   const calculateStats = useCallback((entries: any[]) => {
     const totalEntries = entries.length;
 
-    // Use the ML-predicted sentiment_score column for avg mood, and the
-    // sentiment column for positivity — no keyword analysis.
+    // Use the ML-predicted sentiment_score column for average mood and the
+    // stored sentiment column for positivity.
     const toScore = (entry: any): number => {
       if (entry.sentiment_score != null) return entry.sentiment_score / 10;
       const s = (entry.sentiment as string | null) ?? getSentimentFromMood(entry.mood);
@@ -320,89 +320,89 @@ export default function DashboardPage() {
         className="mb-8 rounded-2xl border border-light-gray shadow-sm overflow-hidden"
         style={{ borderLeftWidth: 4, borderLeftStyle: "solid", borderLeftColor: wellnessCfg?.borderColor ?? "#e5e7eb" }}
       >
-      <Card className="px-6 py-4 bg-white transition-all" variant="white">
-        {wellnessLoading ? (
-          <p className="text-xs text-dark-text/50 py-1">Loading wellness data…</p>
-        ) : !wellnessLatest || wellnessLatest.wellness_score === null ? (
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <div>
-              <p className="text-xs font-poppins font-semibold text-dark-text/70 uppercase tracking-wider mb-0.5">
-                Wellness Assessment
-              </p>
-              <p className="text-sm text-dark-text/60 font-inter">
-                No data yet — write your first journal entry to get your Wellness Score.
-              </p>
-            </div>
-            <Link href="/journal">
-              <Button size="sm" variant="secondary" className="text-xs border-[#A8DADC] text-[#4EAAB3] hover:bg-[#A8DADC]/10 whitespace-nowrap">
-                Start Journaling →
-              </Button>
-            </Link>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between gap-6 flex-wrap">
-            {/* Left: score + level */}
-            <div className="flex items-center gap-4">
-              {/* Score badge */}
-              <div
-                className="flex flex-col items-center justify-center w-14 h-14 rounded-xl font-bold shrink-0"
-                style={{
-                  backgroundColor: wellnessCfg!.bgColor,
-                  color:           wellnessCfg!.color,
-                }}
-              >
-                <span className="text-xl leading-none">
-                  {wellnessLatest.wellness_score!.toFixed(1)}
-                </span>
-                <span className="text-[9px] font-normal opacity-70 leading-none mt-0.5">/10</span>
-              </div>
-              {/* Label */}
+        <Card className="px-6 py-4 bg-white transition-all" variant="white">
+          {wellnessLoading ? (
+            <p className="text-xs text-dark-text/50 py-1">Loading wellness data…</p>
+          ) : !wellnessLatest || wellnessLatest.wellness_score === null ? (
+            <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
-                <p className="text-[10px] font-poppins font-semibold uppercase tracking-wider text-dark-text/50 mb-0.5">
+                <p className="text-xs font-poppins font-semibold text-dark-text/70 uppercase tracking-wider mb-0.5">
                   Wellness Assessment
                 </p>
-                <p
-                  className="text-base font-poppins font-semibold"
-                  style={{ color: wellnessCfg!.color }}
-                >
-                  {wellnessCfg!.emoji} {wellnessLatest.wellness_level}
-                </p>
-                <p className="text-xs text-dark-text/60 font-inter mt-0.5 max-w-xs">
-                  {wellnessCfg!.description}
+                <p className="text-sm text-dark-text/60 font-inter">
+                  No data yet — write your first journal entry to get your Wellness Score.
                 </p>
               </div>
-            </div>
-
-            {/* Centre: sparkline trend */}
-            {sparklinePoints.length >= 2 && (
-              <div className="flex flex-col items-center gap-1">
-                <WellnessSparkline
-                  points={sparklinePoints}
-                  color={wellnessCfg!.color}
-                />
-                <span className="text-[10px] text-dark-text/40 font-inter">
-                  Last {sparklinePoints.length} updates
-                </span>
-              </div>
-            )}
-
-            {/* Right: metadata + link */}
-            <div className="flex flex-col items-end gap-1.5 ml-auto">
-              <p className="text-[10px] text-dark-text/40 font-inter">
-                {wellnessLatest.entries_analyzed} entries · last 30 days
-              </p>
-              <p className="text-[10px] text-dark-text/40 font-inter">
-                Updated {new Date(wellnessLatest.updated_at).toLocaleDateString("en-US", {
-                  month: "short", day: "numeric",
-                })}
-              </p>
-              <Link href="/insights" className="text-xs font-poppins text-[#4EAAB3] hover:underline mt-0.5">
-                View full details →
+              <Link href="/journal">
+                <Button size="sm" variant="secondary" className="text-xs border-[#A8DADC] text-[#4EAAB3] hover:bg-[#A8DADC]/10 whitespace-nowrap">
+                  Start Journaling →
+                </Button>
               </Link>
             </div>
-          </div>
-        )}
-      </Card>
+          ) : (
+            <div className="flex items-center justify-between gap-6 flex-wrap">
+              {/* Left: score + level */}
+              <div className="flex items-center gap-4">
+                {/* Score badge */}
+                <div
+                  className="flex flex-col items-center justify-center w-14 h-14 rounded-xl font-bold shrink-0"
+                  style={{
+                    backgroundColor: wellnessCfg!.bgColor,
+                    color: wellnessCfg!.color,
+                  }}
+                >
+                  <span className="text-xl leading-none">
+                    {wellnessLatest.wellness_score!.toFixed(1)}
+                  </span>
+                  <span className="text-[9px] font-normal opacity-70 leading-none mt-0.5">/10</span>
+                </div>
+                {/* Label */}
+                <div>
+                  <p className="text-[10px] font-poppins font-semibold uppercase tracking-wider text-dark-text/50 mb-0.5">
+                    Wellness Assessment
+                  </p>
+                  <p
+                    className="text-base font-poppins font-semibold"
+                    style={{ color: wellnessCfg!.color }}
+                  >
+                    {wellnessCfg!.emoji} {wellnessLatest.wellness_level}
+                  </p>
+                  <p className="text-xs text-dark-text/60 font-inter mt-0.5 max-w-xs">
+                    {wellnessCfg!.description}
+                  </p>
+                </div>
+              </div>
+
+              {/* Centre: sparkline trend */}
+              {sparklinePoints.length >= 2 && (
+                <div className="flex flex-col items-center gap-1">
+                  <WellnessSparkline
+                    points={sparklinePoints}
+                    color={wellnessCfg!.color}
+                  />
+                  <span className="text-[10px] text-dark-text/40 font-inter">
+                    Last {sparklinePoints.length} updates
+                  </span>
+                </div>
+              )}
+
+              {/* Right: metadata + link */}
+              <div className="flex flex-col items-end gap-1.5 ml-auto">
+                <p className="text-[10px] text-dark-text/40 font-inter">
+                  {wellnessLatest.entries_analyzed} entries · last 30 days
+                </p>
+                <p className="text-[10px] text-dark-text/40 font-inter">
+                  Updated {new Date(wellnessLatest.updated_at).toLocaleDateString("en-US", {
+                    month: "short", day: "numeric",
+                  })}
+                </p>
+                <Link href="/insights" className="text-xs font-poppins text-[#4EAAB3] hover:underline mt-0.5">
+                  View full details →
+                </Link>
+              </div>
+            </div>
+          )}
+        </Card>
       </div>
       {/* ── END Wellness Banner ────────────────────────────────────────────── */}
 
