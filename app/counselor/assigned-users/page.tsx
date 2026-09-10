@@ -64,7 +64,7 @@ export default function CounselorAssignedUsersPage() {
             .order("created_at", { ascending: false }),
           supabase
             .from("journal_entries")
-            .select("*")
+            .select("user_id, mood, sentiment, created_at")
             .in(
               "user_id",
               (
@@ -74,11 +74,8 @@ export default function CounselorAssignedUsersPage() {
                   .eq("assigned_counselor_id", counselorId)
               ).data?.map((u: any) => u.id) || []
             )
-            .order("created_at", { ascending: false }),
-        ]);
-
-        if (usersRes.error) {
-          console.error("Error fetching users:", usersRes.error);
+            .order("created_at", { ascending: false })
+            .limit(500),
         } else {
           const userList = usersRes.data || [];
           setUsers(userList);

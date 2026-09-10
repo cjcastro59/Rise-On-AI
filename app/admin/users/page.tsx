@@ -75,8 +75,9 @@ export default function AdminUsersPage() {
             .order("created_at", { ascending: false }),
           supabase
             .from("journal_entries")
-            .select("*")
-            .order("created_at", { ascending: false }),
+            .select("user_id, mood, sentiment, created_at")
+            .order("created_at", { ascending: false })
+            .limit(500),
           supabase
             .from("user_profiles")
             .select("*")

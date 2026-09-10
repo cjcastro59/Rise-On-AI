@@ -193,7 +193,7 @@ export default function AdminDashboardPage() {
 
       // Calculate mood distribution from stored ML sentiment column
       const moodCounts = { positive: 0, negative: 0, distress: 0 };
-      const { data: allEntries } = await supabase.from("journal_entries").select("mood, sentiment");
+      const { data: allEntries } = await supabase.from("journal_entries").select("mood, sentiment").limit(2000);
       
       (allEntries || []).forEach((entry: any) => {
         const s = (entry.sentiment as string | null) ?? "positive";
@@ -252,7 +252,7 @@ export default function AdminDashboardPage() {
           setFirstUserDate(firstUsers[0].created_at);
         }
 
-        const { data: entries, error: entriesError } = await supabase.from("journal_entries").select("mood, content, sentiment").order("created_at", { ascending: false });
+        const { data: entries, error: entriesError } = await supabase.from("journal_entries").select("mood, content, sentiment").order("created_at", { ascending: false }).limit(2000);
         if (entriesError) console.error("entriesError:", entriesError);
 
         // Use the ML-predicted sentiment column stored at save time.

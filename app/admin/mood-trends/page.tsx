@@ -49,7 +49,7 @@ export default function AdminMoodTrendsPage() {
     const loadEntries = async () => {
       try {
         setLoading(true);
-        const { data, error } = await supabase.from("journal_entries").select("id, created_at, mood, content, emotions, sentiment").order("created_at", { ascending: false });
+        const { data, error } = await supabase.from("journal_entries").select("id, created_at, mood, content, emotions, sentiment").order("created_at", { ascending: false }).limit(2000);
         if (!error) {
           setEntries((data as JournalEntryRow[]) || []);
         }

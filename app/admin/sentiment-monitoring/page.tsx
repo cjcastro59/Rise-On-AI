@@ -78,7 +78,7 @@ export default function AdminSentimentMonitoringPage() {
           .select("id, user_id, title, content, mood, emotions, created_at, sentiment, sentiment_score, confidence, sentiment_model, positive_percentage, negative_percentage, distress_percentage")
           .not("confidence", "is", null)
           .order("created_at", { ascending: false })
-          .limit(3000),
+          .limit(1000),
         supabase
           .from("journal_entries")
           .select("id, user_id, emotions, sentiment, confidence, created_at")

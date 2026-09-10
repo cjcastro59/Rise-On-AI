@@ -132,7 +132,8 @@ export default function AdminJournalMonitorPage() {
         const { data, error: fetchError } = await supabase
           .from("journal_entries")
           .select("id, user_id, created_at, mood, content, emotions, sentiment, positive_percentage, negative_percentage, distress_percentage, confidence, sentiment_model")
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .limit(500);
 
         if (fetchError) {
           console.error("Error fetching entries:", fetchError);
