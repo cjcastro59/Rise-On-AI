@@ -492,7 +492,7 @@ export default function MoodInsightsPage() {
           </span>
         </div>
         <p className="text-[11px] text-dark-text/50 font-inter mb-5">
-          Computed from your journal history · updates automatically after each entry
+          Identifies emotional patterns and problems from your journal history · computed automatically after each entry · last 30 days
         </p>
 
         {indicatorsLoading ? (
@@ -531,7 +531,8 @@ export default function MoodInsightsPage() {
               </div>
               <TrendScoreBar value={indicators.behavioral_trend_score} />
               <p className="text-[10px] text-dark-text/40 mt-1">
-                Compares older vs. recent half of entries in window. Range: −100 (declining) to +100 (improving).
+                Compares older vs. recent half of entries. Range: 0 (all positive) → 100 (all negative/distress).
+                Higher values indicate a worsening emotional pattern over time.
               </p>
             </div>
 
@@ -551,7 +552,7 @@ export default function MoodInsightsPage() {
               </div>
               <IndicatorBar value={indicators.journaling_frequency_score} color="#A8DADC" />
               <p className="text-[10px] text-dark-text/40 mt-1">
-                Unique journaling days vs. expected cadence (every 3 days). 100 = at or above target.
+                Unique journaling days vs. expected cadence (every 3 days). Low scores indicate disengagement, which may signal avoidance or low motivation.
               </p>
             </div>
 
@@ -568,7 +569,7 @@ export default function MoodInsightsPage() {
               </div>
               <IndicatorBar value={indicators.mood_consistency_score} color="#CDB4DB" />
               <p className="text-[10px] text-dark-text/40 mt-1">
-                How stable your mood scores are day-to-day. 100 = no variation; 0 = highly volatile.
+                How stable your mood scores are day-to-day. Low scores indicate high volatility, which may signal emotional instability or recurring distress triggers.
               </p>
             </div>
 
@@ -611,7 +612,7 @@ export default function MoodInsightsPage() {
                 )}
               </div>
               <p className="text-[10px] text-dark-text/40 mt-1">
-                Most recent unbroken streak of negative or distress entries.
+                Unbroken streak of negative or distress entries. Streaks of 3+ may indicate a developing problem; 5+ entries trigger a counselor referral recommendation.
                 {indicators.consecutive_negative_count >= 5 && (
                   <span className="text-[#f77f7f] ml-1">Consider reaching out to a counselor.</span>
                 )}
@@ -642,6 +643,12 @@ export default function MoodInsightsPage() {
         </div>
         <p className="text-[11px] text-dark-text/50 font-inter mb-5">
           Derived from the 4 behavioral indicators above · scale: 0 (High Risk) → 10 (Healthy)
+          <br />
+          <span className="text-[10px] text-dark-text/40">
+            Parameters aligned with mental health monitoring frameworks:
+            emotional trend trajectory, journaling engagement frequency,
+            mood variability, and consecutive distress streak.
+          </span>
         </p>
 
         {wellnessLoading ? (
@@ -674,22 +681,25 @@ export default function MoodInsightsPage() {
                       Computation Breakdown
                     </p>
                     <table className="w-full text-[10px] font-inter">
+                      <thead>
+                        <tr className="border-b border-[#F5F5F5]">
+                          <th className="py-1 text-left text-dark-text/40 font-normal">Parameter (clinical basis)</th>
+                          <th className="py-1 text-right text-dark-text/40 font-normal">Weight</th>
+                          <th className="py-1 text-right text-dark-text/40 font-normal">Sub-score</th>
+                        </tr>
+                      </thead>
                       <tbody className="divide-y divide-[#F5F5F5]">
                         {[
-                          ["Trend sub-score (×0.40)",       (d.trendSubScore       * 0.40).toFixed(3), d.trendSubScore.toFixed(3)],
-                          ["Frequency sub-score (×0.20)",   (d.frequencySubScore   * 0.20).toFixed(3), d.frequencySubScore.toFixed(3)],
-                          ["Consistency sub-score (×0.15)", (d.consistencySubScore * 0.15).toFixed(3), d.consistencySubScore.toFixed(3)],
-                          ["Baseline floor",                "0.250", "—"],
-                          ["Streak penalty",                `−${d.streakPenalty.toFixed(3)}`, "—"],
-                          ["Raw score [0–1]",               d.rawScore.toFixed(3), "—"],
-                          ["Wellness Score [0–10]",         (d.rawScore * 10).toFixed(2), "—"],
-                        ].map(([label, contribution, sub]) => (
+                          ["Emotional trend trajectory (w₁ = 0.40)",   "40%", d.trendSubScore.toFixed(2)],
+                          ["Journaling engagement frequency (w₂ = 0.25)", "25%", d.frequencySubScore.toFixed(2)],
+                          ["Consecutive distress streak (w₃ = 0.20)",  "20%", (1 - Math.min(1, d.streakPenalty / 0.25)).toFixed(2)],
+                          ["Mood variability / consistency (w₄ = 0.15)","15%", d.consistencySubScore.toFixed(2)],
+                          ["Wellness Score [0–10]",                    "—",   (d.rawScore * 10).toFixed(2)],
+                        ].map(([label, weight, sub]) => (
                           <tr key={label as string}>
                             <td className="py-1 text-dark-text/50 pr-2">{label}</td>
-                            <td className="py-1 text-dark-text/70 text-right font-medium">{contribution}</td>
-                            <td className="py-1 text-dark-text/40 text-right pl-2">
-                              {sub !== "—" ? `sub=${sub}` : ""}
-                            </td>
+                            <td className="py-1 text-dark-text/70 text-right font-medium">{weight}</td>
+                            <td className="py-1 text-dark-text/60 text-right pl-2">{sub}</td>
                           </tr>
                         ))}
                       </tbody>

@@ -810,6 +810,22 @@ SYNTH = {
         "Nabababad na ako sa mga bagay na nakakapagod ng isipan ko.",
         "Parang karga na karga na ako at malapit na akong gumuho.",
         "Pagod na pagod na ako sa pagpapanggap na kaya ko pa ang lahat.",
+        # ── Tagalog clearly-negative pagod/malungkot (NOT distress) ──────────
+        "Malungkot ako ngayon pero okay lang, makakaraos din ako.",
+        "Pagod na pagod na ako pero hindi ko naman planong isuko ang lahat.",
+        "Ang lungkot ko ngayon ay kailangan ko lang lagpasan.",
+        "Nahihirapan ako sa buhay pero hindi ko gustong mawala.",
+        "Malungkot pero hindi pa rin ako sumusuko — hinahangad ko pa rin ang mas magandang bukas.",
+        "Pagod na ako sa ngayon pero alam ko na kaya ko pa rin mamaya.",
+        "Lungkot na lungkot ako pero nandito pa rin ako at susubok pa rin.",
+        "Nahihirapan pero hindi desperado — kailangan ko lang ng pahinga.",
+        "Malungkot sa nangyari pero hindi ito katapusan ng lahat para sa akin.",
+        "Pagod at malungkot ngayon pero bukas ay ibang araw pa rin.",
+        "Nakaramdam ako ng kalungkutan ngayon pero alam kong lilipas din ito.",
+        "Hirap sa buhay ngayon pero ayaw ko pang sumuko.",
+        "Pagod na pagod pero nandito pa rin ako at hindi bibitiw.",
+        "Nalulungkot ako ngayon pero hindi naman yun katumbas ng desperasyon.",
+        "Ang pagod ko ngayon ay pagod lamang — hindi ito hudyat na gusto ko nang mawala.",
         # ── Tagalog / Taglish — batch 2 ───────────────────────────────────────
         "Pakiramdam ko ay palagi akong nag-iisa kahit maraming tao sa paligid ko.",
         "Natatakot na ako sa sarili kong isipan ngayon.",
@@ -1310,6 +1326,13 @@ SYNTH_AMBIGUOUS = {
         "Hindi ko nais masaktan ang sarili ko pero ayoko na rin ng ganito.",
         "Gusto ko lang na mawala sandali ang lahat ng to — hindi permanente.",
         "Pagod na ako pero hindi naman ako sumusuko — naghahanap lang ako ng pahinga.",
+        # More Tagalog clearly-negative boundary cases (NOT distress)
+        "Malungkot lang ako ngayon — hindi ko gustong masasaktan ang sarili ko.",
+        "Pagod na pagod pero buhay pa rin at hindi ko balak baguhin iyon.",
+        "Nahihirapan sa buhay pero gusto ko pa ring makita ang kinabukasan.",
+        "Lungkot at pagod pero wala akong planong isuko ang buhay ko.",
+        "Malungkot ngayon pero hindi ito ang uri ng lungkot na gustong mawala.",
+        "Hirap pero kaya pa — hindi ako nasa punto ng desperasyon.",
     ],
     "distress": [
         # Distress signals mixed with denial or minimizing language

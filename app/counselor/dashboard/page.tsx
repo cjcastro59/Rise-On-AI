@@ -241,11 +241,17 @@ export default function CounselorDashboardPage() {
     return `${Math.round(hrs / 24)}d ago`;
   };
 
-  const displayName = (u: AssignedUserRow) =>
-    [u.first_name, u.last_name].filter(Boolean).join(" ") ||
-    u.username ||
-    u.email?.split("@")[0] ||
-    u.id.slice(0, 8);
+  // Privacy-safe display: show first name + last initial only.
+  // Full name is never exposed in the wellness overview table.
+  const displayName = (u: AssignedUserRow) => {
+    if (u.first_name && u.last_name) {
+      return `${u.first_name} ${u.last_name.charAt(0)}.`;
+    }
+    if (u.first_name) return u.first_name;
+    if (u.username) return u.username;
+    // Final fallback: show only the first 8 chars of the UUID
+    return `User ${u.id.slice(0, 8)}`;
+  };
 
   if (!isMounted) {
     return (
@@ -311,7 +317,7 @@ export default function CounselorDashboardPage() {
                 ASSIGNED USERS — WELLNESS OVERVIEW
               </p>
               <p className="text-[10px] text-dark-text/40 font-inter mt-0.5">
-                Latest 30-day Wellness Score per user · updated automatically
+                Latest 30-day Wellness Score per user · names anonymized for privacy
               </p>
             </div>
           </div>
@@ -358,12 +364,17 @@ export default function CounselorDashboardPage() {
                     flagged ? "bg-[#FFF1F1] -mx-1 px-1 rounded-lg" : ""
                   }`}
                 >
-                  {/* User name */}
+                  {/* User name — anonymized (first name + last initial) */}
                   <div className="flex items-center gap-2 min-w-0">
                     {flagged && (
                       <span className="text-[#f77f7f] text-xs shrink-0" title="Flagged user">⚠</span>
                     )}
-                    <span className="text-sm font-poppins text-dark-text truncate">
+                    <span
+                      className="text-sm font-poppins text-dark-text truncate"
+                      title={flagged
+                        ? `Full name: ${[u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "—"}`
+                        : undefined}
+                    >
                       {displayName(u)}
                     </span>
                   </div>

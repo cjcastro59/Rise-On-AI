@@ -296,6 +296,16 @@ export default function AIAnalysisPage() {
         }
       />
 
+      {/* Model identity banner */}
+      <div className="flex flex-wrap items-center gap-2 mb-3 px-1">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#A8DADC]/15 border border-[#A8DADC]/30 rounded-full text-[11px] font-poppins text-dark-text/60">
+          🤖 Analyzed by <span className="font-semibold text-dark-text/80">XLM-RoBERTa</span> — multilingual NLP sentiment classifier
+        </span>
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F5F5F5] border border-gray-200 rounded-full text-[11px] font-poppins text-dark-text/50">
+          3 classes: Positive · Negative · Distress
+        </span>
+      </div>
+
       {/* Progress Steps */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <div className="flex items-center gap-2 px-3 py-1 bg-[#A8DADC]/40 rounded-full">
@@ -324,10 +334,14 @@ export default function AIAnalysisPage() {
         <div className="space-y-6">
           {/* Sentiment Breakdown */}
           <Card className="p-6 bg-white shadow-sm">
-            <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
+            <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-1 flex items-center gap-2">
               <span>📊</span>
               Sentiment Breakdown
             </h3>
+            <p className="text-[11px] text-dark-text/40 font-inter mb-4">
+              Classified by <span className="font-semibold text-dark-text/60">XLM-RoBERTa</span> — multilingual NLP model trained on English, Filipino, and Taglish text.
+              Outputs one of three classes: <span className="text-[#52B788] font-medium">Positive</span>, <span className="text-[#FFB700] font-medium">Negative</span>, or <span className="text-[#F4A6A6] font-medium">Distress</span>.
+            </p>
             <div className="space-y-5">
               {[
                 { label: "Positive", pct: analysis.positivePercentage, color: "bg-gradient-to-r from-primary-blue to-success-green" },

@@ -63,7 +63,7 @@ class TrainConfig:
 
     # Training
     learning_rate: float = 1e-4   # higher LR helps LoRA converge faster
-    num_train_epochs: int = 6     # more epochs needed for 3-class separation
+    num_train_epochs: int = 10     # more epochs needed for 3-class separation
     per_device_train_batch_size: int = 8
     per_device_eval_batch_size: int = 16
     gradient_accumulation_steps: int = 2
@@ -253,10 +253,12 @@ def run_trial(cfg: TrainConfig, tokenized_ds: DatasetDict, trial_idx: int) -> di
     for row in tokenized_ds["train"]:
         label_counts[row["label"]] += 1
     total = sum(label_counts.values())
-    # Weighted inverse-frequency, with distress boosted an extra 1.5×
+    # Weighted inverse-frequency, with distress boosted an extra 1.2×
+    # (reduced from 1.5× — lowercase preprocessing tightens the neg/distress boundary,
+    # so a smaller boost avoids over-predicting distress on strong negative Tagalog entries)
     raw_weights = [total / (len(LABELS) * label_counts[i]) for i in range(len(LABELS))]
-    # Index 2 = distress → multiply by 1.5
-    raw_weights[LABEL2IDX["distress"]] *= 1.5
+    # Index 2 = distress → multiply by 1.2
+    raw_weights[LABEL2IDX["distress"]] *= 1.2
     class_weights = torch.tensor(raw_weights, dtype=torch.float32)
     print(f"[CLASS WEIGHTS] positive={class_weights[0]:.3f}  negative={class_weights[1]:.3f}  distress={class_weights[2]:.3f}")
 

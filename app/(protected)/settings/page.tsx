@@ -251,7 +251,22 @@ export default function SettingsPage() {
     }
     try {
       setDeleteLoading(true);
-      // Step 1: Soft-delete profile data
+      // Step 1: Delete all user data (Right to Erasure — RA 10173 Section 16(e))
+      // Delete in dependency order: child tables first, then parent tables.
+      try {
+        await Promise.all([
+          supabase.from("journal_entries").delete().eq("user_id", user.id),
+          supabase.from("mood_logs").delete().eq("user_id", user.id),
+          supabase.from("mood_analytics").delete().eq("user_id", user.id),
+          supabase.from("activity_logs").delete().eq("user_id", user.id),
+          supabase.from("behavioral_indicators").delete().eq("user_id", user.id),
+          supabase.from("distress_risk_assessments").delete().eq("user_id", user.id),
+          supabase.from("aci_responses").delete().eq("user_id", user.id),
+          supabase.from("distress_logs").delete().eq("user_id", user.id),
+        ]);
+      } catch { /* ignore — partial deletion is still better than none */ }
+
+      // Step 2: Soft-delete / anonymise the profile row
       try {
         await supabase.from("user_profiles").update({
           status: "deactivated",
@@ -265,12 +280,12 @@ export default function SettingsPage() {
         }).eq("id", user.id);
       } catch { /* ignore */ }
 
-      // Step 2: Sign out client-side
+      // Step 3: Sign out client-side
       try {
         await signOut();
       } catch { /* ignore */ }
 
-      // Step 3: Try to delete auth user via RPC (if defined); otherwise redirect and let admin handle
+      // Step 4: Try to delete auth user via RPC (if defined); otherwise redirect and let admin handle
       try {
         await supabase.rpc("delete_auth_user", {});
       } catch { /* ignore */ }
