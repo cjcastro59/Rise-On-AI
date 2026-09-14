@@ -403,11 +403,11 @@ export default function AIAnalysisPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-6 lg:gap-x-7">
         {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
-        <div className="space-y-6 lg:contents">
+        <div className="space-y-6">
           {/* Sentiment Breakdown */}
-          <Card className="p-6 bg-white shadow-sm lg:col-start-1 lg:row-start-1">
+          <Card className="p-6 bg-white shadow-sm">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-1 flex items-center gap-2">
               <span>📊</span>
               Sentiment Breakdown
@@ -436,7 +436,7 @@ export default function AIAnalysisPage() {
           </Card>
 
           {/* Detected Emotions */}
-          <Card className="p-6 bg-white shadow-sm lg:col-start-1 lg:row-start-2">
+          <Card className="p-6 bg-white shadow-sm">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
               <span>🌈</span>
               Detected Emotions
@@ -453,7 +453,7 @@ export default function AIAnalysisPage() {
 
           {/* Key Phrases */}
           {analysis.keyPhrases.length > 0 && (
-            <Card className="p-6 bg-white shadow-sm lg:col-start-1 lg:row-start-4">
+            <Card className="p-6 bg-white shadow-sm">
               <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
                 <span>🔑</span>
                 Key Phrases Detected
@@ -470,11 +470,11 @@ export default function AIAnalysisPage() {
         </div>
 
         {/* ── RIGHT COLUMN ────────────────────────────────────────────── */}
-        <div className="space-y-6 lg:contents">
+        <div className="space-y-6">
 
           {/* ── ACI CARD ──────────────────────────────────────────────── */}
           <div
-            className="border-l-4 rounded-2xl lg:col-start-2 lg:row-start-1 lg:row-span-2"
+            className="border-l-4 rounded-2xl"
             style={{ borderLeftColor: aciCfg.borderColor }}
           >
           <AIReportErrorBoundary>
@@ -566,7 +566,7 @@ export default function AIAnalysisPage() {
           </div>
 
           {/* ── EXPLAINABILITY PANEL ─────────────────────────────────── */}
-          <AIReportErrorBoundary className="lg:col-start-1 lg:row-start-3">
+          <AIReportErrorBoundary>
           <Card className="p-6 bg-white shadow-sm">
             {/* Header */}
             <div className="flex items-center justify-between mb-1">
@@ -780,12 +780,7 @@ export default function AIAnalysisPage() {
                     Confidence and keyword agreement signals are loaded above.
                   </p>
                   <p className="text-[11px] text-[#7B5E2A] font-inter bg-[#FFE8A1]/30 px-3 py-2 rounded-lg">
-                    {explainResult.integratedGradients?.error}
-                  </p>
-                  <p className="text-[9px] text-dark-text/35 font-inter">
-                    To enable Integrated Gradients, start the sentiment server with{" "}
-                    <code className="bg-light-gray px-1 py-0.5 rounded text-[9px]">USE_EXPLAIN=1</code>{" "}
-                    and install <code className="bg-light-gray px-1 py-0.5 rounded text-[9px]">captum≥0.7.0</code>.
+                    Word-level attribution is unavailable right now. The main AI prediction and confidence signals are still available.
                   </p>
                 </div>
               ) : null}
@@ -795,7 +790,7 @@ export default function AIAnalysisPage() {
           {/* ── END EXPLAINABILITY PANEL ──────────────────────────────── */}
 
           {/* Emotional Wellness Score */}
-          <Card className="p-8 text-center bg-white shadow-sm lg:col-start-2 lg:row-start-3">
+          <Card className="p-8 text-center bg-white shadow-sm">
             <h3 className="text-base font-poppins uppercase tracking-wider text-dark-text/70 mb-8 flex items-center gap-2 justify-center">
               <span>🧠</span>
               Emotional Wellness Score

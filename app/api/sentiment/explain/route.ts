@@ -49,6 +49,8 @@ const SENTIMENT_SERVER = process.env.SENTIMENT_EXPLAIN_API_URL
   ?? process.env.SENTIMENT_MODEL_API_URL?.replace("/predict", "")
   ?? null;
 const EXPLAIN_ENDPOINT = SENTIMENT_SERVER ? `${SENTIMENT_SERVER}/explain` : null;
+const IG_UNAVAILABLE_MESSAGE =
+  "Word-level attribution is unavailable right now. The main AI prediction and confidence signals are still available.";
 
 // ── Type for the Python /explain response ─────────────────────────────────────
 interface PythonExplainResponse {
@@ -144,7 +146,7 @@ export async function POST(request: NextRequest) {
         igResult = processIntegratedGradients(
           null,
           50,
-          "Integrated Gradients is not configured for this deployment. Set SENTIMENT_EXPLAIN_API_URL to a reachable explanation server.",
+          IG_UNAVAILABLE_MESSAGE,
         );
       } else {
       const controller = new AbortController();
@@ -184,23 +186,23 @@ export async function POST(request: NextRequest) {
           igResult = processIntegratedGradients(
             null,
             50,
-            pyResult.error ?? "Integrated Gradients not available on this server instance",
+            IG_UNAVAILABLE_MESSAGE,
           );
         }
       } else {
         igResult = processIntegratedGradients(
           null, 50,
-          `Python server returned HTTP ${resp.status}`,
+          IG_UNAVAILABLE_MESSAGE,
         );
       }
       }
     } catch (fetchErr: unknown) {
       const msg = fetchErr instanceof Error ? fetchErr.message : "Unknown error";
+      console.warn("[sentiment/explain] explanation server unavailable:", msg);
       const aborted = fetchErr instanceof Error && fetchErr.name === "AbortError";
       const reason = aborted || msg.toLowerCase().includes("abort")
-        ? "Explanation request timed out (>30s). The text may be too long or the server is under load."
-        : `Could not reach the configured explanation server: ${msg}. ` +
-          "Set SENTIMENT_EXPLAIN_API_URL to a reachable server running with USE_EXPLAIN=1.";
+        ? "Word-level attribution took too long to generate. The main AI prediction and confidence signals are still available."
+        : IG_UNAVAILABLE_MESSAGE;
       igResult = processIntegratedGradients(null, 50, reason);
     }
 
