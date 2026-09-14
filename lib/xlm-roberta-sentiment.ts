@@ -187,7 +187,23 @@ export async function analyzeWithXLMRoBERTa(
   const preprocessed = preprocessText(text);
   const modelResult = await callModelAPI(preprocessed);
   if (modelResult) {
-    return { ...modelResult, model: "xlm-roberta-finetuned" };
+    const probabilityTotal =
+      modelResult.positivePercentage +
+      modelResult.negativePercentage +
+      modelResult.distressPercentage;
+    const topProbability = Math.max(
+      modelResult.positivePercentage,
+      modelResult.negativePercentage,
+      modelResult.distressPercentage,
+    );
+
+    return {
+      ...modelResult,
+      // Normalize confidence from the class percentages so custom model
+      // response formats cannot report a raw score on a different scale.
+      confidence: probabilityTotal > 0 ? topProbability / probabilityTotal : modelResult.confidence,
+      model: "xlm-roberta-finetuned",
+    };
   }
 
   // Keep the entry useful when the remote model server is unavailable. This
