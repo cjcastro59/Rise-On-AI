@@ -11,6 +11,12 @@ import ReCAPTCHA from "react-google-recaptcha";
 
 type LoginStep = "credentials" | "2fa";
 
+const getDashboardPath = (role?: string | null) => {
+  if (role === "counselor") return "/counselor/dashboard";
+  if (role === "admin" || role === "owner" || role === "researcher") return "/admin/dashboard";
+  return "/dashboard";
+};
+
 // S6 (Phase 8): Maximum TOTP attempts before the session is signed out and
 // the user must restart the login flow. Prevents brute-force of 6-digit codes.
 const MAX_TOTP_ATTEMPTS = 5;
@@ -70,17 +76,18 @@ export function LoginForm() {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("user_profiles")
-        .select("two_factor_enabled, two_factor_secret")
+        .select("role, two_factor_enabled, two_factor_secret")
         .eq("id", session.user.id)
         .single();
+      if (profileError) throw profileError;
       if (profile?.two_factor_enabled && profile.two_factor_secret?.trim()) {
         setUserId(session.user.id);
         setStep("2fa");
       } else {
         await applyPendingProfileData(session.user.id);
-        router.push("/dashboard");
+        router.push(getDashboardPath(profile?.role));
         router.refresh();
       }
     };
@@ -127,11 +134,12 @@ export function LoginForm() {
       }
 
       if (data.session) {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from("user_profiles")
-          .select("two_factor_enabled, two_factor_secret")
+          .select("role, two_factor_enabled, two_factor_secret")
           .eq("id", data.session.user.id)
           .single();
+        if (profileError) throw profileError;
 
         if (profile?.two_factor_enabled && profile.two_factor_secret?.trim()) {
           // S3 (Phase 8): User has 2FA enabled — show TOTP challenge
@@ -146,12 +154,13 @@ export function LoginForm() {
             action:  "login",
             details: "User signed in",
           }).catch(() => {/* ignore */});
-          router.push("/dashboard");
+          router.push(getDashboardPath(profile?.role));
           router.refresh();
         }
       }
-    } catch {
-      setError("Unable to verify two-factor authentication. Check that your device time is automatic and use the current code. If it still fails, ask an administrator to reset 2FA for this account.");
+    } catch (loginError) {
+      console.error("[login] sign-in flow failed", loginError);
+      setError("Unable to complete sign-in. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -180,7 +189,7 @@ export function LoginForm() {
     try {
       const { data: profile } = await supabase
         .from("user_profiles")
-        .select("two_factor_secret")
+        .select("role, two_factor_secret")
         .eq("id", userId)
         .single();
 
@@ -224,7 +233,7 @@ export function LoginForm() {
             details: "User signed in (2FA verified)",
           }).then(() => undefined, () => undefined);
           await applyPendingProfileData(userId);
-          router.push("/dashboard");
+          router.push(getDashboardPath(profile?.role));
           router.refresh();
         }
       } else {

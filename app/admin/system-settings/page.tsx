@@ -341,6 +341,7 @@ export default function AdminSystemSettingsPage() {
           .from("user_profiles")
           .update({
             two_factor_enabled: true,
+            two_factor_method: "authenticator",
           })
           .eq("id", user.id);
         setTwoFactorEnabled(true);
@@ -361,14 +362,18 @@ export default function AdminSystemSettingsPage() {
     if (!user) return;
     try {
       setLoadingPersonal(true);
-      await supabase
+      const { error } = await supabase
         .from("user_profiles")
         .update({
           two_factor_enabled: false,
           two_factor_secret: null,
+          two_factor_method: null,
         })
         .eq("id", user.id);
+      if (error) throw error;
       setTwoFactorEnabled(false);
+      setShowSetup2FA(false);
+      setVerificationCode("");
       setSuccess("Two-factor authentication disabled");
     } catch (err) {
       setError("Failed to disable 2FA");

@@ -80,7 +80,7 @@ export default function CounselorSettingsPage() {
     try {
       const { data, error: err } = await supabase
         .from("user_profiles")
-        .select("two_factor_enabled, is_online, language")
+        .select("two_factor_enabled, is_online, language, privacy_settings, notification_settings")
         .eq("id", user.id)
         .maybeSingle();
       if (err) return;
@@ -97,8 +97,14 @@ export default function CounselorSettingsPage() {
         );
         setTwoFactorEnabled(Boolean(data.two_factor_enabled));
         setIsOnline(Boolean(data.is_online));
-        setNotificationSettings(storedNotificationSettings);
-        setPrivacySettings(storedPrivacySettings);
+        setNotificationSettings({
+          ...storedNotificationSettings,
+          ...(data.notification_settings as Partial<typeof notificationSettings> | null),
+        });
+        setPrivacySettings({
+          ...storedPrivacySettings,
+          ...(data.privacy_settings as Partial<typeof privacySettings> | null),
+        });
         setLanguage(data.language || "English");
       }
     } catch {
@@ -130,6 +136,11 @@ export default function CounselorSettingsPage() {
     if (!user) return;
     try {
       setSaving(true);
+      const { error } = await supabase.from("user_profiles").update({
+        notification_settings: notificationSettings,
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id);
+      if (error) throw error;
       writeLocalPreference(user.id, "counselor-notification-settings", notificationSettings);
       flash(setSuccess, "✅ Notification settings saved!");
     } catch (e: any) {
@@ -143,6 +154,11 @@ export default function CounselorSettingsPage() {
     if (!user) return;
     try {
       setSaving(true);
+      const { error } = await supabase.from("user_profiles").update({
+        privacy_settings: privacySettings,
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id);
+      if (error) throw error;
       writeLocalPreference(user.id, "counselor-privacy-settings", privacySettings);
       flash(setSuccess, "✅ Privacy settings saved!");
     } catch (e: any) {
@@ -424,6 +440,7 @@ export default function CounselorSettingsPage() {
           .from("user_profiles")
           .update({
             two_factor_enabled: true,
+            two_factor_method: "authenticator",
           })
           .eq("id", user.id);
         setTwoFactorEnabled(true);
@@ -444,14 +461,18 @@ export default function CounselorSettingsPage() {
     if (!user) return;
     try {
       setLoading(true);
-      await supabase
+      const { error } = await supabase
         .from("user_profiles")
         .update({
           two_factor_enabled: false,
           two_factor_secret: null,
+          two_factor_method: null,
         })
         .eq("id", user.id);
+      if (error) throw error;
       setTwoFactorEnabled(false);
+      setShowSetup2FA(false);
+      setVerificationCode("");
       setSuccess("Two-factor authentication disabled");
     } catch (err) {
       setError("Failed to disable 2FA");

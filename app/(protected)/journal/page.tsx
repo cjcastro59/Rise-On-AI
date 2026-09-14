@@ -49,6 +49,13 @@ export default function JournalEntryPage() {
   const [loading, setLoading] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [sentimentResult, setSentimentResult] = useState<{
+    sentiment: string;
+    confidence: number;
+    positivePercentage: number;
+    negativePercentage: number;
+    distressPercentage: number;
+  } | null>(null);
   const maxWords = 10000;
   const wordCount = content.trim().split(/\s+/).filter(word => word.length > 0).length;
   const { user } = useAuth();
@@ -156,6 +163,23 @@ export default function JournalEntryPage() {
             "Sentiment API returned non-ok status, continuing with fallback distress check:",
             errBody
           );
+        } else {
+          const analysis = await sentimentRes.json();
+          setSentimentResult({
+            sentiment: analysis.sentiment,
+            confidence: Number(analysis.confidence ?? 0),
+            positivePercentage: Number(analysis.positivePercentage ?? 0),
+            negativePercentage: Number(analysis.negativePercentage ?? 0),
+            distressPercentage: Number(analysis.distressPercentage ?? 0),
+          });
+
+          // Ensure the client explicitly refreshes ACI after the persisted
+          // sentiment is available, even when the server-side trigger is delayed.
+          await fetch("/api/aci", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ entryId }),
+          });
         }
       } catch (sentErr) {
         console.error(
@@ -373,6 +397,20 @@ export default function JournalEntryPage() {
           />
         </div>
       </Card>
+
+      {sentimentResult && (
+        <Card className="mb-6 border border-primary-blue/20 bg-primary-blue/5 p-4">
+          <p className="text-xs font-poppins font-semibold uppercase tracking-wide text-dark-text/60">
+            XLM-RoBERTa analysis complete
+          </p>
+          <p className="mt-1 text-sm font-poppins text-dark-text">
+            {sentimentResult.sentiment} · {Math.round(sentimentResult.confidence * 100)}% confidence
+          </p>
+          <p className="mt-1 text-xs font-inter text-dark-text/60">
+            Positive {sentimentResult.positivePercentage}% · Negative {sentimentResult.negativePercentage}% · Distress {sentimentResult.distressPercentage}%
+          </p>
+        </Card>
+      )}
 
       {/* Footer */}
       <div className="flex items-center justify-between">

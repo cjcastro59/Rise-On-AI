@@ -40,6 +40,7 @@ export interface Database {
           updated_at: string;
           two_factor_enabled: boolean;
           two_factor_secret: string | null;
+          two_factor_method: string | null;
           two_factor_skipped: boolean | null;
           assigned_counselor_id: string | null;
         };
@@ -73,6 +74,7 @@ export interface Database {
           updated_at?: string;
           two_factor_enabled?: boolean;
           two_factor_secret?: string | null;
+          two_factor_method?: string | null;
           two_factor_skipped?: boolean | null;
           assigned_counselor_id?: string | null;
         };
@@ -106,6 +108,7 @@ export interface Database {
           updated_at?: string;
           two_factor_enabled?: boolean;
           two_factor_secret?: string | null;
+          two_factor_method?: string | null;
           two_factor_skipped?: boolean | null;
           assigned_counselor_id?: string | null;
         };
