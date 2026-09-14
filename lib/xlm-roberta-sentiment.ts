@@ -156,7 +156,9 @@ async function callModelAPI(
         positivePercentage,
         negativePercentage,
         distressPercentage,
-        confidence: topScore,
+        // Confidence must use the same normalized probability scale as the
+        // displayed class percentages, not the raw pre-normalization score.
+        confidence: topScore / total,
         sentimentScore,
         raw: output,
       };
