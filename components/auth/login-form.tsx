@@ -72,10 +72,10 @@ export function LoginForm() {
       if (!session) return;
       const { data: profile } = await supabase
         .from("user_profiles")
-        .select("two_factor_enabled")
+        .select("two_factor_enabled, two_factor_secret")
         .eq("id", session.user.id)
         .single();
-      if (profile?.two_factor_enabled) {
+      if (profile?.two_factor_enabled && profile.two_factor_secret?.trim()) {
         setUserId(session.user.id);
         setStep("2fa");
       } else {
@@ -129,11 +129,11 @@ export function LoginForm() {
       if (data.session) {
         const { data: profile } = await supabase
           .from("user_profiles")
-          .select("two_factor_enabled")
+          .select("two_factor_enabled, two_factor_secret")
           .eq("id", data.session.user.id)
           .single();
 
-        if (profile?.two_factor_enabled) {
+        if (profile?.two_factor_enabled && profile.two_factor_secret?.trim()) {
           // S3 (Phase 8): User has 2FA enabled — show TOTP challenge
           setUserId(data.session.user.id);
           setTotpAttempts(0); // S6: reset counter for fresh login attempt
