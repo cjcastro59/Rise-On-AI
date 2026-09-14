@@ -115,10 +115,31 @@ export function computeBehavioralTrendScore(
   const distressEntries = inWindow.filter(e => e.sentiment === "distress").length;
   const positiveEntries = inWindow.filter(e => e.sentiment === "positive").length;
 
-  // BehavioralTrend = NegativeEntries / TotalEntries (documented formula)
-  // Scaled to 0–100 to match the unit scale of the other indicators.
-  const ratio = (negativeEntries + distressEntries) / totalEntries;
-  const score = round2(ratio * 100);
+  if (totalEntries < 2) {
+    return {
+      score: 0,
+      negativeEntries,
+      positiveEntries,
+      distressEntries,
+      totalEntries,
+      entriesInWindow: totalEntries,
+      oldestEntry: inWindow[0].created_at,
+      newestEntry: inWindow[totalEntries - 1].created_at,
+    };
+  }
+
+  const midpoint = Math.ceil(totalEntries / 2);
+  const scoreForEntry = (entry: JournalEntryForAnalytics) => {
+    if (typeof entry.sentiment_score === "number" && Number.isFinite(entry.sentiment_score)) {
+      return clamp(entry.sentiment_score, 0, 100);
+    }
+    return sentimentToSignedScore(entry.sentiment) * 100;
+  };
+  const earlier = inWindow.slice(0, midpoint).map(scoreForEntry);
+  const later = inWindow.slice(midpoint).map(scoreForEntry);
+  const earlierMean = earlier.reduce((sum, value) => sum + value, 0) / earlier.length;
+  const laterMean = later.reduce((sum, value) => sum + value, 0) / later.length;
+  const score = round2(clamp(laterMean - earlierMean, -100, 100));
 
   return {
     score,

@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "rise-on-ai",
   "version": "2.0.0",
   "private": true,
@@ -9,7 +9,7 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage":"vitest run --coverage",
+    "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui"
   },
   "dependencies": {

@@ -164,7 +164,41 @@ const CONFIDENCE_CONFIG: Record<ConfidenceLevel, {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function round2(n: number): number {
-  return Math.round(n * 100) / 100;
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
+}
+
+function toProbability(value: unknown): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return 0;
+  const probability = numeric > 1 ? numeric / 100 : numeric;
+  return Math.min(1, Math.max(0, probability));
+}
+
+export function normalizeClassProbabilities(
+  posProb: unknown,
+  negProb: unknown,
+  dstProb: unknown,
+): ExplainabilityResult["inputProbabilities"] {
+  const raw = {
+    positive: toProbability(posProb),
+    negative: toProbability(negProb),
+    distress: toProbability(dstProb),
+  };
+
+  const sum = raw.positive + raw.negative + raw.distress;
+  if (sum <= 0) {
+    return {
+      positive: round2(1 / 3),
+      negative: round2(1 / 3),
+      distress: round2(1 / 3),
+    };
+  }
+
+  return {
+    positive: round2(raw.positive / sum),
+    negative: round2(raw.negative / sum),
+    distress: round2(raw.distress / sum),
+  };
 }
 
 // ── Layer 1: Confidence Signal ────────────────────────────────────────────────
@@ -181,16 +215,14 @@ export function computeConfidenceSignal(
   dstProb: number,
   predicted: Sentiment,
 ): ConfidenceSignal {
-  const probs: [number, Sentiment][] = [
-    [posProb, "positive"],
-    [negProb, "negative"],
-    [dstProb, "distress"],
-  ];
-  probs.sort((a, b) => b[0] - a[0]);
-
-  const topProb    = round2(probs[0][0]);
-  const secondProb = round2(probs[1][0]);
-  const gap        = round2(topProb - secondProb);
+  const normalized = normalizeClassProbabilities(posProb, negProb, dstProb);
+  const topProb = normalized[predicted] ?? 0;
+  const secondProb = Math.max(
+    predicted === "positive" ? 0 : normalized.positive,
+    predicted === "negative" ? 0 : normalized.negative,
+    predicted === "distress" ? 0 : normalized.distress,
+  );
+  const gap = round2(Math.max(0, topProb - secondProb));
 
   let level: ConfidenceLevel;
   if      (gap >= CONFIDENCE_THRESHOLDS.high)   level = "high";
@@ -292,20 +324,38 @@ export function processIntegratedGradients(
     };
   }
 
-  const maxAbs = Math.max(...rawAttributions.map(w => Math.abs(w.score)), 1e-8);
+  const cleanedAttributions = rawAttributions.filter((w) => {
+    const word = typeof w.word === "string" ? w.word.trim() : "";
+    return word.length > 0 && Number.isFinite(Number(w.score));
+  });
 
-  const wordAttributions: WordAttribution[] = rawAttributions
-    .filter(w => w.word.trim().length > 0)
+  if (cleanedAttributions.length === 0) {
+    return {
+      available:        false,
+      wordAttributions: [],
+      topInfluential:   [],
+      method:           "integrated_gradients",
+      numSteps,
+      baseline:         "pad_token",
+      disclaimer:       IG_DISCLAIMER,
+      error:            "Integrated Gradients returned no valid attribution scores",
+    };
+  }
+
+  const maxAbs = Math.max(...cleanedAttributions.map(w => Math.abs(Number(w.score))), 1e-8);
+
+  const wordAttributions: WordAttribution[] = cleanedAttributions
     .map(w => {
-      const abs  = Math.abs(w.score);
+      const score = Number(w.score);
+      const abs  = Math.abs(score);
       const norm = round2(abs / maxAbs);
       return {
-        word:       w.word,
-        score:      round2(w.score),
+        word:       w.word.trim(),
+        score:      round2(score),
         absScore:   round2(abs),
         normalised: norm,
-        direction:  (w.score >  0.01 ? "positive"
-                  : w.score < -0.01 ? "negative"
+        direction:  (score >  0.01 ? "positive"
+                  : score < -0.01 ? "negative"
                   :                   "neutral") as "positive" | "negative" | "neutral",
       };
     })
@@ -343,14 +393,17 @@ export function buildExplainabilityResult(
   kwSentiment:  Sentiment | null,
   ig:           IntegratedGradientsResult | null = null,
 ): ExplainabilityResult {
+  const probabilities = normalizeClassProbabilities(posProb, negProb, dstProb);
+
   return {
-    inputProbabilities: {
-      positive: round2(posProb),
-      negative: round2(negProb),
-      distress: round2(dstProb),
-    },
+    inputProbabilities: probabilities,
     predictedSentiment:  xlmSentiment,
-    confidence:          computeConfidenceSignal(posProb, negProb, dstProb, xlmSentiment),
+    confidence:          computeConfidenceSignal(
+      probabilities.positive,
+      probabilities.negative,
+      probabilities.distress,
+      xlmSentiment,
+    ),
     keywordAgreement:    computeKeywordAgreement(xlmSentiment, kwSentiment),
     integratedGradients: ig,
   };
@@ -362,7 +415,10 @@ export { CONFIDENCE_CONFIG };
 
 /** Display colour for an IG word attribution based on direction + normalised score */
 export function igWordColor(attr: WordAttribution): { bg: string; text: string } {
-  const alpha = Math.round(attr.normalised * 220 + 30);
+  const normalised = Number.isFinite(attr.normalised)
+    ? Math.min(1, Math.max(0, attr.normalised))
+    : 0;
+  const alpha = Math.round(normalised * 220 + 30);
   if (attr.direction === "positive") return {
     bg:   `rgba(168, 218, 220, ${alpha / 255})`,
     text: "#1D6FA4",

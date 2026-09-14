@@ -133,15 +133,17 @@ export interface WellnessScoreResult {
 //   Sum of weights           = 1.00  → WS ∈ [0.00, 10.00]
 
 const WEIGHT_TREND        = 0.40;
-const WEIGHT_FREQUENCY    = 0.25;
-const WEIGHT_STREAK       = 0.20;
+const WEIGHT_FREQUENCY    = 0.20;
+const WEIGHT_STREAK       = 0;
 const WEIGHT_CONSISTENCY  = 0.15;
+const BASELINE_FLOOR      = 0.25;
+const STREAK_PENALTY_WEIGHT = 0.25;
 
 /** Consecutive-negative cap: streak ≥ this value → full penalty on CN sub-score */
 const CN_CAP = 7;
 
 // Input validity bounds (used for clamping & logging)
-const BTS_MIN  =   0;
+const BTS_MIN  = -100;
 const BTS_MAX  = 100;
 const SCORE_MIN =  0;
 const SCORE_MAX = 100;
@@ -228,22 +230,22 @@ export function computeWellnessScore(
   // 1. Validate + sanitise inputs
   const s = sanitiseInput(input);
 
-  // 2. Normalise each indicator to [0, 1] sub-score
-  //    BT is inverted: high NegativeRatio (e.g. 0.8) → low sub-score (0.2)
-  const trendSubScore       = clamp01(1 - s.behavioralTrendScore / 100);
+  // 2. Normalise each indicator to [0, 1] sub-score.
+  const trendSubScore       = clamp01((s.behavioralTrendScore + 100) / 200);
   const frequencySubScore   = clamp01(s.journalingFrequencyScore / 100);
-  const streakSubScore      = clamp01(1 - s.consecutiveNegativeCount / CN_CAP);
   const consistencySubScore = clamp01(s.moodConsistencyScore / 100);
+  const streakPenalty       = clamp01(s.consecutiveNegativeCount / CN_CAP) * STREAK_PENALTY_WEIGHT;
 
-  // 3. Documented formula: WS = (w₁·BT + w₂·JF + w₃·CN + w₄·MC) × 10
+  // 3. Apply the documented baseline floor and post-hoc streak penalty.
   const weightedRaw =
     trendSubScore       * WEIGHT_TREND       +
     frequencySubScore   * WEIGHT_FREQUENCY   +
-    streakSubScore      * WEIGHT_STREAK      +
-    consistencySubScore * WEIGHT_CONSISTENCY;
+    consistencySubScore * WEIGHT_CONSISTENCY +
+    BASELINE_FLOOR;
+  const rawScore = clamp01(weightedRaw - streakPenalty);
 
   // 4. Scale to [0, 10]
-  const score = round2(clamp01(weightedRaw) * 10);
+  const score = round2(rawScore * 10);
   const level = classifyWellnessLevel(score);
 
   return {
@@ -254,8 +256,8 @@ export function computeWellnessScore(
       frequencySubScore:   round2(frequencySubScore),
       consistencySubScore: round2(consistencySubScore),
       weightedRaw:         round2(weightedRaw),
-      streakPenalty:       round2(1 - streakSubScore),  // kept for interface compat
-      rawScore:            round2(clamp01(weightedRaw)),
+      streakPenalty:       round2(streakPenalty),
+      rawScore:            round2(rawScore),
       inputClamped:        s.inputClamped,
       sanitisedInput: {
         behavioralTrendScore:     s.behavioralTrendScore,

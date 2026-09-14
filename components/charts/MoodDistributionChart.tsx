@@ -8,10 +8,8 @@
 // Sentiment classes: POSITIVE | NEGATIVE | DISTRESS  (no Neutral)
 // =====================================================================
 
-import { useId } from "react";
 import {
   Cell,
-  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -19,6 +17,17 @@ import {
   TooltipContentProps,
 } from "recharts";
 import type { MoodDistributionData } from "@/hooks/useMoodVisualization";
+
+const clampCount = (value: unknown) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.max(0, Math.round(numeric)) : 0;
+};
+
+const formatPercent = (value: unknown) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "";
+  return `${Math.round(numeric <= 1 ? numeric * 100 : numeric)}%`;
+};
 
 // ── Colour tokens — must match the project's 3-class palette ─────────────────
 const COLOURS = {
@@ -31,9 +40,7 @@ const COLOURS = {
 function DistributionTooltip({ active, payload }: TooltipContentProps) {
   if (!active || !payload?.length) return null;
   const { name, value, payload: pt } = payload[0];
-  const pct = (pt as any)?.percent != null
-    ? `${Math.round((pt as any).percent * 100)}%`
-    : "";
+  const pct = formatPercent((pt as any)?.percent);
   return (
     <div className="rounded-xl bg-white px-4 py-2.5 shadow-lg border border-light-gray text-left">
       <p className="text-xs font-poppins text-dark-text/60 mb-0.5">{name}</p>
@@ -88,7 +95,23 @@ export default function MoodDistributionChart({
   height = 220,
   showCentreLabel = true,
 }: MoodDistributionChartProps) {
-  const gradId = useId();
+  const counts = {
+    positive: clampCount(data?.positive),
+    negative: clampCount(data?.negative),
+    distress: clampCount(data?.distress),
+  };
+  const computedTotal = counts.positive + counts.negative + counts.distress;
+  const total = computedTotal > 0 ? computedTotal : clampCount(data?.total);
+  const percentOfTotal = (value: number) => total > 0 ? Math.round((value / total) * 100) : 0;
+  const safeData = {
+    positive: counts.positive,
+    negative: counts.negative,
+    distress: counts.distress,
+    total,
+    positivePercent: percentOfTotal(counts.positive),
+    negativePercent: percentOfTotal(counts.negative),
+    distressPercent: percentOfTotal(counts.distress),
+  };
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
@@ -105,7 +128,7 @@ export default function MoodDistributionChart({
   }
 
   // ── Empty state ────────────────────────────────────────────────────────────
-  if (!data || data.total === 0) {
+  if (!data || safeData.total === 0) {
     return (
       <div
         className="flex flex-col items-center justify-center gap-2 rounded-xl bg-light-gray/30"
@@ -125,22 +148,22 @@ export default function MoodDistributionChart({
   const pieData = [
     {
       name:    COLOURS.positive.label,
-      value:   data.positive,
-      percent: data.positivePercent,
+      value:   safeData.positive,
+      percent: safeData.positivePercent,
       colour:  COLOURS.positive.fill,
       stroke:  COLOURS.positive.stroke,
     },
     {
       name:    COLOURS.negative.label,
-      value:   data.negative,
-      percent: data.negativePercent,
+      value:   safeData.negative,
+      percent: safeData.negativePercent,
       colour:  COLOURS.negative.fill,
       stroke:  COLOURS.negative.stroke,
     },
     {
       name:    COLOURS.distress.label,
-      value:   data.distress,
-      percent: data.distressPercent,
+      value:   safeData.distress,
+      percent: safeData.distressPercent,
       colour:  COLOURS.distress.fill,
       stroke:  COLOURS.distress.stroke,
     },
@@ -148,7 +171,7 @@ export default function MoodDistributionChart({
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div>
+    <div className="relative">
       <ResponsiveContainer width="100%" height={height}>
         <PieChart>
           <Pie
@@ -184,7 +207,7 @@ export default function MoodDistributionChart({
           aria-hidden
         >
           <p className="text-2xl font-dm-serif text-dark-text leading-none">
-            {data.total}
+            {safeData.total}
           </p>
           <p className="text-[10px] font-inter text-dark-text/50 mt-0.5">
             entries

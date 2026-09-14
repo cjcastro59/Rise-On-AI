@@ -42,7 +42,21 @@ async function resolveTarget(
   if (!requestedId || requestedId === user.id) {
     return { ok: true, userId: user.id, role };
   }
-  const privileged = role === "admin" || role === "owner" || role === "counselor";
+  if (role === "counselor") {
+    const { data: assignedProfile } = await (supabase
+      .from("user_profiles") as any)
+      .select("id")
+      .eq("id", requestedId)
+      .eq("role", "user")
+      .eq("assigned_counselor_id", user.id)
+      .maybeSingle();
+
+    if (assignedProfile) {
+      return { ok: true, userId: requestedId, role };
+    }
+  }
+
+  const privileged = role === "admin" || role === "owner";
   if (!privileged) {
     return { ok: false, status: 403, error: "Forbidden — cannot access another user's risk data" };
   }

@@ -397,6 +397,7 @@ DROP POLICY IF EXISTS "Users can update their own profile (no role)" ON public.u
 DROP POLICY IF EXISTS "Admins/owners can update non-role fields" ON public.user_profiles;
 DROP POLICY IF EXISTS "Only owners can update role field" ON public.user_profiles;
 DROP POLICY IF EXISTS "Only owners can delete profiles" ON public.user_profiles;
+DROP POLICY IF EXISTS "Counselors can view assigned user profiles" ON public.user_profiles;
 
 -- Now create ALL necessary policies explicitly!
 -- Policy 1: Users can view their own profile OR admins/owners can view all
@@ -404,6 +405,23 @@ CREATE POLICY "Users can view their own profile or admins can view all"
     ON public.user_profiles
     FOR SELECT
     USING (auth.uid() = id OR public.is_current_user_admin_or_owner());
+
+CREATE POLICY "Counselors can view assigned user profiles"
+    ON public.user_profiles
+    FOR SELECT
+    USING (
+        role = 'user'
+        AND (
+            assigned_counselor_id = auth.uid()
+            OR EXISTS (
+                SELECT 1
+                FROM public.conversations
+                WHERE conversations.user_id = user_profiles.id
+                  AND conversations.counselor_id = auth.uid()
+                  AND conversations.status = 'open'
+            )
+        )
+    );
 
 -- Policy 2: Users can insert their own profile
 CREATE POLICY "Users can insert their own profile"
@@ -703,6 +721,8 @@ BEGIN
     DROP POLICY IF EXISTS "Users can insert their own conversations" ON public.conversations;
     DROP POLICY IF EXISTS "Counselors/admins can insert conversations" ON public.conversations;
     DROP POLICY IF EXISTS "Counselors/admins can update conversations" ON public.conversations;
+    DROP POLICY IF EXISTS "Counselors can view assigned conversations" ON public.conversations;
+    DROP POLICY IF EXISTS "Counselors can update assigned conversations" ON public.conversations;
 END
 $$;
 
@@ -715,6 +735,11 @@ CREATE POLICY "Counselors/admins can view all conversations"
     ON public.conversations
     FOR SELECT
     USING (public.is_current_user_admin_or_owner());
+
+CREATE POLICY "Counselors can view assigned conversations"
+    ON public.conversations
+    FOR SELECT
+    USING (auth.uid() = counselor_id);
 
 CREATE POLICY "Users can insert their own conversations"
     ON public.conversations
@@ -731,6 +756,12 @@ CREATE POLICY "Counselors/admins can update conversations"
     FOR UPDATE
     USING (public.is_current_user_admin_or_owner())
     WITH CHECK (public.is_current_user_admin_or_owner());
+
+CREATE POLICY "Counselors can update assigned conversations"
+    ON public.conversations
+    FOR UPDATE
+    USING (auth.uid() = counselor_id)
+    WITH CHECK (auth.uid() = counselor_id);
 
 -- ------------------------------
 -- RLS Policies for conversations

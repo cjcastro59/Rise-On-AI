@@ -37,17 +37,44 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
 
     const fetchUser = async () => {
       setLoading(true);
+      setUser(null);
       try {
-        const { data, error } = await supabase
+        if (!userId) {
+          return;
+        }
+
+        const {
+          data: { user: viewer },
+        } = await supabase.auth.getUser();
+
+        if (!viewer) {
+          throw new Error("You must be signed in to view user details.");
+        }
+
+        const { data: viewerProfile } = await supabase
+          .from("user_profiles")
+          .select("role")
+          .eq("id", viewer.id)
+          .maybeSingle();
+
+        let query = supabase
           .from("user_profiles")
           .select("*")
-          .eq("id", userId)
-          .single();
+          .eq("id", userId);
+
+        if ((viewerProfile as any)?.role === "counselor") {
+          query = query
+            .eq("role", "user")
+            .eq("assigned_counselor_id", viewer.id);
+        }
+
+        const { data, error } = await query.maybeSingle();
 
         if (error) throw error;
-        setUser(data as User);
+        setUser((data as User) || null);
       } catch (error) {
         console.error("Error fetching user details:", error);
+        setUser(null);
       } finally {
         setLoading(false);
       }

@@ -39,6 +39,12 @@ interface AssignedUserRow {
   email: string | null;
 }
 
+interface AggregateWellnessPoint {
+  date: string;
+  score: number;
+  count: number;
+}
+
 // ── Wellness badge ─────────────────────────────────────────────────────────────
 function WellnessBadge({
   score,
@@ -94,6 +100,7 @@ export default function CounselorDashboardPage() {
   const [assignedUsers, setAssignedUsers] = useState<AssignedUserRow[]>([]);
   const [wellnessMap, setWellnessMap] = useState<Map<string, UserWellnessSnapshot>>(new Map());
   const [riskMap, setRiskMap] = useState<Map<string, UserRiskSnapshot>>(new Map());
+  const [aggregateWellnessTrend, setAggregateWellnessTrend] = useState<AggregateWellnessPoint[]>([]);
   const [wellnessLoading, setWellnessLoading]  = useState(true);
   const [currentDate, setCurrentDate] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -119,7 +126,10 @@ export default function CounselorDashboardPage() {
         setLoading(true);
 
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          setWellnessLoading(false);
+          return;
+        }
 
         const counselorId = user.id;
         const today = new Date();
@@ -128,45 +138,74 @@ export default function CounselorDashboardPage() {
         todayEnd.setDate(todayEnd.getDate() + 1);
 
         const [
-          { count: userCount },
-          { data: casesData },
-          { data: messagesData },
+          { data: assignedIdRows, error: assignedIdsError },
           { count: newUsersCount },
-          { data: usersData },
+          { data: conversationUserRows, error: conversationUsersError },
         ] = await Promise.all([
           supabase
             .from("user_profiles")
-            .select("id", { count: "exact", head: true })
+            .select("id")
+            .eq("role", "user")
             .eq("assigned_counselor_id", counselorId),
-          supabase
-            .from("distress_logs")
-            .select("id, user_id, severity, trigger, created_at, assigned_counselor_id")
-            .eq("assigned_counselor_id", counselorId)
-            .order("created_at", { ascending: false })
-            .limit(5),
-          supabase
-            .from("messages")
-            .select("id, conversation_id, sender_id, created_at, conversations!inner(counselor_id)")
-            .eq("conversations.counselor_id", counselorId)
-            .order("created_at", { ascending: false })
-            .limit(5),
           supabase
             .from("user_profiles")
             .select("id", { count: "exact", head: true })
+            .eq("role", "user")
             .eq("assigned_counselor_id", counselorId)
             .gte("created_at", today.toISOString())
             .lt("created_at", todayEnd.toISOString()),
-          // Fetch assigned user profiles for wellness panel (up to 20)
           supabase
-            .from("user_profiles")
-            .select("id, first_name, last_name, username, email")
-            .eq("assigned_counselor_id", counselorId)
-            .order("created_at", { ascending: false })
-            .limit(20),
+            .from("conversations")
+            .select("user_id")
+            .eq("counselor_id", counselorId)
+            .eq("status", "open"),
         ]);
 
+        if (assignedIdsError) throw assignedIdsError;
+        if (conversationUsersError) throw conversationUsersError;
+
+        const assignedUserIds = Array.from(new Set([
+          ...((assignedIdRows || []) as { id: string }[]).map((row) => row.id),
+          ...((conversationUserRows || []) as { user_id: string }[]).map((row) => row.user_id),
+        ].filter(Boolean)));
+
+        const { data: usersData, error: usersError } = assignedUserIds.length
+          ? await supabase
+              .from("user_profiles")
+              .select("id, first_name, last_name, username, email")
+              .eq("role", "user")
+              .in("id", assignedUserIds)
+              .order("created_at", { ascending: false })
+              .limit(20)
+          : { data: [], error: null };
+
+        if (usersError) throw usersError;
+
+        const { data: casesData, error: casesError } = assignedUserIds.length
+          ? await supabase
+              .from("distress_logs")
+              .select("id, user_id, severity, trigger, created_at")
+              .in("user_id", assignedUserIds)
+              .order("created_at", { ascending: false })
+              .limit(5)
+          : { data: [], error: null };
+
+        if (casesError) throw casesError;
+
+        const { data: messagesData, error: messagesError } = assignedUserIds.length
+          ? await supabase
+              .from("conversations")
+              .select("id, user_id, updated_at")
+              .eq("counselor_id", counselorId)
+              .in("user_id", assignedUserIds)
+              .order("updated_at", { ascending: false })
+              .limit(5)
+          : { data: [], error: null };
+
+        if (messagesError) throw messagesError;
+
         setStats({
-          assignedUsers:   userCount   || 0,
+          assignedUsers:   assignedUserIds.length,
           activeCases:     casesData?.length   || 0,
           pendingMessages: messagesData?.length || 0,
           newUsersToday:   newUsersCount || 0,
@@ -176,9 +215,9 @@ export default function CounselorDashboardPage() {
         setAssignedUsers(usersData  || []);
 
         // ── Load wellness snapshot for each assigned user ─────────────────
-        if (usersData && usersData.length > 0) {
+        if (assignedUserIds.length > 0) {
           setWellnessLoading(true);
-          const userIds = (usersData as AssignedUserRow[]).map(u => u.id);
+          const userIds = assignedUserIds;
 
           const { data: wellnessRows } = await supabase
             .from("behavioral_indicators")
@@ -198,6 +237,28 @@ export default function CounselorDashboardPage() {
             }
           }
           setWellnessMap(wMap);
+
+          const grouped = new Map<string, { sum: number; count: number }>();
+          for (const row of (wellnessRows ?? [])) {
+            const score = Number(row.wellness_score);
+            const date = typeof row.window_end_date === "string" ? row.window_end_date : "";
+            if (!date || !Number.isFinite(score)) continue;
+
+            const existing = grouped.get(date) ?? { sum: 0, count: 0 };
+            existing.sum += score;
+            existing.count += 1;
+            grouped.set(date, existing);
+          }
+          setAggregateWellnessTrend(
+            Array.from(grouped.entries())
+              .sort(([a], [b]) => a.localeCompare(b))
+              .slice(-14)
+              .map(([date, value]) => ({
+                date,
+                score: Number((value.sum / value.count).toFixed(1)),
+                count: value.count,
+              })),
+          );
 
           // ── Load DRI snapshot for each assigned user ─────────────────
           const { data: riskRows } = await supabase
@@ -219,6 +280,9 @@ export default function CounselorDashboardPage() {
 
           setWellnessLoading(false);
         } else {
+          setWellnessMap(new Map());
+          setRiskMap(new Map());
+          setAggregateWellnessTrend([]);
           setWellnessLoading(false);
         }
       } catch (err) {
@@ -252,6 +316,11 @@ export default function CounselorDashboardPage() {
     // Final fallback: show only the first 8 chars of the UUID
     return `User ${u.id.slice(0, 8)}`;
   };
+
+  const aggregateTrendMax = Math.max(
+    10,
+    ...aggregateWellnessTrend.map((point) => point.score).filter(Number.isFinite),
+  );
 
   if (!isMounted) {
     return (
@@ -308,6 +377,57 @@ export default function CounselorDashboardPage() {
       </div>
 
       {/* ── ASSIGNED USERS WELLNESS PANEL ─────────────────────────────────── */}
+      <Card variant="white" className="p-5">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-poppins text-dark-text/70 uppercase tracking-wider">
+              Aggregate Wellness Trend
+            </p>
+            <p className="mt-0.5 text-[10px] text-dark-text/40 font-inter">
+              Assigned users only, averaged by assessment date
+            </p>
+          </div>
+          {!loading && !wellnessLoading && aggregateWellnessTrend.length > 0 && (
+            <span className="text-xs font-poppins text-dark-text/60">
+              {aggregateWellnessTrend.length} points
+            </span>
+          )}
+        </div>
+
+        {loading || wellnessLoading ? (
+          <p className="py-8 text-sm text-dark-text/50 font-inter">Loading trend data...</p>
+        ) : aggregateWellnessTrend.length === 0 ? (
+          <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
+            <p className="text-sm text-dark-text/60 font-inter">
+              No wellness trend data for assigned users yet.
+            </p>
+          </div>
+        ) : (
+          <div className="h-44">
+            <div className="flex h-36 items-end gap-2 border-b border-gray-100">
+              {aggregateWellnessTrend.map((point) => {
+                const height = Math.max(6, Math.round((point.score / aggregateTrendMax) * 100));
+                return (
+                  <div key={point.date} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2">
+                    <div
+                      className="w-full max-w-10 rounded-t-md bg-[#52B788]"
+                      style={{ height: `${height}%` }}
+                      title={`${point.score}/10 average from ${point.count} user${point.count === 1 ? "" : "s"}`}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] text-dark-text/40 font-inter">
+              <span>{new Date(aggregateWellnessTrend[0]?.date).toLocaleDateString()}</span>
+              <span className="text-right">
+                {new Date(aggregateWellnessTrend[aggregateWellnessTrend.length - 1]?.date).toLocaleDateString()}
+              </span>
+            </div>
+          </div>
+        )}
+      </Card>
+
       <Card variant="white" className="p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">

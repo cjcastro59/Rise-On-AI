@@ -6,6 +6,7 @@ import {
   type JournalEntryForAnalytics,
 } from "@/lib/behavioral-analytics";
 import { computeWellnessScore } from "@/lib/wellness-assessment";
+import { resolveScopedTargetUser } from "@/lib/role-access";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,75 +20,43 @@ interface ComputeRequest {
 export async function POST(request: NextRequest) {
   try {
     const supabase = createClient();
+    const body = (await request.json().catch(() => ({}))) as ComputeRequest;
 
-    // ---- 1. Auth check ----
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await resolveScopedTargetUser(
+      supabase,
+      body.userId,
+      "Forbidden - cannot compute indicators for another user",
+    );
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
-    // ---- 2. Optional role escalation for admin/counselor ----
-    const { data: profile } = await (supabase
-      .from("user_profiles") as any)
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    const body = (await request.json()) as ComputeRequest;
     const lookbackDays =
       typeof body.lookbackDays === "number" && body.lookbackDays > 0
         ? Math.min(365, body.lookbackDays)
         : 30;
-    const persist = body.persist !== false; // default true
+    const persist = body.persist !== false;
 
-    // ---- 3. Resolve targetUserId ----
-    let targetUserId = user.id;
-    const requestedUserId = body.userId;
-    if (requestedUserId && requestedUserId !== user.id) {
-      const isPrivileged =
-        (profile as any)?.role === "admin" ||
-        (profile as any)?.role === "owner" ||
-        (profile as any)?.role === "counselor";
-      if (!isPrivileged) {
-        return NextResponse.json(
-          { error: "Forbidden — cannot compute indicators for another user" },
-          { status: 403 }
-        );
-      }
-      targetUserId = requestedUserId;
-    }
-
-    // ---- 4. Fetch user's journal entries (sentiment fields already stored) ----
     const { data: journalRows, error: fetchError } = await (supabase
       .from("journal_entries") as any)
       .select(
-        "id, user_id, created_at, sentiment, sentiment_score, positive_percentage, negative_percentage, distress_percentage, confidence"
+        "id, user_id, created_at, sentiment, sentiment_score, positive_percentage, negative_percentage, distress_percentage, confidence",
       )
-      .eq("user_id", targetUserId)
+      .eq("user_id", auth.userId)
       .order("created_at", { ascending: false });
 
     if (fetchError) {
-      console.error(
-        "[behavioral/compute] Failed to fetch journal entries:",
-        fetchError
-      );
+      console.error("[behavioral/compute] Failed to fetch journal entries:", fetchError);
       return NextResponse.json(
         { error: "Failed to fetch journal entries", details: fetchError.message },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
-    // ---- 5. Map DB rows → analytics input ----
-    const inputEntries: JournalEntryForAnalytics[] = (journalRows || []).map(
-      mapDbRowToAnalyticsEntry
+    const inputEntries: JournalEntryForAnalytics[] = (journalRows ?? []).map(
+      mapDbRowToAnalyticsEntry,
     );
-
-    // ---- 6. Compute all 4 behavioral indicators ----
     const indicators = computeAllBehavioralIndicators(inputEntries, lookbackDays);
-
-    // ---- 7. Compute Wellness Score from the 4 indicators ----
     const wellnessResult = computeWellnessScore({
       behavioralTrendScore: indicators.behavioralTrendScore,
       journalingFrequencyScore: indicators.journalingFrequencyScore,
@@ -95,18 +64,17 @@ export async function POST(request: NextRequest) {
       consecutiveNegativeCount: indicators.consecutiveNegativeCount,
     });
 
-    // ---- 8. Persist to behavioral_indicators table (upsert by unique key) ----
     let savedId: string | null = null;
     if (persist) {
       const payload = {
-        user_id: targetUserId,
+        user_id: auth.userId,
         window_end_date: indicators.windowEndDate,
         lookback_days: indicators.lookbackDays,
         behavioral_trend_score: indicators.behavioralTrendScore,
         behavioral_trend_details: indicators.behavioralTrendDetails,
         journaling_frequency_score: indicators.journalingFrequencyScore,
         total_entries_window: indicators.totalEntriesWindow,
-        unique_days_journaled:  indicators.uniqueDaysJournaled,
+        unique_days_journaled: indicators.uniqueDaysJournaled,
         journaling_frequency_details: indicators.journalingFrequencyDetails,
         mood_consistency_score: indicators.moodConsistencyScore,
         sentiment_scores_variance: indicators.sentimentScoresVariance,
@@ -123,7 +91,7 @@ export async function POST(request: NextRequest) {
       const { data: existingRow, error: lookupError } = await (supabase
         .from("behavioral_indicators") as any)
         .select("id")
-        .eq("user_id", targetUserId)
+        .eq("user_id", auth.userId)
         .eq("window_end_date", indicators.windowEndDate)
         .eq("lookback_days", indicators.lookbackDays)
         .maybeSingle();
@@ -131,7 +99,7 @@ export async function POST(request: NextRequest) {
       if (lookupError) {
         console.warn(
           "[behavioral/compute] lookup for upsert failed, attempting insert anyway:",
-          lookupError
+          lookupError,
         );
       }
 
@@ -159,10 +127,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ---- 9. Return result ----
     return NextResponse.json({
       ok: true,
-      targetUserId,
+      targetUserId: auth.userId,
       lookbackDays,
       persisted: persist ? savedId !== null : false,
       savedId,
@@ -174,7 +141,7 @@ export async function POST(request: NextRequest) {
     console.error("[behavioral/compute] unexpected error:", err);
     return NextResponse.json(
       { error: "Internal server error", details: message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

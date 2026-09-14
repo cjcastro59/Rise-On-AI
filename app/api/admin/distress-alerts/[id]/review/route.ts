@@ -15,16 +15,30 @@ export async function POST(
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const { adminClient, user } = auth;
+  const { adminClient, user, profile } = auth;
   const { data: existingLogs, error: loadError } = await adminClient
     .from("distress_logs")
-    .select("id,notes")
+    .select("id,user_id,notes")
     .eq("id", params.id)
     .limit(1);
   const existingLog = existingLogs?.[0] || null;
 
   if (loadError || !existingLog) {
     return NextResponse.json({ error: "Distress alert not found." }, { status: 404 });
+  }
+
+  if (profile.role === "counselor") {
+    const { data: assignedUsers, error: assignedError } = await adminClient
+      .from("user_profiles")
+      .select("id")
+      .eq("id", existingLog.user_id)
+      .eq("role", "user")
+      .eq("assigned_counselor_id", user.id)
+      .limit(1);
+
+    if (assignedError || !assignedUsers?.[0]) {
+      return NextResponse.json({ error: "You can only review alerts for users assigned to you." }, { status: 403 });
+    }
   }
 
   const reviewedAt = new Date().toISOString();
@@ -37,7 +51,7 @@ export async function POST(
     .from("distress_logs")
     .update({ notes })
     .eq("id", params.id)
-    .select("id,notes")
+    .select("id,user_id,notes")
     .limit(1);
 
   const updatedLog = log?.[0] || null;

@@ -167,7 +167,7 @@ const THRESHOLDS: DistressRiskDetails["thresholds"] = {
 
 const MAX_WELLNESS_SCORE = 10;
 const MIN_WELLNESS_SCORE = 0;
-const BTS_MIN =   0;   // BehavioralTrend is now 0–100 (NegativeRatio × 100)
+const BTS_MIN = -100;
 const BTS_MAX = 100;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -297,17 +297,15 @@ function evalCondition3(s: SanitisedDRIInput): DistressRiskConditionResult {
 }
 
 function evalCondition4(s: SanitisedDRIInput): DistressRiskConditionResult {
-  // BTS is now 0–100 (NegativeEntries/TotalEntries × 100).
-  // Higher = more negative entries → worse trajectory.
   let points = 0;
-  if      (s.behavioralTrendScore >= 70) points = 2;  // ≥70% negative entries — severe
-  else if (s.behavioralTrendScore >= 50) points = 1;  // ≥50% negative entries — moderate
+  if      (s.behavioralTrendScore <= -50) points = 2;
+  else if (s.behavioralTrendScore <= -20) points = 1;
   return {
     conditionId:   "C4_TREND",
-    label:         "Behavioral Trend Score (High Negative Ratio)",
+    label:         "Behavioral Trend Score (Declining Trajectory)",
     points,
     triggered:     points > 0,
-    observedValue: `BTS = ${s.behavioralTrendScore}% negative`,
+    observedValue: `BTS = ${s.behavioralTrendScore}`,
   };
 }
 

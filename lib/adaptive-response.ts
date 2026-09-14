@@ -478,7 +478,62 @@ const POOLS: Record<ACIResponseTone, ResponsePool> = {
 
 /** Deterministic selection from a pool array using a simple context hash. */
 function selectFromPool<T>(pool: T[], seed: number): T {
-  return pool[Math.abs(seed) % pool.length];
+  const safeSeed = Number.isFinite(seed) ? Math.abs(Math.floor(seed)) : 0;
+  return pool[safeSeed % pool.length] ?? pool[0];
+}
+
+function finiteNumber(value: unknown, fallback: number, min: number, max: number): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.min(max, Math.max(min, numeric));
+}
+
+function nullableScore(value: unknown, min: number, max: number): number | null {
+  if (value === null || value === undefined) return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return Math.min(max, Math.max(min, numeric));
+}
+
+function normalizeSentiment(value: unknown): SentimentLabel {
+  return value === "negative" || value === "distress" ? value : "positive";
+}
+
+function normalizeWellnessLevel(value: unknown): WellnessLevel | null {
+  return value === "Healthy" ||
+    value === "Stable" ||
+    value === "Moderate Concern" ||
+    value === "At Risk" ||
+    value === "High Risk"
+    ? value
+    : null;
+}
+
+function normalizeDistressRiskLevel(value: unknown): DistressRiskLevel | null {
+  return value === "Low Risk" ||
+    value === "Moderate Risk" ||
+    value === "High Risk" ||
+    value === "Critical Risk"
+    ? value
+    : null;
+}
+
+function normalizeACIInput(input: ACIContextInput): ACIContextInput {
+  return {
+    sentiment: normalizeSentiment(input.sentiment),
+    behavioralTrendScore: finiteNumber(input.behavioralTrendScore, 0, -100, 100),
+    consecutiveNegativeCount: Math.floor(
+      finiteNumber(input.consecutiveNegativeCount, 0, 0, 365),
+    ),
+    journalingFrequencyScore: finiteNumber(input.journalingFrequencyScore, 50, 0, 100),
+    wellnessScore: nullableScore(input.wellnessScore, 0, 10),
+    wellnessLevel: normalizeWellnessLevel(input.wellnessLevel),
+    distressRiskLevel: normalizeDistressRiskLevel(input.distressRiskLevel),
+    entryMood: typeof input.entryMood === "string" ? input.entryMood : null,
+    recentEmotions: Array.isArray(input.recentEmotions)
+      ? input.recentEmotions.filter((emotion): emotion is string => typeof emotion === "string")
+      : [],
+  };
 }
 
 /** Produce a stable integer seed from context values. */
@@ -553,10 +608,11 @@ function selectCrisisNote(tone: ACIResponseTone): string | null {
  * DISCLAIMER: Output is for reflection support only, not clinical care.
  */
 export function generateAdaptiveResponse(input: ACIContextInput): ACIResponse {
-  const tone = selectTone(input);
+  const safeInput = normalizeACIInput(input);
+  const tone = selectTone(safeInput);
   const category = toneToCategory(tone);
   const pool = POOLS[tone];
-  const seed = contextSeed(input);
+  const seed = contextSeed(safeInput);
 
   const greeting = selectFromPool(pool.greetings, seed);
   const message = selectFromPool(pool.messages, seed + 1);
@@ -574,12 +630,12 @@ export function generateAdaptiveResponse(input: ACIContextInput): ACIResponse {
     crisisNote,
     disclaimer: DISCLAIMER,
     contextUsed: {
-      sentiment: input.sentiment,
-      wellnessScore: input.wellnessScore,
-      wellnessLevel: input.wellnessLevel,
-      distressRiskLevel: input.distressRiskLevel,
-      behavioralTrendScore: input.behavioralTrendScore,
-      consecutiveNegativeCount: input.consecutiveNegativeCount,
+      sentiment: safeInput.sentiment,
+      wellnessScore: safeInput.wellnessScore,
+      wellnessLevel: safeInput.wellnessLevel,
+      distressRiskLevel: safeInput.distressRiskLevel,
+      behavioralTrendScore: safeInput.behavioralTrendScore,
+      consecutiveNegativeCount: safeInput.consecutiveNegativeCount,
     },
   };
 }

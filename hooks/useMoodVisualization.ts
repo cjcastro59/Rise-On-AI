@@ -42,7 +42,7 @@ export interface WellnessTrendPoint {
 /** One point on the Behavioral Trend Score line */
 export interface BehavioralTrendPoint {
   date: string;  // "YYYY-MM-DD"
-  bts:  number;  // −100 to +100
+  bts:  number;  // 0-100 concern score
 }
 
 /** One point on the Distress Risk bar chart */
@@ -92,6 +92,20 @@ const RISK_SEVERITY: Record<string, number> = {
   "Critical Risk": 4,
 };
 
+const clampNumber = (value: unknown, min: number, max: number) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.min(max, Math.max(min, numeric)) : null;
+};
+
+const percent = (value: number, total: number) =>
+  total > 0 ? Math.round((value / total) * 100) : 0;
+
+const asDateKey = (value: unknown) => {
+  if (typeof value !== "string" || value.length < 10) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : value.slice(0, 10);
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function useMoodVisualization(): UseMoodVisualizationResult {
@@ -132,7 +146,11 @@ export function useMoodVisualization(): UseMoodVisualizationResult {
         .eq("user_id", user.id)
         .not("sentiment", "is", null);
 
-      if (error) { console.error("[useMoodVisualization] distribution:", error); return; }
+      if (error) {
+        console.error("[useMoodVisualization] distribution:", error);
+        setDistribution(null);
+        return;
+      }
 
       const rows = (data ?? []) as { sentiment: string }[];
       const positive = rows.filter(r => r.sentiment === "positive").length;
@@ -142,9 +160,9 @@ export function useMoodVisualization(): UseMoodVisualizationResult {
 
       setDistribution(total === 0 ? null : {
         positive, negative, distress, total,
-        positivePercent: Math.round((positive / total) * 100),
-        negativePercent: Math.round((negative / total) * 100),
-        distressPercent: Math.round((distress / total) * 100),
+        positivePercent: percent(positive, total),
+        negativePercent: percent(negative, total),
+        distressPercent: percent(distress, total),
       });
     } finally {
       setDistributionLoading(false);
@@ -167,14 +185,25 @@ export function useMoodVisualization(): UseMoodVisualizationResult {
         .order("window_end_date", { ascending: true })
         .limit(90);
 
-      if (error) { console.error("[useMoodVisualization] wellness trend:", error); return; }
+      if (error) {
+        console.error("[useMoodVisualization] wellness trend:", error);
+        setWellnessTrend([]);
+        return;
+      }
 
       setWellnessTrend(
-        ((data ?? []) as any[]).map(r => ({
-          date:          r.window_end_date as string,
-          wellnessScore: r.wellness_score  as number,
-          wellnessLevel: r.wellness_level  as string ?? "Unknown",
-        }))
+        ((data ?? []) as any[])
+          .map((r) => {
+            const date = asDateKey(r.window_end_date);
+            const wellnessScore = clampNumber(r.wellness_score, 0, 10);
+            if (!date || wellnessScore === null) return null;
+            return {
+              date,
+              wellnessScore,
+              wellnessLevel: typeof r.wellness_level === "string" ? r.wellness_level : "Unknown",
+            };
+          })
+          .filter((point): point is WellnessTrendPoint => Boolean(point))
       );
     } finally {
       setWellnessTrendLoading(false);
@@ -195,13 +224,20 @@ export function useMoodVisualization(): UseMoodVisualizationResult {
         .order("window_end_date", { ascending: true })
         .limit(90);
 
-      if (error) { console.error("[useMoodVisualization] behavioral trend:", error); return; }
+      if (error) {
+        console.error("[useMoodVisualization] behavioral trend:", error);
+        setBehavioralTrend([]);
+        return;
+      }
 
       setBehavioralTrend(
-        ((data ?? []) as any[]).map(r => ({
-          date: r.window_end_date        as string,
-          bts:  r.behavioral_trend_score as number,
-        }))
+        ((data ?? []) as any[])
+          .map((r) => {
+            const date = asDateKey(r.window_end_date);
+            const bts = clampNumber(r.behavioral_trend_score, 0, 100);
+            return date && bts !== null ? { date, bts } : null;
+          })
+          .filter((point): point is BehavioralTrendPoint => Boolean(point))
       );
     } finally {
       setBehavioralTrendLoading(false);
@@ -222,15 +258,27 @@ export function useMoodVisualization(): UseMoodVisualizationResult {
         .order("assessed_date", { ascending: true })
         .limit(90);
 
-      if (error) { console.error("[useMoodVisualization] distress risk:", error); return; }
+      if (error) {
+        console.error("[useMoodVisualization] distress risk:", error);
+        setDistressRisk([]);
+        return;
+      }
 
       setDistressRisk(
-        ((data ?? []) as any[]).map(r => ({
-          date:        r.assessed_date as string,
-          riskLevel:   r.risk_level    as string,
-          severity:    RISK_SEVERITY[r.risk_level as string] ?? 1,
-          totalPoints: r.total_points  as number,
-        }))
+        ((data ?? []) as any[])
+          .map((r) => {
+            const date = asDateKey(r.assessed_date);
+            const riskLevel = typeof r.risk_level === "string" ? r.risk_level : "Low Risk";
+            const totalPoints = clampNumber(r.total_points, 0, 100) ?? 0;
+            if (!date) return null;
+            return {
+              date,
+              riskLevel,
+              severity: RISK_SEVERITY[riskLevel] ?? 1,
+              totalPoints,
+            };
+          })
+          .filter((point): point is DistressRiskPoint => Boolean(point))
       );
     } finally {
       setDistressRiskLoading(false);
@@ -247,7 +295,17 @@ export function useMoodVisualization(): UseMoodVisualizationResult {
   }, [fetchDistribution, fetchWellnessTrend, fetchBehavioralTrend, fetchDistressRisk, refetchMoodTrend]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setDistribution(null);
+      setDistributionLoading(false);
+      setWellnessTrend([]);
+      setWellnessTrendLoading(false);
+      setBehavioralTrend([]);
+      setBehavioralTrendLoading(false);
+      setDistressRisk([]);
+      setDistressRiskLoading(false);
+      return;
+    }
     fetchDistribution();
     fetchWellnessTrend();
     fetchBehavioralTrend();

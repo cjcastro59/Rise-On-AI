@@ -80,6 +80,7 @@ export default function AdminDistressAlertsPage() {
   const [entriesByUser, setEntriesByUser] = useState<Record<string, JournalEntry[]>>({});
   const [counselors, setCounselors] = useState<UserProfile[]>([]);
   const [conversationsByUser, setConversationsByUser] = useState<Record<string, Conversation>>({});
+  const [assignedCounselorByUser, setAssignedCounselorByUser] = useState<Record<string, string | null>>({});
   const [assignmentSelections, setAssignmentSelections] = useState<Record<string, string>>({});
   const [selectedAlert, setSelectedAlert] = useState<DistressLog | null>(null);
   const [riskByUser, setRiskByUser] = useState<Map<string, UserRiskSnapshot>>(new Map());
@@ -90,7 +91,7 @@ export default function AdminDistressAlertsPage() {
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
-  // ── Risk badge (shared inline component) ──────────────────────────────────
+  // â”€â”€ Risk badge (shared inline component) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const RiskBadge = ({ userId }: { userId: string }) => {
     const snap = riskByUser.get(userId);
     if (!snap) return <span className="text-[10px] text-dark-text/40 font-inter italic">No data</span>;
@@ -129,6 +130,7 @@ export default function AdminDistressAlertsPage() {
         const logUserIds = Array.from(new Set(rawLogs.map((log) => log.user_id).filter(Boolean))) as string[];
         let entries: JournalEntry[] = [];
         let conversations: Conversation[] = [];
+        let profileAssignments: { id: string; assigned_counselor_id: string | null }[] = [];
         let counselorProfiles: UserProfile[] = [];
 
         const { data: counselorsData, error: counselorsError } = await supabase
@@ -170,6 +172,18 @@ export default function AdminDistressAlertsPage() {
           } else {
             conversations = (conversationsData || []) as Conversation[];
           }
+
+          const { data: profileAssignmentRows, error: profileAssignmentError } = await supabase
+            .from("user_profiles")
+            .select("id,assigned_counselor_id")
+            .in("id", logUserIds)
+            .eq("role", "user");
+
+          if (profileAssignmentError) {
+            console.error("Error loading alert profile assignments:", profileAssignmentError);
+          } else {
+            profileAssignments = (profileAssignmentRows || []) as typeof profileAssignments;
+          }
         }
 
         const sortedLogs = rawLogs.sort(
@@ -181,8 +195,12 @@ export default function AdminDistressAlertsPage() {
             if (!acc[conversation.user_id]) acc[conversation.user_id] = conversation;
             return acc;
           }, {});
+          const assignmentsByUserId = profileAssignments.reduce<Record<string, string | null>>((acc, profile) => {
+            acc[profile.id] = profile.assigned_counselor_id;
+            return acc;
+          }, {});
 
-          // ── Fetch latest DRI snapshot per alert user ────────────────────
+          // â”€â”€ Fetch latest DRI snapshot per alert user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           let rMap = new Map<string, UserRiskSnapshot>();
           if (logUserIds.length > 0) {
             const { data: riskRows } = await supabase
@@ -205,11 +223,12 @@ export default function AdminDistressAlertsPage() {
           setEntriesByUser(groupEntriesByUser(entries));
           setCounselors(counselorProfiles);
           setConversationsByUser(conversationsByUserId);
+          setAssignedCounselorByUser(assignmentsByUserId);
           setRiskByUser(rMap);
           setAssignmentSelections((prev) => {
             const next = { ...prev };
             sortedLogs.forEach((log) => {
-              const assignedCounselorId = conversationsByUserId[log.user_id]?.counselor_id;
+              const assignedCounselorId = assignmentsByUserId[log.user_id] || conversationsByUserId[log.user_id]?.counselor_id;
               if (assignedCounselorId && !next[log.id]) {
                 next[log.id] = assignedCounselorId;
               }
@@ -238,7 +257,7 @@ export default function AdminDistressAlertsPage() {
   const responseRate = logs.length ? Math.round((respondedLogs.length / logs.length) * 100) : 0;
 
   const getAssignedCounselor = (alert: DistressLog) => {
-    const counselorId = conversationsByUser[alert.user_id]?.counselor_id;
+    const counselorId = assignedCounselorByUser[alert.user_id] || conversationsByUser[alert.user_id]?.counselor_id;
     return counselors.find((counselor) => counselor.id === counselorId) || null;
   };
 
@@ -308,6 +327,10 @@ export default function AdminDistressAlertsPage() {
           ...prev,
           [result.conversation.user_id]: result.conversation,
         }));
+        setAssignedCounselorByUser((prev) => ({
+          ...prev,
+          [result.conversation.user_id]: result.conversation.counselor_id,
+        }));
       }
 
       setActionMessage(result.message || "Alert updated.");
@@ -324,7 +347,7 @@ export default function AdminDistressAlertsPage() {
 
   const renderAssignmentControls = (alert: DistressLog, compact = false) => {
     const assignedCounselor = getAssignedCounselor(alert);
-    const selectedCounselorId = assignmentSelections[alert.id] || conversationsByUser[alert.user_id]?.counselor_id || "";
+    const selectedCounselorId = assignmentSelections[alert.id] || assignedCounselorByUser[alert.user_id] || conversationsByUser[alert.user_id]?.counselor_id || "";
 
     return (
       <div className={compact ? "flex items-center gap-2" : "space-y-2"}>
@@ -371,19 +394,19 @@ export default function AdminDistressAlertsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-error-red mb-1">Distress Alert Monitoring</h1>
-          <p className="text-sm text-dark-text/60 font-poppins">Real-time emotional crisis detection • Anonymized IDs • Requires immediate review</p>
+          <p className="text-sm text-dark-text/60 font-poppins">Real-time emotional crisis detection â€¢ Anonymized IDs â€¢ Requires immediate review</p>
         </div>
         <div className="flex gap-3">
-          <span className="badge-error animate-pulse">⚡ {criticalAlerts.length} Active Alerts</span>
+          <span className="badge-error animate-pulse">âš¡ {criticalAlerts.length} Active Alerts</span>
           <button className="btn-secondary flex items-center gap-2" onClick={() => window.location.reload()}>
-            <span>📄</span> Refresh
+            <span>ðŸ“„</span> Refresh
           </button>
         </div>
       </div>
 
       {/* Alert Banner */}
       <div className="admin-alert-banner bg-error-red/10 border-l-error-red">
-        <span>🛡️</span>
+        <span>ðŸ›¡ï¸</span>
         <p className="text-sm font-poppins text-dark-text">
           Ethical Protocol: Distress flags use anonymized IDs only. Guidance counselors must follow institutional protocols before any outreach. All actions are logged.
         </p>
@@ -399,7 +422,7 @@ export default function AdminDistressAlertsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="stat-card border-l-4 border-l-error-red">
           <div className="flex items-start gap-3 mb-3">
-            <div className="stat-card-icon bg-error-red/30">🔴</div>
+            <div className="stat-card-icon bg-error-red/30">ðŸ”´</div>
             <div className="text-right">
               <p className="text-xs text-dark-text/60 font-poppins">CRITICAL ALERTS</p>
               <p className="text-2xl font-dm-serif text-error-red">{criticalAlerts.length}</p>
@@ -410,7 +433,7 @@ export default function AdminDistressAlertsPage() {
         </Card>
         <Card className="stat-card border-l-4 border-l-warning-yellow">
           <div className="flex items-start gap-3 mb-3">
-            <div className="stat-card-icon bg-warning-yellow/30">🟠</div>
+            <div className="stat-card-icon bg-warning-yellow/30">ðŸŸ </div>
             <div className="text-right">
               <p className="text-xs text-dark-text/60 font-poppins">MEDIUM ALERTS</p>
               <p className="text-2xl font-dm-serif text-dark-text">{mediumAlerts.length}</p>
@@ -421,7 +444,7 @@ export default function AdminDistressAlertsPage() {
         </Card>
         <Card className="stat-card border-l-4 border-l-success-green">
           <div className="flex items-start gap-3 mb-3">
-            <div className="stat-card-icon bg-success-green/30">🟢</div>
+            <div className="stat-card-icon bg-success-green/30">ðŸŸ¢</div>
             <div className="text-right">
               <p className="text-xs text-dark-text/60 font-poppins">RESPONSES RECORDED</p>
               <p className="text-2xl font-dm-serif text-dark-text">{respondedLogs.length}</p>
@@ -432,7 +455,7 @@ export default function AdminDistressAlertsPage() {
         </Card>
         <Card className="stat-card border-l-4 border-l-primary-blue">
           <div className="flex items-start gap-3 mb-3">
-            <div className="stat-card-icon bg-primary-blue/20">✅</div>
+            <div className="stat-card-icon bg-primary-blue/20">âœ…</div>
             <div className="text-right">
               <p className="text-xs text-dark-text/60 font-poppins">RESPONSE RATE</p>
               <p className="text-2xl font-dm-serif text-dark-text">{responseRate}%</p>
@@ -447,9 +470,9 @@ export default function AdminDistressAlertsPage() {
       <div className="space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-2 h-2 rounded-full bg-error-red" />
-          <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Critical — Immediate Attention Required</h2>
+          <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Critical â€” Immediate Attention Required</h2>
         </div>
-        {loading && <p className="text-sm text-dark-text/60">Loading alerts…</p>}
+        {loading && <p className="text-sm text-dark-text/60">Loading alertsâ€¦</p>}
         {!loading && error && <p className="text-sm text-error-red">{error}</p>}
         {!loading && criticalAlerts.length === 0 && !error && <p className="text-sm text-dark-text/60">No critical alerts at the moment.</p>}
         {criticalAlerts.map((alert) => (
@@ -457,7 +480,7 @@ export default function AdminDistressAlertsPage() {
             <div className="flex flex-col gap-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-error-red/30 flex items-center justify-center text-2xl">🩸</div>
+                  <div className="w-10 h-10 rounded-full bg-error-red/30 flex items-center justify-center text-2xl">ðŸ©¸</div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-mono text-sm font-semibold text-primary-blue">{getAnonymizedAlertId(alert.id)}</span>
@@ -515,7 +538,7 @@ export default function AdminDistressAlertsPage() {
       <div className="space-y-4 mt-8">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-2 h-2 rounded-full bg-warning-yellow" />
-          <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Medium — Monitor Closely</h2>
+          <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Medium â€” Monitor Closely</h2>
         </div>
         <Card className="p-6">
           <div className="overflow-x-auto">
@@ -543,7 +566,7 @@ export default function AdminDistressAlertsPage() {
                       <p className="text-sm font-inter text-dark-text">{alert.trigger || "Pending review"}</p>
                     </td>
                     <td>
-                      <p className="text-sm font-poppins text-dark-text">{entriesByUser[alert.user_id]?.[0]?.mood || "—"}</p>
+                      <p className="text-sm font-poppins text-dark-text">{entriesByUser[alert.user_id]?.[0]?.mood || "â€”"}</p>
                     </td>
                     <td>
                       <RiskBadge userId={alert.user_id} />
@@ -584,70 +607,6 @@ export default function AdminDistressAlertsPage() {
         </Card>
       </div>
 
-      {/* Trend Chart — built from real distress_logs data */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-8 h-8 bg-error-red/20 rounded-lg flex items-center justify-center">📉</div>
-          <p className="text-xs font-poppins text-dark-text/60">DISTRESS ALERT TREND — LAST 30 DAYS</p>
-        </div>
-        {(() => {
-          // Build a 30-day bucket array from the already-loaded logs
-          const today = new Date();
-          today.setHours(23, 59, 59, 999);
-          const days = Array.from({ length: 30 }, (_, i) => {
-            const d = new Date(today);
-            d.setDate(d.getDate() - (29 - i));
-            return d;
-          });
-
-          const counts = days.map((day) =>
-            logs.filter((log) => {
-              const d = new Date(log.created_at);
-              return (
-                d.getFullYear() === day.getFullYear() &&
-                d.getMonth() === day.getMonth() &&
-                d.getDate() === day.getDate()
-              );
-            }).length
-          );
-
-          const maxCount = Math.max(...counts, 1);
-
-          // Show only 6 evenly-spaced x-axis labels
-          const labelIndices = [0, 6, 12, 18, 24, 29];
-
-          return (
-            <div>
-              <div className="flex items-end gap-1 h-32">
-                {counts.map((count, i) => {
-                  const heightPct = Math.max((count / maxCount) * 100, count > 0 ? 8 : 2);
-                  return (
-                    <div
-                      key={i}
-                      className="flex-1 rounded-t-sm transition-all duration-300"
-                      style={{
-                        height: `${heightPct}%`,
-                        backgroundColor: count > 0 ? "#F4A6A6" : "#f3f4f6",
-                      }}
-                      title={`${days[i].toLocaleDateString("en-US", { month: "short", day: "numeric" })}: ${count} alert${count !== 1 ? "s" : ""}`}
-                    />
-                  );
-                })}
-              </div>
-              <div className="flex justify-between mt-2 px-0.5">
-                {labelIndices.map((idx) => (
-                  <span key={idx} className="text-[10px] text-dark-text/50 font-poppins">
-                    {days[idx].toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  </span>
-                ))}
-              </div>
-              {logs.length === 0 && !loading && (
-                <p className="text-xs text-dark-text/40 text-center mt-3 font-inter">No distress alerts in the last 30 days.</p>
-              )}
-            </div>
-          );
-        })()}
-      </Card>
 
       {selectedAlert && (
         <Portal>

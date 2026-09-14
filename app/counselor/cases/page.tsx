@@ -63,13 +63,37 @@ export default function CounselorCasesPage() {
     let mounted = true;
 
     async function load() {
+      if (!currentUser) return;
+
       setLoading(true);
       setError(null);
 
       try {
+        const counselorId = currentUser.id;
+        const { data: assignedProfiles, error: assignedProfilesError } = await supabase
+          .from("user_profiles")
+          .select("id,username,full_name")
+          .eq("role", "user")
+          .eq("assigned_counselor_id", counselorId);
+
+        if (assignedProfilesError) throw assignedProfilesError;
+
+        const assignedUserIds = ((assignedProfiles || []) as UserProfile[])
+          .map((profile) => profile.id)
+          .filter(Boolean);
+
+        if (assignedUserIds.length === 0) {
+          if (mounted) {
+            setLogs([]);
+            setEntriesByUser({});
+          }
+          return;
+        }
+
         const { data, error } = await supabase
           .from("distress_logs")
           .select("id,user_id,severity,trigger,notes,created_at")
+          .in("user_id", assignedUserIds)
           .order("created_at", { ascending: false })
           .limit(100);
 
@@ -78,7 +102,10 @@ export default function CounselorCasesPage() {
         const rawLogs = (data || []) as DistressLog[];
         const logUserIds = Array.from(new Set(rawLogs.map((log) => log.user_id).filter(Boolean))) as string[];
         let entries: JournalEntry[] = [];
-        let profilesById: Record<string, UserProfile> = {};
+        const profilesById = ((assignedProfiles || []) as UserProfile[]).reduce<Record<string, UserProfile>>((acc, profile) => {
+          acc[profile.id] = profile;
+          return acc;
+        }, {});
 
         if (logUserIds.length > 0) {
           const { data: entriesData, error: entriesError } = await supabase
@@ -92,20 +119,6 @@ export default function CounselorCasesPage() {
             console.error("Error loading alert journal entries:", entriesError);
           } else {
             entries = (entriesData || []) as JournalEntry[];
-          }
-
-          const { data: profilesData, error: profilesError } = await supabase
-            .from("user_profiles")
-            .select("id,username,full_name")
-            .in("id", logUserIds);
-
-          if (profilesError) {
-            console.error("Error loading alert user profiles:", profilesError);
-          } else {
-            profilesById = ((profilesData || []) as UserProfile[]).reduce<Record<string, UserProfile>>((acc, profile) => {
-              acc[profile.id] = profile;
-              return acc;
-            }, {});
           }
         }
 

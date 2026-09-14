@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { AnalysisResult } from "@/lib/sentiment";
 import { useAdaptiveResponse } from "@/hooks/useAdaptiveResponse";
+import AIReportErrorBoundary from "@/components/analysis/AIReportErrorBoundary";
 import { ACI_CATEGORY_CONFIG } from "@/lib/adaptive-response";
 import {
   CONFIDENCE_CONFIG,
@@ -50,6 +51,57 @@ const AGREEMENT_CONFIG = {
 } as const;
 
 // ── IG word token chip ────────────────────────────────────────────────────────
+const VALID_SENTIMENTS = new Set<AnalysisResult["sentiment"]>([
+  "positive",
+  "negative",
+  "distress",
+]);
+
+function clampNumber(value: unknown, min: number, max: number): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return min;
+  return Math.min(max, Math.max(min, numeric));
+}
+
+function normalizePercentages(
+  positive: unknown,
+  negative: unknown,
+  distress: unknown,
+) {
+  const raw = {
+    positive: clampNumber(positive, 0, 100),
+    negative: clampNumber(negative, 0, 100),
+    distress: clampNumber(distress, 0, 100),
+  };
+  const total = raw.positive + raw.negative + raw.distress;
+  if (total <= 0) {
+    return { positive: 0, negative: 0, distress: 0 };
+  }
+  const normalizedPositive = Math.round((raw.positive / total) * 100);
+  const normalizedNegative = Math.round((raw.negative / total) * 100);
+  return {
+    positive: normalizedPositive,
+    negative: normalizedNegative,
+    distress: Math.max(0, 100 - normalizedPositive - normalizedNegative),
+  };
+}
+
+function normalizeSentiment(value: unknown): AnalysisResult["sentiment"] {
+  return typeof value === "string" && VALID_SENTIMENTS.has(value as AnalysisResult["sentiment"])
+    ? (value as AnalysisResult["sentiment"])
+    : "positive";
+}
+
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, timeoutMs = 35_000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function IGWordChip({ attr }: { attr: WordAttribution }) {
   const { bg, text } = igWordColor(attr);
   const opacity = Math.max(0.25, attr.normalised);
@@ -97,6 +149,7 @@ export default function AIAnalysisPage() {
     loading: aciLoading,
     isRegenerating: aciRegenerating,
     hasResponse: aciHasResponse,
+    error: aciError,
     regenerate: aciRegenerate,
   } = useAdaptiveResponse(entryId);
 
@@ -108,6 +161,7 @@ export default function AIAnalysisPage() {
         .from("journal_entries")
         .select("*")
         .eq("id", entryId)
+        .eq("user_id", user.id)
         .single();
 
       if (error) {
@@ -119,17 +173,19 @@ export default function AIAnalysisPage() {
         setEntry(data);
         // Build AnalysisResult from the ML-predicted columns stored in the DB.
         // Sentiment score is stored 0-100 by the analyse route.
-        const sentiment = (data.sentiment ?? "positive") as AnalysisResult["sentiment"];
-        const sentimentScore = data.sentiment_score ?? (sentiment === "positive" ? 75 : sentiment === "distress" ? 10 : 35);
-        const positivePercentage = data.positive_percentage ?? (sentiment === "positive" ? 75 : 15);
-        const negativePercentage = data.negative_percentage ?? (sentiment === "negative" ? 70 : 20);
-        const distressPercentage = data.distress_percentage ?? (sentiment === "distress" ? 80 : 5);
+        const sentiment = normalizeSentiment(data.sentiment);
+        const sentimentScore = clampNumber(data.sentiment_score, 0, 100);
+        const percentages = normalizePercentages(
+          data.positive_percentage,
+          data.negative_percentage,
+          data.distress_percentage,
+        );
         setAnalysis({
           sentiment,
           sentimentScore,
-          positivePercentage,
-          negativePercentage,
-          distressPercentage,
+          positivePercentage: percentages.positive,
+          negativePercentage: percentages.negative,
+          distressPercentage: percentages.distress,
           emotions: Array.isArray(data.emotions) ? data.emotions : [],
           keyPhrases: [],
           feedback: data.feedback ?? "",
@@ -157,7 +213,7 @@ export default function AIAnalysisPage() {
     setExplainRequested(true);
 
     try {
-      const res = await fetch("/api/sentiment/explain", {
+      const res = await fetchWithTimeout("/api/sentiment/explain", {
         method:      "POST",
         credentials: "same-origin",
         headers:     { "Content-Type": "application/json" },
@@ -181,7 +237,9 @@ export default function AIAnalysisPage() {
         throw new Error("Unexpected response from explain endpoint");
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
+      const msg = err instanceof Error && err.name === "AbortError"
+        ? "Explanation request timed out. Please try again."
+        : err instanceof Error ? err.message : "Unknown error";
       setExplainError(msg);
       console.error("[analysis/explain]", msg);
     } finally {
@@ -403,6 +461,7 @@ export default function AIAnalysisPage() {
             className="border-l-4 rounded-2xl"
             style={{ borderLeftColor: aciCfg.borderColor }}
           >
+          <AIReportErrorBoundary>
           <Card className="p-6 bg-white shadow-sm rounded-l-none border-l-0">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 flex items-center gap-2">
@@ -427,6 +486,11 @@ export default function AIAnalysisPage() {
               <p className="text-xs text-dark-text/50 py-4 text-center">Generating your personalised response…</p>
             ) : !aciHasResponse || !aciResponse ? (
               <div className="space-y-3">
+                {aciError && (
+                  <p className="text-[11px] text-[#9B3A1E] font-inter bg-[#F4A6A6]/20 px-3 py-2 rounded-lg">
+                    {aciError}
+                  </p>
+                )}
                 <p className="text-xs text-dark-text/50 py-2">
                   Your adaptive response is being prepared. It will appear here shortly after analysis completes.
                 </p>
@@ -482,9 +546,11 @@ export default function AIAnalysisPage() {
               </div>
             )}
           </Card>
+          </AIReportErrorBoundary>
           </div>
 
           {/* ── EXPLAINABILITY PANEL ─────────────────────────────────── */}
+          <AIReportErrorBoundary>
           <Card className="p-6 bg-white shadow-sm">
             {/* Header */}
             <div className="flex items-center justify-between mb-1">
@@ -709,6 +775,7 @@ export default function AIAnalysisPage() {
               ) : null}
             </div>
           </Card>
+          </AIReportErrorBoundary>
           {/* ── END EXPLAINABILITY PANEL ──────────────────────────────── */}
 
           {/* Emotional Wellness Score */}

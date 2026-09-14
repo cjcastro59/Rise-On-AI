@@ -54,39 +54,60 @@ export default function CounselorAssignedUsersPage() {
       setLoading(true);
       try {
         const counselorId = currentUser.id;
-        // Fetch user profiles assigned to this counselor
-        const [usersRes, entriesRes] = await Promise.all([
+        const [{ data: profileRows, error: profileError }, { data: conversationRows, error: conversationError }] = await Promise.all([
           supabase
             .from("user_profiles")
-            .select("*")
+            .select("id")
             .eq("role", "user")
-            .eq("assigned_counselor_id", counselorId)
-            .order("created_at", { ascending: false }),
+            .eq("assigned_counselor_id", counselorId),
           supabase
-            .from("journal_entries")
-            .select("user_id, mood, sentiment, created_at")
-            .in(
-              "user_id",
-              (
-                await supabase
-                  .from("user_profiles")
-                  .select("id")
-                  .eq("assigned_counselor_id", counselorId)
-              ).data?.map((u: any) => u.id) || []
-            )
-            .order("created_at", { ascending: false })
-            .limit(500),
+            .from("conversations")
+            .select("user_id")
+            .eq("counselor_id", counselorId)
+            .eq("status", "open"),
         ]);
 
-        if (usersRes.error) {
-          console.error("Error fetching users:", usersRes.error);
-        } else {
-          const userList = usersRes.data || [];
-          setUsers(userList);
-        }
+        const usersError = profileError || conversationError;
+        const assignedUserIds = Array.from(new Set([
+          ...((profileRows || []) as { id: string }[]).map((row) => row.id),
+          ...((conversationRows || []) as { user_id: string }[]).map((row) => row.user_id),
+        ].filter(Boolean)));
 
-        if (!entriesRes.error && entriesRes.data) {
-          setJournalEntries(entriesRes.data);
+        const { data: usersData } = assignedUserIds.length === 0
+          ? { data: [] }
+          : await supabase
+          .from("user_profiles")
+          .select("*")
+          .eq("role", "user")
+          .in("id", assignedUserIds)
+          .order("created_at", { ascending: false });
+
+        if (usersError) {
+          console.error("Error fetching users:", usersError);
+          setUsers([]);
+          setJournalEntries([]);
+        } else {
+          const userList = usersData || [];
+          setUsers(userList);
+
+          if (assignedUserIds.length === 0) {
+            setJournalEntries([]);
+            return;
+          }
+
+          const { data: entriesData, error: entriesError } = await supabase
+            .from("journal_entries")
+            .select("user_id, mood, sentiment, created_at")
+            .in("user_id", assignedUserIds)
+            .order("created_at", { ascending: false })
+            .limit(500);
+
+          if (entriesError) {
+            console.error("Error fetching assigned user entries:", entriesError);
+            setJournalEntries([]);
+          } else {
+            setJournalEntries(entriesData || []);
+          }
         }
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -97,6 +118,10 @@ export default function CounselorAssignedUsersPage() {
 
     fetchData();
   }, [currentUser, supabase]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   // Process users to add computed data
   const processedUsers = users.map(user => {

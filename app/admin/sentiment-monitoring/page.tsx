@@ -47,7 +47,35 @@ const detectLanguage = (text: string): string => {
 
 const CIRCUMFERENCE = 2 * Math.PI * 40;
 
-const fmtPct = (n: number) => `${Math.round(n * 10) / 10}%`;
+const VALID_SENTIMENTS = new Set(["positive", "negative", "distress"]);
+
+const fmtPct = (n: number) =>
+  Number.isFinite(n) ? `${Math.round(n * 10) / 10}%` : "0%";
+
+const clampPercent = (value: unknown) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.min(100, Math.max(0, numeric)) : 0;
+};
+
+const normalizeConfidence = (value: unknown): number | null => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  const confidence = numeric > 1 ? numeric / 100 : numeric;
+  return Math.min(1, Math.max(0, confidence));
+};
+
+const normalizeSentiment = (value: unknown): "positive" | "negative" | "distress" | null =>
+  typeof value === "string" && VALID_SENTIMENTS.has(value)
+    ? (value as "positive" | "negative" | "distress")
+    : null;
+
+const percent = (value: number, total: number) =>
+  total > 0 ? (value / total) * 100 : 0;
+
+const safeIsoString = (value: unknown) => {
+  const date = new Date(String(value ?? ""));
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+};
 
 export default function AdminSentimentMonitoringPage() {
   const [selectedEntry, setSelectedEntry] = useState<string | null>(null);
@@ -118,32 +146,37 @@ export default function AdminSentimentMonitoringPage() {
   // Returns null when there is no data to avoid showing a fabricated fallback.
   const agreement = useMemo((): number | null => {
     if (totalEntries === 0) return null;
-    let matched = 0;
-    let considered = 0;
+    let matchedWeight = 0;
+    let totalWeight = 0;
     for (const e of entries) {
-      if (!e.sentiment || !e.mood) continue;
+      const sentiment = normalizeSentiment(e.sentiment);
+      if (!sentiment || !e.mood) continue;
       const moodLower = (e.mood || "").toLowerCase();
-      let expected: string | null = null;
+      let expected: "positive" | "negative" | null = null;
       if (["happy", "excited", "calm"].some(t => moodLower.includes(t))) expected = "positive";
-      else if (["sad", "overwhelmed", "frustrated"].some(t => moodLower.includes(t))) {
-        expected = e.sentiment === "distress" ? "distress" : "negative";
-      }
+      else if (["sad", "overwhelmed", "frustrated", "anxious"].some(t => moodLower.includes(t))) expected = "negative";
       if (expected) {
-        considered++;
-        if (e.sentiment === expected) matched += Math.max(0.5, Number(e.confidence) || 0.7);
+        const weight = normalizeConfidence(e.confidence) ?? 0.5;
+        totalWeight += Math.max(0.01, weight);
+        const isMatch = expected === "positive"
+          ? sentiment === "positive"
+          : sentiment === "negative" || sentiment === "distress";
+        if (isMatch) matchedWeight += Math.max(0.01, weight);
       }
     }
-    if (considered === 0) return null;
-    return Math.min(99.5, Math.max(0, (matched / considered) * 100));
+    if (totalWeight === 0) return null;
+    return Math.min(100, Math.max(0, (matchedWeight / totalWeight) * 100));
   }, [entries, totalEntries]);
 
   // Avg confidence — null when no entries so we never show a fabricated fallback.
   const avgConfidence = useMemo((): number | null => {
     if (totalEntries === 0) return null;
-    const withConf = entries.filter(e => e.confidence != null);
-    if (withConf.length === 0) return null;
-    const sum = withConf.reduce((acc, e) => acc + (Number(e.confidence) || 0), 0);
-    return sum / withConf.length;
+    const values = entries
+      .map((e) => normalizeConfidence(e.confidence))
+      .filter((value): value is number => value !== null);
+    if (values.length === 0) return null;
+    const sum = values.reduce((acc, value) => acc + value, 0);
+    return sum / values.length;
   }, [entries, totalEntries]);
 
   // Language distribution — confidence averages are derived from real entries, not randomized.
@@ -154,25 +187,25 @@ export default function AdminSentimentMonitoringPage() {
     let englishConfSum = 0, englishConfCount = 0;
     for (const e of sample) {
       const lang = detectLanguage(`${e.title || ""} ${e.content || ""}`);
-      const conf = Number(e.confidence) || 0;
+      const conf = normalizeConfidence(e.confidence);
       if (lang === "Tagalog") {
         tagalog++;
-        if (e.confidence != null) { tagalogConfSum += conf; tagalogConfCount++; }
+        if (conf !== null) { tagalogConfSum += conf; tagalogConfCount++; }
       } else if (lang === "Taglish") {
         taglish++;
         // Count Taglish confidence toward both pools (half weight each)
-        if (e.confidence != null) {
+        if (conf !== null) {
           tagalogConfSum += conf * 0.5; tagalogConfCount += 0.5;
           englishConfSum += conf * 0.5; englishConfCount += 0.5;
         }
       } else {
         english++;
-        if (e.confidence != null) { englishConfSum += conf; englishConfCount++; }
+        if (conf !== null) { englishConfSum += conf; englishConfCount++; }
       }
     }
-    const total = sample.length || 1;
+    const total = sample.length;
     return {
-      tagalogPct: ((tagalog + 0.5 * taglish) / total) * 100,
+      tagalogPct: percent(tagalog + 0.5 * taglish, total),
       // Average confidence per language group as a percentage; null when no data
       englishAcc: englishConfCount > 0 ? (englishConfSum / englishConfCount) * 100 : null,
       tagalogAcc: tagalogConfCount > 0 ? (tagalogConfSum / tagalogConfCount) * 100 : null,
@@ -181,20 +214,24 @@ export default function AdminSentimentMonitoringPage() {
 
   // Confidence distribution buckets
   const confidenceBuckets = useMemo(() => {
-    if (totalEntries === 0) return { veryHigh: 60, high: 28, medium: 10, low: 2 };
+    if (totalEntries === 0) return { veryHigh: 0, high: 0, medium: 0, low: 0 };
     let veryHigh = 0, high = 0, medium = 0, low = 0;
+    let totalWithConfidence = 0;
     for (const e of entries) {
-      const c = Number(e.confidence) || 0;
+      const c = normalizeConfidence(e.confidence);
+      if (c === null) continue;
+      totalWithConfidence++;
       if (c >= 0.9) veryHigh++;
       else if (c >= 0.7) high++;
       else if (c >= 0.6) medium++;
       else low++;
     }
+    if (totalWithConfidence === 0) return { veryHigh: 0, high: 0, medium: 0, low: 0 };
     return {
-      veryHigh: (veryHigh / totalEntries) * 100,
-      high: (high / totalEntries) * 100,
-      medium: (medium / totalEntries) * 100,
-      low: (low / totalEntries) * 100,
+      veryHigh: percent(veryHigh, totalWithConfidence),
+      high: percent(high, totalWithConfidence),
+      medium: percent(medium, totalWithConfidence),
+      low: percent(low, totalWithConfidence),
     };
   }, [entries, totalEntries]);
 
@@ -205,23 +242,22 @@ export default function AdminSentimentMonitoringPage() {
     let joy = 0, calm = 0, anxiety = 0, distress = 0;
     const data = last24hEntries.length ? last24hEntries : entries.slice(0, 100);
     for (const e of data) {
-      const s = e.sentiment;
+      const s = normalizeSentiment(e.sentiment);
       if (s === "positive") joy++;
       else if (s === "negative") anxiety++;
       else if (s === "distress") distress++;
-      else calm++;
       const emos: string[] = Array.isArray(e.emotions) ? e.emotions : [];
       const emosLower = emos.map(x => x.toLowerCase());
       if (emosLower.some(x => ["calm", "relaxed", "peaceful", "serene", "chill"].includes(x))) { calm++; joy = Math.max(0, joy - 0.3); }
       if (emosLower.some(x => ["joy", "happy", "excited", "grateful", "love"].includes(x))) joy++;
     }
-    const total = joy + calm + anxiety + distress || 1;
+    const total = joy + calm + anxiety + distress;
     return {
-      joy: (joy / total) * 100,
-      calm: (calm / total) * 100,
-      anxiety: (anxiety / total) * 100,
-      distress: (distress / total) * 100,
-      positive: ((joy + calm) / total) * 100,
+      joy: percent(joy, total),
+      calm: percent(calm, total),
+      anxiety: percent(anxiety, total),
+      distress: percent(distress, total),
+      positive: percent(joy + calm, total),
     };
   }, [last24hEntries, entries]);
 
@@ -229,19 +265,23 @@ export default function AdminSentimentMonitoringPage() {
   const lowConfidenceQueue = useMemo(() => {
     const queue = entries
       .filter(e => {
-        const c = Number(e.confidence);
-        return !isNaN(c) && c < 0.65;
+        const c = normalizeConfidence(e.confidence);
+        return c !== null && c < 0.65;
       })
       .slice(0, 20)
-      .map(e => ({
-        id: `E-${e.id.slice(0, 4).toUpperCase()}`,
+      .map(e => {
+        const confidence = normalizeConfidence(e.confidence) ?? 0;
+        const sentiment = normalizeSentiment(e.sentiment);
+        return {
+        id: `E-${String(e.id || "xxxx").slice(0, 4).toUpperCase()}`,
         entryId: e.id,
         userId: `U-${(e.user_id || "xxxx").slice(0, 4).toUpperCase()}`,
         timestamp: new Date(e.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }),
         language: detectLanguage(`${e.title || ""} ${e.content || ""}`),
-        aiScore: e.sentiment === "positive" ? "Positive" : e.sentiment === "negative" ? "Negative" : e.sentiment === "distress" ? "Distress" : "Uncertain",
-        confidence: Math.round((Number(e.confidence) || 0) * 100) + "%",
-      }));
+        aiScore: sentiment === "positive" ? "Positive" : sentiment === "negative" ? "Negative" : sentiment === "distress" ? "Distress" : "Uncertain",
+        confidence: Math.round(confidence * 100) + "%",
+      };
+      });
     return queue;
   }, [entries]);
 
@@ -254,13 +294,13 @@ export default function AdminSentimentMonitoringPage() {
       rows.push([
         e.id,
         e.user_id,
-        new Date(e.created_at).toISOString(),
+        safeIsoString(e.created_at),
         detectLanguage(`${e.title || ""} ${e.content || ""}`),
-        e.sentiment || "",
-        String(Math.round((Number(e.confidence) || 0) * 100)),
-        String(e.positive_percentage ?? ""),
-        String(e.negative_percentage ?? ""),
-        String(e.distress_percentage ?? ""),
+        normalizeSentiment(e.sentiment) || "",
+        String(Math.round((normalizeConfidence(e.confidence) ?? 0) * 100)),
+        String(clampPercent(e.positive_percentage)),
+        String(clampPercent(e.negative_percentage)),
+        String(clampPercent(e.distress_percentage)),
         e.mood || "",
         e.sentiment_model || "",
       ]);
@@ -386,7 +426,7 @@ export default function AdminSentimentMonitoringPage() {
                 <div className="flex items-center gap-2">
                   <p className={`text-xs font-inter ${row.valueColor} w-12 text-right`}>{fmtPct(row.pct)}</p>
                   <div className="w-40 h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div className={`h-full bg-gradient-to-r ${row.color}`} style={{ width: `${Math.max(2, Math.min(100, row.pct))}%` }}></div>
+                    <div className={`h-full bg-gradient-to-r ${row.color}`} style={{ width: `${row.pct > 0 ? Math.max(2, Math.min(100, row.pct)) : 0}%` }}></div>
                   </div>
                 </div>
               </div>

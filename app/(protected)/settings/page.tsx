@@ -10,12 +10,29 @@ import { useAuth } from "@/hooks/useAuth";
 import { authenticator } from "@otplib/preset-default";
 import { QRCodeSVG } from "qrcode.react";
 import { useRouter } from "next/navigation";
+import { buildCsvExport, buildJsonExport, downloadTextFile, type ExportSection } from "@/lib/export-data";
+import { validatePasswordStrength } from "@/lib/password";
 
 type SettingSection = "notifications" | "privacy" | "language" | "security" | "data" | "account";
 
 const flash = (setter: (m: string) => void, msg: string, ms = 3500) => {
   setter(msg);
   setTimeout(() => setter(""), ms);
+};
+
+const readLocalPreference = <T,>(userId: string, key: string, fallback: T): T => {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const value = window.localStorage.getItem(`rise-on-ai:${userId}:${key}`);
+    return value ? ({ ...fallback, ...JSON.parse(value) } as T) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const writeLocalPreference = (userId: string, key: string, value: unknown) => {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(`rise-on-ai:${userId}:${key}`, JSON.stringify(value));
 };
 
 export default function SettingsPage() {
@@ -63,23 +80,30 @@ export default function SettingsPage() {
     try {
       const { data, error } = await supabase
         .from("user_profiles")
-        .select("mood_reminder_enabled, reminder_time, weekly_report_enabled, ai_insight_alerts_enabled, streak_reminder_enabled, share_anonymous_data, profile_visibility, preferred_language, two_factor_enabled")
+        .select("mood_reminder_enabled, mood_reminder_time, language, two_factor_enabled")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
       if (error) return;
       if (data) {
+        const storedNotificationSettings = readLocalPreference(
+          user.id,
+          "notification-settings",
+          notificationSettings,
+        );
+        const storedPrivacySettings = readLocalPreference(
+          user.id,
+          "privacy-settings",
+          privacySettings,
+        );
         setNotificationSettings({
           dailyReminder: data.mood_reminder_enabled ?? true,
-          weeklyReport: data.weekly_report_enabled ?? true,
-          aiAlerts: data.ai_insight_alerts_enabled ?? true,
-          streakReminder: data.streak_reminder_enabled ?? false,
-          reminderTime: data.reminder_time || "20:00",
+          weeklyReport: storedNotificationSettings.weeklyReport,
+          aiAlerts: storedNotificationSettings.aiAlerts,
+          streakReminder: storedNotificationSettings.streakReminder,
+          reminderTime: data.mood_reminder_time || storedNotificationSettings.reminderTime || "20:00",
         });
-        setPrivacySettings({
-          shareAnonymousData: data.share_anonymous_data ?? true,
-          profileVisibility: data.profile_visibility || "private",
-        });
-        setLanguage(data.preferred_language || "English");
+        setPrivacySettings(storedPrivacySettings);
+        setLanguage(data.language || "English");
         setTwoFactorEnabled(Boolean(data.two_factor_enabled));
       }
     } catch {
@@ -110,15 +134,16 @@ export default function SettingsPage() {
     if (!user) return;
     try {
       setSaving(true);
+      if (!/^\d{2}:\d{2}$/.test(notificationSettings.reminderTime)) {
+        throw new Error("Please choose a valid reminder time.");
+      }
       const { error } = await supabase.from("user_profiles").update({
         mood_reminder_enabled: notificationSettings.dailyReminder,
-        reminder_time: notificationSettings.reminderTime,
-        weekly_report_enabled: notificationSettings.weeklyReport,
-        ai_insight_alerts_enabled: notificationSettings.aiAlerts,
-        streak_reminder_enabled: notificationSettings.streakReminder,
+        mood_reminder_time: notificationSettings.reminderTime,
         updated_at: new Date().toISOString(),
       }).eq("id", user.id);
       if (error) throw error;
+      writeLocalPreference(user.id, "notification-settings", notificationSettings);
       flash(setSuccess, "✅ Notification settings saved!");
     } catch (e: any) {
       flash(setError, "❌ Failed to save: " + (e.message || "unknown error"));
@@ -131,12 +156,7 @@ export default function SettingsPage() {
     if (!user) return;
     try {
       setSaving(true);
-      const { error } = await supabase.from("user_profiles").update({
-        share_anonymous_data: privacySettings.shareAnonymousData,
-        profile_visibility: privacySettings.profileVisibility,
-        updated_at: new Date().toISOString(),
-      }).eq("id", user.id);
-      if (error) throw error;
+      writeLocalPreference(user.id, "privacy-settings", privacySettings);
       flash(setSuccess, "✅ Privacy settings saved!");
     } catch (e: any) {
       flash(setError, "❌ Failed to save: " + (e.message || "unknown error"));
@@ -150,7 +170,7 @@ export default function SettingsPage() {
     try {
       setSaving(true);
       const { error } = await supabase.from("user_profiles").update({
-        preferred_language: language,
+        language,
         updated_at: new Date().toISOString(),
       }).eq("id", user.id);
       if (error) throw error;
@@ -168,8 +188,9 @@ export default function SettingsPage() {
       flash(setError, "Please fill in all password fields");
       return;
     }
-    if (pwNew.length < 6) {
-      flash(setError, "New password must be at least 6 characters");
+    const passwordValidationError = validatePasswordStrength(pwNew);
+    if (passwordValidationError) {
+      flash(setError, passwordValidationError);
       return;
     }
     if (pwNew !== pwConfirm) {
@@ -178,10 +199,18 @@ export default function SettingsPage() {
     }
     try {
       setPwLoading(true);
-      const { error } = await supabase.auth.updateUser({
-        password: pwNew,
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: pwCurrent,
+          newPassword: pwNew,
+        }),
       });
-      if (error) throw error;
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to change password.");
+      }
       setShowChangePw(false);
       setPwCurrent(""); setPwNew(""); setPwConfirm("");
       flash(setSuccess, "✅ Password changed successfully!");
@@ -243,6 +272,79 @@ export default function SettingsPage() {
     }
   };
 
+  const downloadSettingsData = async (format: "json" | "csv") => {
+    if (!user) return;
+
+    const fetchRows = async (label: string, query: any) => {
+      try {
+        const { data, error } = await query;
+        if (error) {
+          console.warn(`[settings export] ${label} skipped:`, error.message);
+          return [];
+        }
+        return Array.isArray(data) ? data : data ? [data] : [];
+      } catch (err) {
+        console.warn(`[settings export] ${label} skipped:`, err);
+        return [];
+      }
+    };
+
+    try {
+      setSaving(true);
+      const [
+        profile,
+        entries,
+        moods,
+        indicators,
+        conversations,
+        distressLogs,
+        riskAssessments,
+        aciResponses,
+      ] = await Promise.all([
+        fetchRows("profile", supabase.from("user_profiles").select("*").eq("id", user.id).maybeSingle()),
+        fetchRows("journal entries", supabase.from("journal_entries").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5000)),
+        fetchRows("mood logs", supabase.from("mood_logs").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5000)),
+        fetchRows("behavioral indicators", supabase.from("behavioral_indicators").select("*").eq("user_id", user.id).order("window_end_date", { ascending: false }).limit(2000)),
+        fetchRows("support conversations", supabase.from("conversations").select("*").eq("user_id", user.id).limit(2000)),
+        fetchRows("distress logs", supabase.from("distress_logs").select("*").eq("user_id", user.id).limit(2000)),
+        fetchRows("risk assessments", supabase.from("distress_risk_assessments").select("*").eq("user_id", user.id).limit(2000)),
+        fetchRows("adaptive responses", supabase.from("aci_responses").select("*").eq("user_id", user.id).limit(2000)),
+      ]);
+
+      const sections: ExportSection[] = [
+        { name: "userProfile", rows: profile },
+        { name: "journalEntries", rows: entries },
+        { name: "moodLogs", rows: moods },
+        { name: "behavioralIndicators", rows: indicators },
+        { name: "supportConversations", rows: conversations },
+        { name: "distressLogs", rows: distressLogs },
+        { name: "riskAssessments", rows: riskAssessments },
+        { name: "adaptiveResponses", rows: aciResponses },
+        { name: "localNotificationPreferences", rows: [notificationSettings] },
+        { name: "localPrivacyPreferences", rows: [privacySettings] },
+      ];
+      const metadata = {
+        title: "Rise On AI - User Data Export",
+        subject: (profile[0] as any)?.email || user.email || user.id,
+      };
+      const date = new Date().toISOString().slice(0, 10);
+      const content = format === "csv"
+        ? buildCsvExport(metadata, sections)
+        : buildJsonExport(metadata, sections);
+
+      downloadTextFile(
+        `rise-on-ai-data-export-${date}.${format}`,
+        content,
+        format === "csv" ? "text/csv" : "application/json",
+      );
+      flash(setSuccess, "Data export downloaded.");
+    } catch (e: any) {
+      flash(setError, "Failed to export: " + (e.message || "unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     if (!user) return;
     if (deleteConfirmText.trim().toLowerCase() !== "delete my account") {
@@ -269,11 +371,12 @@ export default function SettingsPage() {
       // Step 2: Soft-delete / anonymise the profile row
       try {
         await supabase.from("user_profiles").update({
-          status: "deactivated",
+          is_active: false,
           first_name: "Deleted",
           last_name: "User",
           emergency_contact_name: null,
-          emergency_contact_number: null,
+          emergency_contact_phone: null,
+          emergency_contact_relation: null,
           avatar_url: null,
           bio: null,
           updated_at: new Date().toISOString(),
@@ -663,8 +766,11 @@ export default function SettingsPage() {
               <div className="text-green-600 text-xs bg-green-100 p-3 rounded-lg font-poppins">{success}</div>
             )}
             <div className="flex flex-col gap-3">
-              <Button variant="secondary" onClick={downloadAllData} disabled={saving}>
+              <Button variant="secondary" onClick={() => downloadSettingsData("json")} disabled={saving}>
                 {saving ? "Preparing..." : "📥 Download All My Data"}
+              </Button>
+              <Button variant="secondary" onClick={() => downloadSettingsData("csv")} disabled={saving}>
+                {saving ? "Preparing..." : "Download CSV"}
               </Button>
               <Button variant="ghost" className="text-soft-red" onClick={() => setShowDeleteConfirm(true)}>
                 🗑️ Delete My Account
@@ -800,8 +906,11 @@ export default function SettingsPage() {
                 <Input type="password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} placeholder="Enter current password" />
               </div>
               <div>
-                <label className="text-xs font-poppins text-dark-text/70 mb-1 block">New Password (min 6 chars)</label>
+                <label className="text-xs font-poppins text-dark-text/70 mb-1 block">New Password</label>
                 <Input type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} placeholder="Enter new password" />
+                <p className="mt-1 text-[11px] text-dark-text/50 font-inter">
+                  Use at least 8 characters with uppercase, lowercase, number, and special character.
+                </p>
               </div>
               <div>
                 <label className="text-xs font-poppins text-dark-text/70 mb-1 block">Confirm New Password</label>

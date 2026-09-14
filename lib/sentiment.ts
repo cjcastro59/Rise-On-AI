@@ -38,11 +38,12 @@ export interface AnalysisResult {
 // =====================================================
 
 export const getSentimentFromMood = (mood: string | null): Sentiment => {
-  const positiveMoods = ["Happy", "Calm", "Excited"];
-  const negativeMoods = ["Anxious", "Sad", "Frustrated", "Overwhelmed"];
+  const positiveMoods = ["happy", "calm", "excited"];
+  const negativeMoods = ["anxious", "sad", "frustrated", "overwhelmed"];
   if (!mood) return "positive";
-  if (positiveMoods.includes(mood)) return "positive";
-  if (negativeMoods.includes(mood)) return "negative";
+  const normalized = mood.toLowerCase();
+  if (positiveMoods.includes(normalized)) return "positive";
+  if (negativeMoods.includes(normalized)) return "negative";
   return "positive";
 };
 
@@ -60,6 +61,102 @@ export const getMoodCategory = (
   return "calm";
 };
 
+const DISTRESS_TERMS = [
+  "kill myself",
+  "suicide",
+  "suicidal",
+  "want to die",
+  "i want to die",
+  "end it all",
+  "end my life",
+  "harm myself",
+  "can't take it anymore",
+  "cannot take it anymore",
+  "mamatay",
+  "magpakamatay",
+  "gusto ko na mamatay",
+  "wala nang point",
+  "ayoko na mabuhay",
+];
+
+const NEGATIVE_TERMS = [
+  "sad",
+  "exhausted",
+  "terrible",
+  "wrong",
+  "anxious",
+  "anxiety",
+  "overwhelmed",
+  "frustrated",
+  "lonely",
+  "depressed",
+  "stress",
+  "stressed",
+  "afraid",
+  "scared",
+  "angry",
+  "pagod",
+  "lungkot",
+  "malungkot",
+  "takot",
+  "galit",
+  "hirap",
+  "mahirap",
+];
+
+const POSITIVE_TERMS = [
+  "happy",
+  "grateful",
+  "thankful",
+  "amazing",
+  "wonderful",
+  "great",
+  "good",
+  "okay",
+  "calm",
+  "excited",
+  "hopeful",
+  "love",
+  "masaya",
+  "salamat",
+  "mahal",
+  "saya",
+];
+
+function cleanText(text: string | null): string {
+  return (text ?? "")
+    .replace(/<[^>]*>/g, " ")
+    .normalize("NFC")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function countMatches(text: string, terms: string[]): number {
+  if (!text) return 0;
+  return terms.reduce((count, term) => count + (text.includes(term) ? 1 : 0), 0);
+}
+
+function normalizePercentages(positive: number, negative: number, distress: number) {
+  const pos = Number.isFinite(positive) ? Math.max(0, positive) : 0;
+  const neg = Number.isFinite(negative) ? Math.max(0, negative) : 0;
+  const dst = Number.isFinite(distress) ? Math.max(0, distress) : 0;
+  const total = pos + neg + dst;
+  if (total <= 0) return { positive: 80, negative: 15, distress: 5 };
+
+  const positivePercentage = Math.round((pos / total) * 100);
+  const negativePercentage = Math.round((neg / total) * 100);
+  return {
+    positive: positivePercentage,
+    negative: negativePercentage,
+    distress: Math.max(0, 100 - positivePercentage - negativePercentage),
+  };
+}
+
+function clampScore(score: number): number {
+  return Math.min(100, Math.max(0, Math.round(score)));
+}
+
 // =====================================================
 // THIN SHIMS  (kept so callers that haven't migrated yet
 //              still compile — they return ML-neutral defaults)
@@ -72,27 +169,91 @@ export const getMoodCategory = (
  *              triggers keyword-based alerts.
  */
 export function analyzeEntry(
-  _text: string | null,
-  _mood: string | null = null
+  text: string | null,
+  mood: string | null = null
 ): AnalysisResult {
+  const cleaned = cleanText(text);
+  const distressHits = countMatches(cleaned, DISTRESS_TERMS);
+  const negativeHits = countMatches(cleaned, NEGATIVE_TERMS);
+  const positiveHits = countMatches(cleaned, POSITIVE_TERMS);
+  const moodSentiment = getSentimentFromMood(mood);
+
+  let positiveWeight = 1 + positiveHits * 2.5;
+  let negativeWeight = 1 + negativeHits * 2.5;
+  let distressWeight = 0.5 + distressHits * 8;
+
+  if (moodSentiment === "positive") positiveWeight += 1.5;
+  if (moodSentiment === "negative") negativeWeight += 1.5;
+
+  if (!cleaned) {
+    positiveWeight = 6;
+    negativeWeight = 1.5;
+    distressWeight = 0.5;
+  }
+
+  const percentages = normalizePercentages(
+    positiveWeight,
+    negativeWeight,
+    distressWeight,
+  );
+
+  let sentiment: Sentiment = "positive";
+  if (distressHits > 0 || percentages.distress >= Math.max(percentages.positive, percentages.negative)) {
+    sentiment = "distress";
+  } else if (percentages.negative > percentages.positive) {
+    sentiment = "negative";
+  }
+
+  const sentimentScore = sentiment === "positive"
+    ? clampScore(50 + percentages.positive * 0.5)
+    : sentiment === "negative"
+      ? clampScore(50 - percentages.negative * 0.4 - percentages.distress * 0.2)
+      : clampScore(25 - percentages.distress * 0.25);
+
   return {
-    sentiment: "positive",
-    sentimentScore: 75,
-    positivePercentage: 75,
-    negativePercentage: 20,
-    distressPercentage: 5,
-    emotions: ["Calm"],
+    sentiment,
+    sentimentScore,
+    positivePercentage: percentages.positive,
+    negativePercentage: percentages.negative,
+    distressPercentage: percentages.distress,
+    emotions:
+      sentiment === "positive" ? ["Calm", "Hope"] :
+      sentiment === "negative" ? ["Sadness", "Stress"] :
+      ["Distress"],
     keyPhrases: [],
-    feedback: "",
-    reflection: "",
-    suggestions: [],
+    feedback:
+      sentiment === "positive"
+        ? "Your entry shows a generally positive emotional signal."
+        : sentiment === "negative"
+          ? "Your entry suggests difficult feelings that may benefit from reflection and support."
+          : "Your entry contains distress signals. Please consider reaching out to a trusted person or support resource.",
+    reflection:
+      sentiment === "positive"
+        ? "What helped this moment feel manageable or encouraging?"
+        : "What is one small step that could make the next hour feel safer or easier?",
+    suggestions:
+      sentiment === "positive"
+        ? ["Notice what helped today.", "Keep journaling consistently."]
+        : sentiment === "negative"
+          ? ["Take a short grounding break.", "Reach out to someone you trust.", "Write one concrete next step."]
+          : ["Contact emergency support if you feel unsafe.", "Tell a trusted person how you feel.", "Move to a safer shared space."],
   };
 }
 
 /**
  * @deprecated  Use the stored `sentiment` column from the DB.
  */
-export const analyzeSentiment = (_text: string | null): Sentiment => "positive";
+export const analyzeSentiment = (text: string | null): Sentiment => {
+  const cleaned = cleanText(text);
+  const distressHits = countMatches(cleaned, DISTRESS_TERMS);
+  if (distressHits > 0) return "distress";
+
+  const positiveHits = countMatches(cleaned, POSITIVE_TERMS);
+  const negativeHits = countMatches(cleaned, NEGATIVE_TERMS);
+
+  if (negativeHits > positiveHits) return "negative";
+  return "positive";
+};
 
 // =====================================================
 // TREND DETECTION  (operates on stored ML sentiment values)

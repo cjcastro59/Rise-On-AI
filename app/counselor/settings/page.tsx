@@ -11,12 +11,29 @@ import { authenticator } from "@otplib/preset-default";
 import { QRCodeSVG } from "qrcode.react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { buildCsvExport, buildJsonExport, downloadTextFile, type ExportSection } from "@/lib/export-data";
+import { validatePasswordStrength } from "@/lib/password";
 
 type SettingSection = "counselor" | "notifications" | "privacy" | "language" | "security" | "data" | "account";
 
 const flash = (setter: (m: string) => void, msg: string, ms = 3500) => {
   setter(msg);
   setTimeout(() => setter(""), ms);
+};
+
+const readLocalPreference = <T,>(userId: string, key: string, fallback: T): T => {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const value = window.localStorage.getItem(`rise-on-ai:${userId}:${key}`);
+    return value ? ({ ...fallback, ...JSON.parse(value) } as T) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const writeLocalPreference = (userId: string, key: string, value: unknown) => {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(`rise-on-ai:${userId}:${key}`, JSON.stringify(value));
 };
 
 export default function CounselorSettingsPage() {
@@ -63,23 +80,26 @@ export default function CounselorSettingsPage() {
     try {
       const { data, error: err } = await supabase
         .from("user_profiles")
-        .select("two_factor_enabled, is_online, email_alerts_enabled, new_case_alerts_enabled, message_alerts_enabled, share_anonymous_data, profile_visibility, preferred_language")
+        .select("two_factor_enabled, is_online, language")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
       if (err) return;
       if (data) {
+        const storedNotificationSettings = readLocalPreference(
+          user.id,
+          "counselor-notification-settings",
+          notificationSettings,
+        );
+        const storedPrivacySettings = readLocalPreference(
+          user.id,
+          "counselor-privacy-settings",
+          privacySettings,
+        );
         setTwoFactorEnabled(Boolean(data.two_factor_enabled));
         setIsOnline(Boolean(data.is_online));
-        setNotificationSettings({
-          emailAlerts: data.email_alerts_enabled ?? true,
-          newCaseAlerts: data.new_case_alerts_enabled ?? true,
-          messageAlerts: data.message_alerts_enabled ?? true,
-        });
-        setPrivacySettings({
-          shareAnonymousData: data.share_anonymous_data ?? true,
-          profileVisibility: data.profile_visibility || "private",
-        });
-        setLanguage(data.preferred_language || "English");
+        setNotificationSettings(storedNotificationSettings);
+        setPrivacySettings(storedPrivacySettings);
+        setLanguage(data.language || "English");
       }
     } catch {
       /* ignore */
@@ -110,13 +130,7 @@ export default function CounselorSettingsPage() {
     if (!user) return;
     try {
       setSaving(true);
-      const { error } = await supabase.from("user_profiles").update({
-        email_alerts_enabled: notificationSettings.emailAlerts,
-        new_case_alerts_enabled: notificationSettings.newCaseAlerts,
-        message_alerts_enabled: notificationSettings.messageAlerts,
-        updated_at: new Date().toISOString(),
-      }).eq("id", user.id);
-      if (error) throw error;
+      writeLocalPreference(user.id, "counselor-notification-settings", notificationSettings);
       flash(setSuccess, "✅ Notification settings saved!");
     } catch (e: any) {
       flash(setError, "❌ " + (e.message || "Failed to save"));
@@ -129,12 +143,7 @@ export default function CounselorSettingsPage() {
     if (!user) return;
     try {
       setSaving(true);
-      const { error } = await supabase.from("user_profiles").update({
-        share_anonymous_data: privacySettings.shareAnonymousData,
-        profile_visibility: privacySettings.profileVisibility,
-        updated_at: new Date().toISOString(),
-      }).eq("id", user.id);
-      if (error) throw error;
+      writeLocalPreference(user.id, "counselor-privacy-settings", privacySettings);
       flash(setSuccess, "✅ Privacy settings saved!");
     } catch (e: any) {
       flash(setError, "❌ " + (e.message || "Failed to save"));
@@ -148,7 +157,7 @@ export default function CounselorSettingsPage() {
     try {
       setSaving(true);
       const { error } = await supabase.from("user_profiles").update({
-        preferred_language: language,
+        language,
         updated_at: new Date().toISOString(),
       }).eq("id", user.id);
       if (error) throw error;
@@ -162,13 +171,22 @@ export default function CounselorSettingsPage() {
 
   const handleChangePassword = async () => {
     if (!user) return;
-    if (!pwNew || !pwConfirm) { flash(setError, "Please fill in new password fields"); return; }
-    if (pwNew.length < 6) { flash(setError, "New password must be at least 6 characters"); return; }
+    if (!pwCurrent || !pwNew || !pwConfirm) { flash(setError, "Please fill in all password fields"); return; }
+    const passwordValidationError = validatePasswordStrength(pwNew);
+    if (passwordValidationError) { flash(setError, passwordValidationError); return; }
     if (pwNew !== pwConfirm) { flash(setError, "New passwords don't match"); return; }
     try {
       setPwLoading(true);
-      const { error } = await supabase.auth.updateUser({ password: pwNew });
-      if (error) throw error;
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: pwCurrent,
+          newPassword: pwNew,
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Failed to change password");
       setShowChangePw(false);
       setPwCurrent(""); setPwNew(""); setPwConfirm("");
       flash(setSuccess, "✅ Password changed!");
@@ -191,7 +209,7 @@ export default function CounselorSettingsPage() {
       const [{ data: profile }, { data: convs }, { data: notes }] = await Promise.all([
         supabase.from("user_profiles").select("*").eq("id", user.id).single(),
         supabase.from("conversations").select("*").eq("counselor_id", user.id).limit(1000),
-        supabase.from("counselor_notes").select("*").eq("counselor_id", user.id).limit(2000),
+        supabase.from("notes").select("*").eq("user_id", user.id).limit(2000),
       ] as any);
       chunks.push(`# Rise On AI - Counselor Data Export for ${(profile as any)?.email || user.email}\n`);
       chunks.push(`Generated: ${new Date().toISOString()}\n`);
@@ -201,7 +219,8 @@ export default function CounselorSettingsPage() {
       try {
         const { data: assignedUsers } = await supabase
           .from("user_profiles")
-          .select("id, first_name, last_name, created_at, status")
+          .select("id, first_name, last_name, created_at, is_active")
+          .eq("role", "user")
           .eq("assigned_counselor_id", user.id).limit(5000);
         addSection("Assigned Clients", assignedUsers || []);
       } catch { /* ignore */ }
@@ -220,6 +239,106 @@ export default function CounselorSettingsPage() {
     }
   };
 
+  const downloadCounselorData = async (format: "json" | "csv") => {
+    if (!user) return;
+
+    const fetchRows = async (label: string, query: any) => {
+      try {
+        const { data, error } = await query;
+        if (error) {
+          console.warn(`[counselor settings export] ${label} skipped:`, error.message);
+          return [];
+        }
+        return Array.isArray(data) ? data : data ? [data] : [];
+      } catch (err) {
+        console.warn(`[counselor settings export] ${label} skipped:`, err);
+        return [];
+      }
+    };
+
+    try {
+      setSaving(true);
+      const [profile, conversations, notes, assignedUsers] = await Promise.all([
+        fetchRows("profile", supabase.from("user_profiles").select("*").eq("id", user.id).maybeSingle()),
+        fetchRows("conversations", supabase.from("conversations").select("*").eq("counselor_id", user.id).limit(1000)),
+        fetchRows("notes", supabase.from("notes").select("*").eq("user_id", user.id).limit(2000)),
+        fetchRows(
+          "assigned clients",
+          supabase
+            .from("user_profiles")
+            .select("id, first_name, last_name, username, email, created_at, updated_at, is_active")
+            .eq("role", "user")
+            .eq("assigned_counselor_id", user.id)
+            .limit(5000),
+        ),
+      ]);
+
+      const assignedClientIds = assignedUsers.map((client: any) => client.id).filter(Boolean);
+      const [assignedJournalEntries, assignedDistressLogs, assignedWellnessRows] = assignedClientIds.length
+        ? await Promise.all([
+            fetchRows(
+              "assigned client journal entries",
+              supabase
+                .from("journal_entries")
+                .select("id,user_id,mood,sentiment,sentiment_score,created_at")
+                .in("user_id", assignedClientIds)
+                .order("created_at", { ascending: false })
+                .limit(5000),
+            ),
+            fetchRows(
+              "assigned client distress logs",
+              supabase
+                .from("distress_logs")
+                .select("*")
+                .in("user_id", assignedClientIds)
+                .order("created_at", { ascending: false })
+                .limit(2000),
+            ),
+            fetchRows(
+              "assigned client wellness rows",
+              supabase
+                .from("behavioral_indicators")
+                .select("user_id, window_end_date, lookback_days, wellness_score, wellness_level, behavioral_trend_score")
+                .in("user_id", assignedClientIds)
+                .order("window_end_date", { ascending: false })
+                .limit(5000),
+            ),
+          ])
+        : [[], [], []];
+
+      const sections: ExportSection[] = [
+        { name: "counselorProfile", rows: profile },
+        { name: "conversations", rows: conversations },
+        { name: "notes", rows: notes },
+        { name: "assignedClients", rows: assignedUsers },
+        { name: "assignedClientJournalEntries", rows: assignedJournalEntries },
+        { name: "assignedClientDistressLogs", rows: assignedDistressLogs },
+        { name: "assignedClientWellnessRows", rows: assignedWellnessRows },
+        { name: "localNotificationPreferences", rows: [notificationSettings] },
+        { name: "localPrivacyPreferences", rows: [privacySettings] },
+      ];
+      const metadata = {
+        title: "Rise On AI - Counselor Data Export",
+        subject: (profile[0] as any)?.email || user.email || user.id,
+      };
+      const date = new Date().toISOString().slice(0, 10);
+      const content = format === "csv"
+        ? buildCsvExport(metadata, sections)
+        : buildJsonExport(metadata, sections);
+
+      downloadTextFile(
+        `rise-on-ai-counselor-data-export-${date}.${format}`,
+        content,
+        format === "csv" ? "text/csv" : "application/json",
+      );
+      flash(setSuccess, "Data export downloaded.");
+    } catch (e: any) {
+      flash(setError, "Export failed: " + (e.message || "unknown error"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     if (!user) return;
     if (deleteConfirmText.trim().toLowerCase() !== "delete my account") {
@@ -230,8 +349,8 @@ export default function CounselorSettingsPage() {
       setDeleteLoading(true);
       try {
         await supabase.from("user_profiles").update({
-          status: "deactivated", first_name: "Deleted", last_name: "Counselor",
-          is_online: false, license_number: null, specialization: null, bio: null, avatar_url: null,
+          is_active: false, first_name: "Deleted", last_name: "Counselor",
+          is_online: false, bio: null, avatar_url: null,
           updated_at: new Date().toISOString(),
         }).eq("id", user.id);
         // Unassign all assigned users
@@ -622,8 +741,11 @@ export default function CounselorSettingsPage() {
             {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-lg font-poppins">{error}</div>}
             {success && <div className="text-green-600 text-xs bg-green-50 p-3 rounded-lg font-poppins">{success}</div>}
             <div className="flex flex-col gap-3">
-              <Button variant="secondary" onClick={downloadAllData} disabled={saving} className="bg-light-gray text-dark-text hover:bg-light-gray/80 border-light-gray">
+              <Button variant="secondary" onClick={() => downloadCounselorData("json")} disabled={saving} className="bg-light-gray text-dark-text hover:bg-light-gray/80 border-light-gray">
                 {saving ? "Preparing..." : "📥 Download All My Data"}
+              </Button>
+              <Button variant="secondary" onClick={() => downloadCounselorData("csv")} disabled={saving} className="bg-light-gray text-dark-text hover:bg-light-gray/80 border-light-gray">
+                {saving ? "Preparing..." : "Download CSV"}
               </Button>
               <Button variant="ghost" className="text-red-600 hover:text-red-500 hover:bg-red-50" onClick={() => setShowDeleteConfirm(true)}>
                 🗑️ Delete My Account
@@ -756,6 +878,116 @@ export default function CounselorSettingsPage() {
           {renderSettingsContent()}
         </Card>
       </div>
+
+      {showChangePw && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark-text/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <h3 className="text-xl font-dm-serif text-dark-text">Change Password</h3>
+                <p className="text-xs text-dark-text/60 font-poppins mt-1">Update your login credentials</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowChangePw(false); setPwCurrent(""); setPwNew(""); setPwConfirm(""); }}
+                className="text-dark-text/40 hover:text-dark-text text-2xl leading-none"
+              >
+                x
+              </button>
+            </div>
+            {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-lg font-poppins mb-3">{error}</div>}
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-poppins text-dark-text/70 mb-1 block">Current Password</label>
+                <Input type="password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} placeholder="Enter current password" />
+              </div>
+              <div>
+                <label className="text-xs font-poppins text-dark-text/70 mb-1 block">New Password</label>
+                <Input type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} placeholder="Enter new password" />
+                <p className="mt-1 text-[11px] text-dark-text/50 font-inter">
+                  Use at least 8 characters with uppercase, lowercase, number, and special character.
+                </p>
+              </div>
+              <div>
+                <label className="text-xs font-poppins text-dark-text/70 mb-1 block">Confirm New Password</label>
+                <Input type="password" value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)} placeholder="Repeat new password" />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => { setShowChangePw(false); setPwCurrent(""); setPwNew(""); setPwConfirm(""); }}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleChangePassword}
+                disabled={pwLoading}
+                className="flex-1 px-4 py-2.5 bg-primary-blue text-white rounded-lg text-sm font-poppins hover:bg-primary-blue/90 disabled:opacity-60"
+              >
+                {pwLoading ? "Updating..." : "Update Password"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark-text/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border-l-4 border-l-red-500">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-dm-serif text-dark-text">Delete My Account</h3>
+                <p className="text-xs text-dark-text/70 font-poppins mt-1 leading-relaxed">
+                  This deactivates your counselor profile and unassigns your clients.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
+                className="text-dark-text/40 hover:text-dark-text text-2xl leading-none"
+              >
+                x
+              </button>
+            </div>
+            {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-lg font-poppins mb-3">{error}</div>}
+            <div className="space-y-3">
+              <div className="p-3 bg-red-50 rounded-xl border border-red-100">
+                <p className="text-xs font-poppins text-dark-text font-semibold mb-1">
+                  Type exactly below to confirm:
+                </p>
+                <p className="text-sm font-mono text-red-600 font-bold tracking-wide">DELETE MY ACCOUNT</p>
+              </div>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type confirmation phrase here"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-500"
+              />
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading}
+                className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-lg text-sm font-poppins hover:bg-red-600 disabled:opacity-60"
+              >
+                {deleteLoading ? "Deleting..." : "Delete Account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

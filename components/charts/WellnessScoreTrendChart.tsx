@@ -25,11 +25,18 @@ import type { WellnessTrendPoint } from "@/hooks/useMoodVisualization";
 import { classifyWellnessLevel } from "@/lib/wellness-assessment";
 import { WELLNESS_LEVEL_CONFIG } from "@/lib/wellness-assessment";
 
+const clampWellnessScore = (value: unknown) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return null;
+  return Math.min(10, Math.max(0, numeric));
+};
+
 // ── Custom tooltip ────────────────────────────────────────────────────────────
 function WellnessTooltip({ active, payload }: TooltipContentProps) {
   if (!active || !payload?.length) return null;
   const pt = payload[0].payload as WellnessTrendPoint;
-  const lvl = pt.wellnessLevel || classifyWellnessLevel(pt.wellnessScore);
+  const score = clampWellnessScore(pt.wellnessScore) ?? 0;
+  const lvl = pt.wellnessLevel || classifyWellnessLevel(score);
   const cfg = WELLNESS_LEVEL_CONFIG[lvl as keyof typeof WELLNESS_LEVEL_CONFIG];
   return (
     <div className="rounded-xl bg-white px-4 py-2.5 shadow-lg border border-light-gray text-left min-w-[140px]">
@@ -37,7 +44,7 @@ function WellnessTooltip({ active, payload }: TooltipContentProps) {
         {pt.date}
       </p>
       <p className="text-sm font-poppins font-bold" style={{ color: cfg?.color ?? "#333" }}>
-        {pt.wellnessScore.toFixed(2)} / 10
+        {score.toFixed(2)} / 10
       </p>
       <span
         className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-poppins"
@@ -69,6 +76,18 @@ export default function WellnessScoreTrendChart({
   height = 240,
 }: WellnessScoreTrendChartProps) {
   const gradId = useId();
+  const safeData = (Array.isArray(data) ? data : [])
+    .map((pt) => {
+      const wellnessScore = clampWellnessScore(pt?.wellnessScore);
+      const date = typeof pt?.date === "string" ? pt.date : "";
+      if (!date || wellnessScore === null) return null;
+      return {
+        date,
+        wellnessScore,
+        wellnessLevel: pt?.wellnessLevel || classifyWellnessLevel(wellnessScore),
+      };
+    })
+    .filter((pt): pt is WellnessTrendPoint => Boolean(pt));
 
   if (loading) {
     return (
@@ -83,7 +102,7 @@ export default function WellnessScoreTrendChart({
     );
   }
 
-  if (!data.length) {
+  if (!safeData.length) {
     return (
       <div
         className="flex flex-col items-center justify-center gap-2 rounded-xl bg-light-gray/30"
@@ -101,15 +120,15 @@ export default function WellnessScoreTrendChart({
 
   // Sparse X ticks: first, last, and every ~7th point
   const ticks: string[] = [];
-  data.forEach((pt, i) => {
-    if (i === 0 || i === data.length - 1 || i % 7 === 0) {
+  safeData.forEach((pt, i) => {
+    if (i === 0 || i === safeData.length - 1 || i % 7 === 0) {
       ticks.push(pt.date);
     }
   });
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <AreaChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+      <AreaChart data={safeData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%"  stopColor="#B7E4C7" stopOpacity={0.7} />

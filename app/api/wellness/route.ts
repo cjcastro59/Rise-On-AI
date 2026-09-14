@@ -41,7 +41,21 @@ async function resolveTargetUser(
   if (!requestedUserId || requestedUserId === user.id) {
     return { ok: true, userId: user.id, role };
   }
-  const isPrivileged = role === "admin" || role === "owner" || role === "counselor";
+  if (role === "counselor") {
+    const { data: assignedProfile } = await (supabase
+      .from("user_profiles") as any)
+      .select("id")
+      .eq("id", requestedUserId)
+      .eq("role", "user")
+      .eq("assigned_counselor_id", user.id)
+      .maybeSingle();
+
+    if (assignedProfile) {
+      return { ok: true, userId: requestedUserId, role };
+    }
+  }
+
+  const isPrivileged = role === "admin" || role === "owner";
   if (!isPrivileged) {
     return { ok: false, status: 403, error: "Forbidden — cannot access another user's wellness data" };
   }

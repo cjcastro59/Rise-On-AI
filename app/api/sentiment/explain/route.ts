@@ -69,6 +69,14 @@ interface PythonExplainResponse {
 
 interface ExplainRequest { entryId: string; }
 
+const SENTIMENTS = new Set<Sentiment>(["positive", "negative", "distress"]);
+
+function toStoredSentiment(value: unknown): Sentiment {
+  return typeof value === "string" && SENTIMENTS.has(value as Sentiment)
+    ? (value as Sentiment)
+    : "positive";
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = createClient();
@@ -113,10 +121,10 @@ export async function POST(request: NextRequest) {
 
     // 4. Resolve sentiment + probabilities from stored DB values
     //    Percentages are stored 0–100; convert to 0–1 for the explainability lib
-    const xlmSentiment: Sentiment = (e.sentiment as Sentiment) ?? "positive";
-    const posProb = (e.positive_percentage ?? 60) / 100;
-    const negProb = (e.negative_percentage ?? 30) / 100;
-    const dstProb = (e.distress_percentage ?? 10) / 100;
+    const xlmSentiment = toStoredSentiment(e.sentiment);
+    const posProb = e.positive_percentage ?? 0;
+    const negProb = e.negative_percentage ?? 0;
+    const dstProb = e.distress_percentage ?? 0;
 
     // 5. Keyword agreement — disabled (ML-only mode).
     //    Pass null so buildExplainabilityResult marks it "keyword_unavailable".
@@ -129,20 +137,27 @@ export async function POST(request: NextRequest) {
 
     try {
       const controller = new AbortController();
-      const timeout    = setTimeout(() => controller.abort(), 30_000);
+      let timeout: ReturnType<typeof setTimeout> | null =
+        setTimeout(() => controller.abort(), 30_000);
 
-      const resp = await fetch(EXPLAIN_ENDPOINT, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          inputs:       preprocessText(rawText),
-          num_steps:    50,
-          target_class: null,  // explain the predicted class
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeout);
+      let resp: Response;
+      try {
+        resp = await fetch(EXPLAIN_ENDPOINT, {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({
+            inputs:       preprocessText(rawText),
+            num_steps:    50,
+            target_class: null,  // explain the predicted class
+          }),
+          signal: controller.signal,
+        });
+      } finally {
+        if (timeout) {
+          clearTimeout(timeout);
+          timeout = null;
+        }
+      }
 
       if (resp.ok) {
         const pyResult = (await resp.json()) as PythonExplainResponse;
@@ -169,7 +184,8 @@ export async function POST(request: NextRequest) {
       }
     } catch (fetchErr: unknown) {
       const msg = fetchErr instanceof Error ? fetchErr.message : "Unknown error";
-      const reason = msg.includes("abort")
+      const aborted = fetchErr instanceof Error && fetchErr.name === "AbortError";
+      const reason = aborted || msg.toLowerCase().includes("abort")
         ? "Explanation request timed out (>30s). The text may be too long or the server is under load."
         : `Could not reach explanation server: ${msg}. ` +
           "Ensure the sentiment server is running with USE_EXPLAIN=1.";
