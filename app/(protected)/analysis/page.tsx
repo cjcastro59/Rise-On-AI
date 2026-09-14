@@ -403,7 +403,7 @@ export default function AIAnalysisPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-6">
         {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
         <div className="space-y-6 lg:contents">
           {/* Sentiment Breakdown */}
@@ -474,7 +474,7 @@ export default function AIAnalysisPage() {
 
           {/* ── ACI CARD ──────────────────────────────────────────────── */}
           <div
-            className="border-l-4 rounded-2xl lg:col-start-2 lg:row-start-1"
+            className="border-l-4 rounded-2xl lg:col-start-2 lg:row-start-1 lg:row-span-2"
             style={{ borderLeftColor: aciCfg.borderColor }}
           >
           <AIReportErrorBoundary>

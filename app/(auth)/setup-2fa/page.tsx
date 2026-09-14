@@ -121,7 +121,10 @@ export default function Setup2FAPage() {
 
       await supabase
         .from("user_profiles")
-        .update({ two_factor_enabled: true })
+        .update({
+          two_factor_enabled: true,
+          two_factor_skipped: false,
+        })
         .eq("id", user.id);
 
       setStep(3);

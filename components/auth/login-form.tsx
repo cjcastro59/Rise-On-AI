@@ -21,6 +21,25 @@ const getDashboardPath = (role?: string | null) => {
 // the user must restart the login flow. Prevents brute-force of 6-digit codes.
 const MAX_TOTP_ATTEMPTS = 5;
 
+const logLoginActivity = async (
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  details: string
+) => {
+  try {
+    const { error } = await supabase.from("activity_logs").insert({
+      user_id: userId,
+      action:  "login",
+      details,
+    });
+    if (error) {
+      console.warn("[login] Failed to log login activity", error.message);
+    }
+  } catch (logError) {
+    console.warn("[login] Failed to log login activity", logError);
+  }
+};
+
 export function LoginForm() {
   const [email,          setEmail]          = useState("");
   const [password,       setPassword]       = useState("");
@@ -86,7 +105,7 @@ export function LoginForm() {
         setStep("2fa");
       } else {
         await applyPendingProfileData(session.user.id);
-        router.push(getDashboardPath(profile?.role));
+        router.replace(getDashboardPath(profile?.role));
         router.refresh();
       }
     };
@@ -150,12 +169,8 @@ export function LoginForm() {
         } else {
           await applyPendingProfileData(data.session.user.id);
           // Log login activity (fire-and-forget — never block redirect)
-          supabase.from("activity_logs").insert({
-            user_id: data.session.user.id,
-            action:  "login",
-            details: "User signed in",
-          }).catch(() => {/* ignore */});
-          router.push(getDashboardPath(profile?.role));
+          void logLoginActivity(supabase, data.session.user.id, "User signed in");
+          router.replace(getDashboardPath(profile?.role));
           router.refresh();
         }
       }
@@ -229,13 +244,9 @@ export function LoginForm() {
       if (verified) {
         if (userId) {
           // Log login activity for 2FA path (fire-and-forget)
-          void supabase.from("activity_logs").insert({
-            user_id: userId,
-            action:  "login",
-            details: "User signed in (2FA verified)",
-          }).then(() => undefined, () => undefined);
+          void logLoginActivity(supabase, userId, "User signed in (2FA verified)");
           await applyPendingProfileData(userId);
-          router.push(getDashboardPath(profile?.role));
+          router.replace(getDashboardPath(profile?.role));
           router.refresh();
         }
       } else {

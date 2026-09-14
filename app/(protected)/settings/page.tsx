@@ -469,6 +469,7 @@ export default function SettingsPage() {
           .update({
             two_factor_enabled: true,
             two_factor_method: "authenticator",
+            two_factor_skipped: false,
           })
           .eq('id', user.id);
         setTwoFactorEnabled(true);
@@ -495,6 +496,7 @@ export default function SettingsPage() {
           two_factor_enabled: false,
           two_factor_secret: null,
           two_factor_method: null,
+          two_factor_skipped: true,
         })
         .eq('id', user.id);
       if (error) throw error;
