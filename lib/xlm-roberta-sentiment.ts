@@ -1,6 +1,7 @@
 import {
   type AnalysisResult,
   type Sentiment,
+  analyzeEntry,
 } from "@/lib/sentiment";
 
 // =====================================================
@@ -187,18 +188,19 @@ export async function analyzeWithXLMRoBERTa(
     return { ...modelResult, model: "xlm-roberta-finetuned" };
   }
 
-  // ML model unavailable — return a clearly-labelled neutral result.
-  // Callers should treat confidence=0 as "unanalysed" and re-queue.
+  // Keep the entry useful when the remote model server is unavailable. This
+  // is explicitly labelled as a fallback so it is never mistaken for XLM-R.
   console.warn("[XLM-RoBERTa] Model unavailable and no fallback is configured.");
+  const fallback = analyzeEntry(text, mood);
   return {
-    sentiment: "positive" as Sentiment,
-    positivePercentage: 0,
-    negativePercentage: 0,
-    distressPercentage: 0,
-    confidence: 0,
-    sentimentScore: 0,
+    sentiment: fallback.sentiment as Sentiment,
+    positivePercentage: fallback.positivePercentage,
+    negativePercentage: fallback.negativePercentage,
+    distressPercentage: fallback.distressPercentage,
+    confidence: 0.35,
+    sentimentScore: fallback.sentimentScore,
     raw: null,
-    model: "ml-unavailable",
+    model: "keyword-fallback",
   };
 }
 

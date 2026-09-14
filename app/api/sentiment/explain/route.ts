@@ -39,13 +39,16 @@ import {
   type ExplainabilityResult,
 } from "@/lib/explainability";
 import type { Sentiment } from "@/lib/sentiment";
+import { analyzeEntry } from "@/lib/sentiment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Python server explain endpoint URL
-const SENTIMENT_SERVER = process.env.SENTIMENT_MODEL_API_URL?.replace("/predict", "") ?? "http://localhost:8000";
-const EXPLAIN_ENDPOINT = `${SENTIMENT_SERVER}/explain`;
+const SENTIMENT_SERVER = process.env.SENTIMENT_EXPLAIN_API_URL
+  ?? process.env.SENTIMENT_MODEL_API_URL?.replace("/predict", "")
+  ?? null;
+const EXPLAIN_ENDPOINT = SENTIMENT_SERVER ? `${SENTIMENT_SERVER}/explain` : null;
 
 // ── Type for the Python /explain response ─────────────────────────────────────
 interface PythonExplainResponse {
@@ -128,7 +131,8 @@ export async function POST(request: NextRequest) {
 
     // 5. Keyword agreement — disabled (ML-only mode).
     //    Pass null so buildExplainabilityResult marks it "keyword_unavailable".
-    const kwSentiment: Sentiment | null = null;
+    const fallbackAnalysis = analyzeEntry(rawText, e.mood);
+    const kwSentiment: Sentiment | null = fallbackAnalysis.sentiment;
 
     // 6. Call Python /explain for Integrated Gradients
     //    Hard timeout: 30 seconds (IG on CPU can take 10–25s for long texts)
@@ -136,6 +140,13 @@ export async function POST(request: NextRequest) {
     let pythonAvailable = false;
 
     try {
+      if (!EXPLAIN_ENDPOINT) {
+        igResult = processIntegratedGradients(
+          null,
+          50,
+          "Integrated Gradients is not configured for this deployment. Set SENTIMENT_EXPLAIN_API_URL to a reachable explanation server.",
+        );
+      } else {
       const controller = new AbortController();
       let timeout: ReturnType<typeof setTimeout> | null =
         setTimeout(() => controller.abort(), 30_000);
@@ -182,13 +193,14 @@ export async function POST(request: NextRequest) {
           `Python server returned HTTP ${resp.status}`,
         );
       }
+      }
     } catch (fetchErr: unknown) {
       const msg = fetchErr instanceof Error ? fetchErr.message : "Unknown error";
       const aborted = fetchErr instanceof Error && fetchErr.name === "AbortError";
       const reason = aborted || msg.toLowerCase().includes("abort")
         ? "Explanation request timed out (>30s). The text may be too long or the server is under load."
-        : `Could not reach explanation server: ${msg}. ` +
-          "Ensure the sentiment server is running with USE_EXPLAIN=1.";
+        : `Could not reach the configured explanation server: ${msg}. ` +
+          "Set SENTIMENT_EXPLAIN_API_URL to a reachable server running with USE_EXPLAIN=1.";
       igResult = processIntegratedGradients(null, 50, reason);
     }
 
