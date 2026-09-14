@@ -394,19 +394,18 @@ export default function AdminDistressAlertsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-error-red mb-1">Distress Alert Monitoring</h1>
-          <p className="text-sm text-dark-text/60 font-poppins">Real-time emotional crisis detection â€¢ Anonymized IDs â€¢ Requires immediate review</p>
+          <p className="text-sm text-dark-text/60 font-poppins">Real-time emotional crisis detection  Anonymized IDs  Requires immediate review</p>
         </div>
         <div className="flex gap-3">
-          <span className="badge-error animate-pulse">âš¡ {criticalAlerts.length} Active Alerts</span>
+          <span className="badge-error animate-pulse">{criticalAlerts.length} Active Alerts</span>
           <button className="btn-secondary flex items-center gap-2" onClick={() => window.location.reload()}>
-            <span>ðŸ“„</span> Refresh
+            Refresh
           </button>
         </div>
       </div>
 
       {/* Alert Banner */}
       <div className="admin-alert-banner bg-error-red/10 border-l-error-red">
-        <span>ðŸ›¡ï¸</span>
         <p className="text-sm font-poppins text-dark-text">
           Ethical Protocol: Distress flags use anonymized IDs only. Guidance counselors must follow institutional protocols before any outreach. All actions are logged.
         </p>
@@ -422,7 +421,7 @@ export default function AdminDistressAlertsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="stat-card border-l-4 border-l-error-red">
           <div className="flex items-start gap-3 mb-3">
-            <div className="stat-card-icon bg-error-red/30">ðŸ”´</div>
+            <div className="stat-card-icon bg-error-red/30">!</div>
             <div className="text-right">
               <p className="text-xs text-dark-text/60 font-poppins">CRITICAL ALERTS</p>
               <p className="text-2xl font-dm-serif text-error-red">{criticalAlerts.length}</p>
@@ -433,7 +432,7 @@ export default function AdminDistressAlertsPage() {
         </Card>
         <Card className="stat-card border-l-4 border-l-warning-yellow">
           <div className="flex items-start gap-3 mb-3">
-            <div className="stat-card-icon bg-warning-yellow/30">ðŸŸ </div>
+            <div className="stat-card-icon bg-warning-yellow/30">!</div>
             <div className="text-right">
               <p className="text-xs text-dark-text/60 font-poppins">MEDIUM ALERTS</p>
               <p className="text-2xl font-dm-serif text-dark-text">{mediumAlerts.length}</p>
@@ -444,7 +443,7 @@ export default function AdminDistressAlertsPage() {
         </Card>
         <Card className="stat-card border-l-4 border-l-success-green">
           <div className="flex items-start gap-3 mb-3">
-            <div className="stat-card-icon bg-success-green/30">ðŸŸ¢</div>
+            <div className="stat-card-icon bg-success-green/30">+</div>
             <div className="text-right">
               <p className="text-xs text-dark-text/60 font-poppins">RESPONSES RECORDED</p>
               <p className="text-2xl font-dm-serif text-dark-text">{respondedLogs.length}</p>
@@ -455,7 +454,7 @@ export default function AdminDistressAlertsPage() {
         </Card>
         <Card className="stat-card border-l-4 border-l-primary-blue">
           <div className="flex items-start gap-3 mb-3">
-            <div className="stat-card-icon bg-primary-blue/20">âœ…</div>
+            <div className="stat-card-icon bg-primary-blue/20">+</div>
             <div className="text-right">
               <p className="text-xs text-dark-text/60 font-poppins">RESPONSE RATE</p>
               <p className="text-2xl font-dm-serif text-dark-text">{responseRate}%</p>
@@ -470,9 +469,9 @@ export default function AdminDistressAlertsPage() {
       <div className="space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-2 h-2 rounded-full bg-error-red" />
-          <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Critical â€” Immediate Attention Required</h2>
+          <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Critical - Immediate Attention Required</h2>
         </div>
-        {loading && <p className="text-sm text-dark-text/60">Loading alertsâ€¦</p>}
+        {loading && <p className="text-sm text-dark-text/60">Loading alerts...</p>}
         {!loading && error && <p className="text-sm text-error-red">{error}</p>}
         {!loading && criticalAlerts.length === 0 && !error && <p className="text-sm text-dark-text/60">No critical alerts at the moment.</p>}
         {criticalAlerts.map((alert) => (
@@ -480,7 +479,7 @@ export default function AdminDistressAlertsPage() {
             <div className="flex flex-col gap-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-error-red/30 flex items-center justify-center text-2xl">ðŸ©¸</div>
+                  <div className="w-10 h-10 rounded-full bg-error-red/30 flex items-center justify-center text-2xl">!</div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-mono text-sm font-semibold text-primary-blue">{getAnonymizedAlertId(alert.id)}</span>
@@ -538,7 +537,7 @@ export default function AdminDistressAlertsPage() {
       <div className="space-y-4 mt-8">
         <div className="flex items-center gap-2 mb-2">
           <span className="w-2 h-2 rounded-full bg-warning-yellow" />
-          <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Medium â€” Monitor Closely</h2>
+          <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Medium - Monitor Closely</h2>
         </div>
         <Card className="p-6">
           <div className="overflow-x-auto">
@@ -566,7 +565,7 @@ export default function AdminDistressAlertsPage() {
                       <p className="text-sm font-inter text-dark-text">{alert.trigger || "Pending review"}</p>
                     </td>
                     <td>
-                      <p className="text-sm font-poppins text-dark-text">{entriesByUser[alert.user_id]?.[0]?.mood || "â€”"}</p>
+                      <p className="text-sm font-poppins text-dark-text">{entriesByUser[alert.user_id]?.[0]?.mood || "-"}</p>
                     </td>
                     <td>
                       <RiskBadge userId={alert.user_id} />
