@@ -102,23 +102,7 @@ export function LoginForm() {
     try {
       let captchaToken = recaptchaToken;
       if (recaptchaKey && !captchaToken) {
-        try {
-          if (recaptchaRef.current) {
-            const token = await recaptchaRef.current.executeAsync();
-            captchaToken = token;
-            setRecaptchaToken(token);
-          }
-        } catch (captchaError) {
-          console.error("[login] reCAPTCHA verification failed", captchaError);
-          setRecaptchaToken(null);
-          recaptchaRef.current?.reset();
-          setError("reCAPTCHA verification failed. Please check the box and try again.");
-          return;
-        }
-      }
-      if (recaptchaKey && !captchaToken) {
-        recaptchaRef.current?.reset();
-        setError("Please complete the reCAPTCHA.");
+        setError("Please complete the reCAPTCHA and wait for the green checkmark.");
         return;
       }
 
@@ -177,7 +161,8 @@ export function LoginForm() {
       }
     } catch (loginError) {
       console.error("[login] sign-in flow failed", loginError);
-      setError("Unable to complete sign-in. Please refresh the page and try again.");
+      const message = loginError instanceof Error ? loginError.message : "Unknown login error";
+      setError(`Login failed: ${message}`);
     } finally {
       setLoading(false);
     }
