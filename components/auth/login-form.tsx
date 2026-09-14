@@ -102,22 +102,39 @@ export function LoginForm() {
     try {
       let captchaToken = recaptchaToken;
       if (recaptchaKey && !captchaToken) {
-        if (recaptchaRef.current) {
-          const token = await recaptchaRef.current.executeAsync();
-          captchaToken = token;
-          setRecaptchaToken(token);
+        try {
+          if (recaptchaRef.current) {
+            const token = await recaptchaRef.current.executeAsync();
+            captchaToken = token;
+            setRecaptchaToken(token);
+          }
+        } catch (captchaError) {
+          console.error("[login] reCAPTCHA verification failed", captchaError);
+          setRecaptchaToken(null);
+          recaptchaRef.current?.reset();
+          setError("reCAPTCHA verification failed. Please check the box and try again.");
+          return;
         }
       }
       if (recaptchaKey && !captchaToken) {
+        recaptchaRef.current?.reset();
         setError("Please complete the reCAPTCHA.");
         return;
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-        ...(captchaToken ? { options: { captchaToken } } : {}),
-      });
+      let data;
+      let error;
+      try {
+        ({ data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+          ...(captchaToken ? { options: { captchaToken } } : {}),
+        }));
+      } catch (authError) {
+        console.error("[login] Supabase sign-in request failed", authError);
+        setError("The login service is temporarily unavailable. Please try again.");
+        return;
+      }
 
       if (error) {
         if (
@@ -129,6 +146,8 @@ export function LoginForm() {
           // Generic message to avoid leaking whether the email exists
           setError("Invalid email or password.");
         }
+        setRecaptchaToken(null);
+        recaptchaRef.current?.reset();
         return;
       }
 
@@ -158,7 +177,7 @@ export function LoginForm() {
       }
     } catch (loginError) {
       console.error("[login] sign-in flow failed", loginError);
-      setError("Unable to complete sign-in. Please try again.");
+      setError("Unable to complete sign-in. Please refresh the page and try again.");
     } finally {
       setLoading(false);
     }
