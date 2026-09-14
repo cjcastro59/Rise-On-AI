@@ -76,12 +76,11 @@ export function LoginForm() {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const { data: profile, error: profileError } = await supabase
+      const { data: profile } = await supabase
         .from("user_profiles")
         .select("role, two_factor_enabled, two_factor_secret")
         .eq("id", session.user.id)
-        .single();
-      if (profileError) throw profileError;
+        .maybeSingle();
       if (profile?.two_factor_enabled && profile.two_factor_secret?.trim()) {
         setUserId(session.user.id);
         setStep("2fa");
@@ -134,12 +133,11 @@ export function LoginForm() {
       }
 
       if (data.session) {
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile } = await supabase
           .from("user_profiles")
           .select("role, two_factor_enabled, two_factor_secret")
           .eq("id", data.session.user.id)
-          .single();
-        if (profileError) throw profileError;
+          .maybeSingle();
 
         if (profile?.two_factor_enabled && profile.two_factor_secret?.trim()) {
           // S3 (Phase 8): User has 2FA enabled — show TOTP challenge

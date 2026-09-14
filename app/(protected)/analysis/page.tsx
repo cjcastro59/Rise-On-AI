@@ -795,7 +795,7 @@ export default function AIAnalysisPage() {
           {/* ── END EXPLAINABILITY PANEL ──────────────────────────────── */}
 
           {/* Emotional Wellness Score */}
-          <Card className="p-8 text-center bg-white shadow-sm lg:col-start-2 lg:row-start-2">
+          <Card className="p-8 text-center bg-white shadow-sm lg:col-start-2 lg:row-start-3">
             <h3 className="text-base font-poppins uppercase tracking-wider text-dark-text/70 mb-8 flex items-center gap-2 justify-center">
               <span>🧠</span>
               Emotional Wellness Score
