@@ -182,12 +182,26 @@ export function LoginForm() {
         .eq("id", userId)
         .single();
 
-      const verified = profile?.two_factor_secret
-        ? authenticator.verify({
-            secret: profile.two_factor_secret,
-            token:  totpCode,
-          })
-        : false;
+      if (!profile?.two_factor_secret) {
+        setError("Two-factor authentication is not configured correctly. Please ask an administrator to reset 2FA for this account.");
+        return;
+      }
+
+      if (!/^\d{6}$/.test(totpCode)) {
+        setError("Enter the current 6-digit code from your authenticator app.");
+        return;
+      }
+
+      let verified = false;
+      try {
+        verified = authenticator.verify({
+          secret: profile.two_factor_secret,
+          token:  totpCode,
+        });
+      } catch {
+        setError("Two-factor authentication is not configured correctly. Please ask an administrator to reset 2FA for this account.");
+        return;
+      }
 
       if (verified) {
         if (userId) {
