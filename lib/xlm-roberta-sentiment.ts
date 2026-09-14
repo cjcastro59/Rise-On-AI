@@ -84,97 +84,115 @@ export function preprocessText(input: string | null): string {
 // =====================================================
 // CALL THE FINE-TUNED XLM-ROBERTA MODEL API
 // =====================================================
+function parseModelOutput(output: unknown): XLMroBERTaPrediction | null {
+  // HuggingFace-style top-k multi-label output
+  if (Array.isArray(output) && Array.isArray(output[0])) {
+    const preds = output[0] as Array<{ label: string; score: number }>;
+    const getScore = (key: string) =>
+      preds.find(
+        (p) =>
+          p.label.toLowerCase().includes(key) ||
+          p.label.toLowerCase() === key
+      )?.score || 0;
+
+    const pos = getScore("positive");
+    const neg = getScore("negative");
+    const dst = getScore("distress");
+    const total = pos + neg + dst || 1;
+
+    const positivePercentage = Math.round((pos / total) * 100);
+    const negativePercentage = Math.round((neg / total) * 100);
+    const distressPercentage = Math.max(
+      0,
+      100 - positivePercentage - negativePercentage
+    );
+
+    let sentiment: Sentiment;
+    if (dst >= pos && dst >= neg) sentiment = "distress";
+    else if (neg > pos) sentiment = "negative";
+    else sentiment = "positive";
+
+    const topScore = Math.max(pos, neg, dst);
+    const sentimentScore =
+      sentiment === "positive"
+        ? Math.round(50 + positivePercentage * 0.45)
+        : sentiment === "negative"
+        ? Math.round(50 - negativePercentage * 0.35)
+        : Math.max(5, 20 - Math.round(distressPercentage * 0.15));
+
+    return {
+      sentiment,
+      positivePercentage,
+      negativePercentage,
+      distressPercentage,
+      confidence: topScore / total,
+      sentimentScore,
+      raw: output,
+    };
+  }
+
+  if (output && typeof output === "object" && "sentiment" in output) {
+    return output as XLMroBERTaPrediction;
+  }
+
+  return null;
+}
+
 async function callModelAPI(
   text: string
 ): Promise<XLMroBERTaPrediction | null> {
   if (USE_FALLBACK_ONLY) return null;
   if (!text) return null;
 
-  try {
-    const dispatcher = getKeepAliveDispatcher() as { dispatcher?: unknown };
-    const response = await fetch(MODEL_API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Connection: "keep-alive",
-        ...(HF_API_TOKEN ? { Authorization: `Bearer ${HF_API_TOKEN}` } : {}),
-      },
-      body: JSON.stringify({
-        inputs: text,
-        options: { wait_for_model: true, use_cache: true },
-      }),
-      cache: "no-store",
-      ...dispatcher,
-    });
+  const dispatcher = getKeepAliveDispatcher() as { dispatcher?: unknown };
+  const attempts = 2;
 
-    if (!response.ok) {
-      console.error(
-        `[XLM-RoBERTa] Model endpoint HTTP ${response.status}: ${response.statusText}`
-      );
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const response = await fetch(MODEL_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Connection: "keep-alive",
+          ...(HF_API_TOKEN ? { Authorization: `Bearer ${HF_API_TOKEN}` } : {}),
+        },
+        body: JSON.stringify({
+          inputs: text,
+          options: { wait_for_model: true, use_cache: true },
+        }),
+        cache: "no-store",
+        ...dispatcher,
+      });
+
+      if ([502, 503, 504].includes(response.status) && attempt < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, 800 * attempt));
+        continue;
+      }
+
+      if (!response.ok) {
+        console.error(
+          `[XLM-RoBERTa] Model endpoint HTTP ${response.status}: ${response.statusText}`
+        );
+        return null;
+      }
+
+      const output = await response.json();
+      const parsed = parseModelOutput(output);
+      if (parsed) return parsed;
+
+      console.warn("[XLM-RoBERTa] Could not parse model output:", output);
+      return null;
+    } catch (err) {
+      console.error("[XLM-RoBERTa] Model call failed:", err);
+      if (attempt < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, 800 * attempt));
+        continue;
+      }
       return null;
     }
-
-    const output = await response.json();
-
-    // ---- Parse HuggingFace-style top-k multi-label output ----
-    if (Array.isArray(output) && Array.isArray(output[0])) {
-      const preds = output[0] as Array<{ label: string; score: number }>;
-      const getScore = (key: string) =>
-        preds.find(
-          (p) =>
-            p.label.toLowerCase().includes(key) ||
-            p.label.toLowerCase() === key
-        )?.score || 0;
-
-      const pos = getScore("positive");
-      const neg = getScore("negative");
-      const dst = getScore("distress");
-      const total = pos + neg + dst || 1;
-
-      const positivePercentage = Math.round((pos / total) * 100);
-      const negativePercentage = Math.round((neg / total) * 100);
-      const distressPercentage = Math.max(
-        0,
-        100 - positivePercentage - negativePercentage
-      );
-
-      let sentiment: Sentiment;
-      if (dst >= pos && dst >= neg) sentiment = "distress";
-      else if (neg > pos) sentiment = "negative";
-      else sentiment = "positive";
-
-      const topScore = Math.max(pos, neg, dst);
-      const sentimentScore =
-        sentiment === "positive"
-          ? Math.round(50 + positivePercentage * 0.45)
-          : sentiment === "negative"
-          ? Math.round(50 - negativePercentage * 0.35)
-          : Math.max(5, 20 - Math.round(distressPercentage * 0.15));
-
-      return {
-        sentiment,
-        positivePercentage,
-        negativePercentage,
-        distressPercentage,
-        // Confidence must use the same normalized probability scale as the
-        // displayed class percentages, not the raw pre-normalization score.
-        confidence: topScore / total,
-        sentimentScore,
-        raw: output,
-      };
-    }
-
-    // ---- If your custom API returns the format directly ----
-    if (output && output.sentiment) {
-      return output as XLMroBERTaPrediction;
-    }
-
-    console.warn("[XLM-RoBERTa] Could not parse model output:", output);
-    return null;
-  } catch (err) {
-    console.error("[XLM-RoBERTa] Model call failed:", err);
-    return null;
   }
+
+  return null;
 }
 
 // =====================================================

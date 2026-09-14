@@ -192,3 +192,4 @@ scripts/sentiment-server/*.safetensors
 scripts/sentiment-server/*.bin
 scripts/sentiment-server/*.onnx
 scripts/sentiment-server/onnx/
+scripts/sentiment-server/cloudflared.exe

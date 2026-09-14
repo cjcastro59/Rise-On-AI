@@ -29,6 +29,7 @@ import gzip
 from typing import List, Dict, Optional, Any
 
 from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field
 
@@ -39,13 +40,26 @@ app = FastAPI(title="Rise On AI - XLM-RoBERTa Sentiment API (Optimized)")
 
 # Enable GZIP Compression middleware (huge speed win for JSON)
 app.add_middleware(GZipMiddleware, minimum_size=500)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 # ------------------------------
 # CONFIG (edit via env vars!)
 # ------------------------------
-MODEL_PATH = os.environ.get(
-    "SENTIMENT_MODEL_PATH",
-    os.path.join(os.path.dirname(__file__), "..", "sentiment-model-training", "outputs", "best_model")
+_LOCAL_BEST_MODEL = os.path.join(
+    os.path.dirname(__file__),
+    "..",
+    "sentiment-model-training",
+    "outputs",
+    "best_model",
+)
+_HUB_MODEL = "cjcastro/xlm-roberta-Rise-On-AI"
+MODEL_PATH = os.environ.get("SENTIMENT_MODEL_PATH") or (
+    _LOCAL_BEST_MODEL if os.path.isdir(_LOCAL_BEST_MODEL) else _HUB_MODEL
 )
 LABELS = ["positive", "negative", "distress"]
 MAX_SEQ_LEN = int(os.environ.get("MAX_SEQ_LEN", "256"))  # Reduced from 512 for speed!
@@ -230,6 +244,10 @@ def root():
             "POST /predict/batch": "Batch prediction {inputs: [string, ...]}",
         },
     }
+
+@app.get("/health")
+def health():
+    return {"ok": True, "demo_mode": DEMO_MODE, "device": device}
 
 # -------- SINGLE prediction endpoint
 @app.post("/predict")
