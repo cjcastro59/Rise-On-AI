@@ -149,7 +149,7 @@ export function LoginForm() {
         }
       }
     } catch {
-      setError("An unexpected error occurred. Please try again.");
+      setError("Unable to verify two-factor authentication. Check that your device time is automatic and use the current code. If it still fails, ask an administrator to reset 2FA for this account.");
     } finally {
       setLoading(false);
     }
