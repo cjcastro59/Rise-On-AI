@@ -94,13 +94,15 @@ export function LoginForm() {
     setError("");
 
     try {
-      if (!recaptchaToken) {
+      let captchaToken = recaptchaToken;
+      if (recaptchaKey && !captchaToken) {
         if (recaptchaRef.current) {
           const token = await recaptchaRef.current.executeAsync();
+          captchaToken = token;
           setRecaptchaToken(token);
         }
       }
-      if (!recaptchaToken) {
+      if (recaptchaKey && !captchaToken) {
         setError("Please complete the reCAPTCHA.");
         return;
       }
@@ -108,7 +110,7 @@ export function LoginForm() {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-        options: { captchaToken: recaptchaToken },
+        ...(captchaToken ? { options: { captchaToken } } : {}),
       });
 
       if (error) {
@@ -187,7 +189,8 @@ export function LoginForm() {
         return;
       }
 
-      if (!/^\d{6}$/.test(totpCode)) {
+      const normalizedTotpCode = totpCode.trim();
+      if (!/^\d{6}$/.test(normalizedTotpCode)) {
         setError("Enter the current 6-digit code from your authenticator app.");
         return;
       }
@@ -195,10 +198,11 @@ export function LoginForm() {
       let verified = false;
       try {
         verified = authenticator.verify({
-          secret: profile.two_factor_secret,
-          token:  totpCode,
+          secret: profile.two_factor_secret.trim().replace(/\s+/g, "").toUpperCase(),
+          token:  normalizedTotpCode,
         });
-      } catch {
+      } catch (verificationError) {
+        console.error("[login] 2FA verification failed", verificationError);
         setError("Two-factor authentication is not configured correctly. Please ask an administrator to reset 2FA for this account.");
         return;
       }
@@ -226,8 +230,9 @@ export function LoginForm() {
         );
         setTotpCode("");
       }
-    } catch {
-      setError("An unexpected error occurred. Please try again.");
+    } catch (loginError) {
+      console.error("[login] 2FA sign-in failed", loginError);
+      setError("Unable to complete sign-in. Please try again, or ask an administrator to reset 2FA for this account.");
     } finally {
       setLoading(false);
     }
