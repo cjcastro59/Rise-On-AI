@@ -4,6 +4,7 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 
 interface AIReportErrorBoundaryProps {
   children: ReactNode;
+  className?: string;
 }
 
 interface AIReportErrorBoundaryState {
@@ -34,7 +35,7 @@ export default class AIReportErrorBoundary extends Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="rounded-2xl border border-[#F4A6A6]/40 bg-[#F4A6A6]/10 p-5">
+        <div className={`rounded-2xl border border-[#F4A6A6]/40 bg-[#F4A6A6]/10 p-5 ${this.props.className ?? ""}`}>
           <p className="text-sm font-poppins font-semibold text-[#9B3A1E]">
             AI report unavailable
           </p>
@@ -48,6 +49,6 @@ export default class AIReportErrorBoundary extends Component<
       );
     }
 
-    return this.props.children;
+    return <div className={this.props.className}>{this.props.children}</div>;
   }
 }

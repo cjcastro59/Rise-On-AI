@@ -125,6 +125,18 @@ function IGWordChip({ attr }: { attr: WordAttribution }) {
   );
 }
 
+function getDisplayedEmotions(
+  emotions: string[] | null | undefined,
+  mood: string | null | undefined,
+  sentiment: AnalysisResult["sentiment"],
+) {
+  if (emotions && emotions.length > 0) return emotions;
+  if (mood) return [mood];
+  if (sentiment === "distress") return ["Distress"];
+  if (sentiment === "negative") return ["Concerned"];
+  return ["Positive"];
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 export default function AIAnalysisPage() {
   const [entry,    setEntry]    = useState<JournalEntry | null>(null);
@@ -186,7 +198,11 @@ export default function AIAnalysisPage() {
           positivePercentage: percentages.positive,
           negativePercentage: percentages.negative,
           distressPercentage: percentages.distress,
-          emotions: Array.isArray(data.emotions) ? data.emotions : [],
+          emotions: getDisplayedEmotions(
+            Array.isArray(data.emotions) ? data.emotions : [],
+            data.mood,
+            sentiment,
+          ),
           keyPhrases: [],
           feedback: data.feedback ?? "",
           reflection: data.reflection ?? "",
@@ -389,9 +405,9 @@ export default function AIAnalysisPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-8">
         {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
-        <div className="space-y-6">
+        <div className="space-y-6 lg:contents">
           {/* Sentiment Breakdown */}
-          <Card className="p-6 bg-white shadow-sm">
+          <Card className="p-6 bg-white shadow-sm lg:col-start-1 lg:row-start-1">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-1 flex items-center gap-2">
               <span>📊</span>
               Sentiment Breakdown
@@ -420,7 +436,7 @@ export default function AIAnalysisPage() {
           </Card>
 
           {/* Detected Emotions */}
-          <Card className="p-6 bg-white shadow-sm">
+          <Card className="p-6 bg-white shadow-sm lg:col-start-1 lg:row-start-2">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
               <span>🌈</span>
               Detected Emotions
@@ -437,7 +453,7 @@ export default function AIAnalysisPage() {
 
           {/* Key Phrases */}
           {analysis.keyPhrases.length > 0 && (
-            <Card className="p-6 bg-white shadow-sm">
+            <Card className="p-6 bg-white shadow-sm lg:col-start-1 lg:row-start-4">
               <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
                 <span>🔑</span>
                 Key Phrases Detected
@@ -454,11 +470,11 @@ export default function AIAnalysisPage() {
         </div>
 
         {/* ── RIGHT COLUMN ────────────────────────────────────────────── */}
-        <div className="space-y-6">
+        <div className="space-y-6 lg:contents">
 
           {/* ── ACI CARD ──────────────────────────────────────────────── */}
           <div
-            className="border-l-4 rounded-2xl"
+            className="border-l-4 rounded-2xl lg:col-start-2 lg:row-start-1"
             style={{ borderLeftColor: aciCfg.borderColor }}
           >
           <AIReportErrorBoundary>
@@ -550,7 +566,7 @@ export default function AIAnalysisPage() {
           </div>
 
           {/* ── EXPLAINABILITY PANEL ─────────────────────────────────── */}
-          <AIReportErrorBoundary>
+          <AIReportErrorBoundary className="lg:col-start-1 lg:row-start-3">
           <Card className="p-6 bg-white shadow-sm">
             {/* Header */}
             <div className="flex items-center justify-between mb-1">
@@ -779,7 +795,7 @@ export default function AIAnalysisPage() {
           {/* ── END EXPLAINABILITY PANEL ──────────────────────────────── */}
 
           {/* Emotional Wellness Score */}
-          <Card className="p-8 text-center bg-white shadow-sm">
+          <Card className="p-8 text-center bg-white shadow-sm lg:col-start-2 lg:row-start-2">
             <h3 className="text-base font-poppins uppercase tracking-wider text-dark-text/70 mb-8 flex items-center gap-2 justify-center">
               <span>🧠</span>
               Emotional Wellness Score
