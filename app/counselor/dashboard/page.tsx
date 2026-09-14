@@ -219,13 +219,15 @@ export default function CounselorDashboardPage() {
           setWellnessLoading(true);
           const userIds = assignedUserIds;
 
-          const { data: wellnessRows } = await supabase
+          const { data: wellnessRows, error: wellnessError } = await supabase
             .from("behavioral_indicators")
             .select("user_id, wellness_score, wellness_level, window_end_date")
             .in("user_id", userIds)
             .eq("lookback_days", 30)
             .not("wellness_score", "is", null)
             .order("window_end_date", { ascending: false });
+
+          if (wellnessError) throw wellnessError;
 
           // Deduplicate: keep most-recent row per user
           const seen  = new Set<string>();
@@ -261,12 +263,14 @@ export default function CounselorDashboardPage() {
           );
 
           // ── Load DRI snapshot for each assigned user ─────────────────
-          const { data: riskRows } = await supabase
+          const { data: riskRows, error: riskError } = await supabase
             .from("distress_risk_assessments")
             .select("user_id, risk_level, total_points, assessed_date")
             .in("user_id", userIds)
             .eq("lookback_days", 30)
             .order("assessed_date", { ascending: false });
+
+          if (riskError) throw riskError;
 
           const rSeen = new Set<string>();
           const rMap  = new Map<string, UserRiskSnapshot>();

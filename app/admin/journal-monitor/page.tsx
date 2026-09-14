@@ -161,7 +161,16 @@ export default function AdminJournalMonitorPage() {
     date.setDate(date.getDate() - (6 - index));
     return date;
   });
-  const volumeByDay = lastSevenDays.map((day) => entries.filter((entry) => isSameDay(entry.created_at, day)).length);
+  const volumeByDate = entries.reduce<Record<string, number>>((counts, entry) => {
+    const date = new Date(entry.created_at);
+    const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+    counts[key] = (counts[key] || 0) + 1;
+    return counts;
+  }, {});
+  const volumeByDay = lastSevenDays.map((day) => {
+    const key = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
+    return volumeByDate[key] || 0;
+  });
   const maxVolume = Math.max(...volumeByDay, 1);
   const hoursDistribution = getHoursDistribution(entries);
   const languageCounts = entries.reduce(
@@ -291,7 +300,7 @@ export default function AdminJournalMonitorPage() {
           <div className="h-40 flex items-end justify-between gap-2 px-4">
             {volumeByDay.map((value, index) => (
               <div key={`${value}-${index}`} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full rounded-t-2xl shadow-sm" style={{ height: `${(value / maxVolume) * 100}%`, background: "linear-gradient(to top, #52B788, #A8DADC)" }}></div>
+                <div className="w-full rounded-t-2xl shadow-sm" style={{ height: `${value ? Math.max(6, (value / maxVolume) * 100) : 0}%`, background: "linear-gradient(to top, #52B788, #A8DADC)" }}></div>
                 <span className="text-xs text-dark-text/70 font-poppins">{lastSevenDays[index].toLocaleDateString("en", { weekday: "short" })}</span>
               </div>
             ))}

@@ -88,6 +88,8 @@ export default function AdminDistressAlertsPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [activeAlertCount, setActiveAlertCount] = useState(0);
+  const [refreshToken, setRefreshToken] = useState(0);
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
@@ -127,6 +129,15 @@ export default function AdminDistressAlertsPage() {
         if (error) throw error;
 
         const rawLogs = (data || []) as DistressLog[];
+        const { data: activeRows, error: activeRowsError } = await supabase
+          .from("distress_logs")
+          .select("id,severity,notes")
+          .in("severity", ["critical", "high", "Critical", "High"]);
+        if (activeRowsError) throw activeRowsError;
+        const unresolvedActiveCount = (activeRows || []).filter((row: { notes?: string | null }) => {
+          const notes = row.notes?.toLowerCase() || "";
+          return !notes.includes("resolved") && !notes.includes("acknowledged");
+        }).length;
         const logUserIds = Array.from(new Set(rawLogs.map((log) => log.user_id).filter(Boolean))) as string[];
         let entries: JournalEntry[] = [];
         let conversations: Conversation[] = [];
@@ -220,6 +231,7 @@ export default function AdminDistressAlertsPage() {
           }
 
           setLogs(sortedLogs);
+          setActiveAlertCount(unresolvedActiveCount);
           setEntriesByUser(groupEntriesByUser(entries));
           setCounselors(counselorProfiles);
           setConversationsByUser(conversationsByUserId);
@@ -249,7 +261,7 @@ export default function AdminDistressAlertsPage() {
       mounted = false;
       clearInterval(interval);
     };
-  }, [currentUser, supabase]);
+  }, [currentUser, supabase, refreshToken]);
 
   const criticalAlerts = logs.filter((l) => (l.severity || "").toLowerCase() === "critical");
   const mediumAlerts = logs.filter((l) => ["medium", "warning"].includes((l.severity || "").toLowerCase()));
@@ -397,8 +409,8 @@ export default function AdminDistressAlertsPage() {
           <p className="text-sm text-dark-text/60 font-poppins">Real-time emotional crisis detection  Anonymized IDs  Requires immediate review</p>
         </div>
         <div className="flex gap-3">
-          <span className="badge-error animate-pulse">{criticalAlerts.length} Active Alerts</span>
-          <button className="btn-secondary flex items-center gap-2" onClick={() => window.location.reload()}>
+          <span className="badge-error animate-pulse">{activeAlertCount} Active Alerts</span>
+          <button className="btn-secondary flex items-center gap-2" onClick={() => setRefreshToken((value) => value + 1)} disabled={loading}>
             Refresh
           </button>
         </div>

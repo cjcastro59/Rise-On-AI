@@ -137,7 +137,7 @@ export default function AdminSystemSettingsPage() {
       if (!user) return;
       const { data } = await supabase
         .from("user_profiles")
-        .select("role, two_factor_enabled, language")
+        .select("role, two_factor_enabled, language, privacy_settings, notification_settings")
         .eq("id", user.id)
         .maybeSingle();
       setIsOwner(data?.role === "owner");
@@ -145,7 +145,15 @@ export default function AdminSystemSettingsPage() {
         setTwoFactorEnabled(data.two_factor_enabled);
         setLanguage(data.language || "English");
         setNotificationSettings(readLocalPreference(user.id, "admin-notification-settings", notificationSettings));
-        setPrivacySettings(readLocalPreference(user.id, "admin-privacy-settings", privacySettings));
+        const localPrivacy = readLocalPreference(user.id, "admin-privacy-settings", privacySettings);
+        setPrivacySettings({
+          ...localPrivacy,
+          ...(data.privacy_settings as Partial<typeof privacySettings> | null),
+        });
+        setNotificationSettings({
+          ...readLocalPreference(user.id, "admin-notification-settings", notificationSettings),
+          ...(data.notification_settings as Partial<typeof notificationSettings> | null),
+        });
       }
     };
     checkOwner();
@@ -373,6 +381,11 @@ export default function AdminSystemSettingsPage() {
     if (!user) return;
     try {
       setLoadingPersonal(true);
+      const { error } = await supabase.from("user_profiles").update({
+        notification_settings: notificationSettings,
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id);
+      if (error) throw error;
       writeLocalPreference(user.id, "admin-notification-settings", notificationSettings);
       flash(setSuccess, "Notification settings saved.");
     } catch (err: any) {
@@ -386,6 +399,11 @@ export default function AdminSystemSettingsPage() {
     if (!user) return;
     try {
       setLoadingPersonal(true);
+      const { error } = await supabase.from("user_profiles").update({
+        privacy_settings: privacySettings,
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id);
+      if (error) throw error;
       writeLocalPreference(user.id, "admin-privacy-settings", privacySettings);
       flash(setSuccess, "Privacy settings saved.");
     } catch (err: any) {

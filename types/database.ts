@@ -29,6 +29,8 @@ export interface Database {
           language: string | null;
           mood_reminder_enabled: boolean;
           mood_reminder_time: string | null;
+          privacy_settings: Json | null;
+          notification_settings: Json | null;
           emergency_contact_name: string | null;
           emergency_contact_phone: string | null;
           emergency_contact_relation: string | null;
@@ -60,6 +62,8 @@ export interface Database {
           language?: string | null;
           mood_reminder_enabled?: boolean;
           mood_reminder_time?: string | null;
+          privacy_settings?: Json | null;
+          notification_settings?: Json | null;
           emergency_contact_name?: string | null;
           emergency_contact_phone?: string | null;
           emergency_contact_relation?: string | null;
@@ -91,6 +95,8 @@ export interface Database {
           language?: string | null;
           mood_reminder_enabled?: boolean;
           mood_reminder_time?: string | null;
+          privacy_settings?: Json | null;
+          notification_settings?: Json | null;
           emergency_contact_name?: string | null;
           emergency_contact_phone?: string | null;
           emergency_contact_relation?: string | null;

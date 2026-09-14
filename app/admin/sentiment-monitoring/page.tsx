@@ -179,6 +179,11 @@ export default function AdminSentimentMonitoringPage() {
     return sum / values.length;
   }, [entries, totalEntries]);
 
+  const activeModel = useMemo(() => {
+    const model = entries.find((entry) => entry.sentiment_model)?.sentiment_model;
+    return model || "xlm-roberta-finetuned";
+  }, [entries]);
+
   // Language distribution — confidence averages are derived from real entries, not randomized.
   const languageStats = useMemo(() => {
     const sample = entries.slice(0, 500);
@@ -352,8 +357,8 @@ export default function AdminSentimentMonitoringPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-5 bg-[#eef3f8]">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
+        <Card className="h-full p-5 bg-[#eef3f8]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">✅</div>
             <div className="text-right flex-1">
@@ -362,13 +367,13 @@ export default function AdminSentimentMonitoringPage() {
                 {agreement != null ? fmtPct(agreement) : "—"}
               </p>
               <p className="text-xs text-dark-text/50 font-poppins">
-                {agreement != null ? "mood-sentiment agreement" : "No labelled data yet"}
+                {agreement != null ? `mood agreement · ${activeModel}` : `confidence proxy · ${activeModel}`}
               </p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-green-400 to-emerald-300 rounded-full"></div>
         </Card>
-        <Card className="p-5 bg-[#eef3f8]">
+        <Card className="h-full p-5 bg-[#eef3f8]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">⚡</div>
             <div className="text-right flex-1">
@@ -381,7 +386,7 @@ export default function AdminSentimentMonitoringPage() {
           </div>
           <div className="h-1 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full"></div>
         </Card>
-        <Card className="p-5 bg-[#eef3f8]">
+        <Card className="h-full p-5 bg-[#eef3f8]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center text-2xl">🌐</div>
             <div className="text-right flex-1">
@@ -391,7 +396,7 @@ export default function AdminSentimentMonitoringPage() {
           </div>
           <div className="h-1 bg-gradient-to-r from-purple-400 to-pink-300 rounded-full"></div>
         </Card>
-        <Card className="p-5 border-l-4 border-l-[#F4A6A6] bg-[#eef3f8]">
+        <Card className="h-full p-5 border-l-4 border-l-[#F4A6A6] bg-[#eef3f8]">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">⚠️</div>
             <div className="text-right flex-1">

@@ -80,7 +80,7 @@ export default function SettingsPage() {
     try {
       const { data, error } = await supabase
         .from("user_profiles")
-        .select("mood_reminder_enabled, mood_reminder_time, language, two_factor_enabled")
+        .select("mood_reminder_enabled, mood_reminder_time, language, two_factor_enabled, privacy_settings, notification_settings")
         .eq("id", user.id)
         .maybeSingle();
       if (error) return;
@@ -97,12 +97,15 @@ export default function SettingsPage() {
         );
         setNotificationSettings({
           dailyReminder: data.mood_reminder_enabled ?? true,
-          weeklyReport: storedNotificationSettings.weeklyReport,
-          aiAlerts: storedNotificationSettings.aiAlerts,
-          streakReminder: storedNotificationSettings.streakReminder,
+          weeklyReport: (data.notification_settings as Partial<typeof notificationSettings> | null)?.weeklyReport ?? storedNotificationSettings.weeklyReport,
+          aiAlerts: (data.notification_settings as Partial<typeof notificationSettings> | null)?.aiAlerts ?? storedNotificationSettings.aiAlerts,
+          streakReminder: (data.notification_settings as Partial<typeof notificationSettings> | null)?.streakReminder ?? storedNotificationSettings.streakReminder,
           reminderTime: data.mood_reminder_time || storedNotificationSettings.reminderTime || "20:00",
         });
-        setPrivacySettings(storedPrivacySettings);
+        setPrivacySettings({
+          ...storedPrivacySettings,
+          ...(data.privacy_settings as Partial<typeof privacySettings> | null),
+        });
         setLanguage(data.language || "English");
         setTwoFactorEnabled(Boolean(data.two_factor_enabled));
       }
@@ -140,6 +143,7 @@ export default function SettingsPage() {
       const { error } = await supabase.from("user_profiles").update({
         mood_reminder_enabled: notificationSettings.dailyReminder,
         mood_reminder_time: notificationSettings.reminderTime,
+        notification_settings: notificationSettings,
         updated_at: new Date().toISOString(),
       }).eq("id", user.id);
       if (error) throw error;
@@ -156,6 +160,11 @@ export default function SettingsPage() {
     if (!user) return;
     try {
       setSaving(true);
+      const { error } = await supabase.from("user_profiles").update({
+        privacy_settings: privacySettings,
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id);
+      if (error) throw error;
       writeLocalPreference(user.id, "privacy-settings", privacySettings);
       flash(setSuccess, "✅ Privacy settings saved!");
     } catch (e: any) {

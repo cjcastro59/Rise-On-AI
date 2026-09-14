@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   -- Mood preferences
   mood_reminder_enabled BOOLEAN DEFAULT false,
   mood_reminder_time TIME,
+    privacy_settings JSONB DEFAULT '{}'::jsonb,
+    notification_settings JSONB DEFAULT '{}'::jsonb,
   -- Emergency support
   emergency_contact_name TEXT,
   emergency_contact_phone TEXT,
@@ -191,6 +193,8 @@ UPDATE public.user_profiles SET role = 'counselor' WHERE role = 'researcher';
 UPDATE public.user_profiles SET role = 'user' WHERE role NOT IN ('user', 'counselor', 'admin', 'owner');
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS goals TEXT[];
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS language TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS privacy_settings JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS notification_settings JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 -- 2FA columns
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT false;
