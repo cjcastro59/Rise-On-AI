@@ -197,8 +197,16 @@ export function LoginForm() {
 
       let verified = false;
       try {
+        const normalizedSecret = String(profile.two_factor_secret)
+          .trim()
+          .replace(/\s+/g, "")
+          .toUpperCase();
+        if (!normalizedSecret) {
+          setError("Two-factor authentication is not configured correctly. Please ask an administrator to reset 2FA for this account.");
+          return;
+        }
         verified = authenticator.verify({
-          secret: profile.two_factor_secret.trim().replace(/\s+/g, "").toUpperCase(),
+          secret: normalizedSecret,
           token:  normalizedTotpCode,
         });
       } catch (verificationError) {
@@ -209,13 +217,13 @@ export function LoginForm() {
 
       if (verified) {
         if (userId) {
-          await applyPendingProfileData(userId);
           // Log login activity for 2FA path (fire-and-forget)
-          supabase.from("activity_logs").insert({
+          void supabase.from("activity_logs").insert({
             user_id: userId,
             action:  "login",
             details: "User signed in (2FA verified)",
-          }).catch(() => {/* ignore */});
+          }).then(() => undefined, () => undefined);
+          await applyPendingProfileData(userId);
           router.push("/dashboard");
           router.refresh();
         }
