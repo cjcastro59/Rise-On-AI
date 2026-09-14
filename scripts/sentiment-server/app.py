@@ -127,7 +127,9 @@ else:
                 print(f"[!] torch.compile() skipped: {_compile_e}")
 
         _elapsed = time.time() - _load_start
-        print(f"[✔] Model loaded in {_elapsed:.2f}s on {device}!")
+        # ASCII-only: Windows cp1252 consoles crash on Unicode checkmarks,
+        # and that exception used to flip the server into DEMO_MODE.
+        print(f"[OK] Model loaded in {_elapsed:.2f}s on {device}!")
 
     except Exception as e:
         print(f"[!] WARNING: Could not load model ({e}). Running DEMO MODE.")

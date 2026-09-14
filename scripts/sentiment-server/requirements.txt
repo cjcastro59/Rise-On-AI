@@ -7,6 +7,7 @@ uvicorn[standard]>=0.30.0
 
 # ML libraries (XLM-RoBERTa)
 torch>=2.3.0
+numpy>=1.26.0,<2
 transformers>=4.44.0
 sentencepiece>=0.2.0
 protobuf>=4.25.0
