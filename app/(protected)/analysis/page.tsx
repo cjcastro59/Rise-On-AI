@@ -387,7 +387,7 @@ export default function AIAnalysisPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-8">
         {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
         <div className="space-y-6">
           {/* Sentiment Breakdown */}
