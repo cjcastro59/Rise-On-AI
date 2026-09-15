@@ -770,88 +770,113 @@ CREATE POLICY "Counselors can update assigned conversations"
     WITH CHECK (auth.uid() = counselor_id);
 
 -- ------------------------------
--- RLS Policies for conversations
--- ------------------------------
-DO $$
-BEGIN
-    DROP POLICY IF EXISTS "Users can view their own conversations" ON public.conversations;
-    DROP POLICY IF EXISTS "Counselors/admins can view all conversations" ON public.conversations;
-    DROP POLICY IF EXISTS "Users can insert their own conversations" ON public.conversations;
-    DROP POLICY IF EXISTS "Counselors/admins can insert conversations" ON public.conversations;
-    DROP POLICY IF EXISTS "Counselors/admins can update conversations" ON public.conversations;
-END
-$$;
-
-CREATE POLICY "Users can view their own conversations"
-    ON public.conversations
-    FOR SELECT
-    USING (auth.uid() = user_id);
-
-CREATE POLICY "Counselors/admins can view all conversations"
-    ON public.conversations
-    FOR SELECT
-    USING (public.is_current_user_admin_or_owner());
-
-CREATE POLICY "Users can insert their own conversations"
-    ON public.conversations
-    FOR INSERT
-    WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Counselors/admins can insert conversations"
-    ON public.conversations
-    FOR INSERT
-    WITH CHECK (public.is_current_user_admin_or_owner());
-
-CREATE POLICY "Counselors/admins can update conversations"
-    ON public.conversations
-    FOR UPDATE
-    USING (public.is_current_user_admin_or_owner())
-    WITH CHECK (public.is_current_user_admin_or_owner());
-
--- ------------------------------
 -- RLS Policies for messages
 -- ------------------------------
 DO $$
 BEGIN
     DROP POLICY IF EXISTS "Users can view messages from their conversations" ON public.messages;
     DROP POLICY IF EXISTS "Counselors/admins can view all messages" ON public.messages;
+    DROP POLICY IF EXISTS "Counselors can view messages of assigned conversations" ON public.messages;
     DROP POLICY IF EXISTS "Users can insert messages to their conversations" ON public.messages;
     DROP POLICY IF EXISTS "Counselors/admins can insert messages" ON public.messages;
+    DROP POLICY IF EXISTS "Counselors can insert messages to assigned conversations" ON public.messages;
+    DROP POLICY IF EXISTS "Users can mark their messages read" ON public.messages;
+    DROP POLICY IF EXISTS "Counselors/admins can mark messages read" ON public.messages;
+    DROP POLICY IF EXISTS "Counselors can mark messages read for assigned convos" ON public.messages;
 END
 $$;
 
+-- SELECT
 CREATE POLICY "Users can view messages from their conversations"
-    ON public.messages
-    FOR SELECT
+    ON public.messages FOR SELECT
     USING (
         EXISTS (
             SELECT 1 FROM public.conversations
-            WHERE public.conversations.id = public.messages.conversation_id
-            AND public.conversations.user_id = auth.uid()
+            WHERE conversations.id = messages.conversation_id
+              AND conversations.user_id = auth.uid()
         )
     );
 
 CREATE POLICY "Counselors/admins can view all messages"
-    ON public.messages
-    FOR SELECT
+    ON public.messages FOR SELECT
     USING (public.is_current_user_admin_or_owner());
 
+CREATE POLICY "Counselors can view messages of assigned conversations"
+    ON public.messages FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.conversations
+            WHERE conversations.id = messages.conversation_id
+              AND conversations.counselor_id = auth.uid()
+        )
+    );
+
+-- INSERT
 CREATE POLICY "Users can insert messages to their conversations"
-    ON public.messages
-    FOR INSERT
+    ON public.messages FOR INSERT
     WITH CHECK (
         auth.uid() = sender_id
         AND EXISTS (
             SELECT 1 FROM public.conversations
-            WHERE public.conversations.id = public.messages.conversation_id
-            AND public.conversations.user_id = auth.uid()
+            WHERE conversations.id = messages.conversation_id
+              AND conversations.user_id = auth.uid()
         )
     );
 
 CREATE POLICY "Counselors/admins can insert messages"
-    ON public.messages
-    FOR INSERT
+    ON public.messages FOR INSERT
     WITH CHECK (public.is_current_user_admin_or_owner());
+
+CREATE POLICY "Counselors can insert messages to assigned conversations"
+    ON public.messages FOR INSERT
+    WITH CHECK (
+        auth.uid() = sender_id
+        AND EXISTS (
+            SELECT 1 FROM public.conversations
+            WHERE conversations.id = messages.conversation_id
+              AND conversations.counselor_id = auth.uid()
+        )
+    );
+
+-- UPDATE (marking is_read = true via PATCH /api/support/conversations)
+CREATE POLICY "Users can mark their messages read"
+    ON public.messages FOR UPDATE
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.conversations
+            WHERE conversations.id = messages.conversation_id
+              AND conversations.user_id = auth.uid()
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.conversations
+            WHERE conversations.id = messages.conversation_id
+              AND conversations.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Counselors/admins can mark messages read"
+    ON public.messages FOR UPDATE
+    USING (public.is_current_user_admin_or_owner())
+    WITH CHECK (public.is_current_user_admin_or_owner());
+
+CREATE POLICY "Counselors can mark messages read for assigned convos"
+    ON public.messages FOR UPDATE
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.conversations
+            WHERE conversations.id = messages.conversation_id
+              AND conversations.counselor_id = auth.uid()
+        )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.conversations
+            WHERE conversations.id = messages.conversation_id
+              AND conversations.counselor_id = auth.uid()
+        )
+    );
 
 -- ------------------------------
 -- Triggers for updated_at
