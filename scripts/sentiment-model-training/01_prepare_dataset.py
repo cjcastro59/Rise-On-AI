@@ -1421,6 +1421,18 @@ def load_source_dataset(args) -> pd.DataFrame:
             df = pd.read_json(p, lines=(p.suffix.lower() == ".jsonl"))
         else:
             raise ValueError(f"Unsupported input file: {p.suffix}")
+            # Handle Kaggle binary distress datasets such as:
+        # clean_text / is_depression
+        if {"clean_text", "is_depression"}.issubset(df.columns):
+            print("[DATA] Detected Kaggle binary distress dataset: mapping clean_text -> text and is_depression -> label")
+            df = df.rename(columns={"clean_text": "text", "is_depression": "label"})
+            # Map 1 => distress, 0 => negative (safe default because the Kaggle source
+            # does not provide a positive class and we are preserving the app's 3-way label schema). 
+            df["label"] = df["label"].map({1: "distress", 0: "negative"})
+            df = df[["text", "label"]].copy()
+            df["source"] = f"kaggle_{p.stem}"
+            return df
+
         # Expect columns: text / content / sentence + label / sentiment
         col_aliases_text = ["text", "content", "sentence", "message"]
         col_aliases_label = ["label", "sentiment", "target", "class"]
