@@ -41,10 +41,18 @@ LOG_DIR = BASE_DIR / "logs"
 for d in (DATA_DIR, OUT_DIR, LOG_DIR):
     d.mkdir(parents=True, exist_ok=True)
 
-LABELS = ["positive", "negative", "distress"]
-LABEL2IDX = {l: i for i, l in enumerate(LABELS)}
-IDX2LABEL = {i: l for l, i in LABEL2IDX.items()}
+DEFAULT_LABELS = ["positive", "negative", "distress"]
+LABELS = DEFAULT_LABELS.copy()
+LABEL2IDX = {label: i for i, label in enumerate(LABELS)}
+IDX2LABEL = {i: label for label, i in LABEL2IDX.items()}
 RANDOM_SEED = 42
+
+
+def set_label_metadata(labels: list[str]):
+    global LABELS, LABEL2IDX, IDX2LABEL
+    LABELS = labels
+    LABEL2IDX = {label: i for i, label in enumerate(LABELS)}
+    IDX2LABEL = {i: label for label, i in LABEL2IDX.items()}
 
 
 # ------------------------------
@@ -108,6 +116,7 @@ def tokenize_dataset(dataset: DatasetDict, tokenizer, max_seq_len: int) -> Datas
 # ------------------------------
 def load_splits() -> DatasetDict:
     splits = {}
+    observed_labels = []
     for split in ("train", "val", "test"):
         p = DATA_DIR / f"{split}.csv"
         if not p.exists():
@@ -115,34 +124,51 @@ def load_splits() -> DatasetDict:
                 f"Missing {p}. Run 01_prepare_dataset.py first!"
             )
         df = pd.read_csv(p)
-        df["label"] = df["label"].map(LABEL2IDX).astype(int)
+        observed_labels.extend(df["label"].dropna().astype(str).unique().tolist())
         splits[split] = Dataset.from_pandas(df)
+
+    labels = list(dict.fromkeys(observed_labels))
+    if not labels:
+        labels = DEFAULT_LABELS.copy()
+    set_label_metadata(labels)
+    label2idx = LABEL2IDX
+    for split in ("train", "val", "test"):
+        df = pd.DataFrame(splits[split])
+        df["label"] = df["label"].map(label2idx).astype(int)
+        splits[split] = Dataset.from_pandas(df)
+
+    print(f"[LABELS] Using labels: {LABELS}")
     return DatasetDict(splits)
 
 
 # ------------------------------
 # METRICS COMPUTATION
 # ------------------------------
-def compute_metrics(eval_pred: Any) -> dict:
-    logits, labels = eval_pred
-    preds = np.argmax(logits, axis=-1)
-    return {
-        "accuracy": float(accuracy_score(labels, preds)),
-        "precision_macro": float(precision_score(labels, preds, average="macro", zero_division=0)),
-        "recall_macro": float(recall_score(labels, preds, average="macro", zero_division=0)),
-        "f1_macro": float(f1_score(labels, preds, average="macro", zero_division=0)),
-        "f1_weighted": float(f1_score(labels, preds, average="weighted", zero_division=0)),
-        **{
-            f"f1_{l}": float(f1_score(labels, preds, labels=[LABEL2IDX[l]], average="macro", zero_division=0))
-            for l in LABELS
-        },
-    }
+def make_compute_metrics(label2idx: dict[str, int]):
+    labels = list(label2idx.keys())
+
+    def compute_metrics(eval_pred: Any) -> dict:
+        logits, labels_ids = eval_pred
+        preds = np.argmax(logits, axis=-1)
+        return {
+            "accuracy": float(accuracy_score(labels_ids, preds)),
+            "precision_macro": float(precision_score(labels_ids, preds, average="macro", zero_division=0)),
+            "recall_macro": float(recall_score(labels_ids, preds, average="macro", zero_division=0)),
+            "f1_macro": float(f1_score(labels_ids, preds, average="macro", zero_division=0)),
+            "f1_weighted": float(f1_score(labels_ids, preds, average="weighted", zero_division=0)),
+            **{
+                f"f1_{l}": float(f1_score(labels_ids, preds, labels=[label2idx[l]], average="macro", zero_division=0))
+                for l in labels
+            },
+        }
+
+    return compute_metrics
 
 
 # ------------------------------
 # MODEL BUILDER
 # ------------------------------
-def build_model_and_tokenizer(cfg: TrainConfig):
+def build_model_and_tokenizer(cfg: TrainConfig, label2idx: dict[str, int], idx2label: dict[int, str]):
     from transformers import (
         AutoTokenizer,
         AutoModelForSequenceClassification,
@@ -172,9 +198,9 @@ def build_model_and_tokenizer(cfg: TrainConfig):
     # ---- Model ----
     model = AutoModelForSequenceClassification.from_pretrained(
         cfg.base_model,
-        num_labels=len(LABELS),
-        id2label=IDX2LABEL,
-        label2id=LABEL2IDX,
+        num_labels=len(label2idx),
+        id2label=idx2label,
+        label2id=label2idx,
     )
 
     # ---- LoRA / PEFT ----
@@ -245,22 +271,35 @@ def run_trial(cfg: TrainConfig, tokenized_ds: DatasetDict, trial_idx: int) -> di
     trial_out = OUT_DIR / f"trial_{trial_idx:02d}"
     trial_out.mkdir(parents=True, exist_ok=True)
 
-    tokenizer, model, fp16_flag = build_model_and_tokenizer(cfg)
+    label2idx = LABEL2IDX
+    idx2label = IDX2LABEL
+    label_names = [idx2label[i] for i in range(len(idx2label))]
 
-    # Build class weights — give distress 3× weight so the model
-    # can't ignore it even when loss from majority classes dominates.
-    label_counts = {LABEL2IDX[l]: 0 for l in LABELS}
+    tokenizer, model, fp16_flag = build_model_and_tokenizer(cfg, label2idx, idx2label)
+
+    label_counts = {i: 0 for i in range(len(label_names))}
     for row in tokenized_ds["train"]:
-        label_counts[row["label"]] += 1
+        label_counts[int(row["label"])] += 1
     total = sum(label_counts.values())
-    # Weighted inverse-frequency, with distress boosted an extra 1.2×
-    # (reduced from 1.5× — lowercase preprocessing tightens the neg/distress boundary,
-    # so a smaller boost avoids over-predicting distress on strong negative Tagalog entries)
-    raw_weights = [total / (len(LABELS) * label_counts[i]) for i in range(len(LABELS))]
-    # Index 2 = distress → multiply by 1.2
-    raw_weights[LABEL2IDX["distress"]] *= 1.2
+    zero_labels = [idx2label[i] for i, c in label_counts.items() if c == 0]
+    if zero_labels:
+        print(f"[WARN] Missing labels in training data: {zero_labels}. Adjusting counts to avoid division-by-zero.")
+
+    raw_weights = [total / (len(label_names) * max(1, label_counts[i])) for i in range(len(label_names))]
+    distress_idx = label2idx.get("distress")
+    if distress_idx is not None:
+        raw_weights[distress_idx] *= 1.2
     class_weights = torch.tensor(raw_weights, dtype=torch.float32)
-    print(f"[CLASS WEIGHTS] positive={class_weights[0]:.3f}  negative={class_weights[1]:.3f}  distress={class_weights[2]:.3f}")
+    weight_labels = " ".join(f"{name}={class_weights[i]:.3f}" for i, name in enumerate(label_names))
+    print(f"[CLASS WEIGHTS] {weight_labels}")
+
+    train_steps = int(
+        len(tokenized_ds["train"]) /
+        cfg.per_device_train_batch_size /
+        cfg.gradient_accumulation_steps *
+        cfg.num_train_epochs
+    )
+    warmup_steps = max(1, int(train_steps * cfg.warmup_ratio))
 
     args = TrainingArguments(
         output_dir=str(trial_out),
@@ -270,10 +309,9 @@ def run_trial(cfg: TrainConfig, tokenized_ds: DatasetDict, trial_idx: int) -> di
         per_device_eval_batch_size=cfg.per_device_eval_batch_size,
         gradient_accumulation_steps=cfg.gradient_accumulation_steps,
         num_train_epochs=cfg.num_train_epochs,
-        warmup_ratio=cfg.warmup_ratio,
+        warmup_steps=warmup_steps,
         weight_decay=cfg.weight_decay,
         fp16=fp16_flag,
-        logging_dir=str(LOG_DIR),
         logging_strategy="steps",
         logging_steps=20,
         eval_strategy="epoch",
@@ -293,8 +331,8 @@ def run_trial(cfg: TrainConfig, tokenized_ds: DatasetDict, trial_idx: int) -> di
         args=args,
         train_dataset=tokenized_ds["train"],
         eval_dataset=tokenized_ds["val"],
-        tokenizer=tokenizer,
-        compute_metrics=compute_metrics,
+        processing_class=tokenizer,
+        compute_metrics=make_compute_metrics(label2idx),
         class_weights=class_weights,
         callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.early_stopping_patience)],
     )
@@ -343,9 +381,11 @@ def save_best_model(tokenizer, best_model_dir: Path):
         if not base_model_name:
             base_model_name = "FacebookAI/xlm-roberta-base"
 
+        label2idx = LABEL2IDX
+        idx2label = IDX2LABEL
         base = AutoModelForSequenceClassification.from_pretrained(
-            base_model_name, num_labels=len(LABELS),
-            id2label=IDX2LABEL, label2id=LABEL2IDX,
+            base_model_name, num_labels=len(label2idx),
+            id2label=idx2label, label2id=label2idx,
         )
         merged = PeftModel.from_pretrained(base, str(best_model_dir))
         merged = merged.merge_and_unload()
