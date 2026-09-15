@@ -919,7 +919,7 @@ export default function SettingsPage() {
           {renderSettingsContent()}
         </Card>
       </div>
-      </div>{/* end inner flex gap-6 */}
+      </div>
 
       {/* Change Password Modal */}
       {showChangePw && (
@@ -1009,6 +1009,6 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
-    </div>{/* end space-y-4 */}
+    </div>
   );
 }
