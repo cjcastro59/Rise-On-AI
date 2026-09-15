@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -47,6 +47,7 @@ export default function JournalEntryPage() {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [currentPrompt, setCurrentPrompt] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [sentimentResult, setSentimentResult] = useState<{
@@ -63,6 +64,7 @@ export default function JournalEntryPage() {
   const searchParams = useSearchParams();
   const supabase = createClient() as any;
   const editorRef = useRef<HTMLDivElement>(null);
+  const isSubmittingRef = useRef(false);
 
   useEffect(() => {
     setCurrentPrompt(prompts[Math.floor(Math.random() * prompts.length)]);
@@ -75,22 +77,37 @@ export default function JournalEntryPage() {
     }
   }, [searchParams]);
 
+  const resetEntryForm = () => {
+    setTitle("");
+    setContent("");
+    setSelectedMood(null);
+    setSentimentResult(null);
+    setShowEmojiPicker(false);
+    setAutoSaveStatus("idle");
+  };
+
   // Auto-save draft to localStorage
   useEffect(() => {
+    if (isSubmitting) return;
+
+    if (!title && !content && !selectedMood) {
+      setAutoSaveStatus("idle");
+      return;
+    }
+
+    setAutoSaveStatus("saving");
     const timer = setTimeout(() => {
-      if (title || content || selectedMood) {
-        localStorage.setItem("journal_draft", JSON.stringify({
-          title,
-          content,
-          selectedMood,
-          timestamp: Date.now()
-        }));
-        setAutoSaveStatus("saved");
-      }
+      localStorage.setItem("journal_draft", JSON.stringify({
+        title,
+        content,
+        selectedMood,
+        timestamp: Date.now()
+      }));
+      setAutoSaveStatus("saved");
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [title, content, selectedMood]);
+  }, [title, content, selectedMood, isSubmitting]);
 
   // Load draft from localStorage on mount
   useEffect(() => {
@@ -122,19 +139,29 @@ export default function JournalEntryPage() {
     };
   }, []);
 
-  const saveEntry = async () => {
+  const saveEntry = async (e?: FormEvent) => {
+    e?.preventDefault();
+    if (isSubmittingRef.current) return;
     if (!user) return;
+
+    const entryTitle = title.trim();
+    const entryContent = content.trim();
+    const entryMood = selectedMood;
+
     try {
+      isSubmittingRef.current = true;
+      setIsSubmitting(true);
       setLoading(true);
+      setAutoSaveStatus("saving");
 
       // ---- 1. Save journal entry first ----
       const { data, error } = await supabase
         .from("journal_entries")
         .insert({
           user_id: user.id,
-          title: title || null,
-          content: content || null,
-          mood: selectedMood,
+          title: entryTitle || null,
+          content: entryContent || null,
+          mood: entryMood,
         })
         .select("id")
         .single();
@@ -151,9 +178,9 @@ export default function JournalEntryPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            title,
-            content,
-            mood: selectedMood,
+            title: entryTitle,
+            content: entryContent,
+            mood: entryMood,
             entryId,
           }),
         });
@@ -189,13 +216,13 @@ export default function JournalEntryPage() {
       }
 
       // ---- 3. Write mood_log + activity_log (fire-and-forget, never block save) ----
-      if (selectedMood) {
-        const moodScore = getMoodScore(selectedMood);
-        Promise.all([
+      if (entryMood) {
+        const moodScore = getMoodScore(entryMood);
+        void Promise.all([
           // mood_logs: one row per journal save with the selected mood + numeric score
           supabase.from("mood_logs").insert({
             user_id:    user.id,
-            mood:       selectedMood,
+            mood:       entryMood,
             score:      moodScore,
             notes:      null,
           }),
@@ -203,18 +230,20 @@ export default function JournalEntryPage() {
           supabase.from("activity_logs").insert({
             user_id: user.id,
             action:  "journal_entry_created",
-            details: `Entry saved${selectedMood ? ` · mood: ${selectedMood}` : ""}`,
+            details: `Entry saved - mood: ${entryMood}`,
           }),
         ]).catch((err: unknown) =>
           console.error("[journal/save] mood_logs/activity_logs write failed:", err)
         );
       } else {
         // Even without a mood, still log the activity
-        supabase.from("activity_logs").insert({
-          user_id: user.id,
-          action:  "journal_entry_created",
-          details: "Entry saved (no mood selected)",
-        }).catch((err: unknown) =>
+        void Promise.resolve(
+          supabase.from("activity_logs").insert({
+            user_id: user.id,
+            action:  "journal_entry_created",
+            details: "Entry saved (no mood selected)",
+          })
+        ).catch((err: unknown) =>
           console.error("[journal/save] activity_logs write failed:", err)
         );
       }
@@ -223,26 +252,27 @@ export default function JournalEntryPage() {
       await createDistressAlertForJournalEntry(supabase, {
         userId: user.id,
         entryId,
-        title,
-        content,
-        mood: selectedMood,
+        title: entryTitle,
+        content: entryContent,
+        mood: entryMood,
       });
 
       localStorage.removeItem("journal_draft");
-      router.push(`/analysis?entryId=${entryId}`);
+      resetEntryForm();
+      router.push("/journal/history");
     } catch (error) {
       console.error("Error saving entry:", error);
     } finally {
+      isSubmittingRef.current = false;
       setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   const discardDraft = () => {
     if (confirm("Discard this draft?")) {
       localStorage.removeItem("journal_draft");
-      setTitle("");
-      setContent("");
-      setSelectedMood(null);
+      resetEntryForm();
     }
   };
 
@@ -417,14 +447,14 @@ export default function JournalEntryPage() {
         <span className="text-xs font-inter text-dark-text/60">
           {wordCount} / {maxWords} words
         </span>
-        <div className="flex items-center gap-3">
-          <Button variant="secondary" size="sm" onClick={discardDraft}>
+        <form onSubmit={saveEntry} className="flex items-center gap-3">
+          <Button variant="secondary" size="sm" type="button" onClick={discardDraft}>
             Discard Draft
           </Button>
-          <Button size="sm" onClick={saveEntry} disabled={loading}>
-            {loading ? "Saving..." : "Save Entry"}
+          <Button size="sm" type="submit" disabled={isSubmitting || loading}>
+            {isSubmitting || loading ? "Saving..." : "Save Entry"}
           </Button>
-        </div>
+        </form>
       </div>
     </>
   );

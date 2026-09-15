@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Area,
@@ -15,13 +16,40 @@ import {
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
+import { formatDisplayId, loadDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-ids";
 
 interface DauPoint {
   date: string;
   fullDate: string;
   count: number;
 }
+
+type RecentJournalEntry = {
+  id: string;
+  user_id: string;
+  title: string | null;
+  mood: string | null;
+  sentiment: string | null;
+  created_at: string;
+};
+
+type AnnouncementRow = {
+  id: string;
+  title: string;
+  content: string;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+};
+
+type DashboardNotification = {
+  id: string;
+  type: "message" | "announcement";
+  title: string;
+  message: string;
+  created_at: string;
+  href?: string;
+};
 
 function DauTooltip({ active, payload }: TooltipContentProps) {
   if (!active || !payload || !payload.length) return null;
@@ -45,9 +73,14 @@ export default function AdminDashboardPage() {
   });
   const [recentAlerts, setRecentAlerts] = useState<any[]>([]);
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [recentEntries, setRecentEntries] = useState<RecentJournalEntry[]>([]);
+  const [announcements, setAnnouncements] = useState<AnnouncementRow[]>([]);
+  const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [firstUserDate, setFirstUserDate] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState<string>("");
   const [loading, setLoading] = useState(true);
+  const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
   const [dauPeriod, setDauPeriod] = useState<"week" | "month">("month");
   const [dauData, setDauData] = useState<DauPoint[]>([]);
   const [dauSummary, setDauSummary] = useState({
@@ -66,8 +99,8 @@ export default function AdminDashboardPage() {
   const [announcementTitle, setAnnouncementTitle] = useState("");
   const [announcementContent, setAnnouncementContent] = useState("");
   const { user: currentUser } = useAuth();
-  const { openConfirmation } = useConfirmation();
   const supabase = useMemo(() => createClient() as any, []);
+  const staffConversationIdsRef = useRef<Set<string>>(new Set());
 
   // Format date as "Thursday, May 28, 2026"
   const formatFullDate = (date: Date) => {
@@ -82,6 +115,41 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     setCurrentDate(formatFullDate(new Date()));
   }, []);
+
+  const pushNotification = useCallback((notification: DashboardNotification) => {
+    setNotifications((prev) => {
+      if (prev.some((item) => item.id === notification.id)) return prev;
+      return [notification, ...prev].slice(0, 12);
+    });
+  }, []);
+
+  const loadAnnouncements = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("announcements")
+      .select("id,title,content,is_active,created_by,created_at")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(3);
+
+    if (!error) {
+      setAnnouncements((data || []) as AnnouncementRow[]);
+    }
+  }, [supabase]);
+
+  const loadStaffConversationIds = useCallback(async () => {
+    if (!currentUser) return;
+
+    const { data, error } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("counselor_id", currentUser.id);
+
+    if (!error) {
+      staffConversationIdsRef.current = new Set(
+        (data || []).map((conversation: { id: string }) => conversation.id)
+      );
+    }
+  }, [currentUser, supabase]);
 
   // Local YYYY-MM-DD key, used to bucket activity records by calendar day
   // without the ambiguity of matching on weekday name or day-of-month alone.
@@ -229,7 +297,8 @@ export default function AdminDashboardPage() {
           { data: alertsData, error: alertsError }, 
           { data: activityData, error: activityError },
           { data: firstUsers, error: firstUsersError },
-          { count: newUsersTodayCount, error: newUsersError }
+          { count: newUsersTodayCount, error: newUsersError },
+          { data: recentEntryData, error: recentEntryError }
         ] = await Promise.all([
           supabase.from("user_profiles").select("id", { count: "exact", head: true }),
           supabase.from("journal_entries").select("id", { count: "exact", head: true }),
@@ -237,7 +306,8 @@ export default function AdminDashboardPage() {
           supabase.from("distress_logs").select("id, severity, trigger, notes, created_at").order("created_at", { ascending: false }).limit(3),
           supabase.from("audit_logs").select("id, action, details, created_at").order("created_at", { ascending: false }).limit(2),
           supabase.from("user_profiles").select("created_at").order("created_at", { ascending: true }).limit(1),
-          supabase.from("user_profiles").select("id", { count: "exact", head: true }).gte("created_at", today.toISOString())
+          supabase.from("user_profiles").select("id", { count: "exact", head: true }).gte("created_at", today.toISOString()),
+          supabase.from("journal_entries").select("id,user_id,title,mood,sentiment,created_at").order("created_at", { ascending: false }).limit(5)
         ]);
 
         if (userCountError) console.error("userCountError:", userCountError);
@@ -247,6 +317,7 @@ export default function AdminDashboardPage() {
         if (activityError) console.error("activityError:", activityError);
         if (firstUsersError) console.error("firstUsersError:", firstUsersError);
         if (newUsersError) console.error("newUsersError:", newUsersError);
+        if (recentEntryError) console.error("recentEntryError:", recentEntryError);
 
         if (firstUsers && firstUsers.length > 0) {
           setFirstUserDate(firstUsers[0].created_at);
@@ -275,9 +346,11 @@ export default function AdminDashboardPage() {
         });
         setRecentAlerts(alertsData || []);
         setRecentActivity(activityData || []);
+        setRecentEntries((recentEntryData || []) as RecentJournalEntry[]);
 
         // Load analytics data
         await loadAnalyticsData();
+        await loadAnnouncements();
       } catch (error) {
         console.error("Error loading admin dashboard data:", error);
       } finally {
@@ -286,12 +359,121 @@ export default function AdminDashboardPage() {
     };
 
     loadData();
-  }, [loadAnalyticsData, supabase, currentUser]);
+  }, [loadAnalyticsData, loadAnnouncements, supabase, currentUser]);
 
   // Reload analytics when period changes
   useEffect(() => {
     if (currentUser) loadAnalyticsData();
   }, [loadAnalyticsData, currentUser]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let mounted = true;
+    loadDisplayIdFormat(supabase).then((format) => {
+      if (mounted) setDisplayIdFormat(format);
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser, supabase]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    void loadStaffConversationIds();
+    void loadAnnouncements();
+
+    const channel = supabase.channel(`admin-dashboard-notifications:${currentUser.id}`);
+
+    channel.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "conversations",
+        filter: `counselor_id=eq.${currentUser.id}`,
+      },
+      () => void loadStaffConversationIds()
+    );
+
+    channel.on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "messages" },
+      async (payload: any) => {
+        const message = payload.new as {
+          id: string;
+          conversation_id: string;
+          sender_id: string;
+          content: string;
+          created_at: string;
+        };
+
+        if (message.sender_id === currentUser.id) return;
+
+        let belongsToStaffConversation = staffConversationIdsRef.current.has(message.conversation_id);
+        if (!belongsToStaffConversation) {
+          const { data: conversation } = await supabase
+            .from("conversations")
+            .select("id")
+            .eq("id", message.conversation_id)
+            .eq("counselor_id", currentUser.id)
+            .maybeSingle();
+
+          belongsToStaffConversation = !!conversation;
+          if (conversation) staffConversationIdsRef.current.add(message.conversation_id);
+        }
+
+        if (!belongsToStaffConversation) return;
+
+        const { data: sender } = await supabase
+          .from("user_profiles")
+          .select("full_name,username,email")
+          .eq("id", message.sender_id)
+          .maybeSingle();
+
+        const senderName = sender?.full_name || sender?.username || sender?.email || "A user";
+        pushNotification({
+          id: `message:${message.id}`,
+          type: "message",
+          title: "New Support Message",
+          message: `${senderName}: ${message.content}`,
+          created_at: message.created_at,
+          href: "/admin/support",
+        });
+      }
+    );
+
+    channel.on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "announcements" },
+      (payload: any) => {
+        const announcement = payload.new as AnnouncementRow;
+        if (!announcement.is_active) return;
+
+        setAnnouncements((prev) => [announcement, ...prev.filter((item) => item.id !== announcement.id)].slice(0, 3));
+        pushNotification({
+          id: `announcement:${announcement.id}`,
+          type: "announcement",
+          title: "New Announcement",
+          message: announcement.title,
+          created_at: announcement.created_at,
+        });
+      }
+    );
+
+    channel.subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [
+    currentUser,
+    loadAnnouncements,
+    loadStaffConversationIds,
+    pushNotification,
+    supabase,
+  ]);
 
   const formatTime = (value?: string) => {
     if (!value) return "just now";
@@ -364,13 +546,23 @@ export default function AdminDashboardPage() {
     }
 
     try {
-      const { error } = await supabase.from("announcements").insert({
-        title: announcementTitle,
-        content: announcementContent,
-        created_by: currentUser?.id
-      });
+      const { data: announcement, error } = await supabase
+        .from("announcements")
+        .insert({
+          title: announcementTitle,
+          content: announcementContent,
+          created_by: currentUser?.id,
+          is_active: true,
+        })
+        .select("id,title,content,is_active,created_by,created_at")
+        .single();
 
       if (error) throw error;
+      if (announcement) {
+        setAnnouncements((prev) =>
+          [announcement as AnnouncementRow, ...prev.filter((item) => item.id !== announcement.id)].slice(0, 3)
+        );
+      }
 
       // Log to audit
       await supabase.from("audit_logs").insert({
@@ -404,6 +596,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Dashboard Overview</h1>
@@ -411,7 +604,7 @@ export default function AdminDashboardPage() {
             {currentDate} - {firstUserDate ? `First user registered: ${formatFullDate(new Date(firstUserDate))}` : "No users yet"}
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button 
             onClick={exportReport}
             className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50">
@@ -422,7 +615,79 @@ export default function AdminDashboardPage() {
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-lg text-sm font-poppins text-dark-text font-medium">
             <span>📢</span> New Announcement
           </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowNotifications((value) => !value)}
+              className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white hover:bg-gray-50"
+              aria-label="Open notifications"
+            >
+              <Image src="/icons/notifications.svg" alt="" width={18} height={18} className="object-contain" />
+              {notifications.length > 0 && (
+                <span className="absolute -right-1 -top-1 rounded-full bg-[#F4A6A6] px-1.5 py-0.5 text-[10px] font-bold text-[#1E293B]">
+                  {notifications.length}
+                </span>
+              )}
+            </button>
+            {showNotifications && (
+              <div className="absolute right-0 top-full z-40 mt-2 w-80 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-xl">
+                <div className="border-b border-gray-100 px-4 py-3">
+                  <p className="text-sm font-semibold font-poppins text-dark-text">Notifications</p>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <p className="px-4 py-6 text-center text-sm font-inter text-dark-text/50">
+                      No new notifications.
+                    </p>
+                  ) : (
+                    notifications.map((notification) => (
+                      <Link
+                        key={notification.id}
+                        href={notification.href || "#"}
+                        className="block border-b border-gray-50 px-4 py-3 last:border-b-0 hover:bg-gray-50"
+                        onClick={() => setShowNotifications(false)}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className={`mt-1 h-2.5 w-2.5 rounded-full ${
+                            notification.type === "message" ? "bg-success-green" : "bg-primary-blue"
+                          }`} />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold font-poppins text-dark-text">{notification.title}</p>
+                            <p className="mt-1 line-clamp-2 text-xs font-inter text-dark-text/70">{notification.message}</p>
+                            <p className="mt-1 text-[11px] font-inter text-dark-text/40">{formatTime(notification.created_at)}</p>
+                          </div>
+                        </div>
+                      </Link>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
+      </div>
+
+      <Card variant="white" className="p-5">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="text-xs font-poppins text-dark-text/70 uppercase tracking-wider">Announcements</p>
+          <span className="rounded-full bg-primary-blue/10 px-2 py-1 text-[10px] font-semibold text-primary-blue">
+            Live
+          </span>
+        </div>
+        <div className="space-y-3">
+          {announcements.length === 0 ? (
+            <p className="text-sm font-inter text-dark-text/60">No active announcements.</p>
+          ) : (
+            announcements.map((announcement) => (
+              <div key={announcement.id} className="rounded-xl bg-light-gray/40 p-3">
+                <p className="text-sm font-semibold font-poppins text-dark-text">{announcement.title}</p>
+                <p className="mt-1 line-clamp-2 text-xs font-inter text-dark-text/65">{announcement.content}</p>
+                <p className="mt-2 text-[11px] font-inter text-dark-text/40">{formatTime(announcement.created_at)}</p>
+              </div>
+            ))
+          )}
+        </div>
+      </Card>
       </div>
 
       {/* Alert Banner */}
@@ -702,7 +967,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Recent Distress Alerts */}
         <Card variant="white" className="p-5">
           <div className="flex items-center justify-between mb-4">
@@ -726,6 +991,43 @@ export default function AdminDashboardPage() {
                 <Link href="/admin/distress-alerts" className="px-3 py-1 bg-[#F4A6A6]/30 text-[#F4A6A6] rounded-full text-xs font-semibold font-poppins">Review</Link>
               </div>
             ))}
+          </div>
+        </Card>
+
+        {/* Recent Journal Entries */}
+        <Card variant="white" className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📝</div>
+              <p className="text-xs font-poppins text-dark-text/70">RECENT JOURNAL ENTRIES</p>
+            </div>
+            <Link href="/admin/journal-monitor" className="text-xs font-poppins text-[#A8DADC] hover:underline">View All →</Link>
+          </div>
+          <div className="space-y-3">
+            {loading ? (
+              <p className="text-sm text-dark-text/70 font-inter">Loading entries...</p>
+            ) : recentEntries.length === 0 ? (
+              <p className="text-sm text-dark-text/70 font-inter">No journal entries found yet.</p>
+            ) : (
+              recentEntries.map((entry) => (
+                <div key={entry.id} className="rounded-xl border border-gray-100 bg-light-gray/30 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="truncate font-mono text-sm font-semibold text-[#A8DADC]">
+                      {formatDisplayId(entry.id, "entry", displayIdFormat)}
+                    </p>
+                    <span className="whitespace-nowrap text-[11px] font-inter text-dark-text/45">
+                      {formatTime(entry.created_at)}
+                    </span>
+                  </div>
+                  <p className="text-xs font-inter text-dark-text/60">
+                    User {formatDisplayId(entry.user_id, "user", displayIdFormat)}
+                  </p>
+                  <p className="mt-1 line-clamp-1 text-sm font-poppins text-dark-text">
+                    {entry.title || entry.mood || entry.sentiment || "Untitled entry"}
+                  </p>
+                </div>
+              ))
+            )}
           </div>
         </Card>
 

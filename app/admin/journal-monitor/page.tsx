@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getSentimentFromMood, type Sentiment } from "@/lib/sentiment";
+import { formatDisplayId, loadDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-ids";
 
 interface JournalEntryRow {
   id: string;
@@ -118,6 +119,7 @@ export default function AdminJournalMonitorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
   const entriesPerPage = 10;
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
@@ -152,6 +154,17 @@ export default function AdminJournalMonitorPage() {
 
     loadEntries();
   }, [supabase, currentUser]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    let mounted = true;
+    loadDisplayIdFormat(supabase).then((format) => {
+      if (mounted) setDisplayIdFormat(format);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser, supabase]);
 
   const totalEntries = entries.length;
   const todaysEntries = entries.filter((entry) => isSameDay(entry.created_at, new Date())).length;
@@ -390,7 +403,7 @@ export default function AdminJournalMonitorPage() {
                     return (
                       <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="py-4 px-3">
-                          <p className="font-poppins text-sm text-[#A8DADC] font-semibold">ENTRY-{String(entry.id).slice(0, 4).toUpperCase()}</p>
+                          <p className="font-mono text-sm text-[#A8DADC] font-semibold">{formatDisplayId(entry.id, "entry", displayIdFormat)}</p>
                         </td>
                         <td className="py-4 px-3">
                           <p className="text-sm font-inter text-dark-text/70">{new Date(entry.created_at).toLocaleString()}</p>

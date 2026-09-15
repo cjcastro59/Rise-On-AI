@@ -9,6 +9,7 @@ import {
   DISTRESS_RISK_CONFIG,
   type DistressRiskLevel,
 } from "@/lib/distress-risk";
+import { formatDisplayId, loadDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-ids";
 
 type JournalEntry = {
   id: string;
@@ -49,10 +50,6 @@ type UserRiskSnapshot = {
   total_points: number;
 };
 
-const getAnonymizedAlertId = (id: string) => {
-  return `RAI-${id.slice(0, 8).toUpperCase()}`;
-};
-
 const getResponseStatus = (notes?: string | null) => {
   if (!notes || !notes.trim()) return "Pending";
   if (notes.toLowerCase().includes("resolved") || notes.toLowerCase().includes("acknowledged")) {
@@ -90,6 +87,7 @@ export default function AdminDistressAlertsPage() {
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [activeAlertCount, setActiveAlertCount] = useState(0);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
@@ -112,6 +110,8 @@ export default function AdminDistressAlertsPage() {
 
   useEffect(() => {
     if (!currentUser) return;
+
+    loadDisplayIdFormat(supabase).then(setDisplayIdFormat);
 
     let mounted = true;
 
@@ -273,6 +273,10 @@ export default function AdminDistressAlertsPage() {
     return counselors.find((counselor) => counselor.id === counselorId) || null;
   };
 
+  const formatAlertId = (id: string) => formatDisplayId(id, "alert", displayIdFormat);
+  const formatUserId = (id: string) => formatDisplayId(id, "user", displayIdFormat);
+  const formatEntryId = (id: string) => formatDisplayId(id, "entry", displayIdFormat);
+
   const renderEntrySnippets = (userId: string) => {
     const entries = entriesByUser[userId] || [];
     if (entries.length === 0) {
@@ -284,9 +288,10 @@ export default function AdminDistressAlertsPage() {
         {entries.slice(0, 2).map((entry) => (
           <div key={entry.id} className="rounded-2xl bg-slate-50 p-3">
             <div className="flex items-center justify-between gap-3 mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">{entry.mood || "Mood unknown"}</span>
+              <span className="font-mono text-xs font-semibold uppercase tracking-wide text-primary-blue">{formatEntryId(entry.id)}</span>
               <span className="text-xs text-dark-text/60">{new Date(entry.created_at).toLocaleDateString()}</span>
             </div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-dark-text/60">{entry.mood || "Mood unknown"}</p>
             <p className="text-sm font-inter text-dark-text/90 line-clamp-2">{entry.title || entry.content || "No text available."}</p>
           </div>
         ))}
@@ -494,7 +499,7 @@ export default function AdminDistressAlertsPage() {
                   <div className="w-10 h-10 rounded-full bg-error-red/30 flex items-center justify-center text-2xl">!</div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-sm font-semibold text-primary-blue">{getAnonymizedAlertId(alert.id)}</span>
+                      <span className="font-mono text-sm font-semibold text-primary-blue">{formatAlertId(alert.id)}</span>
                       <span className="badge-error">Active</span>
                     </div>
                     <p className="text-sm font-poppins font-semibold text-dark-text">{alert.trigger || "Detected distress trigger"}</p>
@@ -512,7 +517,11 @@ export default function AdminDistressAlertsPage() {
                 </div>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-4">
+              <div className="grid gap-3 md:grid-cols-5">
+                <div>
+                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">User ID</p>
+                  <p className="mt-1 font-mono text-sm text-dark-text">{formatUserId(alert.user_id)}</p>
+                </div>
                 <div>
                   <p className="text-xs text-dark-text/60 uppercase tracking-wide">Last alert</p>
                   <p className="mt-1 text-sm text-dark-text">{new Date(alert.created_at).toLocaleString()}</p>
@@ -557,6 +566,7 @@ export default function AdminDistressAlertsPage() {
               <thead>
                 <tr>
                   <th>ALERT ID</th>
+                  <th>USER ID</th>
                   <th>TRIGGER</th>
                   <th>MOOD SCORE</th>
                   <th>DISTRESS RISK</th>
@@ -571,7 +581,10 @@ export default function AdminDistressAlertsPage() {
                 {mediumAlerts.map((alert) => (
                   <tr key={alert.id}>
                     <td>
-                      <p className="font-mono text-sm font-semibold text-primary-blue">{getAnonymizedAlertId(alert.id)}</p>
+                      <p className="font-mono text-sm font-semibold text-primary-blue">{formatAlertId(alert.id)}</p>
+                    </td>
+                    <td>
+                      <p className="font-mono text-sm text-dark-text/70">{formatUserId(alert.user_id)}</p>
                     </td>
                     <td>
                       <p className="text-sm font-inter text-dark-text">{alert.trigger || "Pending review"}</p>
@@ -583,11 +596,16 @@ export default function AdminDistressAlertsPage() {
                       <RiskBadge userId={alert.user_id} />
                     </td>
                     <td>
-                      <p className="text-sm font-inter text-dark-text/60">
-                        {entriesByUser[alert.user_id]?.[0]
-                          ? new Date(entriesByUser[alert.user_id]?.[0].created_at).toLocaleDateString()
-                          : "No entry"}
-                      </p>
+                      {entriesByUser[alert.user_id]?.[0] ? (
+                        <div>
+                          <p className="font-mono text-xs font-semibold text-primary-blue">{formatEntryId(entriesByUser[alert.user_id][0].id)}</p>
+                          <p className="text-xs font-inter text-dark-text/60">
+                            {new Date(entriesByUser[alert.user_id][0].created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-inter text-dark-text/60">No entry</p>
+                      )}
                     </td>
                     <td>
                       <p className="text-sm font-inter text-dark-text">{getProfileName(getAssignedCounselor(alert))}</p>
@@ -629,7 +647,7 @@ export default function AdminDistressAlertsPage() {
             <div className="relative bg-white rounded-2xl p-6 w-full max-w-3xl shadow-xl z-10 m-4 max-h-[90vh] overflow-y-auto">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
-                  <p className="font-mono text-sm font-semibold text-primary-blue">{getAnonymizedAlertId(selectedAlert.id)}</p>
+                  <p className="font-mono text-sm font-semibold text-primary-blue">{formatAlertId(selectedAlert.id)}</p>
                   <h3 className="mt-1 text-xl font-dm-serif text-dark-text">Distress Alert Details</h3>
                   <p className="text-sm text-dark-text/60 font-poppins">{selectedAlert.trigger || "Detected distress trigger"}</p>
                 </div>
@@ -652,6 +670,10 @@ export default function AdminDistressAlertsPage() {
                   <div className="mt-1">
                     <RiskBadge userId={selectedAlert.user_id} />
                   </div>
+                </div>
+                <div className="rounded-xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">User ID</p>
+                  <p className="mt-1 font-mono text-sm font-poppins text-dark-text">{formatUserId(selectedAlert.user_id)}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Created</p>
@@ -685,9 +707,10 @@ export default function AdminDistressAlertsPage() {
                   {(entriesByUser[selectedAlert.user_id] || []).slice(0, 5).map((entry) => (
                     <div key={entry.id} className="rounded-xl border border-gray-100 p-4">
                       <div className="mb-2 flex items-center justify-between gap-3">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">{entry.mood || "Mood unknown"}</span>
+                        <span className="font-mono text-xs font-semibold uppercase tracking-wide text-primary-blue">{formatEntryId(entry.id)}</span>
                         <span className="text-xs text-dark-text/60">{new Date(entry.created_at).toLocaleString()}</span>
                       </div>
+                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-dark-text/60">{entry.mood || "Mood unknown"}</p>
                       <p className="text-sm font-semibold text-dark-text">{entry.title || "Untitled entry"}</p>
                       <p className="mt-1 whitespace-pre-wrap text-sm font-inter text-dark-text/80">{entry.content || "No text available."}</p>
                     </div>

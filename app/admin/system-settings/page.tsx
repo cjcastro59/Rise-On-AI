@@ -12,6 +12,7 @@ import { authenticator } from "@otplib/preset-default";
 import { QRCodeSVG } from "qrcode.react";
 import { buildCsvExport, buildJsonExport, downloadTextFile, type ExportSection } from "@/lib/export-data";
 import { validatePasswordStrength } from "@/lib/password";
+import { normalizeDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-ids";
 
 const supabase = createClient();
 
@@ -95,24 +96,27 @@ const DEFAULT_FEATURES = {
 
 type SettingSection = "system" | "notifications" | "privacy" | "language" | "security" | "data" | "account";
 
+const DEFAULT_NOTIFICATION_SETTINGS = {
+  emailAlerts: true,
+  newUserAlerts: true,
+  distressAlertAlerts: true,
+};
+const DEFAULT_PRIVACY_SETTINGS = {
+  shareAnonymousData: true,
+  profileVisibility: "private" as const,
+};
+
 export default function AdminSystemSettingsPage() {
   const { user } = useAuth();
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
   const [permissions, setPermissions] = useState<RolePermissions>(DEFAULT_PERMISSIONS);
   const [features, setFeatures] = useState(DEFAULT_FEATURES);
+  const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
   const [activeSection, setActiveSection] = useState<SettingSection>("system");
-  
-  // Personal settings state
-  const [notificationSettings, setNotificationSettings] = useState({
-    emailAlerts: true,
-    newUserAlerts: true,
-    distressAlertAlerts: true,
-  });
-  const [privacySettings, setPrivacySettings] = useState({
-    shareAnonymousData: true,
-    profileVisibility: "private",
-  });
+
+  const [notificationSettings, setNotificationSettings] = useState(DEFAULT_NOTIFICATION_SETTINGS);
+  const [privacySettings, setPrivacySettings] = useState(DEFAULT_PRIVACY_SETTINGS);
   const [language, setLanguage] = useState("English");
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [showSetup2FA, setShowSetup2FA] = useState(false);
@@ -144,15 +148,15 @@ export default function AdminSystemSettingsPage() {
       if (data) {
         setTwoFactorEnabled(data.two_factor_enabled);
         setLanguage(data.language || "English");
-        setNotificationSettings(readLocalPreference(user.id, "admin-notification-settings", notificationSettings));
-        const localPrivacy = readLocalPreference(user.id, "admin-privacy-settings", privacySettings);
+        const localNotification = readLocalPreference(user.id, "admin-notification-settings", DEFAULT_NOTIFICATION_SETTINGS);
+        const localPrivacy = readLocalPreference(user.id, "admin-privacy-settings", DEFAULT_PRIVACY_SETTINGS);
         setPrivacySettings({
           ...localPrivacy,
-          ...(data.privacy_settings as Partial<typeof privacySettings> | null),
+          ...(data.privacy_settings as Partial<typeof DEFAULT_PRIVACY_SETTINGS> | null),
         });
         setNotificationSettings({
-          ...readLocalPreference(user.id, "admin-notification-settings", notificationSettings),
-          ...(data.notification_settings as Partial<typeof notificationSettings> | null),
+          ...localNotification,
+          ...(data.notification_settings as Partial<typeof DEFAULT_NOTIFICATION_SETTINGS> | null),
         });
       }
     };
@@ -177,6 +181,12 @@ export default function AdminSystemSettingsPage() {
           .eq("key", "features")
           .single();
 
+        const { data: displayIdData, error: displayIdError } = await supabase
+          .from("system_settings")
+          .select("value")
+          .eq("key", "display_id_format")
+          .single();
+
         console.log("Loaded RBAC data:", rbacData);
         console.log("Loaded Features data:", featuresData);
         if (rbacData && !rbacError) {
@@ -187,6 +197,10 @@ export default function AdminSystemSettingsPage() {
         if (featuresData && !featuresError) {
           const parsedFeatures = typeof featuresData.value === 'string' ? JSON.parse(featuresData.value) : featuresData.value;
           setFeatures(parsedFeatures as typeof DEFAULT_FEATURES);
+        }
+        if (displayIdData && !displayIdError) {
+          const parsedDisplayId = typeof displayIdData.value === "string" ? JSON.parse(displayIdData.value) : displayIdData.value;
+          setDisplayIdFormat(normalizeDisplayIdFormat(parsedDisplayId));
         }
       } catch (error) {
         console.error("Error loading settings:", error);
@@ -266,13 +280,28 @@ export default function AdminSystemSettingsPage() {
         throw featuresError;
       }
 
+      const { error: displayIdError } = await supabase
+        .from("system_settings")
+        .upsert(
+          {
+            key: "display_id_format",
+            value: { display_id_format: displayIdFormat },
+          },
+          { onConflict: "key" }
+        );
+
+      if (displayIdError) {
+        console.error("Display ID save error:", displayIdError);
+        throw displayIdError;
+      }
+
       // Log to audit logs
       await supabase
         .from("audit_logs")
         .insert({
           admin_id: user?.id,
           action: "Settings Change",
-          details: "Updated system settings and RBAC permissions",
+          details: "Updated system settings, display ID format, and RBAC permissions",
         });
 
       alert("System settings saved successfully!");
@@ -677,6 +706,15 @@ export default function AdminSystemSettingsPage() {
                       <p className="text-sm font-poppins text-dark-text">Support Email</p>
                       <span className="text-sm font-poppins text-dark-text/60">support@rise-on.edu.ph</span>
                     </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-poppins text-dark-text">ID Display</p>
+                        <p className="text-xs text-dark-text/50 font-inter">Used on dashboards and alert views</p>
+                      </div>
+                      <span className="text-right text-sm font-poppins text-dark-text/60">
+                        {displayIdFormat === "full_uuid" ? "Full UUID" : displayIdFormat === "short" ? "ID only" : "Anonymized"}
+                      </span>
+                    </div>
                   </div>
                 </Card>
 
@@ -749,6 +787,21 @@ export default function AdminSystemSettingsPage() {
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-poppins text-dark-text">Support Email</p>
                     <span className="text-sm font-poppins text-dark-text/60">support@rise-on.edu.ph</span>
+                  </div>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-sm font-poppins text-dark-text">ID Display Format</p>
+                      <p className="text-xs text-dark-text/60 font-inter">Controls User ID and Entry ID labels in staff dashboards</p>
+                    </div>
+                    <select
+                      value={displayIdFormat}
+                      onChange={(event) => setDisplayIdFormat(event.target.value as DisplayIdFormat)}
+                      className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/50"
+                    >
+                      <option value="anonymized">Anonymized short ID (USER-XXXX / ENTRY-XXXX)</option>
+                      <option value="short">ID only (U-XXXX / E-XXXX)</option>
+                      <option value="full_uuid">Full UUID</option>
+                    </select>
                   </div>
                 </div>
               </Card>
@@ -906,6 +959,7 @@ export default function AdminSystemSettingsPage() {
                 <button className="btn-secondary" onClick={() => {
                   setPermissions(DEFAULT_PERMISSIONS);
                   setFeatures(DEFAULT_FEATURES);
+                  setDisplayIdFormat("anonymized");
                 }}>Reset to Defaults</button>
               </div>
             </Card>
