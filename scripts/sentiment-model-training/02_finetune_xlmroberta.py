@@ -71,7 +71,7 @@ class TrainConfig:
 
     # Training
     learning_rate: float = 1e-4   # higher LR helps LoRA converge faster
-    num_train_epochs: int = 10     # more epochs needed for 3-class separation
+    num_train_epochs: int = 6     # more epochs needed for 3-class separation
     per_device_train_batch_size: int = 8
     per_device_eval_batch_size: int = 16
     gradient_accumulation_steps: int = 2
@@ -285,10 +285,14 @@ def run_trial(cfg: TrainConfig, tokenized_ds: DatasetDict, trial_idx: int) -> di
     if zero_labels:
         print(f"[WARN] Missing labels in training data: {zero_labels}. Adjusting counts to avoid division-by-zero.")
 
-    raw_weights = [total / (len(label_names) * max(1, label_counts[i])) for i in range(len(label_names))]
-    distress_idx = label2idx.get("distress")
-    if distress_idx is not None:
-        raw_weights[distress_idx] *= 1.2
+    # Dataset is already balanced (equal class counts via merge_datasets.py).
+    # Use flat 1.0 weights for all classes + a small 1.1x safety boost for distress
+    # so missed distress signals are penalised slightly more than missed positives.
+    # Do NOT use inverse-frequency here — the data is pre-balanced so that formula
+    # produces weights < 1.0 for the majority classes (gives you 0.857/0.857/1.286).
+    distress_idx = label2idx.get("distress", 2)
+    raw_weights = [1.0] * len(label_names)
+    raw_weights[distress_idx] = 1.1
     class_weights = torch.tensor(raw_weights, dtype=torch.float32)
     weight_labels = " ".join(f"{name}={class_weights[i]:.3f}" for i, name in enumerate(label_names))
     print(f"[CLASS WEIGHTS] {weight_labels}")
@@ -331,7 +335,7 @@ def run_trial(cfg: TrainConfig, tokenized_ds: DatasetDict, trial_idx: int) -> di
         args=args,
         train_dataset=tokenized_ds["train"],
         eval_dataset=tokenized_ds["val"],
-        processing_class=tokenizer,
+        tokenizer=tokenizer,
         compute_metrics=make_compute_metrics(label2idx),
         class_weights=class_weights,
         callbacks=[EarlyStoppingCallback(early_stopping_patience=cfg.early_stopping_patience)],
