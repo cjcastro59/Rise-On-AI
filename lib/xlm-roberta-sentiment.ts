@@ -4,216 +4,182 @@ import {
   analyzeEntry,
 } from "@/lib/sentiment";
 
-// =====================================================
-// SETUP - NO API KEY NEEDED BY DEFAULT!
-// Default: calls LOCAL FastAPI server we provided (http://localhost:8000/predict)
-//
-// How to switch (set in .env.local):
-//
-// 1. LOCAL SELF-HOSTED (DEFAULT, NO KEY NEEDED):
-//    SENTIMENT_MODEL_API_URL=http://localhost:8000/predict
-//    (Run the Python server in scripts/sentiment-server/)
-//
-// 2. HUGGINGFACE INFERENCE API (if you want cloud):
-//    SENTIMENT_MODEL_API_URL=https://api-inference.huggingface.co/models/YOUR_USERNAME/YOUR_MODEL
-//    HUGGINGFACE_API_KEY=hf_xxxxxxxxxxxxxx
-// =====================================================
-const MODEL_API_URL =
-  process.env.SENTIMENT_MODEL_API_URL || "http://localhost:8000/predict";
-const HF_API_TOKEN = process.env.HUGGINGFACE_API_KEY || "";
-
-// Never force fallback if an explicit URL is set; only fallback on runtime failure.
-const USE_FALLBACK_ONLY = !MODEL_API_URL;
-
-// =====================================================
-// OPTIMIZATION: HTTP KEEP-ALIVE (undici Agent)
-// Reuses TCP connections to the model server — 20-50% faster repeated calls!
-// =====================================================
-let keepAliveDispatcher: unknown = null;
-function getKeepAliveDispatcher(): unknown {
-  if (keepAliveDispatcher) return keepAliveDispatcher;
-  try {
-    // Next.js uses undici for fetch; create a connection-pooled agent
-    /* eslint-disable */
-    const undici = require("undici");
-    /* eslint-enable */
-    if (undici && undici.Agent) {
-      keepAliveDispatcher = new undici.Agent({
-        keepAliveTimeout: 60_000,
-        keepAliveMaxTimeout: 300_000,
-        connections: 16,
-        pipelining: 6,
-      });
-    }
-  } catch {
-    /* undici not available in this environment — ignore */
-  }
-  return keepAliveDispatcher;
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIG
+// Set in Vercel Environment Variables (and .env.local):
+//   SENTIMENT_MODEL_API_URL  = https://api-inference.huggingface.co/models/<user>/<repo>
+//   HUGGINGFACE_API_KEY      = hf_xxxxxxxxxxxxxxxxxxxx
+// ─────────────────────────────────────────────────────────────────────────────
+const MODEL_API_URL = process.env.SENTIMENT_MODEL_API_URL ?? "";
+const HF_API_TOKEN  = process.env.HUGGINGFACE_API_KEY    ?? "";
 
 export interface XLMroBERTaPrediction {
-  sentiment: Sentiment;
-  positivePercentage: number;
-  negativePercentage: number;
-  distressPercentage: number;
-  confidence: number;
-  sentimentScore: number;
-  raw?: unknown;
+  sentiment:           Sentiment;
+  positivePercentage:  number;
+  negativePercentage:  number;
+  distressPercentage:  number;
+  confidence:          number;
+  sentimentScore:      number;
+  raw?:                unknown;
 }
 
-// =====================================================
-// PREPROCESSING - MUST MATCH TRAINING-TIME PREPROCESSING
-// =====================================================
+// ─────────────────────────────────────────────────────────────────────────────
+// TEXT PREPROCESSING  (must match training-time preprocessing)
+// ─────────────────────────────────────────────────────────────────────────────
 export function preprocessText(input: string | null): string {
   if (!input) return "";
   let text = input.trim();
-  // Step 2 — Normalize whitespace (text cleaning)
   text = text.replace(/\s+/g, " ");
-  // Step 3 — Unicode NFC normalization + lowercase (text normalization)
-  text = text.normalize("NFC");
-  text = text.toLowerCase();
-  // Strip HTML
+  text = text.normalize("NFC").toLowerCase();
   text = text.replace(/<[^>]*>/g, " ");
-  // Strip URLs
   text = text.replace(/(https?:\/\/[^\s]+)/g, " ");
-  // Strip emails
   text = text.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, " ");
   return text.trim();
 }
 
-// =====================================================
-// CALL THE FINE-TUNED XLM-ROBERTA MODEL API
-// =====================================================
-function parseModelOutput(output: unknown): XLMroBERTaPrediction | null {
-  // ── HuggingFace sequence-classification: flat array of {label, score} ──
-  // e.g. [{"label":"positive","score":0.91}, {"label":"negative","score":0.06}, ...]
-  if (Array.isArray(output) && output.length > 0 && !Array.isArray(output[0])) {
-    const preds = output as Array<{ label: string; score: number }>;
-    return buildFromLabelScores(preds);
-  }
+// ─────────────────────────────────────────────────────────────────────────────
+// OUTPUT PARSER
+// Handles both HF response shapes:
+//   • Flat array  : [{label, score}, ...]          ← sequence-classification default
+//   • Nested array: [[{label, score}, ...]]         ← top_k format
+//   • Object      : {sentiment, positivePercentage, ...}  ← custom server
+// ─────────────────────────────────────────────────────────────────────────────
+function buildFromLabelScores(
+  preds: Array<{ label: string; score: number }>,
+): XLMroBERTaPrediction {
+  const get = (key: string) =>
+    preds.find((p) => p.label.toLowerCase().includes(key))?.score ?? 0;
 
-  // ── HuggingFace top-k nested output: [[{label,score}, ...]] ──
-  if (Array.isArray(output) && Array.isArray(output[0])) {
-    const preds = output[0] as Array<{ label: string; score: number }>;
-    return buildFromLabelScores(preds);
-  }
-
-  // ── Direct structured response from a custom server ──
-  if (output && typeof output === "object" && "sentiment" in output) {
-    return output as XLMroBERTaPrediction;
-  }
-
-  return null;
-}
-
-function buildFromLabelScores(preds: Array<{ label: string; score: number }>): XLMroBERTaPrediction {
-  const getScore = (key: string) =>
-    preds.find(
-      (p) =>
-        p.label.toLowerCase().includes(key) ||
-        p.label.toLowerCase() === key
-    )?.score || 0;
-
-  const pos = getScore("positive");
-  const neg = getScore("negative");
-  const dst = getScore("distress");
+  const pos   = get("positive");
+  const neg   = get("negative");
+  const dst   = get("distress");
   const total = pos + neg + dst || 1;
 
-  const positivePercentage = Math.round((pos / total) * 100);
-  const negativePercentage = Math.round((neg / total) * 100);
-  const distressPercentage = Math.max(0, 100 - positivePercentage - negativePercentage);
+  const posP = Math.round((pos / total) * 100);
+  const negP = Math.round((neg / total) * 100);
+  const dstP = Math.max(0, 100 - posP - negP);
 
   let sentiment: Sentiment;
-  if (dst >= pos && dst >= neg) sentiment = "distress";
-  else if (neg > pos) sentiment = "negative";
-  else sentiment = "positive";
+  if (dst >= pos && dst >= neg)      sentiment = "distress";
+  else if (neg > pos)                sentiment = "negative";
+  else                               sentiment = "positive";
 
-  const topScore = Math.max(pos, neg, dst);
-  const sentimentScore =
+  const top   = Math.max(pos, neg, dst);
+  const score =
     sentiment === "positive"
-      ? Math.round(50 + positivePercentage * 0.45)
+      ? Math.round(50 + posP * 0.45)
       : sentiment === "negative"
-      ? Math.round(50 - negativePercentage * 0.35)
-      : Math.max(5, 20 - Math.round(distressPercentage * 0.15));
+      ? Math.round(50 - negP * 0.35)
+      : Math.max(5, 20 - Math.round(dstP * 0.15));
 
   return {
     sentiment,
-    positivePercentage,
-    negativePercentage,
-    distressPercentage,
-    confidence: topScore / total,
-    sentimentScore,
-    raw: preds,
+    positivePercentage:  posP,
+    negativePercentage:  negP,
+    distressPercentage:  dstP,
+    confidence:          top / total,
+    sentimentScore:      score,
+    raw:                 preds,
   };
 }
 
-async function callModelAPI(
-  text: string
-): Promise<XLMroBERTaPrediction | null> {
-  if (USE_FALLBACK_ONLY) return null;
-  if (!text) return null;
+function parseModelOutput(output: unknown): XLMroBERTaPrediction | null {
+  // Flat array: [{label, score}, ...]
+  if (Array.isArray(output) && output.length > 0 && !Array.isArray(output[0])) {
+    return buildFromLabelScores(output as Array<{ label: string; score: number }>);
+  }
+  // Nested array: [[{label, score}, ...]]
+  if (Array.isArray(output) && Array.isArray(output[0])) {
+    return buildFromLabelScores(output[0] as Array<{ label: string; score: number }>);
+  }
+  // Custom server direct object
+  if (output && typeof output === "object" && "sentiment" in output) {
+    return output as XLMroBERTaPrediction;
+  }
+  return null;
+}
 
-  const dispatcher = getKeepAliveDispatcher() as { dispatcher?: unknown };
-  // More attempts + longer waits to handle HuggingFace cold-start (model loading)
-  const attempts = 4;
+// ─────────────────────────────────────────────────────────────────────────────
+// MODEL CALL  (with HuggingFace cold-start handling)
+//
+// HuggingFace free-tier models go cold after ~15 min of inactivity.
+// When cold, the API returns:
+//   HTTP 503  OR  HTTP 200 { "error": "...", "estimated_time": N }
+// We retry up to 4 times with progressive back-off.
+// ─────────────────────────────────────────────────────────────────────────────
+async function callModelAPI(text: string): Promise<XLMroBERTaPrediction | null> {
+  if (!MODEL_API_URL || !text) return null;
 
-  for (let attempt = 1; attempt <= attempts; attempt++) {
+  const MAX_ATTEMPTS = 4;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      const response = await fetch(MODEL_API_URL, {
-        method: "POST",
+      const res = await fetch(MODEL_API_URL, {
+        method:  "POST",
         headers: {
           "Content-Type": "application/json",
-          Connection: "keep-alive",
           ...(HF_API_TOKEN ? { Authorization: `Bearer ${HF_API_TOKEN}` } : {}),
         },
-        body: JSON.stringify({
-          inputs: text,
-          options: { wait_for_model: true, use_cache: true },
+        body:  JSON.stringify({
+          inputs:  text,
+          options: { wait_for_model: true, use_cache: false },
         }),
-        cache: "no-store",
-        ...dispatcher,
+        // No signal / AbortController — rely on Vercel maxDuration (60 s)
       });
 
-      // HuggingFace returns 503 while the model is loading — wait and retry
-      if ([502, 503, 504].includes(response.status) && attempt < attempts) {
-        const waitMs = 2000 * attempt; // 2s, 4s, 6s
-        console.warn(`[XLM-RoBERTa] HTTP ${response.status} on attempt ${attempt}, retrying in ${waitMs}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, waitMs));
+      // ── HF cold-start: 503 Service Unavailable ──────────────────────────
+      if (res.status === 503 && attempt < MAX_ATTEMPTS) {
+        const waitMs = 3000 * attempt; // 3 s, 6 s, 9 s
+        console.warn(
+          `[XLM-R] 503 on attempt ${attempt}/${MAX_ATTEMPTS}, waiting ${waitMs}ms...`,
+        );
+        await new Promise((r) => setTimeout(r, waitMs));
         continue;
       }
 
-      if (!response.ok) {
-        const errBody = await response.text().catch(() => "");
-        console.error(
-          `[XLM-RoBERTa] Model endpoint HTTP ${response.status}: ${response.statusText}`,
-          errBody.slice(0, 200)
-        );
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        console.error(`[XLM-R] HTTP ${res.status} ${res.statusText}:`, body.slice(0, 300));
         return null;
       }
 
-      const output = await response.json();
+      const output = await res.json();
 
-      // HuggingFace model-still-loading response: { "error": "...", "estimated_time": N }
-      if (output && typeof output === "object" && "error" in output && "estimated_time" in output) {
-        if (attempt < attempts) {
-          const waitMs = Math.min(((output as any).estimated_time ?? 20) * 1000, 8000);
-          console.warn(`[XLM-RoBERTa] Model loading, waiting ${waitMs}ms (attempt ${attempt})...`);
-          await new Promise((resolve) => setTimeout(resolve, waitMs));
+      // ── HF "still loading" JSON body ─────────────────────────────────────
+      if (
+        output &&
+        typeof output === "object" &&
+        !Array.isArray(output) &&
+        "error" in output &&
+        "estimated_time" in output
+      ) {
+        const estimatedMs = Math.min(
+          ((output as { estimated_time: number }).estimated_time ?? 20) * 1000,
+          10_000,
+        );
+        if (attempt < MAX_ATTEMPTS) {
+          console.warn(
+            `[XLM-R] Model loading (~${Math.round(estimatedMs / 1000)}s), attempt ${attempt}/${MAX_ATTEMPTS}...`,
+          );
+          await new Promise((r) => setTimeout(r, estimatedMs));
           continue;
         }
-        console.error("[XLM-RoBERTa] Model still loading after all retries");
+        console.error("[XLM-R] Model still loading after all retries.");
         return null;
       }
 
       const parsed = parseModelOutput(output);
       if (parsed) return parsed;
 
-      console.warn("[XLM-RoBERTa] Could not parse model output:", JSON.stringify(output).slice(0, 300));
+      console.warn(
+        "[XLM-R] Unrecognised output format:",
+        JSON.stringify(output).slice(0, 300),
+      );
       return null;
     } catch (err) {
-      console.error("[XLM-RoBERTa] Model call failed:", err);
-      if (attempt < attempts) {
-        await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
+      console.error(`[XLM-R] Network error on attempt ${attempt}:`, err);
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, 2000 * attempt));
         continue;
       }
       return null;
@@ -223,68 +189,56 @@ async function callModelAPI(
   return null;
 }
 
-// =====================================================
+// ─────────────────────────────────────────────────────────────────────────────
 // MAIN EXPORT
-// =====================================================
+// ─────────────────────────────────────────────────────────────────────────────
 export async function analyzeWithXLMRoBERTa(
   text: string | null,
-  mood: string | null = null
+  mood: string | null = null,
 ): Promise<XLMroBERTaPrediction & { model: string }> {
   const preprocessed = preprocessText(text);
-  const modelResult = await callModelAPI(preprocessed);
-  if (modelResult) {
-    const probabilityTotal =
-      modelResult.positivePercentage +
-      modelResult.negativePercentage +
-      modelResult.distressPercentage;
-    const topProbability = Math.max(
-      modelResult.positivePercentage,
-      modelResult.negativePercentage,
-      modelResult.distressPercentage,
-    );
+  const result       = await callModelAPI(preprocessed);
 
+  if (result) {
+    const total = result.positivePercentage + result.negativePercentage + result.distressPercentage;
+    const top   = Math.max(result.positivePercentage, result.negativePercentage, result.distressPercentage);
     return {
-      ...modelResult,
-      // Normalize confidence from the class percentages so custom model
-      // response formats cannot report a raw score on a different scale.
-      confidence: probabilityTotal > 0 ? topProbability / probabilityTotal : modelResult.confidence,
-      model: "xlm-roberta-finetuned",
+      ...result,
+      confidence: total > 0 ? top / total : result.confidence,
+      model:      "xlm-roberta-finetuned",
     };
   }
 
-  // Keep the entry useful when the remote model server is unavailable. This
-  // is explicitly labelled as a fallback so it is never mistaken for XLM-R.
-  console.warn("[XLM-RoBERTa] Model unavailable and no fallback is configured.");
-  const fallback = analyzeEntry(text, mood);
+  // ── Keyword fallback when model is unreachable ────────────────────────────
+  console.warn("[XLM-R] Model unavailable — using keyword fallback.");
+  const fb = analyzeEntry(text, mood);
   return {
-    sentiment: fallback.sentiment as Sentiment,
-    positivePercentage: fallback.positivePercentage,
-    negativePercentage: fallback.negativePercentage,
-    distressPercentage: fallback.distressPercentage,
-    confidence: 0.35,
-    sentimentScore: fallback.sentimentScore,
-    raw: null,
-    model: "keyword-fallback",
+    sentiment:          fb.sentiment as Sentiment,
+    positivePercentage: fb.positivePercentage,
+    negativePercentage: fb.negativePercentage,
+    distressPercentage: fb.distressPercentage,
+    confidence:         0.35,
+    sentimentScore:     fb.sentimentScore,
+    raw:                null,
+    model:              "keyword-fallback",
   };
 }
 
 export async function analyzeWithXLMRoBERTaLegacy(
   text: string | null,
-  mood: string | null = null
+  mood: string | null = null,
 ): Promise<AnalysisResult> {
   const xlm = await analyzeWithXLMRoBERTa(text, mood);
   return {
-    sentiment: xlm.sentiment,
-    sentimentScore: xlm.sentimentScore,
+    sentiment:          xlm.sentiment,
+    sentimentScore:     xlm.sentimentScore,
     positivePercentage: xlm.positivePercentage,
     negativePercentage: xlm.negativePercentage,
     distressPercentage: xlm.distressPercentage,
-    // Rich fields (emotions, feedback, etc.) are generated server-side by the
-    // ACI pipeline and stored in the DB — they are not reproduced here.
-    emotions: [],
-    keyPhrases: [],
-    feedback: "",
-    reflection: "",
-    suggestions: [],
+    emotions:           [],
+    keyPhrases:         [],
+    feedback:           "",
+    reflection:         "",
+    suggestions:        [],
   };
 }

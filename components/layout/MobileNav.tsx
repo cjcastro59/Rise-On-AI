@@ -72,7 +72,9 @@ export default function MobileNav({ panelLabel, sections, bottomItems }: MobileN
   return (
     <>
       {/* ── Mobile top bar (hidden on md+) ─────────────────────────────────── */}
-      <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-[#1E293B] text-white shadow-md">
+      {/* fixed + w-full guarantees full viewport width no matter what parent renders it */}
+      <header className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 bg-[#1E293B] text-white shadow-md w-full">
+
         {/* Logo area — tappable */}
         <button
           type="button"
@@ -117,6 +119,9 @@ export default function MobileNav({ panelLabel, sections, bottomItems }: MobileN
           )}
         </button>
       </header>
+
+      {/* Spacer so page content doesn't hide under the fixed top bar on mobile */}
+      <div className="md:hidden h-[52px] shrink-0" aria-hidden="true" />
 
       {/* ── Backdrop ───────────────────────────────────────────────────────── */}
       {open && (
