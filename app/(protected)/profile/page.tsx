@@ -328,7 +328,7 @@ export default function ProfilePage() {
       {/* Profile Header */}
       <div className="bg-white rounded-2xl p-6 border border-light-gray shadow-sm">
         <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 min-w-0">
             <div className="relative">
               {profile.avatar_url ? (
                 <Image
@@ -366,14 +366,14 @@ export default function ProfilePage() {
                 </>
               )}
             </div>
-            <div>
-              <h1 className="text-2xl font-dm-serif text-dark-text">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-dm-serif text-dark-text truncate">
                 {profile.first_name || "User"} {profile.last_name || ""}
               </h1>
-              <p className="text-sm text-dark-text/60 font-poppins">
+              <p className="text-sm text-dark-text/60 font-poppins truncate">
                 @{profile.username || "user"} • {profile.country || "Not set"}
               </p>
-              <div className="flex gap-4 mt-2">
+              <div className="flex flex-wrap gap-2 mt-2">
                 <span className="px-3 py-1 bg-success-green/20 rounded-full text-xs font-poppins text-success-dark">
                   🔥 {stats.streak}-day streak
                 </span>
@@ -386,17 +386,17 @@ export default function ProfilePage() {
               </div>
             </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <Button onClick={handleEditToggle} disabled={saving}>
+          <div className="flex flex-col gap-2 shrink-0 w-full sm:w-auto">
+            <Button onClick={handleEditToggle} disabled={saving} className="w-full sm:w-auto">
               {saving ? "Saving..." : (isEditing ? "Save Changes" : "Edit Profile")}
             </Button>
             {isEditing && (
-              <Button variant="secondary" onClick={handleCancel} disabled={saving}>
+              <Button variant="secondary" onClick={handleCancel} disabled={saving} className="w-full sm:w-auto">
                 Cancel
               </Button>
             )}
-            <Link href="/settings">
-              <Button variant="ghost" className="text-sm">
+            <Link href="/settings" className="w-full sm:w-auto">
+              <Button variant="ghost" className="text-sm w-full">
                 Go to Settings
               </Button>
             </Link>

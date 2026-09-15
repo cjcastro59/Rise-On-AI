@@ -218,32 +218,36 @@ export default function JournalEditorPage() {
   return (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <Link href="/journal/history">
-          <Button variant="secondary" size="sm">
-            ← Back
-          </Button>
-        </Link>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-xs text-dark-text/70">
+      <div className="flex flex-col gap-3 mb-6">
+        <div className="flex items-center justify-between gap-2">
+          <Link href="/journal/history">
+            <Button variant="secondary" size="sm">
+              ← Back
+            </Button>
+          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-error-red border-error-red"
+            >
+              Delete
+            </Button>
+            <Button size="sm" onClick={saveEntry} disabled={saving}>
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 text-xs text-dark-text/70">
+          <span className="flex items-center gap-1">
             <span>{autoSaveStatus === "saving" ? "⏳" : autoSaveStatus === "saved" ? "✅" : "🔵"}</span>
             <span>{autoSaveStatus === "saving" ? "Saving..." : autoSaveStatus === "saved" ? "Saved" : "Auto-save"}</span>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-dark-text/70">
+          </span>
+          <span className="flex items-center gap-1">
             <span>🔒</span>
             <span>Private</span>
-          </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setShowDeleteConfirm(true)}
-            className="text-error-red border-error-red"
-          >
-            Delete
-          </Button>
-          <Button size="sm" onClick={saveEntry} disabled={saving}>
-            {saving ? "Saving..." : "Save"}
-          </Button>
+          </span>
         </div>
       </div>
 
@@ -339,7 +343,7 @@ export default function JournalEditorPage() {
               Emoji
             </button>
             {showEmojiPicker && (
-              <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50 w-64 max-h-48 overflow-y-auto">
+              <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50 w-64 max-w-[calc(100vw-2rem)] max-h-48 overflow-y-auto">
                 <div className="grid grid-cols-8 gap-1">
                   {commonEmojis.map((emoji, index) => (
                     <button
@@ -392,13 +396,13 @@ export default function JournalEditorPage() {
       </Card>
 
       {/* Footer */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-inter text-dark-text/60">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-xs font-inter text-dark-text/60 shrink-0">
           {wordCount} / {maxWords} words
         </span>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Button variant="secondary" size="sm" onClick={() => router.push("/journal/history")}>
-            Discard Changes
+            Discard
           </Button>
           <Button size="sm" onClick={saveEntry} disabled={saving}>
             {saving ? "Saving..." : "Save Entry"}

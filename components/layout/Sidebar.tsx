@@ -6,7 +6,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import ProfileCard from "@/components/layout/ProfileCard";
-import MobileNav from "@/components/layout/MobileNav";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -238,6 +237,7 @@ export default function Sidebar({ userName }: SidebarProps) {
 
   return (
     <>
+      {/* Support toast — shown on all pages when a new message arrives */}
       {supportToast && (
         <div className="fixed right-4 top-4 z-50 w-[min(340px,calc(100vw-2rem))] rounded-xl border border-success-green/30 bg-white p-4 text-dark-text shadow-xl">
           <div className="flex items-start gap-3">
@@ -259,71 +259,13 @@ export default function Sidebar({ userName }: SidebarProps) {
         </div>
       )}
 
-      <MobileNav
-        panelLabel="Member Panel"
-        sections={[
-          {
-            label: "Main",
-            items: [
-              { href: "/dashboard", label: "Dashboard", icon: "/icons/dashboard.svg", iconAlt: "Dashboard" },
-              { href: "/journal", label: "New Entry", icon: "/icons/new-entry.svg", iconAlt: "New Entry" },
-              { href: "/journal/history", label: "My Journal", icon: "/icons/journal.svg", iconAlt: "My Journal" },
-              { href: "/insights", label: "Mood Insights", icon: "/icons/mood-insights.svg", iconAlt: "Mood Insights" },
-              { href: "/mood-trends", label: "Mood Trends", icon: "/icons/trends.svg", iconAlt: "Mood Trends" },
-              { href: "/analysis", label: "AI Reports", icon: "/icons/ai-reports.svg", iconAlt: "AI Reports" },
-            ],
-          },
-          {
-            label: "Support",
-            items: [
-              {
-                href: "/support",
-                label: "Support Center",
-                icon: "/icons/crisis-support.svg",
-                iconAlt: "Support",
-                badge: supportUnreadCount,
-              },
-            ],
-          },
-          {
-            label: "System",
-            items: [
-              {
-                href: "/settings",
-                label: "Settings",
-                icon: "/icons/settings.svg",
-                iconAlt: "Settings",
-                iconClass: "filter invert brightness-200",
-              },
-            ],
-          },
-        ]}
-        bottomItems={
-          <>
-            <ProfileCard href="/profile" avatarUrl={avatarUrl} name={userName} role={roleLabel} />
-            <Link
-              href="/support"
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#F4A6A6]/15 text-[#F4A6A6] text-sm font-poppins font-semibold border border-[#F4A6A6]/20 hover:bg-[#F4A6A6]/25 transition-all"
-            >
-              <Image src="/icons/crisis-report.svg" alt="Get Help Now" width={16} height={16} className="object-contain" />
-              <span className="flex-1">Get Help Now</span>
-              {supportUnreadCount > 0 && (
-                <span className="rounded-full bg-[#F4A6A6] px-1.5 py-0.5 text-[10px] font-bold text-[#1E293B]">
-                  {supportUnreadCount}
-                </span>
-              )}
-            </Link>
-            <form action="/api/auth/signout" method="post">
-              <Button variant="secondary" className="w-full flex items-center justify-center gap-2 py-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
-                <Image src="/icons/logout.svg" alt="Log Out" width={18} height={18} className="object-contain" />
-                Log Out
-              </Button>
-            </form>
-          </>
-        }
-      />
-
-      <aside className="w-64 bg-[#1E293B] text-white p-6 hidden md:flex md:flex-col md:h-full md:min-h-screen">
+      {/*
+        Desktop sidebar only (hidden on mobile).
+        sticky + h-screen keeps it fixed while the main content scrolls.
+        MobileNav is rendered in layout.tsx OUTSIDE this flex cell so it
+        spans the full viewport width on mobile.
+      */}
+      <aside className="w-64 bg-[#1E293B] text-white p-6 hidden md:flex md:flex-col shrink-0 sticky top-0 h-screen overflow-y-auto">
         <div className="mb-6">
           <div className="flex items-center gap-3">
             <Image

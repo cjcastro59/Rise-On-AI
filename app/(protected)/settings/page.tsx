@@ -816,8 +816,25 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex gap-6">
-      {/* Sidebar */}
+    <div className="space-y-4">
+      {/* Mobile-only section selector */}
+      <div className="md:hidden">
+        <select
+          value={activeSection}
+          onChange={(e) => setActiveSection(e.target.value as SettingSection)}
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/30"
+        >
+          <option value="notifications">🔔 Notifications</option>
+          <option value="privacy">🔒 Privacy</option>
+          <option value="language">🌐 Language</option>
+          <option value="security">🛡️ Security</option>
+          <option value="data">📦 Data &amp; Export</option>
+          <option value="account">👤 Account</option>
+        </select>
+      </div>
+
+      <div className="flex gap-6">
+      {/* Desktop Sidebar */}
       <div className="w-64 flex-shrink-0 hidden md:block">
         <Card className="p-4 space-y-2 bg-white">
           <h2 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4">Settings</h2>
@@ -902,6 +919,7 @@ export default function SettingsPage() {
           {renderSettingsContent()}
         </Card>
       </div>
+      </div>{/* end inner flex gap-6 */}
 
       {/* Change Password Modal */}
       {showChangePw && (
@@ -991,6 +1009,6 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
-    </div>
+    </div>{/* end space-y-4 */}
   );
 }

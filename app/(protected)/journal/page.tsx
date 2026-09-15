@@ -288,21 +288,21 @@ export default function JournalEntryPage() {
   return (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <Link href="/journal/history">
-          <Button variant="secondary" size="sm">
-            ← Back to History
-          </Button>
-        </Link>
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 mb-6">
+        <div className="flex items-center justify-between">
+          <Link href="/journal/history">
+            <Button variant="secondary" size="sm">
+              ← Back to History
+            </Button>
+          </Link>
           <div className="flex items-center gap-2 text-xs text-dark-text/70">
             <span>{autoSaveStatus === "saving" ? "⏳" : autoSaveStatus === "saved" ? "✅" : "🔵"}</span>
             <span>{autoSaveStatus === "saving" ? "Saving..." : autoSaveStatus === "saved" ? "Draft saved" : "Auto-save"}</span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-dark-text/70">
-            <span>🔒</span>
-            <span>Private</span>
-          </div>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-dark-text/70">
+          <span>🔒</span>
+          <span>Private</span>
         </div>
       </div>
 
@@ -376,7 +376,7 @@ export default function JournalEntryPage() {
               Emoji
             </button>
             {showEmojiPicker && (
-              <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50 w-64 max-h-48 overflow-y-auto">
+              <div className="absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50 w-64 max-w-[calc(100vw-2rem)] max-h-48 overflow-y-auto">
                 <div className="grid grid-cols-8 gap-1">
                   {commonEmojis.map((emoji, index) => (
                     <button
