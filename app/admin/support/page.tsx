@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,25 @@ type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
 };
 type Message = Database["public"]["Tables"]["messages"]["Row"];
 type UserProfile = Database["public"]["Tables"]["user_profiles"]["Row"];
+type AdminSupportCategory = "questions" | "feedback" | "suggestions";
+
+type ConversationPreview = {
+  content: string;
+  created_at: string;
+};
+
+const categoryLabels: Record<AdminSupportCategory, string> = {
+  questions: "Questions",
+  feedback: "Feedback",
+  suggestions: "Suggestions",
+};
+
+const classifyAdminSupportCategory = (content?: string | null): AdminSupportCategory => {
+  const text = (content || "").toLowerCase();
+  if (/\b(suggest|suggestion|idea|feature|request|recommend)\b/.test(text)) return "suggestions";
+  if (/\b(feedback|bug|issue|problem|error|broken|fix|report)\b/.test(text)) return "feedback";
+  return "questions";
+};
 
 const filterParticipantMessages = (messages: Message[], conversation: Conversation | null) => {
   if (!conversation) return [];
@@ -22,6 +42,7 @@ const filterParticipantMessages = (messages: Message[], conversation: Conversati
 
 export default function AdminSupportPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversationPreviews, setConversationPreviews] = useState<Record<string, ConversationPreview>>({});
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [senderProfiles, setSenderProfiles] = useState<Record<string, UserProfile>>({});
@@ -30,11 +51,72 @@ export default function AdminSupportPage() {
   const [closingConversation, setClosingConversation] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
+  const [activeCategory, setActiveCategory] = useState<AdminSupportCategory>("questions");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
   const conversationsChannelRef = useRef<any>(null);
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient() as any, []);
+
+  const isClinicalCounselorConversation = (conversation: Conversation) => {
+    return (
+      !!conversation.counselor_id &&
+      conversation.user?.role === "user" &&
+      conversation.user.assigned_counselor_id === conversation.counselor_id
+    );
+  };
+
+  const getConversationCategory = useCallback((conversation: Conversation): AdminSupportCategory => {
+    return classifyAdminSupportCategory(conversationPreviews[conversation.id]?.content);
+  }, [conversationPreviews]);
+
+  const loadConversations = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setConversations([]);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("conversations")
+        .select(`
+          *,
+          user:user_profiles!user_id(*)
+        `)
+        .eq("counselor_id", user.id)
+        .order("created_at", { ascending: false });
+      const adminConversations = ((data || []) as Conversation[]).filter(
+        (conversation) => !isClinicalCounselorConversation(conversation)
+      );
+      setConversations(adminConversations);
+
+      const conversationIds = adminConversations.map((conversation) => conversation.id);
+      if (conversationIds.length === 0) {
+        setConversationPreviews({});
+        return;
+      }
+
+      const { data: latestMessages } = await supabase
+        .from("messages")
+        .select("conversation_id,content,created_at")
+        .in("conversation_id", conversationIds)
+        .order("created_at", { ascending: false });
+
+      const previews: Record<string, ConversationPreview> = {};
+      (latestMessages || []).forEach((message: ConversationPreview & { conversation_id: string }) => {
+        if (!previews[message.conversation_id]) {
+          previews[message.conversation_id] = {
+            content: message.content,
+            created_at: message.created_at,
+          };
+        }
+      });
+      setConversationPreviews(previews);
+    } catch (error) {
+      console.error("Error loading conversations:", error);
+    }
+  }, [supabase]);
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -87,7 +169,7 @@ export default function AdminSupportPage() {
             .eq("counselor_id", user.id)
             .single();
           
-          if (newConversationWithUser) {
+          if (newConversationWithUser && !isClinicalCounselorConversation(newConversationWithUser)) {
             console.log("[ADMIN SUPPORT] Adding new conversation to state:", newConversationWithUser);
             setConversations((prev) => [newConversationWithUser, ...prev]);
           }
@@ -122,7 +204,7 @@ export default function AdminSupportPage() {
             .eq("counselor_id", user.id)
             .single();
           
-          if (updatedConversationWithUser) {
+          if (updatedConversationWithUser && !isClinicalCounselorConversation(updatedConversationWithUser)) {
             console.log("[ADMIN SUPPORT] Updating conversation in state:", updatedConversationWithUser);
             // Update conversations list
             setConversations((prev) => 
@@ -132,6 +214,9 @@ export default function AdminSupportPage() {
             setSelectedConversation((prev) => 
               prev && prev.id === updatedConversationWithUser.id ? updatedConversationWithUser : prev
             );
+          } else {
+            setConversations((prev) => prev.filter((c) => c.id !== payload.new.id));
+            setSelectedConversation((prev) => (prev?.id === payload.new.id ? null : prev));
           }
         }
       );
@@ -160,7 +245,7 @@ export default function AdminSupportPage() {
         conversationsChannelRef.current = null;
       }
     };
-  }, []);
+  }, [loadConversations, supabase]);
 
   useEffect(() => {
     // Fetch sender profiles for all messages
@@ -193,28 +278,6 @@ export default function AdminSupportPage() {
     // Auto-scroll to bottom when messages change
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  const loadConversations = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setConversations([]);
-        return;
-      }
-
-      const { data } = await supabase
-        .from("conversations")
-        .select(`
-          *,
-          user:user_profiles!user_id(*)
-        `)
-        .eq("counselor_id", user.id)
-        .order("created_at", { ascending: false });
-      setConversations(data || []);
-    } catch (error) {
-      console.error("Error loading conversations:", error);
-    }
-  };
 
   const loadMessages = async (conversationId: string, conversation = selectedConversation) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -292,6 +355,13 @@ export default function AdminSupportPage() {
           console.log("[ADMIN SUPPORT] Adding new message to state:", newMessage);
           return [...prev, newMessage];
         });
+        setConversationPreviews((prev) => ({
+          ...prev,
+          [conversationId]: {
+            content: newMessage.content,
+            created_at: newMessage.created_at,
+          },
+        }));
       }
     );
     
@@ -388,6 +458,13 @@ export default function AdminSupportPage() {
 
       console.log("Admin: Insert result:", { data: insertedMessage, error });
       if (error) throw error;
+      setConversationPreviews((prev) => ({
+        ...prev,
+        [selectedConversation.id]: {
+          content: messageContent,
+          created_at: insertedMessage.created_at,
+        },
+      }));
       
       // Update conversation's updated_at timestamp
       await supabase
@@ -476,6 +553,18 @@ export default function AdminSupportPage() {
     }
   };
 
+  const conversationsByCategory = useMemo(() => {
+    return conversations.reduce<Record<AdminSupportCategory, Conversation[]>>(
+      (groups, conversation) => {
+        groups[getConversationCategory(conversation)].push(conversation);
+        return groups;
+      },
+      { questions: [], feedback: [], suggestions: [] }
+    );
+  }, [conversations, getConversationCategory]);
+
+  const visibleConversations = conversationsByCategory[activeCategory];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
@@ -491,14 +580,30 @@ export default function AdminSupportPage() {
           <Card className="p-0 h-[600px] max-h-[600px] flex flex-col bg-gradient-to-br from-white/90 via-gray-50/90 to-lavender/5 border border-gray-100 overflow-hidden">
             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-primary-blue/5 to-lavender/10 flex-shrink-0">
               <h3 className="font-poppins font-semibold text-dark-text">Conversations</h3>
+              <div className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-white/70 p-1">
+                {(Object.keys(categoryLabels) as AdminSupportCategory[]).map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setActiveCategory(category)}
+                    className={`rounded-lg px-2 py-1.5 text-[11px] font-poppins font-semibold transition ${
+                      activeCategory === category
+                        ? "bg-primary-blue/20 text-dark-text"
+                        : "text-dark-text/55 hover:bg-white"
+                    }`}
+                  >
+                    {categoryLabels[category]} ({conversationsByCategory[category].length})
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto min-h-0">
-              {conversations.length === 0 ? (
+              {visibleConversations.length === 0 ? (
                 <div className="p-8 text-center text-dark-text/50">
-                  <p>No conversations yet.</p>
+                  <p>No {categoryLabels[activeCategory].toLowerCase()} yet.</p>
                 </div>
               ) : (
-                conversations.map((convo) => (
+                visibleConversations.map((convo) => (
                   <button
                     key={convo.id}
                     onClick={() => selectConversation(convo)}
@@ -527,7 +632,10 @@ export default function AdminSupportPage() {
                       </span>
                     </div>
                     <p className="text-xs text-dark-text/50">
-                      {new Date(convo.created_at).toLocaleString()}
+                      {conversationPreviews[convo.id]?.content || "No messages yet."}
+                    </p>
+                    <p className="mt-1 text-[11px] text-dark-text/40">
+                      {new Date(conversationPreviews[convo.id]?.created_at || convo.created_at).toLocaleString()}
                     </p>
                   </button>
                 ))
@@ -603,12 +711,14 @@ export default function AdminSupportPage() {
                           {!isCurrentUser && (
                             <>
                               {showAvatar ? (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary-blue/20 to-lavender/20 flex items-center justify-center flex-shrink-0 border border-primary-blue/10 mt-1">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary-blue/20 to-lavender/20 flex items-center justify-center flex-shrink-0 border border-primary-blue/10 mt-1 relative overflow-hidden">
                                   {senderProfile?.avatar_url ? (
-                                    <img 
-                                      src={senderProfile.avatar_url} 
-                                      alt={senderName} 
-                                      className="w-full h-full rounded-full object-cover"
+                                    <Image
+                                      src={senderProfile.avatar_url}
+                                      alt={senderName}
+                                      width={32}
+                                      height={32}
+                                      className="rounded-full object-cover"
                                     />
                                   ) : (
                                     <span className="text-sm font-bold text-primary-blue">
