@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
   user?: Database["public"]["Tables"]["user_profiles"]["Row"];
+  counselor?: Database["public"]["Tables"]["user_profiles"]["Row"];
 };
 type Message = Database["public"]["Tables"]["messages"]["Row"];
 type UserProfile = Database["public"]["Tables"]["user_profiles"]["Row"];
@@ -32,12 +33,6 @@ const classifyAdminSupportCategory = (content?: string | null): AdminSupportCate
   if (/\b(suggest|suggestion|idea|feature|request|recommend)\b/.test(text)) return "suggestions";
   if (/\b(feedback|bug|issue|problem|error|broken|fix|report)\b/.test(text)) return "feedback";
   return "questions";
-};
-
-const filterParticipantMessages = (messages: Message[], conversation: Conversation | null) => {
-  if (!conversation) return [];
-  const participantIds = new Set([conversation.user_id, conversation.counselor_id].filter(Boolean));
-  return messages.filter((message) => participantIds.has(message.sender_id));
 };
 
 export default function AdminSupportPage() {
@@ -82,12 +77,15 @@ export default function AdminSupportPage() {
         .from("conversations")
         .select(`
           *,
-          user:user_profiles!user_id(*)
+          user:user_profiles!user_id(*),
+          counselor:user_profiles!counselor_id(*)
         `)
-        .eq("counselor_id", user.id)
         .order("created_at", { ascending: false });
       const adminConversations = ((data || []) as Conversation[]).filter(
-        (conversation) => !isClinicalCounselorConversation(conversation)
+        (conversation) =>
+          !isClinicalCounselorConversation(conversation) &&
+          (conversation.counselor?.role === "admin" ||
+            conversation.counselor?.role === "owner")
       );
       setConversations(adminConversations);
 
@@ -156,20 +154,26 @@ export default function AdminSupportPage() {
         async (payload: any) => {
           console.log("[ADMIN SUPPORT] New conversation received:", payload);
           const { data: { user } } = await supabase.auth.getUser();
-          if (!user || payload.new.counselor_id !== user.id) return;
+          if (!user) return;
 
-          // Fetch the user profile for the new conversation
+          // Fetch the new conversation with user and counselor profiles
           const { data: newConversationWithUser } = await supabase
             .from("conversations")
             .select(`
               *,
-              user:user_profiles!user_id(*)
+              user:user_profiles!user_id(*),
+              counselor:user_profiles!counselor_id(*)
             `)
             .eq("id", payload.new.id)
-            .eq("counselor_id", user.id)
             .single();
-          
-          if (newConversationWithUser && !isClinicalCounselorConversation(newConversationWithUser)) {
+
+          const isAdminChannel =
+            newConversationWithUser &&
+            !isClinicalCounselorConversation(newConversationWithUser) &&
+            (newConversationWithUser.counselor?.role === "admin" ||
+              newConversationWithUser.counselor?.role === "owner");
+
+          if (isAdminChannel) {
             console.log("[ADMIN SUPPORT] Adding new conversation to state:", newConversationWithUser);
             setConversations((prev) => [newConversationWithUser, ...prev]);
           }
@@ -187,31 +191,35 @@ export default function AdminSupportPage() {
         async (payload: any) => {
           console.log("[ADMIN SUPPORT] Conversation updated:", payload);
           const { data: { user } } = await supabase.auth.getUser();
-          if (!user || payload.new.counselor_id !== user.id) {
-            setConversations((prev) => prev.filter((c) => c.id !== payload.new.id));
-            setSelectedConversation((prev) => (prev?.id === payload.new.id ? null : prev));
-            return;
-          }
+          if (!user) return;
 
-          // Fetch the updated conversation with user profile
+          // Fetch the updated conversation with user and counselor profiles
           const { data: updatedConversationWithUser } = await supabase
             .from("conversations")
             .select(`
               *,
-              user:user_profiles!user_id(*)
+              user:user_profiles!user_id(*),
+              counselor:user_profiles!counselor_id(*)
             `)
             .eq("id", payload.new.id)
-            .eq("counselor_id", user.id)
             .single();
-          
-          if (updatedConversationWithUser && !isClinicalCounselorConversation(updatedConversationWithUser)) {
+
+          const isAdminChannel =
+            updatedConversationWithUser &&
+            !isClinicalCounselorConversation(updatedConversationWithUser) &&
+            (updatedConversationWithUser.counselor?.role === "admin" ||
+              updatedConversationWithUser.counselor?.role === "owner");
+
+          if (isAdminChannel) {
             console.log("[ADMIN SUPPORT] Updating conversation in state:", updatedConversationWithUser);
             // Update conversations list
-            setConversations((prev) => 
-              prev.map(c => c.id === updatedConversationWithUser.id ? updatedConversationWithUser : c)
+            setConversations((prev) =>
+              prev.some((c) => c.id === updatedConversationWithUser.id)
+                ? prev.map((c) => (c.id === updatedConversationWithUser.id ? updatedConversationWithUser : c))
+                : [updatedConversationWithUser, ...prev]
             );
             // Update selected conversation if it's the one being updated
-            setSelectedConversation((prev) => 
+            setSelectedConversation((prev) =>
               prev && prev.id === updatedConversationWithUser.id ? updatedConversationWithUser : prev
             );
           } else {
@@ -281,7 +289,7 @@ export default function AdminSupportPage() {
 
   const loadMessages = async (conversationId: string, conversation = selectedConversation) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || conversation?.counselor_id !== user.id) {
+    if (!user || !conversation) {
       setMessages([]);
       return;
     }
@@ -292,7 +300,7 @@ export default function AdminSupportPage() {
         .select("*")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
-      setMessages(filterParticipantMessages(data || [], conversation));
+      setMessages(data || []);
     } catch (error) {
       console.error("Error loading messages:", error);
     }
@@ -322,7 +330,7 @@ export default function AdminSupportPage() {
       async (payload: any) => {
         console.log("[ADMIN SUPPORT] New real-time message received:", payload);
         const newMessage = payload.new as Message;
-        if (!selectedConversation || ![selectedConversation.user_id, selectedConversation.counselor_id].includes(newMessage.sender_id)) {
+        if (!selectedConversation) {
           return;
         }
         
@@ -376,12 +384,13 @@ export default function AdminSupportPage() {
       },
       async (payload: any) => {
         console.log("[ADMIN SUPPORT] Selected conversation updated:", payload);
-        // Fetch the updated conversation with user profile
+        // Fetch the updated conversation with user and counselor profiles
         const { data: updatedConversationWithUser } = await supabase
           .from("conversations")
           .select(`
             *,
-            user:user_profiles!user_id(*)
+            user:user_profiles!user_id(*),
+            counselor:user_profiles!counselor_id(*)
           `)
           .eq("id", payload.new.id)
           .single();
@@ -412,7 +421,6 @@ export default function AdminSupportPage() {
   };
 
   const selectConversation = (conversation: Conversation) => {
-    if (currentUserId && conversation.counselor_id !== currentUserId) return;
     setSelectedConversation(conversation);
     loadMessages(conversation.id, conversation);
     subscribeToMessages(conversation.id);
@@ -424,7 +432,10 @@ export default function AdminSupportPage() {
     console.log("Admin: newMessage:", newMessage);
     console.log("Admin: selectedConversation:", selectedConversation);
     console.log("Admin: currentUserId:", currentUserId);
-    if (!newMessage.trim() || !selectedConversation || !currentUserId || selectedConversation.counselor_id !== currentUserId) return;
+    const canParticipate =
+      currentUserProfile &&
+      ["owner", "admin"].includes(currentUserProfile.role || "");
+    if (!newMessage.trim() || !selectedConversation || !currentUserId || !canParticipate) return;
 
     const messageContent = newMessage.trim();
     
@@ -490,7 +501,10 @@ export default function AdminSupportPage() {
   };
 
   const closeConversation = async () => {
-    if (!selectedConversation || !currentUserId || selectedConversation.counselor_id !== currentUserId) return;
+    const canParticipate =
+      currentUserProfile &&
+      ["owner", "admin"].includes(currentUserProfile.role || "");
+    if (!selectedConversation || !currentUserId || !canParticipate) return;
 
     try {
       setClosingConversation(true);
