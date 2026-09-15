@@ -34,7 +34,7 @@ export default async function ProtectedLayout({
       Outer wrapper: full-height flex ROW on desktop.
       On mobile it becomes a flex COLUMN so the mobile nav bar sits on top.
     */
-    <div className="min-h-screen bg-gradient-to-r from-primary-blue to-lavender flex flex-col md:flex-row overflow-x-hidden">
+    <div className="min-h-screen md:h-screen bg-gradient-to-r from-primary-blue to-lavender flex flex-col md:flex-row overflow-hidden">
 
       {/*
         Desktop sidebar — sticky, hidden on mobile (handled by Sidebar's own
@@ -49,7 +49,7 @@ export default async function ProtectedLayout({
         h-screen + overflow-y-auto makes THIS column scroll, not the whole page,
         which is what lets the sidebar stay sticky on desktop.
       */}
-      <div className="flex-1 flex flex-col min-h-0 md:h-screen md:overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 flex flex-col min-h-0 overflow-x-hidden overflow-y-auto">
 
         {/*
           Mobile-only sticky top bar + slide-in drawer.
