@@ -29,12 +29,12 @@ export default async function ProtectedLayout({
   const userName = profile?.first_name || profile?.username || user.email?.split("@")[0] || "Friend";
 
   return (
-    <div className="h-screen bg-gradient-to-r from-primary-blue to-lavender flex overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-r from-primary-blue to-lavender flex overflow-x-hidden">
       <Sidebar userName={userName} />
       {/* On mobile the sidebar is hidden and MobileNav renders a sticky top bar,
           so the main area spans full width. The flex-col ensures the top bar + content stack. */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+      <div className="flex-1 flex flex-col min-h-0 overflow-x-hidden">
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto overflow-x-hidden">
           <ProtectedContentWrapper userName={userName}>
             {children}
           </ProtectedContentWrapper>
