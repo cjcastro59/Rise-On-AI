@@ -27,40 +27,35 @@ export default async function ProtectedLayout({
     .eq("id", user.id)
     .single()) as { data: UserProfileName | null };
 
-  const userName = profile?.first_name || profile?.username || user.email?.split("@")[0] || "Friend";
+  const userName =
+    profile?.first_name || profile?.username || user.email?.split("@")[0] || "Friend";
 
   return (
-    /*
-      Outer wrapper: full-height flex ROW on desktop.
-      On mobile it becomes a flex COLUMN so the mobile nav bar sits on top.
-    */
-    <div className="min-h-screen md:h-screen bg-gradient-to-r from-primary-blue to-lavender flex flex-col md:flex-row overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-r from-primary-blue to-lavender">
+      {/*
+        ── MOBILE (< md) ───────────────────────────────────────────────────────
+        MemberMobileNav renders a sticky top bar + slide-in drawer.
+        It uses `md:hidden` internally so it vanishes on desktop.
+        It is placed here — OUTSIDE the sidebar flex cell — so the top bar
+        spans the full viewport width.
+
+        ── DESKTOP (≥ md) ──────────────────────────────────────────────────────
+        The inner flex row below handles desktop layout.
+        MemberMobileNav renders nothing on desktop.
+      */}
+      <MemberMobileNav userName={userName} />
 
       {/*
-        Desktop sidebar — sticky, hidden on mobile (handled by Sidebar's own
-        `hidden md:flex` on the <aside>). On mobile this renders nothing visible.
+        Desktop layout: fixed sidebar + scrollable main content side by side.
+        On mobile this collapses — the sidebar's <aside> is `hidden md:flex`
+        so it takes zero space on mobile, leaving the full width for <main>.
       */}
-      <Sidebar userName={userName} />
+      <div className="md:flex">
+        {/* Desktop sidebar — sticky, hidden on mobile via internal `hidden md:flex` */}
+        <Sidebar userName={userName} />
 
-      {/*
-        Right column: flex column so MobileNav (top bar) stacks above <main>.
-        flex-1 lets it fill the remaining horizontal space on desktop.
-        min-h-0 is required for overflow to work correctly inside flex children.
-        h-screen + overflow-y-auto makes THIS column scroll, not the whole page,
-        which is what lets the sidebar stay sticky on desktop.
-      */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-x-hidden overflow-y-auto">
-
-        {/*
-          Mobile-only sticky top bar + slide-in drawer.
-          Rendered here (outside the sidebar flex cell) so it spans the FULL
-          viewport width on mobile. MobileNav internally applies `md:hidden`
-          so it vanishes on desktop.
-        */}
-        <MemberMobileNav userName={userName} />
-
-        {/* Page content */}
-        <main className="flex-1 p-4 md:p-8 overflow-x-hidden">
+        {/* Main content area — scrolls independently on desktop */}
+        <main className="flex-1 p-4 md:p-8 min-w-0 overflow-x-hidden">
           <ProtectedContentWrapper userName={userName}>
             {children}
           </ProtectedContentWrapper>

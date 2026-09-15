@@ -85,57 +85,66 @@ export function preprocessText(input: string | null): string {
 // CALL THE FINE-TUNED XLM-ROBERTA MODEL API
 // =====================================================
 function parseModelOutput(output: unknown): XLMroBERTaPrediction | null {
-  // HuggingFace-style top-k multi-label output
-  if (Array.isArray(output) && Array.isArray(output[0])) {
-    const preds = output[0] as Array<{ label: string; score: number }>;
-    const getScore = (key: string) =>
-      preds.find(
-        (p) =>
-          p.label.toLowerCase().includes(key) ||
-          p.label.toLowerCase() === key
-      )?.score || 0;
-
-    const pos = getScore("positive");
-    const neg = getScore("negative");
-    const dst = getScore("distress");
-    const total = pos + neg + dst || 1;
-
-    const positivePercentage = Math.round((pos / total) * 100);
-    const negativePercentage = Math.round((neg / total) * 100);
-    const distressPercentage = Math.max(
-      0,
-      100 - positivePercentage - negativePercentage
-    );
-
-    let sentiment: Sentiment;
-    if (dst >= pos && dst >= neg) sentiment = "distress";
-    else if (neg > pos) sentiment = "negative";
-    else sentiment = "positive";
-
-    const topScore = Math.max(pos, neg, dst);
-    const sentimentScore =
-      sentiment === "positive"
-        ? Math.round(50 + positivePercentage * 0.45)
-        : sentiment === "negative"
-        ? Math.round(50 - negativePercentage * 0.35)
-        : Math.max(5, 20 - Math.round(distressPercentage * 0.15));
-
-    return {
-      sentiment,
-      positivePercentage,
-      negativePercentage,
-      distressPercentage,
-      confidence: topScore / total,
-      sentimentScore,
-      raw: output,
-    };
+  // ── HuggingFace sequence-classification: flat array of {label, score} ──
+  // e.g. [{"label":"positive","score":0.91}, {"label":"negative","score":0.06}, ...]
+  if (Array.isArray(output) && output.length > 0 && !Array.isArray(output[0])) {
+    const preds = output as Array<{ label: string; score: number }>;
+    return buildFromLabelScores(preds);
   }
 
+  // ── HuggingFace top-k nested output: [[{label,score}, ...]] ──
+  if (Array.isArray(output) && Array.isArray(output[0])) {
+    const preds = output[0] as Array<{ label: string; score: number }>;
+    return buildFromLabelScores(preds);
+  }
+
+  // ── Direct structured response from a custom server ──
   if (output && typeof output === "object" && "sentiment" in output) {
     return output as XLMroBERTaPrediction;
   }
 
   return null;
+}
+
+function buildFromLabelScores(preds: Array<{ label: string; score: number }>): XLMroBERTaPrediction {
+  const getScore = (key: string) =>
+    preds.find(
+      (p) =>
+        p.label.toLowerCase().includes(key) ||
+        p.label.toLowerCase() === key
+    )?.score || 0;
+
+  const pos = getScore("positive");
+  const neg = getScore("negative");
+  const dst = getScore("distress");
+  const total = pos + neg + dst || 1;
+
+  const positivePercentage = Math.round((pos / total) * 100);
+  const negativePercentage = Math.round((neg / total) * 100);
+  const distressPercentage = Math.max(0, 100 - positivePercentage - negativePercentage);
+
+  let sentiment: Sentiment;
+  if (dst >= pos && dst >= neg) sentiment = "distress";
+  else if (neg > pos) sentiment = "negative";
+  else sentiment = "positive";
+
+  const topScore = Math.max(pos, neg, dst);
+  const sentimentScore =
+    sentiment === "positive"
+      ? Math.round(50 + positivePercentage * 0.45)
+      : sentiment === "negative"
+      ? Math.round(50 - negativePercentage * 0.35)
+      : Math.max(5, 20 - Math.round(distressPercentage * 0.15));
+
+  return {
+    sentiment,
+    positivePercentage,
+    negativePercentage,
+    distressPercentage,
+    confidence: topScore / total,
+    sentimentScore,
+    raw: preds,
+  };
 }
 
 async function callModelAPI(
@@ -145,7 +154,8 @@ async function callModelAPI(
   if (!text) return null;
 
   const dispatcher = getKeepAliveDispatcher() as { dispatcher?: unknown };
-  const attempts = 2;
+  // More attempts + longer waits to handle HuggingFace cold-start (model loading)
+  const attempts = 4;
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
@@ -164,28 +174,46 @@ async function callModelAPI(
         ...dispatcher,
       });
 
+      // HuggingFace returns 503 while the model is loading — wait and retry
       if ([502, 503, 504].includes(response.status) && attempt < attempts) {
-        await new Promise((resolve) => setTimeout(resolve, 800 * attempt));
+        const waitMs = 2000 * attempt; // 2s, 4s, 6s
+        console.warn(`[XLM-RoBERTa] HTTP ${response.status} on attempt ${attempt}, retrying in ${waitMs}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
         continue;
       }
 
       if (!response.ok) {
+        const errBody = await response.text().catch(() => "");
         console.error(
-          `[XLM-RoBERTa] Model endpoint HTTP ${response.status}: ${response.statusText}`
+          `[XLM-RoBERTa] Model endpoint HTTP ${response.status}: ${response.statusText}`,
+          errBody.slice(0, 200)
         );
         return null;
       }
 
       const output = await response.json();
+
+      // HuggingFace model-still-loading response: { "error": "...", "estimated_time": N }
+      if (output && typeof output === "object" && "error" in output && "estimated_time" in output) {
+        if (attempt < attempts) {
+          const waitMs = Math.min(((output as any).estimated_time ?? 20) * 1000, 8000);
+          console.warn(`[XLM-RoBERTa] Model loading, waiting ${waitMs}ms (attempt ${attempt})...`);
+          await new Promise((resolve) => setTimeout(resolve, waitMs));
+          continue;
+        }
+        console.error("[XLM-RoBERTa] Model still loading after all retries");
+        return null;
+      }
+
       const parsed = parseModelOutput(output);
       if (parsed) return parsed;
 
-      console.warn("[XLM-RoBERTa] Could not parse model output:", output);
+      console.warn("[XLM-RoBERTa] Could not parse model output:", JSON.stringify(output).slice(0, 300));
       return null;
     } catch (err) {
       console.error("[XLM-RoBERTa] Model call failed:", err);
       if (attempt < attempts) {
-        await new Promise((resolve) => setTimeout(resolve, 800 * attempt));
+        await new Promise((resolve) => setTimeout(resolve, 1500 * attempt));
         continue;
       }
       return null;

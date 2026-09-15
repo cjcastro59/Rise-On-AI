@@ -16,7 +16,7 @@ import { getMoodScore } from "@/lib/mood";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 10;
+export const maxDuration = 30;
 
 const DEFAULT_LOOKBACK_DAYS = 30;
 
