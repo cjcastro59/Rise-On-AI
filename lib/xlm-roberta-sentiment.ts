@@ -5,13 +5,28 @@ import {
 } from "@/lib/sentiment";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CONFIG
-// Set in Vercel Environment Variables (and .env.local):
-//   SENTIMENT_MODEL_API_URL  = https://api-inference.huggingface.co/models/<user>/<repo>
-//   HUGGINGFACE_API_KEY      = hf_xxxxxxxxxxxxxxxxxxxx
+// Strategy
 // ─────────────────────────────────────────────────────────────────────────────
-const MODEL_API_URL = process.env.SENTIMENT_MODEL_API_URL ?? "";
-const HF_API_TOKEN  = process.env.HUGGINGFACE_API_KEY    ?? "";
+// 1. PRIMARY  → call /api/sentiment/onnx-predict (local ONNX route, works 24/7)
+//    The route downloads model_quantized.onnx (~266 MB) from HuggingFace into
+//    /tmp on first cold start, then keeps the session warm in module scope.
+//    No external API dependency after the one-time download.
+//
+// 2. FALLBACK → HuggingFace Inference API (only if PRIMARY fails or URL missing)
+//
+// 3. LAST RESORT → keyword-based fallback (confidence = 0.35)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const HF_API_TOKEN = process.env.HUGGINGFACE_API_KEY ?? "";
+const HF_MODEL_URL = process.env.SENTIMENT_MODEL_API_URL ?? "";
+
+// Base URL for the local ONNX route.
+// On Vercel: VERCEL_URL is injected automatically (no https:// prefix).
+// Locally: falls back to localhost:3000.
+const APP_BASE_URL = process.env.NEXT_PUBLIC_APP_URL
+  ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
+const ONNX_ROUTE = `${APP_BASE_URL}/api/sentiment/onnx-predict`;
 
 export interface XLMroBERTaPrediction {
   sentiment:           Sentiment;
@@ -38,17 +53,13 @@ export function preprocessText(input: string | null): string {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// OUTPUT PARSER
-// Handles both HF response shapes:
-//   • Flat array  : [{label, score}, ...]          ← sequence-classification default
-//   • Nested array: [[{label, score}, ...]]         ← top_k format
-//   • Object      : {sentiment, positivePercentage, ...}  ← custom server
+// SHARED: build a prediction from [{label, score}] array
 // ─────────────────────────────────────────────────────────────────────────────
 function buildFromLabelScores(
   preds: Array<{ label: string; score: number }>,
 ): XLMroBERTaPrediction {
   const get = (key: string) =>
-    preds.find((p) => p.label.toLowerCase().includes(key))?.score ?? 0;
+    preds.find(p => p.label.toLowerCase().includes(key))?.score ?? 0;
 
   const pos   = get("positive");
   const neg   = get("negative");
@@ -60,9 +71,9 @@ function buildFromLabelScores(
   const dstP = Math.max(0, 100 - posP - negP);
 
   let sentiment: Sentiment;
-  if (dst >= pos && dst >= neg)      sentiment = "distress";
-  else if (neg > pos)                sentiment = "negative";
-  else                               sentiment = "positive";
+  if (dst >= pos && dst >= neg)     sentiment = "distress";
+  else if (neg > pos)               sentiment = "negative";
+  else                              sentiment = "positive";
 
   const top   = Math.max(pos, neg, dst);
   const score =
@@ -84,15 +95,12 @@ function buildFromLabelScores(
 }
 
 function parseModelOutput(output: unknown): XLMroBERTaPrediction | null {
-  // Flat array: [{label, score}, ...]
   if (Array.isArray(output) && output.length > 0 && !Array.isArray(output[0])) {
     return buildFromLabelScores(output as Array<{ label: string; score: number }>);
   }
-  // Nested array: [[{label, score}, ...]]
   if (Array.isArray(output) && Array.isArray(output[0])) {
     return buildFromLabelScores(output[0] as Array<{ label: string; score: number }>);
   }
-  // Custom server direct object
   if (output && typeof output === "object" && "sentiment" in output) {
     return output as XLMroBERTaPrediction;
   }
@@ -100,92 +108,82 @@ function parseModelOutput(output: unknown): XLMroBERTaPrediction | null {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODEL CALL  (with HuggingFace cold-start handling)
-//
-// HuggingFace free-tier models go cold after ~15 min of inactivity.
-// When cold, the API returns:
-//   HTTP 503  OR  HTTP 200 { "error": "...", "estimated_time": N }
-// We retry up to 4 times with progressive back-off.
+// PRIMARY: local ONNX route  (/api/sentiment/onnx-predict)
 // ─────────────────────────────────────────────────────────────────────────────
-async function callModelAPI(text: string): Promise<XLMroBERTaPrediction | null> {
-  if (!MODEL_API_URL || !text) return null;
+async function callOnnxRoute(text: string): Promise<XLMroBERTaPrediction | null> {
+  if (!text) return null;
+  try {
+    const res = await fetch(ONNX_ROUTE, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ inputs: text }),
+    });
 
-  const MAX_ATTEMPTS = 4;
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      console.warn(`[XLM-R/onnx] HTTP ${res.status}: ${body.slice(0, 200)}`);
+      return null;
+    }
 
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const output = await res.json();
+    const parsed = parseModelOutput(output);
+    if (parsed) {
+      console.log("[XLM-R/onnx] Inference OK:", parsed.sentiment);
+      return parsed;
+    }
+    console.warn("[XLM-R/onnx] Unexpected output:", JSON.stringify(output).slice(0, 200));
+    return null;
+  } catch (err) {
+    console.warn("[XLM-R/onnx] Route call failed:", err);
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FALLBACK: HuggingFace Inference API  (kept as safety net)
+// ─────────────────────────────────────────────────────────────────────────────
+async function callHFApi(text: string): Promise<XLMroBERTaPrediction | null> {
+  if (!HF_MODEL_URL || !text) return null;
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const res = await fetch(MODEL_API_URL, {
+      const res = await fetch(HF_MODEL_URL, {
         method:  "POST",
         headers: {
           "Content-Type": "application/json",
           ...(HF_API_TOKEN ? { Authorization: `Bearer ${HF_API_TOKEN}` } : {}),
         },
-        body:  JSON.stringify({
-          inputs:  text,
-          options: { wait_for_model: true, use_cache: false },
-        }),
-        // No signal / AbortController — rely on Vercel maxDuration (60 s)
+        body: JSON.stringify({ inputs: text, options: { wait_for_model: true, use_cache: false } }),
       });
 
-      // ── HF cold-start: 503 Service Unavailable ──────────────────────────
-      if (res.status === 503 && attempt < MAX_ATTEMPTS) {
-        const waitMs = 3000 * attempt; // 3 s, 6 s, 9 s
-        console.warn(
-          `[XLM-R] 503 on attempt ${attempt}/${MAX_ATTEMPTS}, waiting ${waitMs}ms...`,
-        );
-        await new Promise((r) => setTimeout(r, waitMs));
+      if (res.status === 503 && attempt < 3) {
+        await new Promise(r => setTimeout(r, 3000 * attempt));
         continue;
       }
-
-      if (!res.ok) {
-        const body = await res.text().catch(() => "");
-        console.error(`[XLM-R] HTTP ${res.status} ${res.statusText}:`, body.slice(0, 300));
-        return null;
-      }
+      if (!res.ok) return null;
 
       const output = await res.json();
 
-      // ── HF "still loading" JSON body ─────────────────────────────────────
-      if (
-        output &&
-        typeof output === "object" &&
-        !Array.isArray(output) &&
-        "error" in output &&
-        "estimated_time" in output
-      ) {
-        const estimatedMs = Math.min(
-          ((output as { estimated_time: number }).estimated_time ?? 20) * 1000,
-          10_000,
-        );
-        if (attempt < MAX_ATTEMPTS) {
-          console.warn(
-            `[XLM-R] Model loading (~${Math.round(estimatedMs / 1000)}s), attempt ${attempt}/${MAX_ATTEMPTS}...`,
-          );
-          await new Promise((r) => setTimeout(r, estimatedMs));
+      // HF loading body: {"error":"...","estimated_time":N}
+      if (!Array.isArray(output) && "error" in output && "estimated_time" in output) {
+        if (attempt < 3) {
+          const wait = Math.min(((output as any).estimated_time ?? 20) * 1000, 8000);
+          await new Promise(r => setTimeout(r, wait));
           continue;
         }
-        console.error("[XLM-R] Model still loading after all retries.");
         return null;
       }
 
       const parsed = parseModelOutput(output);
-      if (parsed) return parsed;
-
-      console.warn(
-        "[XLM-R] Unrecognised output format:",
-        JSON.stringify(output).slice(0, 300),
-      );
-      return null;
-    } catch (err) {
-      console.error(`[XLM-R] Network error on attempt ${attempt}:`, err);
-      if (attempt < MAX_ATTEMPTS) {
-        await new Promise((r) => setTimeout(r, 2000 * attempt));
-        continue;
+      if (parsed) {
+        console.log("[XLM-R/hf-api] Inference OK:", parsed.sentiment);
+        return parsed;
       }
       return null;
+    } catch {
+      if (attempt < 3) await new Promise(r => setTimeout(r, 2000 * attempt));
     }
   }
-
   return null;
 }
 
@@ -197,20 +195,38 @@ export async function analyzeWithXLMRoBERTa(
   mood: string | null = null,
 ): Promise<XLMroBERTaPrediction & { model: string }> {
   const preprocessed = preprocessText(text);
-  const result       = await callModelAPI(preprocessed);
+  if (!preprocessed) {
+    // Nothing to analyse — use keyword fallback directly
+    const fb = analyzeEntry(text, mood);
+    return { ...fb, sentiment: fb.sentiment as Sentiment, confidence: 0.35, raw: null, model: "keyword-fallback" };
+  }
 
-  if (result) {
-    const total = result.positivePercentage + result.negativePercentage + result.distressPercentage;
-    const top   = Math.max(result.positivePercentage, result.negativePercentage, result.distressPercentage);
+  // 1. Try local ONNX route first (works 24/7, no external dependency)
+  const onnxResult = await callOnnxRoute(preprocessed);
+  if (onnxResult) {
+    const total = onnxResult.positivePercentage + onnxResult.negativePercentage + onnxResult.distressPercentage;
+    const top   = Math.max(onnxResult.positivePercentage, onnxResult.negativePercentage, onnxResult.distressPercentage);
     return {
-      ...result,
-      confidence: total > 0 ? top / total : result.confidence,
+      ...onnxResult,
+      confidence: total > 0 ? top / total : onnxResult.confidence,
+      model:      "xlm-roberta-onnx",
+    };
+  }
+
+  // 2. Try HF Inference API as fallback
+  const hfResult = await callHFApi(preprocessed);
+  if (hfResult) {
+    const total = hfResult.positivePercentage + hfResult.negativePercentage + hfResult.distressPercentage;
+    const top   = Math.max(hfResult.positivePercentage, hfResult.negativePercentage, hfResult.distressPercentage);
+    return {
+      ...hfResult,
+      confidence: total > 0 ? top / total : hfResult.confidence,
       model:      "xlm-roberta-finetuned",
     };
   }
 
-  // ── Keyword fallback when model is unreachable ────────────────────────────
-  console.warn("[XLM-R] Model unavailable — using keyword fallback.");
+  // 3. Last resort — keyword fallback
+  console.warn("[XLM-R] All inference methods failed — using keyword fallback.");
   const fb = analyzeEntry(text, mood);
   return {
     sentiment:          fb.sentiment as Sentiment,

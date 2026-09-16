@@ -9,6 +9,24 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
 
+  // ── Tell webpack NOT to bundle native Node addons ─────────────────
+  // onnxruntime-node ships pre-compiled .node binaries for each
+  // platform/arch. Webpack cannot parse them — mark the package as
+  // external so Node.js loads it at runtime instead.
+  webpack(config, { isServer }) {
+    if (isServer) {
+      config.externals = [
+        ...(Array.isArray(config.externals) ? config.externals : [config.externals].filter(Boolean)),
+        "onnxruntime-node",
+      ];
+    }
+    // Suppress "Critical dependency: the request of a require is an
+    // expression" warnings from onnxruntime-node's dynamic require paths.
+    config.module = config.module ?? {};
+    config.module.exprContextCritical = false;
+    return config;
+  },
+
   // ── Security Headers (Phase 8 — S14) ─────────────────────────────
   // Applied to every route via the headers() function.
   // These headers protect against common web vulnerabilities:
