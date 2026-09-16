@@ -593,31 +593,17 @@ export default function AdminSupportPage() {
         <div className="lg:col-span-1">
           <Card className="p-0 h-[600px] max-h-[600px] flex flex-col bg-gradient-to-br from-white/90 via-gray-50/90 to-lavender/5 border border-gray-100 overflow-hidden">
             <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-primary-blue/5 to-lavender/10 flex-shrink-0">
-              <h3 className="font-poppins font-semibold text-dark-text">Conversations</h3>
-              <div className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-white/70 p-1">
-                {(Object.keys(categoryLabels) as AdminSupportCategory[]).map((category) => (
-                  <button
-                    key={category}
-                    type="button"
-                    onClick={() => setActiveCategory(category)}
-                    className={`rounded-lg px-2 py-1.5 text-[11px] font-poppins font-semibold transition ${
-                      activeCategory === category
-                        ? "bg-primary-blue/20 text-dark-text"
-                        : "text-dark-text/55 hover:bg-white"
-                    }`}
-                  >
-                    {categoryLabels[category]} ({conversationsByCategory[category].length})
-                  </button>
-                ))}
-              </div>
+              <h3 className="font-poppins font-semibold text-dark-text">
+                Conversations ({conversations.length})
+              </h3>
             </div>
             <div className="flex-1 overflow-y-auto min-h-0">
-              {visibleConversations.length === 0 ? (
+              {conversations.length === 0 ? (
                 <div className="p-8 text-center text-dark-text/50">
-                  <p>No {categoryLabels[activeCategory].toLowerCase()} yet.</p>
+                  <p>No conversations yet.</p>
                 </div>
               ) : (
-                visibleConversations.map((convo) => (
+                conversations.map((convo) => (
                   <button
                     key={convo.id}
                     onClick={() => selectConversation(convo)}

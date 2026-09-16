@@ -616,6 +616,25 @@ export default function SupportPage() {
                       }`}>
                         {selectedConversation.status}
                       </span>
+                      {/* Member can delete their own conversation */}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!confirm("Delete this conversation? This cannot be undone.")) return;
+                          const { error } = await supabase
+                            .from("conversations")
+                            .delete()
+                            .eq("id", selectedConversation.id);
+                          if (!error) {
+                            setConversations(prev => prev.filter(c => c.id !== selectedConversation.id));
+                            setSelectedConversation(null);
+                            setMessages([]);
+                          }
+                        }}
+                        className="rounded-lg border border-soft-red/30 px-3 py-1 text-xs font-poppins text-soft-red hover:bg-soft-red/10 transition"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
 
