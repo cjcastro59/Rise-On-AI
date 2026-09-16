@@ -80,47 +80,31 @@ const DISTRESS_TERMS = [
 ];
 
 const NEGATIVE_TERMS = [
-  "sad",
-  "exhausted",
-  "terrible",
-  "wrong",
-  "anxious",
-  "anxiety",
-  "overwhelmed",
-  "frustrated",
-  "lonely",
-  "depressed",
-  "stress",
-  "stressed",
-  "afraid",
-  "scared",
-  "angry",
-  "pagod",
-  "lungkot",
-  "malungkot",
-  "takot",
-  "galit",
-  "hirap",
-  "mahirap",
+  // English
+  "sad", "exhausted", "terrible", "wrong", "anxious", "anxiety",
+  "overwhelmed", "frustrated", "lonely", "depressed", "stress", "stressed",
+  "afraid", "scared", "angry", "worried", "upset", "confused", "lost",
+  "disappointed", "hopeless", "miserable", "failed", "failure",
+  // Filipino / Tagalog / Taglish
+  "pagod", "lungkot", "malungkot", "nalulungkot", "takot", "galit",
+  "hirap", "mahirap", "naiinis", "nag-aalala", "nababahala", "nainis",
+  "nabigo", "hindi kaya", "hindi ko kaya", "napakarami", "sobrang hirap",
+  "stressed out", "burn out", "burned out",
 ];
 
 const POSITIVE_TERMS = [
-  "happy",
-  "grateful",
-  "thankful",
-  "amazing",
-  "wonderful",
-  "great",
-  "good",
-  "okay",
-  "calm",
-  "excited",
-  "hopeful",
-  "love",
-  "masaya",
-  "salamat",
-  "mahal",
-  "saya",
+  // English
+  "happy", "grateful", "thankful", "amazing", "wonderful", "great",
+  "good", "okay", "calm", "excited", "hopeful", "love", "joyful",
+  "blessed", "proud", "accomplished", "motivated", "peaceful", "content",
+  "cheerful", "delighted", "pleased", "fantastic", "awesome", "glad",
+  "enjoy", "enjoyed", "success", "succeeded", "passed", "done", "finished",
+  // Filipino / Tagalog / Taglish
+  "masaya", "salamat", "mahal", "saya", "natapos", "pumasa", "nagawa",
+  "maganda", "napakaganda", "maayos", "mabuti", "sobrang saya", "natuwa",
+  "nagagalak", "pinagpala", "mapalad", "swerte", "tagumpay", "nagtagumpay",
+  "natutuwa", "nakikipagtulungan", "naging maayos", "okay na", "ayos na",
+  "masayang-masaya", "ang sarap", "sarap ng buhay", "naging mabuti",
 ];
 
 function cleanText(text: string | null): string {
