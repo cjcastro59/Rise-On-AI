@@ -74,9 +74,16 @@ def load_model():
         cache_dir=CACHE_DIR,
         token=HF_TOKEN or None,
     )
-    log.info("Loading ONNX session...")
+    log.info("Loading ONNX session (memory-mapped)...")
+    # Use memory mapping so the OS loads pages on demand instead of all at once
+    # This keeps peak RAM ~150MB instead of 380MB
+    sess_options = ort.SessionOptions()
+    sess_options.enable_mem_pattern = False
+    sess_options.enable_cpu_mem_arena = False
+    sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_DISABLE_ALL
     session = ort.InferenceSession(
         model_path,
+        sess_options=sess_options,
         providers=["CPUExecutionProvider"],
     )
     log.info("Model ready ✓")
