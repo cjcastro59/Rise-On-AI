@@ -1,186 +1,23 @@
 /* eslint-disable */
-import {
-  type AnalysisResult,
-  type Sentiment,
-  analyzeEntry,
-} from "@/lib/sentiment";
-import fs   from "fs";
-import path from "path";
+/**
+ * xlm-roberta-sentiment.ts
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Strategy (in order):
+ *  1. ONNX in-process with PROPER @huggingface/transformers tokenizer
+ *     → downloads model_quantized.onnx + tokenizer from HF into /tmp once
+ *     → runs 24/7 on Vercel, accurate predictions, ~200-400ms warm
+ *  2. HF Inference API fallback
+ *  3. Keyword fallback (last resort)
+ */
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Config
-// ─────────────────────────────────────────────────────────────────────────────
+import { type AnalysisResult, type Sentiment, analyzeEntry } from "@/lib/sentiment";
+
+// ── Config ────────────────────────────────────────────────────────────────────
 const HF_TOKEN   = process.env.HUGGINGFACE_API_KEY ?? "";
 const REPO_ID    = "cjcastro/xlm-roberta-Rise-On-AI";
-const HF_URL     = `https://huggingface.co/${REPO_ID}/resolve/main/onnx/model_quantized.onnx`;
-const TMP_DIR    = "/tmp/xlm-roberta-onnx";
-const MODEL_PATH = path.join(TMP_DIR, "model_quantized.onnx");
+const HF_API_URL = process.env.SENTIMENT_MODEL_API_URL ?? "";
 
-const TOKENIZER_FILES = [
-  "tokenizer.json",
-  "tokenizer_config.json",
-  "sentencepiece.bpe.model",
-  "special_tokens_map.json",
-];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Module-level cache — survives warm Vercel invocations
-// ─────────────────────────────────────────────────────────────────────────────
-let _session:   unknown = null;
-let _tokenizer: OnnxTokenizer | null = null;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Minimal BPE tokenizer
-// ─────────────────────────────────────────────────────────────────────────────
-class OnnxTokenizer {
-  private vocab:  Map<string, number>;
-  private merges: [string, string][];
-  private unkId: number;
-  private clsId: number;
-  private sepId: number;
-  private padId: number;
-  private maxLen: number;
-
-  constructor(tokenizerJson: Record<string, unknown>) {
-    this.vocab = new Map();
-    const model = tokenizerJson?.model as Record<string, unknown> | undefined;
-    if (model?.vocab && typeof model.vocab === "object") {
-      for (const [token, id] of Object.entries(model.vocab as Record<string, number>)) {
-        this.vocab.set(token, id);
-      }
-    }
-    const rawMerges = (model?.merges ?? []) as string[];
-    this.merges = rawMerges.map(m => m.split(" ") as [string, string]);
-    this.unkId  = this.vocab.get("<unk>") ?? 3;
-    this.clsId  = this.vocab.get("<s>")   ?? 0;
-    this.sepId  = this.vocab.get("</s>")  ?? 2;
-    this.padId  = this.vocab.get("<pad>") ?? 1;
-    this.maxLen = 256;
-  }
-
-  private bpe(token: string): number[] {
-    let chars = token.split("").map((c, i) => (i === 0 ? "▁" + c : c));
-    if (!chars.length) return [this.unkId];
-    while (true) {
-      let bestIdx = -1, bestRank = Infinity;
-      for (let i = 0; i < chars.length - 1; i++) {
-        const rank = this.merges.findIndex(([a, b]) => a === chars[i] && b === chars[i + 1]);
-        if (rank !== -1 && rank < bestRank) { bestRank = rank; bestIdx = i; }
-      }
-      if (bestIdx === -1) break;
-      chars = [...chars.slice(0, bestIdx), chars[bestIdx] + chars[bestIdx + 1], ...chars.slice(bestIdx + 2)];
-    }
-    return chars.map(c => this.vocab.get(c) ?? this.unkId);
-  }
-
-  encode(text: string): { inputIds: number[]; attentionMask: number[] } {
-    const words = text.toLowerCase().trim().split(/\s+/).filter(Boolean);
-    const ids: number[] = [this.clsId];
-    for (const w of words) { ids.push(...this.bpe(w)); if (ids.length >= this.maxLen - 1) break; }
-    ids.push(this.sepId);
-    const mask = ids.map(() => 1);
-    while (ids.length < this.maxLen) { ids.push(this.padId); mask.push(0); }
-    return { inputIds: ids.slice(0, this.maxLen), attentionMask: mask.slice(0, this.maxLen) };
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Download helper
-// ─────────────────────────────────────────────────────────────────────────────
-async function downloadFile(url: string, dest: string): Promise<void> {
-  const headers: Record<string, string> = {};
-  if (HF_TOKEN) headers["Authorization"] = `Bearer ${HF_TOKEN}`;
-  const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`Download failed ${res.status}: ${url}`);
-  fs.writeFileSync(dest, Buffer.from(await res.arrayBuffer()));
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Load ONNX model + tokenizer (once per Vercel instance)
-// ─────────────────────────────────────────────────────────────────────────────
-async function ensureOnnxLoaded(): Promise<{ session: unknown; tokenizer: OnnxTokenizer } | null> {
-  // Only works server-side (Node.js runtime)
-  if (typeof window !== "undefined") return null;
-
-  try {
-    if (_session && _tokenizer) return { session: _session, tokenizer: _tokenizer };
-
-    if (!fs.existsSync(TMP_DIR)) fs.mkdirSync(TMP_DIR, { recursive: true });
-
-    // Download ONNX model to /tmp (Vercel's only writable dir)
-    if (!fs.existsSync(MODEL_PATH)) {
-      console.log("[XLM-R/onnx] Downloading model_quantized.onnx (~266MB)...");
-      await downloadFile(HF_URL, MODEL_PATH);
-      console.log("[XLM-R/onnx] Download complete ✓");
-    }
-
-    // Download tokenizer files
-    for (const fname of TOKENIZER_FILES) {
-      const dest = path.join(TMP_DIR, fname);
-      if (!fs.existsSync(dest)) {
-        await downloadFile(`https://huggingface.co/${REPO_ID}/resolve/main/${fname}`, dest);
-      }
-    }
-
-    // Load tokenizer
-    const tokJson = JSON.parse(fs.readFileSync(path.join(TMP_DIR, "tokenizer.json"), "utf-8"));
-    _tokenizer    = new OnnxTokenizer(tokJson);
-
-    // Load ONNX session via require() — keeps webpack from bundling .node binaries
-    const ort  = require("onnxruntime-node");
-    _session   = await ort.InferenceSession.create(MODEL_PATH, {
-      executionProviders: ["cpu"],
-      graphOptimizationLevel: "all",
-    });
-    console.log("[XLM-R/onnx] Session ready ✓");
-    return { session: _session, tokenizer: _tokenizer };
-  } catch (err) {
-    console.error("[XLM-R/onnx] Failed to load model:", err);
-    return null;
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Softmax
-// ─────────────────────────────────────────────────────────────────────────────
-function softmax(logits: number[]): number[] {
-  const max  = Math.max(...logits);
-  const exps = logits.map(x => Math.exp(x - max));
-  const sum  = exps.reduce((a, b) => a + b, 0);
-  return exps.map(x => x / sum);
-}
-
-const ONNX_LABELS: Record<number, string> = { 0: "positive", 1: "negative", 2: "distress" };
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Run ONNX inference directly in-process (no HTTP call needed)
-// ─────────────────────────────────────────────────────────────────────────────
-async function runOnnxInference(text: string): Promise<XLMroBERTaPrediction | null> {
-  const loaded = await ensureOnnxLoaded();
-  if (!loaded) return null;
-
-  const { session, tokenizer } = loaded;
-  const ort = require("onnxruntime-node");
-
-  const { inputIds, attentionMask } = tokenizer.encode(text);
-  const len = inputIds.length;
-
-  const feeds = {
-    input_ids:      new ort.Tensor("int64", BigInt64Array.from(inputIds.map(BigInt)),      [1, len]),
-    attention_mask: new ort.Tensor("int64", BigInt64Array.from(attentionMask.map(BigInt)), [1, len]),
-  };
-
-  const out    = await (session as any).run(feeds);
-  const logits = Array.from(out["logits"].data as Float32Array);
-  const probs  = softmax(logits);
-
-  const preds  = probs.map((score, i) => ({ label: ONNX_LABELS[i] ?? String(i), score }));
-  return buildFromLabelScores(preds);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Shared types + helpers
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 export interface XLMroBERTaPrediction {
   sentiment:           Sentiment;
   positivePercentage:  number;
@@ -191,63 +28,136 @@ export interface XLMroBERTaPrediction {
   raw?:                unknown;
 }
 
+// ── Preprocessing (matches training-time) ────────────────────────────────────
 export function preprocessText(input: string | null): string {
   if (!input) return "";
-  let text = input.trim();
-  text = text.replace(/\s+/g, " ");
-  text = text.normalize("NFC").toLowerCase();
-  text = text.replace(/<[^>]*>/g, " ");
-  text = text.replace(/(https?:\/\/[^\s]+)/g, " ");
-  text = text.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, " ");
-  return text.trim();
+  let t = input.trim().replace(/\s+/g, " ").normalize("NFC").toLowerCase();
+  t = t.replace(/<[^>]*>/g, " ").replace(/(https?:\/\/[^\s]+)/g, " ");
+  t = t.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, " ");
+  return t.trim();
 }
 
-function buildFromLabelScores(preds: Array<{ label: string; score: number }>): XLMroBERTaPrediction {
-  const get  = (key: string) => preds.find(p => p.label.toLowerCase().includes(key))?.score ?? 0;
-  const pos  = get("positive");
-  const neg  = get("negative");
-  const dst  = get("distress");
+// ── Shared helpers ────────────────────────────────────────────────────────────
+function softmax(logits: number[]): number[] {
+  const max  = Math.max(...logits);
+  const exps = logits.map(x => Math.exp(x - max));
+  const sum  = exps.reduce((a, b) => a + b, 0);
+  return exps.map(x => x / sum);
+}
+
+const LABELS: Record<number, string> = { 0: "positive", 1: "negative", 2: "distress" };
+
+function buildFromScores(preds: Array<{ label: string; score: number }>): XLMroBERTaPrediction {
+  const get   = (k: string) => preds.find(p => p.label.toLowerCase().includes(k))?.score ?? 0;
+  const pos   = get("positive"), neg = get("negative"), dst = get("distress");
   const total = pos + neg + dst || 1;
-
-  const posP = Math.round((pos / total) * 100);
-  const negP = Math.round((neg / total) * 100);
-  const dstP = Math.max(0, 100 - posP - negP);
-
+  const posP  = Math.round((pos / total) * 100);
+  const negP  = Math.round((neg / total) * 100);
+  const dstP  = Math.max(0, 100 - posP - negP);
   let sentiment: Sentiment;
-  if (dst >= pos && dst >= neg)   sentiment = "distress";
-  else if (neg > pos)             sentiment = "negative";
-  else                            sentiment = "positive";
-
+  if (dst >= pos && dst >= neg) sentiment = "distress";
+  else if (neg > pos)           sentiment = "negative";
+  else                          sentiment = "positive";
   const top   = Math.max(pos, neg, dst);
-  const score =
-    sentiment === "positive"  ? Math.round(50 + posP * 0.45) :
-    sentiment === "negative"  ? Math.round(50 - negP * 0.35) :
-                                Math.max(5, 20 - Math.round(dstP * 0.15));
-
+  const score = sentiment === "positive" ? Math.round(50 + posP * 0.45)
+              : sentiment === "negative" ? Math.round(50 - negP * 0.35)
+              : Math.max(5, 20 - Math.round(dstP * 0.15));
   return { sentiment, positivePercentage: posP, negativePercentage: negP,
            distressPercentage: dstP, confidence: top / total, sentimentScore: score, raw: preds };
 }
 
+// ── ONNX in-process inference ─────────────────────────────────────────────────
+// Module-level cache — survives warm Vercel function invocations
+let _pipeline: any = null;
+let _pipelineLoading = false;
+let _pipelineError: string | null = null;
+
+async function getOnnxPipeline(): Promise<any | null> {
+  if (typeof window !== "undefined") return null;  // server-side only
+  if (_pipeline) return _pipeline;
+  if (_pipelineError) return null;   // don't retry a known failure
+  if (_pipelineLoading) {
+    // Wait up to 55s for concurrent cold start
+    for (let i = 0; i < 55; i++) {
+      await new Promise(r => setTimeout(r, 1000));
+      if (_pipeline) return _pipeline;
+      if (_pipelineError) return null;
+    }
+    return null;
+  }
+
+  _pipelineLoading = true;
+  try {
+    console.log("[XLM-R/onnx] Loading pipeline with @huggingface/transformers...");
+
+    // @huggingface/transformers v3 works in Node.js with ONNX Runtime
+    // It handles the real SentencePiece tokenizer automatically
+    const { pipeline, env } = await import("@huggingface/transformers");
+
+    // Cache models in /tmp (Vercel's writable dir)
+    env.cacheDir = "/tmp/hf-cache";
+    env.allowRemoteModels = true;
+
+    // Use the quantized ONNX model directly from HF
+    // The ONNX file is at: cjcastro/xlm-roberta-Rise-On-AI/onnx/model_quantized.onnx
+    _pipeline = await pipeline(
+      "text-classification",
+      REPO_ID,
+      {
+        dtype: "q8",          // use quantized INT8 weights
+        model_file_name: "onnx/model_quantized",
+        top_k: null,          // return all labels
+        device: "cpu",
+      } as any,
+    );
+
+    console.log("[XLM-R/onnx] Pipeline ready ✓");
+    _pipelineLoading = false;
+    return _pipeline;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[XLM-R/onnx] Pipeline load failed:", msg);
+    _pipelineError = msg;
+    _pipelineLoading = false;
+    return null;
+  }
+}
+
+async function runOnnxInference(text: string): Promise<XLMroBERTaPrediction | null> {
+  try {
+    const pipe = await getOnnxPipeline();
+    if (!pipe) return null;
+
+    const result = await pipe(text, { top_k: null });
+    // result is [{label: "positive", score: 0.91}, ...]
+    const preds = Array.isArray(result) ? (Array.isArray(result[0]) ? result[0] : result) : [];
+    if (!preds.length) return null;
+
+    const out = buildFromScores(preds as Array<{ label: string; score: number }>);
+    console.log(`[XLM-R/onnx] ✓ ${out.sentiment} pos=${out.positivePercentage}% neg=${out.negativePercentage}% dst=${out.distressPercentage}%`);
+    return out;
+  } catch (err) {
+    console.warn("[XLM-R/onnx] inference error:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+// ── HF Inference API fallback ─────────────────────────────────────────────────
 function parseApiOutput(output: unknown): XLMroBERTaPrediction | null {
   if (Array.isArray(output) && output.length > 0 && !Array.isArray(output[0]))
-    return buildFromLabelScores(output as Array<{ label: string; score: number }>);
+    return buildFromScores(output as Array<{ label: string; score: number }>);
   if (Array.isArray(output) && Array.isArray(output[0]))
-    return buildFromLabelScores(output[0] as Array<{ label: string; score: number }>);
+    return buildFromScores(output[0] as Array<{ label: string; score: number }>);
   if (output && typeof output === "object" && "sentiment" in output)
     return output as XLMroBERTaPrediction;
   return null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HF Inference API fallback
-// ─────────────────────────────────────────────────────────────────────────────
-const HF_MODEL_URL = process.env.SENTIMENT_MODEL_API_URL ?? "";
-
 async function callHFApi(text: string): Promise<XLMroBERTaPrediction | null> {
-  if (!HF_MODEL_URL || !text) return null;
+  if (!HF_API_URL || !text) return null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const res = await fetch(HF_MODEL_URL, {
+      const res = await fetch(HF_API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -255,22 +165,27 @@ async function callHFApi(text: string): Promise<XLMroBERTaPrediction | null> {
         },
         body: JSON.stringify({ inputs: text, options: { wait_for_model: true, use_cache: false } }),
       });
-      if (res.status === 503 && attempt < 3) { await new Promise(r => setTimeout(r, 3000 * attempt)); continue; }
+      if (res.status === 503 && attempt < 3) {
+        await new Promise(r => setTimeout(r, 3000 * attempt)); continue;
+      }
       if (!res.ok) return null;
       const output = await res.json();
       if (!Array.isArray(output) && "error" in output && "estimated_time" in output) {
-        if (attempt < 3) { await new Promise(r => setTimeout(r, Math.min((output as any).estimated_time * 1000, 8000))); continue; }
+        if (attempt < 3) {
+          await new Promise(r => setTimeout(r, Math.min((output as any).estimated_time * 1000, 8000)));
+          continue;
+        }
         return null;
       }
-      return parseApiOutput(output);
+      const parsed = parseApiOutput(output);
+      if (parsed) console.log(`[XLM-R/hf-api] ✓ ${parsed.sentiment}`);
+      return parsed;
     } catch { if (attempt < 3) await new Promise(r => setTimeout(r, 2000 * attempt)); }
   }
   return null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// MAIN EXPORT
-// ─────────────────────────────────────────────────────────────────────────────
+// ── MAIN EXPORT ───────────────────────────────────────────────────────────────
 export async function analyzeWithXLMRoBERTa(
   text: string | null,
   mood: string | null = null,
@@ -281,49 +196,37 @@ export async function analyzeWithXLMRoBERTa(
     return { ...fb, sentiment: fb.sentiment as Sentiment, confidence: 0.35, raw: null, model: "keyword-fallback" };
   }
 
-  // 1. ONNX in-process (runs directly in Vercel Node.js — no HTTP call)
-  try {
-    const onnxResult = await runOnnxInference(preprocessed);
-    if (onnxResult) {
-      const total = onnxResult.positivePercentage + onnxResult.negativePercentage + onnxResult.distressPercentage;
-      const top   = Math.max(onnxResult.positivePercentage, onnxResult.negativePercentage, onnxResult.distressPercentage);
-      console.log(`[XLM-R/onnx] ✓ ${onnxResult.sentiment} (${Math.round(top/total*100)}% confidence)`);
-      return { ...onnxResult, confidence: total > 0 ? top / total : onnxResult.confidence, model: "xlm-roberta-onnx" };
-    }
-  } catch (err) {
-    console.warn("[XLM-R/onnx] inference failed:", err);
+  // 1. ONNX in-process with proper tokenizer (accurate, 24/7)
+  const onnxResult = await runOnnxInference(preprocessed);
+  if (onnxResult) {
+    const total = onnxResult.positivePercentage + onnxResult.negativePercentage + onnxResult.distressPercentage;
+    const top   = Math.max(onnxResult.positivePercentage, onnxResult.negativePercentage, onnxResult.distressPercentage);
+    return { ...onnxResult, confidence: total > 0 ? top / total : onnxResult.confidence, model: "xlm-roberta-onnx" };
   }
 
   // 2. HF Inference API fallback
-  try {
-    const hfResult = await callHFApi(preprocessed);
-    if (hfResult) {
-      const total = hfResult.positivePercentage + hfResult.negativePercentage + hfResult.distressPercentage;
-      const top   = Math.max(hfResult.positivePercentage, hfResult.negativePercentage, hfResult.distressPercentage);
-      return { ...hfResult, confidence: total > 0 ? top / total : hfResult.confidence, model: "xlm-roberta-finetuned" };
-    }
-  } catch (err) {
-    console.warn("[XLM-R/hf-api] failed:", err);
+  const hfResult = await callHFApi(preprocessed);
+  if (hfResult) {
+    const total = hfResult.positivePercentage + hfResult.negativePercentage + hfResult.distressPercentage;
+    const top   = Math.max(hfResult.positivePercentage, hfResult.negativePercentage, hfResult.distressPercentage);
+    return { ...hfResult, confidence: total > 0 ? top / total : hfResult.confidence, model: "xlm-roberta-finetuned" };
   }
 
-  // 3. Keyword fallback
-  console.warn("[XLM-R] All inference methods failed — keyword fallback.");
+  // 3. Last resort keyword fallback
+  console.warn("[XLM-R] All inference failed — keyword fallback.");
   const fb = analyzeEntry(text, mood);
   return {
     sentiment: fb.sentiment as Sentiment,
     positivePercentage: fb.positivePercentage,
     negativePercentage: fb.negativePercentage,
     distressPercentage: fb.distressPercentage,
-    confidence: 0.35,
-    sentimentScore: fb.sentimentScore,
-    raw: null,
+    confidence: 0.35, sentimentScore: fb.sentimentScore, raw: null,
     model: "keyword-fallback",
   };
 }
 
 export async function analyzeWithXLMRoBERTaLegacy(
-  text: string | null,
-  mood: string | null = null,
+  text: string | null, mood: string | null = null,
 ): Promise<AnalysisResult> {
   const xlm = await analyzeWithXLMRoBERTa(text, mood);
   return {
