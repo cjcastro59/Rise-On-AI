@@ -38,11 +38,12 @@ interface MobileNavProps {
   panelLabel: string; // "Member Panel" | "Admin Panel" | "Counselor Panel"
   sections: NavSection[];
   bottomItems?: React.ReactNode; // ProfileCard + Log Out + Get Help Now
+  headerActions?: React.ReactNode;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function MobileNav({ panelLabel, sections, bottomItems }: MobileNavProps) {
+export default function MobileNav({ panelLabel, sections, bottomItems, headerActions }: MobileNavProps) {
   const [open, setOpen] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -95,14 +96,16 @@ export default function MobileNav({ panelLabel, sections, bottomItems }: MobileN
           </div>
         </button>
 
-        {/* Hamburger / close button */}
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors focus:outline-none"
-          aria-label={open ? "Close navigation menu" : "Open navigation menu"}
-          aria-expanded={open}
-        >
+        {/* Right side actions & Hamburger / close button */}
+        <div className="flex items-center gap-1.5">
+          {headerActions}
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors focus:outline-none"
+            aria-label={open ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={open}
+          >
           {open ? (
             /* X icon */
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

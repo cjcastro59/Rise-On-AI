@@ -62,9 +62,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // ── 2. Authenticated user on login/register → let page handle redirect ──
-  // The login page itself redirects to the right dashboard after sign-in.
-  // No redirect here avoids an extra DB round-trip in middleware.
+  // ── 2. Authenticated user on auth pages → redirect to dashboard ───────
+  // The /dashboard page/layout handles role-based routing internally
+  // (admin → /admin/dashboard, counselor → /counselor/dashboard).
+  // This avoids an extra DB call in middleware while ensuring returning
+  // users are never stuck on the login page.
+  const authPaths = ["/login", "/register"];
+  if (user && authPaths.includes(pathname)) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
 
   // ── 3. Allow everything else through ────────────────────────────────────
   // Role-based routing (admin vs counselor vs member) is handled in each

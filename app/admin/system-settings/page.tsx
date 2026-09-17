@@ -37,7 +37,7 @@ const writeLocalPreference = (userId: string, key: string, value: unknown) => {
 };
 
 // Define permission types
-type PermissionValue = "full" | "limited" | "rai-only" | "aggregated" | "none";
+type PermissionValue = "full" | "limited" | "anonymous" | "aggregated" | "none";
 
 interface RolePermissions {
   [key: string]: {
@@ -61,7 +61,7 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
   },
   admin: {
     dashboard: true,
-    userIds: "rai-only",
+    userIds: "anonymous",
     sentimentData: "aggregated",
     alerts: true,
     settings: false,
@@ -69,7 +69,7 @@ const DEFAULT_PERMISSIONS: RolePermissions = {
   },
   counselor: {
     dashboard: true,
-    userIds: "rai-only",
+    userIds: "anonymous",
     sentimentData: "aggregated",
     alerts: true,
     settings: false,
@@ -638,7 +638,7 @@ export default function AdminSystemSettingsPage() {
           <span className="text-sm font-poppins text-primary-blue">
             {value === "full" ? "✅" :
              value === "none" ? "❌" :
-             value === "rai-only" ? "RAI-Only" :
+             value === "anonymous" ? "Anonymous (U-XXXX)" :
              value === "aggregated" ? "Aggregated" : "Limited"}
           </span>
         );
@@ -665,7 +665,7 @@ export default function AdminSystemSettingsPage() {
           className="px-2 py-1 border border-gray-200 rounded-lg text-xs font-poppins text-dark-text bg-white focus:outline-none focus:ring-2 focus:ring-primary-blue/50"
         >
           <option value="full">✅ Full</option>
-          <option value="rai-only">RAI-Only</option>
+          <option value="anonymous">Anonymous (U-XXXX)</option>
           <option value="aggregated">Aggregated</option>
           <option value="limited">Limited</option>
           <option value="none">❌ None</option>

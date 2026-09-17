@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { addNotification } from "@/lib/notifications";
 
 type StaffRole = "admin" | "owner" | "counselor";
 
@@ -53,6 +54,11 @@ export default function StaffAnnouncementToast() {
         const nextAnnouncement = payload.new as AnnouncementPayload;
         if (!nextAnnouncement.is_active) return;
         showAnnouncement(nextAnnouncement);
+        addNotification(user.id, {
+          type: "announcement",
+          title: nextAnnouncement.title || "New Announcement",
+          message: nextAnnouncement.content,
+        });
       }
     );
 

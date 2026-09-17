@@ -2,37 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import LandingHeader from "@/components/landing/LandingHeader";
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-header-bg">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Image
-              src="/logo/Without Text.png"
-              alt="Rise On Logo"
-              width={40}
-              height={40}
-              className="object-contain"
-            />
-            <span className="font-poppins font-bold text-dark-text text-xl">Rise On</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-8">
-            <Link href="#features" className="text-dark-text hover:text-primary-blue text-sm font-poppins font-medium">Features</Link>
-            <Link href="#how-it-works" className="text-dark-text hover:text-primary-blue text-sm font-poppins font-medium">How It Works</Link>
-          </nav>
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="text-dark-text hover:text-primary-blue text-sm font-poppins font-medium">
-              Log In
-            </Link>
-            <Link href="/register">
-              <Button size="sm">Get Started Free</Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <LandingHeader />
 
       {/* Hero Section */}
       <section className="max-w-5xl mx-auto px-6 py-16 text-center">
@@ -64,42 +40,60 @@ export default function LandingPage() {
           </a>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="p-6 text-left bg-white">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-warning-yellow/50 rounded-xl flex items-center justify-center">
-                <span className="text-3xl">😊</span>
+        {/* Capability Showcase (Option 1) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+          {/* Card 1: Taglish & English NLP */}
+          <Card className="p-6 bg-white border border-light-gray shadow-sm rounded-2xl hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-primary-blue/10 rounded-xl flex items-center justify-center text-2xl shrink-0">
+                🇵🇭
               </div>
               <div>
-                <p className="text-lg font-poppins font-semibold text-dark-text">Hopeful</p>
-                <div className="w-full h-2 bg-light-gray rounded-full overflow-hidden">
-                  <div className="h-full bg-teal w-4/5 rounded-full"></div>
-                </div>
+                <span className="text-[11px] font-poppins font-semibold uppercase tracking-wider text-primary-blue bg-primary-blue/10 px-2 py-0.5 rounded-full">
+                  Bilingual NLP
+                </span>
+                <h3 className="text-base font-poppins font-semibold text-dark-text mt-1">Taglish & English</h3>
               </div>
             </div>
+            <p className="text-xs font-inter text-dark-text/75 leading-relaxed">
+              Express yourself naturally in Filipino, English, or Taglish. Our AI detects emotional nuances and expressions accurately.
+            </p>
           </Card>
-          <Card className="p-6 text-left bg-white">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-light-gray rounded-xl flex items-center justify-center">
-                <span className="text-3xl">💡</span>
+
+          {/* Card 2: AI Insights */}
+          <Card className="p-6 bg-white border border-light-gray shadow-sm rounded-2xl hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-lavender/20 rounded-xl flex items-center justify-center text-2xl shrink-0">
+                💡
               </div>
               <div>
-                <p className="text-xs font-poppins text-dark-text/70 mb-1">AI Insights</p>
-                <p className="text-sm font-poppins text-dark-text">“You’ve shown resilience this week. Your positive entries have increased by 24%.”</p>
+                <span className="text-[11px] font-poppins font-semibold uppercase tracking-wider text-lavender bg-lavender/10 px-2 py-0.5 rounded-full">
+                  Self-Reflection
+                </span>
+                <h3 className="text-base font-poppins font-semibold text-dark-text mt-1">Personalized Insights</h3>
               </div>
             </div>
+            <p className="text-xs font-inter text-dark-text/75 leading-relaxed">
+              Receive gentle, clinically-guided reflections and track your behavioral wellness trajectory over time without judgment.
+            </p>
           </Card>
-          <Card className="p-6 text-left bg-white">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 bg-light-gray rounded-xl flex items-center justify-center">
-                <span className="text-3xl">🔥</span>
+
+          {/* Card 3: Safe & Confidential */}
+          <Card className="p-6 bg-white border border-light-gray shadow-sm rounded-2xl hover:shadow-md transition-shadow">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-teal/15 rounded-xl flex items-center justify-center text-2xl shrink-0">
+                🔒
               </div>
-              <div className="text-center">
-                <p className="text-2xl font-dm-serif text-dark-text">12</p>
-                <p className="text-xs font-poppins text-dark-text/70">Day streak</p>
+              <div>
+                <span className="text-[11px] font-poppins font-semibold uppercase tracking-wider text-teal bg-teal/10 px-2 py-0.5 rounded-full">
+                  Privacy First
+                </span>
+                <h3 className="text-base font-poppins font-semibold text-dark-text mt-1">Safe & Confidential</h3>
               </div>
             </div>
+            <p className="text-xs font-inter text-dark-text/75 leading-relaxed">
+              A private digital sanctuary for your thoughts, with integrated campus counselor escalation whenever you need human support.
+            </p>
           </Card>
         </div>
       </section>

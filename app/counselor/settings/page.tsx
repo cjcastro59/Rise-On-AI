@@ -49,6 +49,7 @@ export default function CounselorSettingsPage() {
   });
   const [language, setLanguage] = useState("English");
   const [isOnline, setIsOnline] = useState(false);
+  const [shift, setShift] = useState<"day" | "night" | "">("day");
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [showSetup2FA, setShowSetup2FA] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
@@ -80,7 +81,7 @@ export default function CounselorSettingsPage() {
     try {
       const { data, error: err } = await supabase
         .from("user_profiles")
-        .select("two_factor_enabled, is_online, language, privacy_settings, notification_settings")
+        .select("two_factor_enabled, is_online, language, privacy_settings, notification_settings, shift")
         .eq("id", user.id)
         .maybeSingle();
       if (err) return;
@@ -97,6 +98,8 @@ export default function CounselorSettingsPage() {
         );
         setTwoFactorEnabled(Boolean(data.two_factor_enabled));
         setIsOnline(Boolean(data.is_online));
+        if (data.shift === "night") setShift("night");
+        else setShift("day");
         setNotificationSettings({
           ...storedNotificationSettings,
           ...(data.notification_settings as Partial<typeof notificationSettings> | null),
@@ -145,6 +148,23 @@ export default function CounselorSettingsPage() {
       flash(setSuccess, "✅ Notification settings saved!");
     } catch (e: any) {
       flash(setError, "❌ " + (e.message || "Failed to save"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveShift = async () => {
+    if (!user) return;
+    try {
+      setSaving(true);
+      const { error } = await supabase.from("user_profiles").update({
+        shift: shift || "day",
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id);
+      if (error) throw error;
+      flash(setSuccess, "✅ Shift preference saved!");
+    } catch (e: any) {
+      flash(setError, "❌ " + (e.message || "Failed to save shift"));
     } finally {
       setSaving(false);
     }
@@ -523,6 +543,48 @@ export default function CounselorSettingsPage() {
                   />
                   <div className="w-11 h-6 bg-light-gray peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-blue/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-blue"></div>
                 </label>
+              </div>
+              </div>
+
+              {/* Shift Preference */}
+              <div className="p-4 bg-light-gray/30 rounded-xl space-y-3">
+                <div>
+                  <h4 className="text-sm font-semibold font-poppins text-dark-text">Shift Schedule</h4>
+                  <p className="text-xs text-dark-text/60 font-inter">Set your working shift so admins can schedule you accordingly</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShift("day")}
+                    className={`p-3 rounded-xl border-2 text-center transition-all ${
+                      shift === "day"
+                        ? "border-primary-blue bg-primary-blue/10"
+                        : "border-light-gray hover:border-primary-blue/40"
+                    }`}
+                  >
+                    <span className="text-xl">☀️</span>
+                    <p className="text-sm font-poppins text-dark-text mt-1">Day Shift</p>
+                    <p className="text-xs text-dark-text/50 font-inter">6 AM – 6 PM</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShift("night")}
+                    className={`p-3 rounded-xl border-2 text-center transition-all ${
+                      shift === "night"
+                        ? "border-lavender bg-lavender/10"
+                        : "border-light-gray hover:border-lavender/40"
+                    }`}
+                  >
+                    <span className="text-xl">🌙</span>
+                    <p className="text-sm font-poppins text-dark-text mt-1">Night Shift</p>
+                    <p className="text-xs text-dark-text/50 font-inter">6 PM – 6 AM</p>
+                  </button>
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={saveShift} disabled={saving} className="bg-primary-blue text-white hover:bg-primary-blue/80 text-sm">
+                    {saving ? "Saving..." : "Save Shift"}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

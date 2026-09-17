@@ -8,6 +8,12 @@ import { Button } from "@/components/ui/button";
 import ProfileCard from "@/components/layout/ProfileCard";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import NotificationBell from "@/components/notifications/NotificationBell";
+import {
+  addNotification,
+  checkDailyReminderAndNotify,
+  checkEmotionalStatusAndNotify,
+} from "@/lib/notifications";
 
 interface SidebarProps {
   userName: string;
@@ -119,13 +125,33 @@ export default function Sidebar({ userName }: SidebarProps) {
 
     supabase
       .from("user_profiles")
-      .select("avatar_url, role")
+      .select("avatar_url, role, mood_reminder_enabled, mood_reminder_time")
       .eq("id", user.id)
       .single()
-      .then(({ data }: { data: UserProfileSummary | null }) => {
+      .then(({ data }: any) => {
         if (!data) return;
         setAvatarUrl(data.avatar_url);
         setUserRole(data.role);
+
+        // Check daily reminder
+        checkDailyReminderAndNotify(
+          user.id,
+          data.mood_reminder_enabled ?? true,
+          data.mood_reminder_time || "20:00"
+        );
+      });
+
+    // Check latest journal entry for emotional distress / negative trend
+    supabase
+      .from("journal_entries")
+      .select("sentiment, mood, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .then(({ data }: any) => {
+        if (data && data.length > 0) {
+          checkEmotionalStatusAndNotify(user.id, data);
+        }
       });
   }, [supabase, user]);
 
@@ -191,6 +217,12 @@ export default function Sidebar({ userName }: SidebarProps) {
                 : "Support";
         const name = senderProfile?.full_name || senderProfile?.username || "Support";
         showSupportToast(`${role} ${name} sent you a message.`);
+        addNotification(user.id, {
+          type: "message",
+          title: `New message from ${role} ${name}`,
+          message: "You received a new message in Support.",
+          href: "/support",
+        });
       }
     );
 
@@ -221,6 +253,7 @@ export default function Sidebar({ userName }: SidebarProps) {
   ) => (
     <Link
       href={href}
+      prefetch={false}
       className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${
         active ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
       }`}
@@ -266,18 +299,21 @@ export default function Sidebar({ userName }: SidebarProps) {
         spans the full viewport width on mobile.
       */}
       <aside className="w-64 bg-[#1E293B] text-white p-6 hidden md:flex md:flex-col shrink-0 sticky top-0 h-screen overflow-y-auto">
-        <div className="mb-6">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/logo/Without Text.png"
-              alt="Rise On Logo"
-              width={36}
-              height={36}
-              className="rounded-lg object-contain"
-            />
-            <h2 className="text-lg font-poppins font-semibold">Rise On</h2>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3">
+              <Image
+                src="/logo/Without Text.png"
+                alt="Rise On Logo"
+                width={36}
+                height={36}
+                className="rounded-lg object-contain"
+              />
+              <h2 className="text-lg font-poppins font-semibold">Rise On</h2>
+            </div>
+            <p className="text-xs text-white/50 font-poppins mt-1">Member Panel</p>
           </div>
-          <p className="text-xs text-white/50 font-poppins mt-1">Member Panel</p>
+          {user && <NotificationBell userId={user.id} className="text-white hover:text-white" />}
         </div>
 
         <div className="mb-6">

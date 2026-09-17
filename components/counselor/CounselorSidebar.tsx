@@ -8,6 +8,7 @@ import MobileNav from "@/components/layout/MobileNav";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 interface UserProfile {
     id: string;
@@ -62,7 +63,7 @@ export default function CounselorSidebar() {
         };
 
         fetchSidebarData();
-        const interval = setInterval(fetchSidebarData, 30_000);
+        const interval = setInterval(fetchSidebarData, 120_000);
         return () => clearInterval(interval);
     }, [supabase, isMounted]);
 
@@ -107,6 +108,7 @@ export default function CounselorSidebar() {
           {/* ── Mobile navigation drawer ──────────────────────────────────── */}
           <MobileNav
             panelLabel="Counselor Panel"
+            headerActions={userProfile ? <NotificationBell userId={userProfile.id} className="text-white" /> : null}
             sections={[
               {
                 label: "Main",
@@ -139,8 +141,8 @@ export default function CounselorSidebar() {
                   role={roleLabel}
                 />
                 <form action="/api/auth/signout" method="post">
-                  <Button variant="secondary" className="w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
-                    <Image src="/icons/logout.svg" alt="Log Out" width={20} height={20} className="object-contain" />
+                  <Button variant="secondary" size="sm" className="w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
+                    <Image src="/icons/logout.svg" alt="Log Out" width={16} height={16} className="object-contain" />
                     Log Out
                   </Button>
                 </form>
@@ -150,18 +152,21 @@ export default function CounselorSidebar() {
 
           {/* ── Desktop sidebar (hidden on mobile) ────────────────────────── */}
           <aside className="w-64 bg-[#1E293B] text-white p-6 hidden md:flex md:flex-col md:h-full md:min-h-screen">
-            <div className="mb-6">
-                <div className="flex items-center gap-3">
-                    <Image
-                        src="/logo/Without Text.png"
-                        alt="Rise On AI Logo"
-                        width={36}
-                        height={36}
-                        className="rounded-lg"
-                    />
-                    <h2 className="text-lg font-poppins font-semibold">Rise On</h2>
+            <div className="mb-6 flex items-center justify-between">
+                <div>
+                    <div className="flex items-center gap-3">
+                        <Image
+                            src="/logo/Without Text.png"
+                            alt="Rise On AI Logo"
+                            width={36}
+                            height={36}
+                            className="rounded-lg"
+                        />
+                        <h2 className="text-lg font-poppins font-semibold">Rise On</h2>
+                    </div>
+                    <p className="text-xs text-white/50 font-poppins mt-1">Counselor Panel</p>
                 </div>
-                <p className="text-xs text-white/50 font-poppins mt-1">Counselor Panel</p>
+                {userProfile && <NotificationBell userId={userProfile.id} className="text-white hover:text-white" />}
             </div>
 
             {/* MAIN Section */}

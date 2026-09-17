@@ -34,6 +34,8 @@ interface MemberMobileNavProps {
   userName: string;
 }
 
+import NotificationBell from "@/components/notifications/NotificationBell";
+
 export default function MemberMobileNav({ userName }: MemberMobileNavProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -127,6 +129,7 @@ export default function MemberMobileNav({ userName }: MemberMobileNavProps) {
   return (
     <MobileNav
       panelLabel="Member Panel"
+      headerActions={user ? <NotificationBell userId={user.id} className="text-white" /> : null}
       sections={[
         {
           label: "Main",

@@ -3,6 +3,7 @@ import MemberMobileNav from "@/components/layout/MemberMobileNav";
 import ProtectedContentWrapper from "@/components/layout/ProtectedContentWrapper";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { isMaintenanceModeActive } from "@/lib/maintenance";
 
 type UserProfileName = {
   first_name: string | null;
@@ -26,9 +27,16 @@ export default async function ProtectedLayout({
     .eq("id", user.id)
     .single()) as { data: UserProfileName | null };
 
+  const role = profile?.role;
+
+  // Check maintenance mode — owner is exempt
+  const maintenanceActive = await isMaintenanceModeActive();
+  if (maintenanceActive && role !== "owner") {
+    redirect("/maintenance");
+  }
+
   // Role-based redirects — only redirect if profile actually loaded and role is confirmed
   // Use null-safe check: if profile is null (network issue), don't redirect, let member pages load
-  const role = profile?.role;
   if (role === "counselor") redirect("/counselor/dashboard");
   if (role === "admin" || role === "owner" || role === "researcher") redirect("/admin/dashboard");
 

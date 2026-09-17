@@ -28,6 +28,14 @@ const dmSerifDisplay = DM_Serif_Display({
 export const metadata: Metadata = {
   title: "Rise On AI",
   description: "Intelligent Journal App",
+  icons: {
+    icon: [
+      { url: "/logo/Without Text.png", type: "image/png" },
+    ],
+    apple: [
+      { url: "/logo/Without Text.png", type: "image/png" },
+    ],
+  },
 };
 
 export default function RootLayout({

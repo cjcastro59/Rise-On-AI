@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import ProfileCard from "@/components/layout/ProfileCard";
 import MobileNav from "@/components/layout/MobileNav";
 import { useAuth } from "@/hooks/useAuth";
+import NotificationBell from "@/components/notifications/NotificationBell";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
@@ -56,7 +57,7 @@ export default function AdminSidebar() {
     };
 
     fetchSidebarData();
-    const interval = setInterval(fetchSidebarData, 30_000);
+    const interval = setInterval(fetchSidebarData, 120_000);
     return () => clearInterval(interval);
   }, [currentUser, supabase]);
 
@@ -79,6 +80,7 @@ export default function AdminSidebar() {
       {/* ── Mobile navigation drawer ────────────────────────────────────── */}
       <MobileNav
         panelLabel="Admin Panel"
+        headerActions={currentUser ? <NotificationBell userId={currentUser.id} className="text-white" /> : null}
         sections={[
           {
             label: "Main",
@@ -136,18 +138,21 @@ export default function AdminSidebar() {
 
       {/* ── Desktop sidebar (hidden on mobile) ──────────────────────────── */}
       <aside className="w-64 bg-[#1E293B] text-white p-4 hidden md:flex md:h-screen md:flex-col md:overflow-hidden">
-      <div className="mb-4 shrink-0">
-        <div className="flex items-center gap-3">
-          <Image 
-            src="/logo/Without Text.png" 
-            alt="Rise On AI Logo" 
-            width={32} 
-            height={32}
-            className="rounded-lg"
-          />
-          <h2 className="text-base font-poppins font-semibold">Rise On</h2>
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-3">
+            <Image 
+              src="/logo/Without Text.png" 
+              alt="Rise On AI Logo" 
+              width={32} 
+              height={32}
+              className="rounded-lg"
+            />
+            <h2 className="text-base font-poppins font-semibold">Rise On</h2>
+          </div>
+          <p className="text-xs text-white/50 font-poppins mt-1">Admin Panel</p>
         </div>
-        <p className="text-xs text-white/50 font-poppins mt-1">Admin Panel</p>
+        {currentUser && <NotificationBell userId={currentUser.id} className="text-white hover:text-white" />}
       </div>
 
       <nav className="min-h-0 flex-1">

@@ -142,7 +142,7 @@ export default function Setup2FAPage() {
       setLoading(true);
       const { data: existing } = await supabase
         .from("user_profiles")
-        .select("id")
+        .select("id, role")
         .eq("id", user.id)
         .single();
 
@@ -161,8 +161,19 @@ export default function Setup2FAPage() {
           .update({ two_factor_skipped: true })
           .eq("id", user.id);
       }
-      router.push("/dashboard");
-      router.refresh();
+
+      // Role-aware redirect — use replace() so back button doesn't return to setup-2fa
+      const role = existing?.role || "user";
+      if (role === "counselor") {
+        router.replace("/counselor/dashboard");
+      } else if (role === "admin" || role === "owner") {
+        router.replace("/admin/dashboard");
+      } else {
+        router.replace("/dashboard");
+      }
+    } catch {
+      // fallback redirect even on error
+      router.replace("/dashboard");
     } finally {
       setLoading(false);
     }

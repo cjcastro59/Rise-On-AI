@@ -1585,3 +1585,60 @@ CREATE INDEX IF NOT EXISTS idx_behavioral_indicators_30day
 CREATE INDEX IF NOT EXISTS idx_distress_risk_30day
     ON public.distress_risk_assessments(user_id, assessed_date DESC)
     WHERE lookback_days = 30;
+
+-- ==========================================
+-- PHASE 8 — SCHEMA ADDITIONS & FIXES
+-- Safe to run multiple times (IF NOT EXISTS)
+-- ==========================================
+
+-- 2FA skip tracking: records whether the user explicitly skipped 2FA setup
+ALTER TABLE public.user_profiles
+    ADD COLUMN IF NOT EXISTS two_factor_skipped BOOLEAN DEFAULT false;
+
+-- Counselor shift: Day or Night shift scheduling
+ALTER TABLE public.user_profiles
+    ADD COLUMN IF NOT EXISTS shift TEXT
+    CHECK (shift IS NULL OR shift IN ('day', 'night'));
+
+-- Assigned counselor: links a member to their assigned counselor
+ALTER TABLE public.user_profiles
+    ADD COLUMN IF NOT EXISTS assigned_counselor_id UUID
+    REFERENCES public.user_profiles(id) ON DELETE SET NULL;
+
+-- Index for fast counselor → assigned members lookups
+CREATE INDEX IF NOT EXISTS idx_user_profiles_assigned_counselor
+    ON public.user_profiles(assigned_counselor_id)
+    WHERE assigned_counselor_id IS NOT NULL;
+
+-- ── RBAC default permissions: rename "rai-only" → "anonymous" ────────────────
+-- Update any stored system_settings row that still uses the old "rai-only" value.
+-- This is a one-time migration; the application now uses "anonymous" as the enum value.
+UPDATE public.system_settings
+SET value = jsonb_set(
+    jsonb_set(
+        value,
+        '{admin, userIds}',
+        '"anonymous"'
+    ),
+    '{counselor, userIds}',
+    '"anonymous"'
+)
+WHERE key = 'rbac_permissions'
+  AND (
+    value #>> '{admin, userIds}' = 'rai-only'
+    OR value #>> '{counselor, userIds}' = 'rai-only'
+  );
+
+-- Insert default rbac_permissions row if it doesn't exist yet
+INSERT INTO public.system_settings (key, value)
+VALUES (
+    'rbac_permissions',
+    '{
+        "owner":    {"dashboard": true, "userIds": "full",      "sentimentData": "full",        "alerts": true,  "settings": true,  "export": "full"},
+        "admin":    {"dashboard": true, "userIds": "anonymous", "sentimentData": "aggregated",  "alerts": true,  "settings": false, "export": "limited"},
+        "counselor":{"dashboard": true, "userIds": "anonymous", "sentimentData": "aggregated",  "alerts": true,  "settings": false, "export": "limited"},
+        "user":     {"dashboard": true, "userIds": "none",      "sentimentData": "none",        "alerts": false, "settings": false, "export": "none"}
+    }'::jsonb
+)
+ON CONFLICT (key) DO NOTHING;
+
