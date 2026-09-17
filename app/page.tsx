@@ -20,9 +20,8 @@ export default function LandingPage() {
             <span className="font-poppins font-bold text-dark-text text-xl">Rise On</span>
           </div>
           <nav className="hidden md:flex items-center gap-8">
-            <Link href="/features" className="text-dark-text hover:text-primary-blue text-sm font-poppins font-medium">Features</Link>
-            <Link href="/how-it-works" className="text-dark-text hover:text-primary-blue text-sm font-poppins font-medium">How It Works</Link>
-            <Link href="/support" className="text-dark-text hover:text-primary-blue text-sm font-poppins font-medium">Support</Link>
+            <Link href="#features" className="text-dark-text hover:text-primary-blue text-sm font-poppins font-medium">Features</Link>
+            <Link href="#how-it-works" className="text-dark-text hover:text-primary-blue text-sm font-poppins font-medium">How It Works</Link>
           </nav>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-dark-text hover:text-primary-blue text-sm font-poppins font-medium">
@@ -58,9 +57,11 @@ export default function LandingPage() {
           <Link href="/register">
             <Button size="lg">Start Journaling Free</Button>
           </Link>
-          <Button variant="secondary" size="lg">
-            See How It Works →
-          </Button>
+          <a href="#how-it-works">
+            <Button variant="secondary" size="lg">
+              See How It Works →
+            </Button>
+          </a>
         </div>
 
         {/* Stats Cards */}
@@ -104,7 +105,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="bg-light-gray py-16">
+      <section id="features" className="bg-light-gray py-16 scroll-mt-6">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
             <div className="text-center">
@@ -146,7 +147,7 @@ export default function LandingPage() {
           </div>
 
           {/* How It Works */}
-          <div className="text-center">
+          <div id="how-it-works" className="text-center scroll-mt-12">
             <h2 className="text-2xl font-dm-serif text-dark-text mb-8">How It Works</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto mb-12">
               <div className="bg-white rounded-2xl p-6">

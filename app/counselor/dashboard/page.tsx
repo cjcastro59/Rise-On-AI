@@ -125,7 +125,8 @@ export default function CounselorDashboardPage() {
       try {
         setLoading(true);
 
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const user = sessionData?.session?.user ?? (await supabase.auth.getUser()).data.user;
         if (!user) {
           setWellnessLoading(false);
           return;
@@ -169,40 +170,70 @@ export default function CounselorDashboardPage() {
           ...((conversationUserRows || []) as { user_id: string }[]).map((row) => row.user_id),
         ].filter(Boolean)));
 
-        const { data: usersData, error: usersError } = assignedUserIds.length
-          ? await supabase
-              .from("user_profiles")
-              .select("id, first_name, last_name, username, email")
-              .eq("role", "user")
-              .in("id", assignedUserIds)
-              .order("created_at", { ascending: false })
-              .limit(20)
-          : { data: [], error: null };
+        if (assignedUserIds.length === 0) {
+          setStats({
+            assignedUsers:   0,
+            activeCases:     0,
+            pendingMessages: 0,
+            newUsersToday:   newUsersCount || 0,
+          });
+          setRecentCases([]);
+          setRecentMessages([]);
+          setAssignedUsers([]);
+          setWellnessLoading(false);
+          return;
+        }
+
+        setWellnessLoading(true);
+
+        // Fetch all assigned user details, cases, messages, wellness, and risk records in parallel
+        const [
+          { data: usersData, error: usersError },
+          { data: casesData, error: casesError },
+          { data: messagesData, error: messagesError },
+          { data: wellnessRows, error: wellnessError },
+          { data: riskRows, error: riskError },
+        ] = await Promise.all([
+          supabase
+            .from("user_profiles")
+            .select("id, first_name, last_name, username, email")
+            .eq("role", "user")
+            .in("id", assignedUserIds)
+            .order("created_at", { ascending: false })
+            .limit(20),
+          supabase
+            .from("distress_logs")
+            .select("id, user_id, severity, trigger, created_at")
+            .in("user_id", assignedUserIds)
+            .order("created_at", { ascending: false })
+            .limit(5),
+          supabase
+            .from("conversations")
+            .select("id, user_id, updated_at")
+            .eq("counselor_id", counselorId)
+            .in("user_id", assignedUserIds)
+            .order("updated_at", { ascending: false })
+            .limit(5),
+          supabase
+            .from("behavioral_indicators")
+            .select("user_id, wellness_score, wellness_level, window_end_date")
+            .in("user_id", assignedUserIds)
+            .eq("lookback_days", 30)
+            .not("wellness_score", "is", null)
+            .order("window_end_date", { ascending: false }),
+          supabase
+            .from("distress_risk_assessments")
+            .select("user_id, risk_level, total_points, assessed_date")
+            .in("user_id", assignedUserIds)
+            .eq("lookback_days", 30)
+            .order("assessed_date", { ascending: false }),
+        ]);
 
         if (usersError) throw usersError;
-
-        const { data: casesData, error: casesError } = assignedUserIds.length
-          ? await supabase
-              .from("distress_logs")
-              .select("id, user_id, severity, trigger, created_at")
-              .in("user_id", assignedUserIds)
-              .order("created_at", { ascending: false })
-              .limit(5)
-          : { data: [], error: null };
-
         if (casesError) throw casesError;
-
-        const { data: messagesData, error: messagesError } = assignedUserIds.length
-          ? await supabase
-              .from("conversations")
-              .select("id, user_id, updated_at")
-              .eq("counselor_id", counselorId)
-              .in("user_id", assignedUserIds)
-              .order("updated_at", { ascending: false })
-              .limit(5)
-          : { data: [], error: null };
-
         if (messagesError) throw messagesError;
+        if (wellnessError) throw wellnessError;
+        if (riskError) throw riskError;
 
         setStats({
           assignedUsers:   assignedUserIds.length,
@@ -214,81 +245,49 @@ export default function CounselorDashboardPage() {
         setRecentMessages(messagesData || []);
         setAssignedUsers(usersData  || []);
 
-        // ── Load wellness snapshot for each assigned user ─────────────────
-        if (assignedUserIds.length > 0) {
-          setWellnessLoading(true);
-          const userIds = assignedUserIds;
-
-          const { data: wellnessRows, error: wellnessError } = await supabase
-            .from("behavioral_indicators")
-            .select("user_id, wellness_score, wellness_level, window_end_date")
-            .in("user_id", userIds)
-            .eq("lookback_days", 30)
-            .not("wellness_score", "is", null)
-            .order("window_end_date", { ascending: false });
-
-          if (wellnessError) throw wellnessError;
-
-          // Deduplicate: keep most-recent row per user
-          const seen  = new Set<string>();
-          const wMap  = new Map<string, UserWellnessSnapshot>();
-          for (const row of (wellnessRows ?? [])) {
-            if (!seen.has(row.user_id)) {
-              seen.add(row.user_id);
-              wMap.set(row.user_id, row as UserWellnessSnapshot);
-            }
+        // Deduplicate: keep most-recent wellness row per user
+        const seen  = new Set<string>();
+        const wMap  = new Map<string, UserWellnessSnapshot>();
+        for (const row of (wellnessRows ?? [])) {
+          if (!seen.has(row.user_id)) {
+            seen.add(row.user_id);
+            wMap.set(row.user_id, row as UserWellnessSnapshot);
           }
-          setWellnessMap(wMap);
-
-          const grouped = new Map<string, { sum: number; count: number }>();
-          for (const row of (wellnessRows ?? [])) {
-            const score = Number(row.wellness_score);
-            const date = typeof row.window_end_date === "string" ? row.window_end_date : "";
-            if (!date || !Number.isFinite(score)) continue;
-
-            const existing = grouped.get(date) ?? { sum: 0, count: 0 };
-            existing.sum += score;
-            existing.count += 1;
-            grouped.set(date, existing);
-          }
-          setAggregateWellnessTrend(
-            Array.from(grouped.entries())
-              .sort(([a], [b]) => a.localeCompare(b))
-              .slice(-14)
-              .map(([date, value]) => ({
-                date,
-                score: Number((value.sum / value.count).toFixed(1)),
-                count: value.count,
-              })),
-          );
-
-          // ── Load DRI snapshot for each assigned user ─────────────────
-          const { data: riskRows, error: riskError } = await supabase
-            .from("distress_risk_assessments")
-            .select("user_id, risk_level, total_points, assessed_date")
-            .in("user_id", userIds)
-            .eq("lookback_days", 30)
-            .order("assessed_date", { ascending: false });
-
-          if (riskError) throw riskError;
-
-          const rSeen = new Set<string>();
-          const rMap  = new Map<string, UserRiskSnapshot>();
-          for (const row of (riskRows ?? [])) {
-            if (!rSeen.has(row.user_id)) {
-              rSeen.add(row.user_id);
-              rMap.set(row.user_id, row as UserRiskSnapshot);
-            }
-          }
-          setRiskMap(rMap);
-
-          setWellnessLoading(false);
-        } else {
-          setWellnessMap(new Map());
-          setRiskMap(new Map());
-          setAggregateWellnessTrend([]);
-          setWellnessLoading(false);
         }
+        setWellnessMap(wMap);
+
+        const grouped = new Map<string, { sum: number; count: number }>();
+        for (const row of (wellnessRows ?? [])) {
+          const score = Number(row.wellness_score);
+          const date = typeof row.window_end_date === "string" ? row.window_end_date : "";
+          if (!date || !Number.isFinite(score)) continue;
+
+          const existing = grouped.get(date) ?? { sum: 0, count: 0 };
+          existing.sum += score;
+          existing.count += 1;
+          grouped.set(date, existing);
+        }
+        setAggregateWellnessTrend(
+          Array.from(grouped.entries())
+            .sort(([a], [b]) => a.localeCompare(b))
+            .slice(-14)
+            .map(([date, value]) => ({
+              date,
+              score: Number((value.sum / value.count).toFixed(1)),
+              count: value.count,
+            })),
+        );
+
+        const rSeen = new Set<string>();
+        const rMap  = new Map<string, UserRiskSnapshot>();
+        for (const row of (riskRows ?? [])) {
+          if (!rSeen.has(row.user_id)) {
+            rSeen.add(row.user_id);
+            rMap.set(row.user_id, row as UserRiskSnapshot);
+          }
+        }
+        setRiskMap(rMap);
+        setWellnessLoading(false);
       } catch (err) {
         console.error("Error loading counselor dashboard data:", err);
       } finally {

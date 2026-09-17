@@ -683,7 +683,7 @@ export default function MoodInsightsPage() {
                     <table className="w-full text-[10px] font-inter">
                       <thead>
                         <tr className="border-b border-[#F5F5F5]">
-                          <th className="py-1 text-left text-dark-text/40 font-normal">Parameter (clinical basis)</th>
+                          <th className="py-1 text-left text-dark-text/40 font-normal">Parameter (behavioral indicator)</th>
                           <th className="py-1 text-right text-dark-text/40 font-normal">Weight</th>
                           <th className="py-1 text-right text-dark-text/40 font-normal">Sub-score</th>
                         </tr>
@@ -691,9 +691,10 @@ export default function MoodInsightsPage() {
                       <tbody className="divide-y divide-[#F5F5F5]">
                         {[
                           ["Emotional trend trajectory (w₁ = 0.40)",   "40%", d.trendSubScore.toFixed(2)],
-                          ["Journaling engagement frequency (w₂ = 0.25)", "25%", d.frequencySubScore.toFixed(2)],
-                          ["Consecutive distress streak (w₃ = 0.20)",  "20%", (1 - Math.min(1, d.streakPenalty / 0.25)).toFixed(2)],
-                          ["Mood variability / consistency (w₄ = 0.15)","15%", d.consistencySubScore.toFixed(2)],
+                          ["Journaling engagement frequency (w₂ = 0.20)", "20%", d.frequencySubScore.toFixed(2)],
+                          ["Mood variability / consistency (w₃ = 0.15)","15%", d.consistencySubScore.toFixed(2)],
+                          ["Baseline engagement floor",               "25%", "0.25"],
+                          ["Consecutive distress penalty",            d.streakPenalty > 0 ? `−${(d.streakPenalty * 100).toFixed(0)}%` : "0%", d.streakPenalty > 0 ? `−${d.streakPenalty.toFixed(2)}` : "0.00"],
                           ["Wellness Score [0–10]",                    "—",   (d.rawScore * 10).toFixed(2)],
                         ].map(([label, weight, sub]) => (
                           <tr key={label as string}>
@@ -704,6 +705,9 @@ export default function MoodInsightsPage() {
                         ))}
                       </tbody>
                     </table>
+                    <p className="text-[9px] text-dark-text/35 font-inter mt-1.5">
+                      Algorithm-derived behavioral indicator · not clinically validated
+                    </p>
                     {d.inputClamped && (
                       <p className="text-[9px] text-[#f4a261] mt-1">
                         ⚠ One or more inputs were out of expected range and were clamped.

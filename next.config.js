@@ -72,6 +72,32 @@ const nextConfig = {
       },
     ],
   },
+
+  // ── Redirects (landing navigation & role roots) ─────────────────
+  async redirects() {
+    return [
+      {
+        source: "/features",
+        destination: "/#features",
+        permanent: false,
+      },
+      {
+        source: "/how-it-works",
+        destination: "/#how-it-works",
+        permanent: false,
+      },
+      {
+        source: "/admin",
+        destination: "/admin/dashboard",
+        permanent: false,
+      },
+      {
+        source: "/counselor",
+        destination: "/counselor/dashboard",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

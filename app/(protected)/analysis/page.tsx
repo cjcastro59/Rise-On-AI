@@ -223,9 +223,19 @@ export default function AIAnalysisPage() {
             .order("window_end_date", { ascending: false })
             .limit(1)
             .maybeSingle();
-          if (wsRes.data) {
-            setRealWellnessScore((wsRes.data as any).wellness_score ?? null);
+          if (wsRes.data && (wsRes.data as any).wellness_score !== null) {
+            setRealWellnessScore((wsRes.data as any).wellness_score);
             setRealWellnessLevel((wsRes.data as any).wellness_level ?? null);
+          } else {
+            // If not yet persisted (e.g. freshly saved entry), query /api/wellness
+            const apiRes = await fetch(`/api/wellness?lookbackDays=30`);
+            if (apiRes.ok) {
+              const apiJson = await apiRes.json();
+              if (apiJson.latest?.wellness_score !== undefined && apiJson.latest?.wellness_score !== null) {
+                setRealWellnessScore(apiJson.latest.wellness_score);
+                setRealWellnessLevel(apiJson.latest.wellness_level ?? null);
+              }
+            }
           }
         } catch {
           // Non-critical — wellness score display degrades gracefully

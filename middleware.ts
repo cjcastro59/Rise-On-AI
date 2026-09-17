@@ -23,21 +23,30 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
+        getAll() {
+          return request.cookies.getAll();
         },
-        set(name: string, value: string, options: CookieOptions) {
-          response.cookies.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          response.cookies.set({ name, value: "", ...options });
+        setAll(cookiesToSet: Array<{ name: string; value: string; options?: CookieOptions }>) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+          response = NextResponse.next({
+            request,
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
         },
       },
     }
   );
 
-  // Single auth check — reads the JWT from the cookie, NO extra DB call.
-  const { data: { user } } = await supabase.auth.getUser();
+  // Single auth check — reads the JWT from the cookie, handles chunked tokens properly.
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data.user;
+  } catch (err) {
+    console.warn("[middleware] auth.getUser failed:", err);
+  }
 
   const { pathname } = request.nextUrl;
 

@@ -258,23 +258,6 @@ export default function AdminDashboardPage() {
         peakDate: peak.date,
         peakCount: peak.count,
       });
-
-      // Calculate mood distribution from stored ML sentiment column
-      const moodCounts = { positive: 0, negative: 0, distress: 0 };
-      const { data: allEntries } = await supabase.from("journal_entries").select("mood, sentiment").limit(2000);
-      
-      (allEntries || []).forEach((entry: any) => {
-        const s = (entry.sentiment as string | null) ?? "positive";
-        if (s === "distress") {
-          moodCounts.distress++;
-        } else if (s === "positive") {
-          moodCounts.positive++;
-        } else {
-          moodCounts.negative++;
-        }
-      });
-
-      setMoodDistribution(moodCounts);
     } catch (error) {
       console.error("Error loading analytics data:", error);
     }
@@ -289,26 +272,40 @@ export default function AdminDashboardPage() {
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
+        // Run primary stats and analytics in parallel for maximum speed
         const [
-          { count: userCount, error: userCountError }, 
-          { count: entryCount, error: entryCountError }, 
-          { count: distressCount, error: distressCountError }, 
-          { data: alertsData, error: alertsError }, 
+          primaryResults,
+          _analyticsResult,
+          _announcementsResult,
+        ] = await Promise.all([
+          Promise.all([
+            supabase.from("user_profiles").select("id", { count: "exact", head: true }),
+            supabase.from("journal_entries").select("id", { count: "exact", head: true }),
+            supabase.from("distress_logs").select("id", { count: "exact", head: true }),
+            supabase.from("distress_logs").select("id, severity, trigger, notes, created_at").order("created_at", { ascending: false }).limit(3),
+            supabase.from("audit_logs").select("id, action, details, created_at").order("created_at", { ascending: false }).limit(2),
+            supabase.from("user_profiles").select("created_at").order("created_at", { ascending: true }).limit(1),
+            supabase.from("user_profiles").select("id", { count: "exact", head: true }).gte("created_at", today.toISOString()),
+            supabase.from("journal_entries").select("id,user_id,title,mood,sentiment,created_at").order("created_at", { ascending: false }).limit(5),
+            // Select ONLY lightweight mood/sentiment columns (no heavy full text content)
+            supabase.from("journal_entries").select("mood, sentiment").order("created_at", { ascending: false }).limit(2000),
+          ]),
+          loadAnalyticsData(),
+          loadAnnouncements(),
+        ]);
+
+        const [
+          { count: userCount, error: userCountError },
+          { count: entryCount, error: entryCountError },
+          { count: distressCount, error: distressCountError },
+          { data: alertsData, error: alertsError },
           { data: activityData, error: activityError },
           { data: firstUsers, error: firstUsersError },
           { count: newUsersTodayCount, error: newUsersError },
-          { data: recentEntryData, error: recentEntryError }
-        ] = await Promise.all([
-          supabase.from("user_profiles").select("id", { count: "exact", head: true }),
-          supabase.from("journal_entries").select("id", { count: "exact", head: true }),
-          supabase.from("distress_logs").select("id", { count: "exact", head: true }),
-          supabase.from("distress_logs").select("id, severity, trigger, notes, created_at").order("created_at", { ascending: false }).limit(3),
-          supabase.from("audit_logs").select("id, action, details, created_at").order("created_at", { ascending: false }).limit(2),
-          supabase.from("user_profiles").select("created_at").order("created_at", { ascending: true }).limit(1),
-          supabase.from("user_profiles").select("id", { count: "exact", head: true }).gte("created_at", today.toISOString()),
-          supabase.from("journal_entries").select("id,user_id,title,mood,sentiment,created_at").order("created_at", { ascending: false }).limit(5)
-        ]);
+          { data: recentEntryData, error: recentEntryError },
+          { data: entries, error: entriesError },
+        ] = primaryResults;
 
         if (userCountError) console.error("userCountError:", userCountError);
         if (entryCountError) console.error("entryCountError:", entryCountError);
@@ -318,28 +315,43 @@ export default function AdminDashboardPage() {
         if (firstUsersError) console.error("firstUsersError:", firstUsersError);
         if (newUsersError) console.error("newUsersError:", newUsersError);
         if (recentEntryError) console.error("recentEntryError:", recentEntryError);
+        if (entriesError) console.error("entriesError:", entriesError);
 
         if (firstUsers && firstUsers.length > 0) {
           setFirstUserDate(firstUsers[0].created_at);
         }
 
-        const { data: entries, error: entriesError } = await supabase.from("journal_entries").select("mood, content, sentiment").order("created_at", { ascending: false }).limit(2000);
-        if (entriesError) console.error("entriesError:", entriesError);
+        // Calculate both positive rate and mood distribution from the single lightweight query
+        const moodCounts = { positive: 0, negative: 0, distress: 0 };
+        let positiveEntriesCount = 0;
 
-        // Use the ML-predicted sentiment column stored at save time.
-        // Fall back to the mood name only when sentiment is absent.
-        const positiveEntries = (entries || []).filter((entry: any) => {
+        (entries || []).forEach((entry: any) => {
           const s = entry.sentiment as string | null;
-          if (s) return s === "positive";
-          // No ML result yet — use mood name as a conservative proxy
-          const mood = (entry.mood || "").toLowerCase();
-          return ["happy", "calm", "excited"].includes(mood);
+          if (s === "distress") {
+            moodCounts.distress++;
+          } else if (s === "positive") {
+            moodCounts.positive++;
+            positiveEntriesCount++;
+          } else if (s === "negative") {
+            moodCounts.negative++;
+          } else {
+            // Fallback proxy based on mood label
+            const mood = (entry.mood || "").toLowerCase();
+            if (["happy", "calm", "excited"].includes(mood)) {
+              moodCounts.positive++;
+              positiveEntriesCount++;
+            } else {
+              moodCounts.negative++;
+            }
+          }
         });
+
+        setMoodDistribution(moodCounts);
 
         setStats({
           totalUsers: userCount || 0,
           totalEntries: entryCount || 0,
-          positiveRate: entryCount ? Math.round((positiveEntries.length / entryCount) * 100) : 0,
+          positiveRate: entryCount ? Math.round((positiveEntriesCount / entryCount) * 100) : 0,
           activeAlerts: distressCount || 0,
           totalDistressLogs: distressCount || 0,
           newUsersToday: newUsersTodayCount || 0,
@@ -347,10 +359,6 @@ export default function AdminDashboardPage() {
         setRecentAlerts(alertsData || []);
         setRecentActivity(activityData || []);
         setRecentEntries((recentEntryData || []) as RecentJournalEntry[]);
-
-        // Load analytics data
-        await loadAnalyticsData();
-        await loadAnnouncements();
       } catch (error) {
         console.error("Error loading admin dashboard data:", error);
       } finally {
