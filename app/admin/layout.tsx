@@ -19,7 +19,7 @@ export default async function AdminLayout({
       .from("user_profiles")
       .select("role")
       .eq("id", user.id)
-      .maybeSingle();
+      .maybeSingle() as { data: { role: string } | null };
 
     if (profile?.role !== "owner") {
       redirect("/maintenance");

@@ -10,7 +10,7 @@ export async function GET() {
       .from("system_settings")
       .select("value")
       .eq("key", "features")
-      .maybeSingle();
+      .maybeSingle() as { data: { value: unknown } | null; error: unknown };
 
     if (error || !data) {
       return NextResponse.json({ maintenanceMode: false });

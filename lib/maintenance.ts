@@ -11,7 +11,7 @@ export async function isMaintenanceModeActive(): Promise<boolean> {
       .from("system_settings")
       .select("value")
       .eq("key", "features")
-      .maybeSingle();
+      .maybeSingle() as { data: { value: unknown } | null };
 
     if (!data?.value) return false;
     const features = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
