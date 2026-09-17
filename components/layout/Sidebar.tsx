@@ -240,7 +240,7 @@ export default function Sidebar({ userName }: SidebarProps) {
   }, []);
 
   const roleLabel = userRole
-    ? userRole.charAt(0).toUpperCase() + userRole.slice(1)
+    ? (userRole.toLowerCase() === "user" ? "Member" : userRole.charAt(0).toUpperCase() + userRole.slice(1))
     : "Member";
 
   const desktopNavLink = (

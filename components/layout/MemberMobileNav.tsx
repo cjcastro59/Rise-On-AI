@@ -123,8 +123,8 @@ export default function MemberMobileNav({ userName }: MemberMobileNavProps) {
   }, [loadSupportUnreadCount, supabase, user]);
 
   const roleLabel = userRole
-    ? userRole.charAt(0).toUpperCase() + userRole.slice(1)
-    : "User";
+    ? (userRole.toLowerCase() === "user" ? "Member" : userRole.charAt(0).toUpperCase() + userRole.slice(1))
+    : "Member";
 
   return (
     <MobileNav

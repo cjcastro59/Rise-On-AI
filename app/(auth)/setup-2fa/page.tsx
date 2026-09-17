@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
-import { authenticator } from "@otplib/preset-default";
+import { generateSecret, generate, verify as verifyTOTP, generateURI } from "otplib";
 import { QRCodeSVG } from "qrcode.react";
 
 // S6 (Phase 8): Maximum TOTP verify attempts before secret is regenerated,
@@ -53,18 +53,18 @@ export default function Setup2FAPage() {
 
       let currentSecret = profile?.two_factor_secret;
       if (!currentSecret) {
-        currentSecret = authenticator.generateSecret();
+        currentSecret = generateSecret();
         await supabase
           .from("user_profiles")
           .update({ two_factor_secret: currentSecret })
           .eq("id", user.id);
       }
 
-      const newOtpAuthUrl = authenticator.keyuri(
-        user.email || "",
-        "Rise On AI",
-        currentSecret
-      );
+      const newOtpAuthUrl = generateURI({
+        issuer: "Rise On AI",
+        label: user.email || "",
+        secret: currentSecret,
+      });
       setSecret(currentSecret);
       setOtpAuthUrl(newOtpAuthUrl);
       setSecretVisible(false); // S5: always start hidden
@@ -101,12 +101,12 @@ export default function Setup2FAPage() {
         return;
       }
 
-      const verified = authenticator.verify({
+      const result = await verifyTOTP({
         secret: profile.two_factor_secret,
         token:  verificationCode,
       });
 
-      if (!verified) {
+      if (!result.valid) {
         const newCount = verifyAttempts + 1;
         setVerifyAttempts(newCount);
         const remaining = MAX_VERIFY_ATTEMPTS - newCount;

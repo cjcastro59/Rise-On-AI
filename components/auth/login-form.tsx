@@ -6,7 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { authenticator } from "@otplib/preset-default";
+import { verify as verifyTOTP } from "otplib";
 import ReCAPTCHA from "react-google-recaptcha";
 
 type LoginStep = "credentials" | "2fa";
@@ -231,10 +231,10 @@ export function LoginForm() {
           setError("Two-factor authentication is not configured correctly. Please ask an administrator to reset 2FA for this account.");
           return;
         }
-        verified = authenticator.verify({
+        verified = (await verifyTOTP({
           secret: normalizedSecret,
           token:  normalizedTotpCode,
-        });
+        })).valid;
       } catch (verificationError) {
         console.error("[login] 2FA verification failed", verificationError);
         setError("Two-factor authentication is not configured correctly. Please ask an administrator to reset 2FA for this account.");

@@ -129,7 +129,7 @@ export default function NotificationBell({ userId, className = "" }: Notificatio
 
       {/* Popover Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-2xl bg-white shadow-2xl border border-light-gray z-50 overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150 text-dark-text">
+        <div className="fixed left-2 right-2 sm:absolute sm:left-auto sm:right-0 sm:w-96 top-[60px] sm:top-auto sm:mt-2 rounded-2xl bg-white shadow-2xl border border-light-gray z-[9999] overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150 text-dark-text">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-light-gray bg-[#F8FAFC]">
             <div className="flex items-center gap-2">
@@ -169,7 +169,7 @@ export default function NotificationBell({ userId, className = "" }: Notificatio
           )}
 
           {/* Notification List */}
-          <div className="max-h-80 overflow-y-auto divide-y divide-light-gray/60">
+          <div className="max-h-[60vh] sm:max-h-80 overflow-y-auto divide-y divide-light-gray/60">
             {notifications.length === 0 ? (
               <div className="p-8 text-center text-dark-text/60">
                 <span className="text-3xl mb-2 block">✨</span>

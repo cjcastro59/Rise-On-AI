@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { authenticator } from "@otplib/preset-default";
+import { generateSecret, generate, verify as verifyTOTP, generateURI } from "otplib";
 import { QRCodeSVG } from "qrcode.react";
 import { useRouter } from "next/navigation";
 import { buildCsvExport, buildJsonExport, downloadTextFile, type ExportSection } from "@/lib/export-data";
@@ -423,14 +423,18 @@ export default function SettingsPage() {
 
       let currentSecret = profile?.two_factor_secret;
       if (!currentSecret) {
-        currentSecret = authenticator.generateSecret();
+        currentSecret = generateSecret();
         await supabase
           .from("user_profiles")
           .update({ two_factor_secret: currentSecret })
           .eq("id", user.id);
       }
 
-      const url = authenticator.keyuri(user.email, "Rise On AI", currentSecret);
+      const url = generateURI({
+        issuer: "Rise On AI",
+        label: user.email,
+        secret: currentSecret,
+      });
       setSecret(currentSecret);
       setQrCodeUrl(url);
       setShowSetup2FA(true);
@@ -458,12 +462,12 @@ export default function SettingsPage() {
         return;
       }
 
-      const verified = authenticator.verify({
+      const result = await verifyTOTP({
         secret: profile.two_factor_secret,
         token: verificationCode,
       });
 
-      if (verified) {
+      if (result.valid) {
         await supabase
           .from('user_profiles')
           .update({
@@ -476,7 +480,7 @@ export default function SettingsPage() {
         setShowSetup2FA(false);
         setSuccess("Two-factor authentication enabled successfully!");
       } else {
-        const expected = authenticator.generate(profile.two_factor_secret);
+        const expected = await generate({ secret: profile.two_factor_secret });
         setError(`Invalid verification code! Expected: ${expected}`);
       }
     } catch (err) {
