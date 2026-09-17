@@ -120,7 +120,8 @@ export default function MobileNav({ panelLabel, sections, bottomItems, headerAct
               <line x1="3" y1="15" x2="17" y2="15" />
             </svg>
           )}
-        </button>
+          </button>
+        </div>
       </header>
 
       {/* Spacer so page content doesn't hide under the fixed top bar on mobile */}
