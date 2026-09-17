@@ -9,7 +9,7 @@ export default function LandingHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="bg-header-bg border-b border-light-gray/50 sticky top-0 z-50 backdrop-blur-md bg-white/90">
+    <header className="bg-header-bg border-b border-light-gray/50 sticky top-0 z-50 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between relative">
         {/* Brand Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0">

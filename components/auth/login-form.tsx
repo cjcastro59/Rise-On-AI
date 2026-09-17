@@ -6,7 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { verify as verifyTOTP } from "otplib";
+import { verify as verifyTOTP, createGuardrails } from "otplib";
 import ReCAPTCHA from "react-google-recaptcha";
 
 type LoginStep = "credentials" | "2fa";
@@ -234,6 +234,7 @@ export function LoginForm() {
         verified = (await verifyTOTP({
           secret: normalizedSecret,
           token:  normalizedTotpCode,
+          guardrails: createGuardrails({ MIN_SECRET_BYTES: 10 }),
         })).valid;
       } catch (verificationError) {
         console.error("[login] 2FA verification failed", verificationError);

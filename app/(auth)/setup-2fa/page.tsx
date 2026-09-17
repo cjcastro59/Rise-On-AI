@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
-import { generateSecret, generate, verify as verifyTOTP, generateURI } from "otplib";
+import { generateSecret, generate, verify as verifyTOTP, generateURI, createGuardrails } from "otplib";
 import { QRCodeSVG } from "qrcode.react";
 
 // S6 (Phase 8): Maximum TOTP verify attempts before secret is regenerated,
@@ -104,6 +104,7 @@ export default function Setup2FAPage() {
       const result = await verifyTOTP({
         secret: profile.two_factor_secret,
         token:  verificationCode,
+        guardrails: createGuardrails({ MIN_SECRET_BYTES: 10 }),
       });
 
       if (!result.valid) {

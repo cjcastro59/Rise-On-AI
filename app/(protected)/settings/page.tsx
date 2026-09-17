@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { generateSecret, generate, verify as verifyTOTP, generateURI } from "otplib";
+import { generateSecret, generate, verify as verifyTOTP, generateURI, createGuardrails } from "otplib";
 import { QRCodeSVG } from "qrcode.react";
 import { useRouter } from "next/navigation";
 import { buildCsvExport, buildJsonExport, downloadTextFile, type ExportSection } from "@/lib/export-data";
@@ -465,6 +465,7 @@ export default function SettingsPage() {
       const result = await verifyTOTP({
         secret: profile.two_factor_secret,
         token: verificationCode,
+        guardrails: createGuardrails({ MIN_SECRET_BYTES: 10 }),
       });
 
       if (result.valid) {
@@ -480,7 +481,7 @@ export default function SettingsPage() {
         setShowSetup2FA(false);
         setSuccess("Two-factor authentication enabled successfully!");
       } else {
-        const expected = await generate({ secret: profile.two_factor_secret });
+        const expected = await generate({ secret: profile.two_factor_secret, guardrails: createGuardrails({ MIN_SECRET_BYTES: 10 }) });
         setError(`Invalid verification code! Expected: ${expected}`);
       }
     } catch (err) {
