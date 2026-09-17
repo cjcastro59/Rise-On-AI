@@ -114,7 +114,6 @@ export default function AdminSidebar() {
             items: [
               { href: "/admin/system-settings", label: "Settings",   icon: "/icons/settings.svg",     iconAlt: "Settings",   iconClass: "filter invert brightness-200" },
               { href: "/admin/audit-logs",       label: "Audit Logs", icon: "/icons/data-export.svg",  iconAlt: "Audit Logs" },
-              { href: "/admin/profile",          label: "Profile",    icon: "/icons/account.svg",      iconAlt: "Profile" },
             ],
           },
         ]}
