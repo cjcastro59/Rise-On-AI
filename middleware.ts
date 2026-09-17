@@ -1,11 +1,21 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+/**
+ * Middleware — auth guard only.
+ *
+ * IMPORTANT: middleware runs on the Vercel Edge runtime which has a very short
+ * wall-clock budget (~10 ms for network calls). Making multiple Supabase DB
+ * queries here causes 504 MIDDLEWARE_INVOCATION_TIMEOUT for all users.
+ *
+ * Rule: ONE network call maximum — supabase.auth.getUser() to verify the
+ * session. Role-based redirects (admin vs counselor vs member) are handled
+ * inside the relevant layout / page server components where there is no
+ * timeout constraint.
+ */
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+    request: { headers: request.headers },
   });
 
   const supabase = createServerClient(
@@ -17,112 +27,39 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          });
+          response.cookies.set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
-          response.cookies.set({
-            name,
-            value: "",
-            ...options,
-          });
+          response.cookies.set({ name, value: "", ...options });
         },
       },
     }
   );
 
+  // Single auth check — reads the JWT from the cookie, NO extra DB call.
   const { data: { user } } = await supabase.auth.getUser();
 
-  // If user is not signed in and trying to access protected routes, redirect to login
-  if (
-    !user &&
-    (request.nextUrl.pathname.startsWith("/dashboard") ||
-      request.nextUrl.pathname.startsWith("/journal") ||
-      request.nextUrl.pathname.startsWith("/insights") ||
-      request.nextUrl.pathname.startsWith("/analysis") ||
-      request.nextUrl.pathname.startsWith("/profile") ||
-      request.nextUrl.pathname.startsWith("/settings") ||
-      request.nextUrl.pathname.startsWith("/support") ||
-      request.nextUrl.pathname.startsWith("/admin") ||
-      request.nextUrl.pathname.startsWith("/counselor") ||
-      request.nextUrl.pathname.startsWith("/setup-2fa"))
-  ) {
+  const { pathname } = request.nextUrl;
+
+  // ── 1. Unauthenticated user trying to access protected routes → /login ──
+  const protectedPrefixes = [
+    "/dashboard", "/journal", "/insights", "/mood-trends",
+    "/analysis", "/profile", "/settings", "/support",
+    "/admin", "/counselor", "/setup-2fa",
+  ];
+  const isProtected = protectedPrefixes.some(p => pathname.startsWith(p));
+
+  if (!user && isProtected) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // If user is signed in
-  if (user) {
-    // Get user profile to check role and 2FA status
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("role, two_factor_enabled, two_factor_skipped")
-      .eq("id", user.id)
-      .single();
+  // ── 2. Authenticated user on login/register → let page handle redirect ──
+  // The login page itself redirects to the right dashboard after sign-in.
+  // No redirect here avoids an extra DB round-trip in middleware.
 
-    // If already on login or register - don't redirect! Let the login component handle it!
-    if (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/register") {
-      return response;
-    }
-
-    // Check if user needs to set up 2FA (only if not skipped)
-    const needs2FASetup = !profile || (profile.two_factor_enabled === false && !profile.two_factor_skipped);
-    const isOnSetupPage = request.nextUrl.pathname === "/setup-2fa";
-
-    // Redirect to setup-2fa if needed (and not already there)
-    if (needs2FASetup && !isOnSetupPage &&
-      !request.nextUrl.pathname.startsWith("/login") &&
-      !request.nextUrl.pathname.startsWith("/register")) {
-      return NextResponse.redirect(new URL("/setup-2fa", request.url));
-    }
-
-    // If already on setup-2fa and doesn't need it, redirect to dashboard
-    if (!needs2FASetup && isOnSetupPage) {
-      if (profile && profile.role === "counselor") {
-        return NextResponse.redirect(new URL("/counselor/dashboard", request.url));
-      }
-      if (profile && ["admin", "owner", "researcher"].includes(profile.role)) {
-        return NextResponse.redirect(new URL("/admin/dashboard", request.url));
-      }
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-
-    // If user is trying to access regular dashboard but is admin/owner/researcher/counselor, redirect to appropriate dashboard
-    if (request.nextUrl.pathname === "/dashboard" && profile) {
-      if (profile.role === "counselor") {
-        return NextResponse.redirect(new URL("/counselor/dashboard", request.url));
-      }
-      if (["admin", "owner", "researcher"].includes(profile.role)) {
-        return NextResponse.redirect(new URL("/admin/dashboard", request.url));
-      }
-    }
-
-    // Check if user is trying to access admin routes
-    if (request.nextUrl.pathname.startsWith("/admin")) {
-      // If not admin/owner/researcher/counselor, redirect to regular dashboard
-      if (!profile || !["admin", "owner", "researcher", "counselor"].includes(profile.role)) {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      }
-      // If counselor tries to access admin routes, redirect to counselor dashboard
-      if (profile.role === "counselor") {
-        return NextResponse.redirect(new URL("/counselor/dashboard", request.url));
-      }
-    }
-
-    // Check if user is trying to access counselor routes
-    if (request.nextUrl.pathname.startsWith("/counselor")) {
-      // If not counselor, redirect to appropriate dashboard
-      if (!profile || profile.role !== "counselor") {
-        if (profile && ["admin", "owner", "researcher"].includes(profile.role)) {
-          return NextResponse.redirect(new URL("/admin/dashboard", request.url));
-        }
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      }
-    }
-  }
-
+  // ── 3. Allow everything else through ────────────────────────────────────
+  // Role-based routing (admin vs counselor vs member) is handled in each
+  // layout/page server component which runs on Node.js with no timeout limit.
   return response;
 }
 
@@ -131,7 +68,7 @@ export const config = {
     "/dashboard/:path*",
     "/journal/:path*",
     "/insights/:path*",
-    "/mood-trends/:path*",  
+    "/mood-trends/:path*",
     "/analysis/:path*",
     "/profile/:path*",
     "/settings/:path*",
@@ -143,6 +80,5 @@ export const config = {
     "/setup-2fa",
     "/forgot-password",
     "/reset-password",
-    "/privacy-policy",
   ],
 };

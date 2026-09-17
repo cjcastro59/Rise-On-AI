@@ -117,26 +117,35 @@ export interface WellnessScoreResult {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-// Weights for the documented Wellness Score formula:
-//   WS = (w₁·BT_sub + w₂·JF_sub + w₃·CN_sub + w₄·MC_sub) × 10
+// Wellness Score formula (actual implementation):
+//   WS = round(rawScore × 10, 2)
+//   rawScore = clamp01(weightedRaw − streakPenalty)
 //
-// Where each indicator is normalised to [0, 1] before weighting:
-//   BT_sub = 1 − (BT / 100)          inverted — higher BT (more negative) → lower sub-score
-//   JF_sub = JF / 100                 direct — more journaling → higher sub-score
-//   CN_sub = 1 − clamp(CN / 7, 0, 1) inverted — long streak → lower sub-score (cap at 7)
-//   MC_sub = MC / 100                 direct — more consistent → higher sub-score
+// Sub-score normalisation:
+//   BTS_sub  = clamp01((BTS + 100) / 200)   maps [−100,+100] → [0,1]
+//   JFS_sub  = clamp01(JFS / 100)            maps [0,100]     → [0,1]
+//   MCS_sub  = clamp01(MCS / 100)            maps [0,100]     → [0,1]
 //
-//   w₁ (Behavioral Trend)    = 0.40  primary indicator
-//   w₂ (Journaling Frequency)= 0.25  engagement proxy
-//   w₃ (Consecutive Negative)= 0.20  safety-critical streak indicator
-//   w₄ (Mood Consistency)    = 0.15  emotional stability
-//   Sum of weights           = 1.00  → WS ∈ [0.00, 10.00]
+// Weighted combination:
+//   weightedRaw = BTS_sub×0.40 + JFS_sub×0.20 + MCS_sub×0.15 + 0.25 (baseline)
+//
+// Post-hoc streak penalty (applied after weighting):
+//   streakPenalty = clamp01(streak / 7) × 0.25
+//
+// Weight summary:
+//   Behavioral Trend Score   0.40  — primary trajectory indicator
+//   Journaling Frequency     0.20  — engagement proxy
+//   Mood Consistency         0.15  — emotional stability
+//   Baseline floor           0.25  — data-sparse users get minimum 2.50/10
+//   Streak penalty (max)    −0.25  — post-hoc safety deduction
+//   ──────────────────────────────
+//   Theoretical ceiling: 0.40+0.20+0.15+0.25 = 1.00 → WS 10.00
+//   After max penalty:   1.00−0.25 = 0.75 → WS 7.50
 
-const WEIGHT_TREND        = 0.40;
-const WEIGHT_FREQUENCY    = 0.20;
-const WEIGHT_STREAK       = 0;
-const WEIGHT_CONSISTENCY  = 0.15;
-const BASELINE_FLOOR      = 0.25;
+const WEIGHT_TREND          = 0.40;
+const WEIGHT_FREQUENCY      = 0.20;
+const WEIGHT_CONSISTENCY    = 0.15;
+const BASELINE_FLOOR        = 0.25;
 const STREAK_PENALTY_WEIGHT = 0.25;
 
 /** Consecutive-negative cap: streak ≥ this value → full penalty on CN sub-score */

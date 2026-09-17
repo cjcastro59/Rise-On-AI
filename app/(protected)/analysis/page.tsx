@@ -142,6 +142,9 @@ export default function AIAnalysisPage() {
   const [entry,    setEntry]    = useState<JournalEntry | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [loading,  setLoading]  = useState(true);
+  // Real wellness score from behavioral_indicators (replaces the wrong sentimentScore/10 formula)
+  const [realWellnessScore, setRealWellnessScore] = useState<number | null>(null);
+  const [realWellnessLevel, setRealWellnessLevel] = useState<string | null>(null);
 
   // ── Phase 6: Explainability state ──────────────────────────────────────────
   const [explainResult,   setExplainResult]   = useState<ExplainabilityResult | null>(null);
@@ -208,6 +211,25 @@ export default function AIAnalysisPage() {
           reflection: data.reflection ?? "",
           suggestions: Array.isArray(data.suggestions) ? data.suggestions : [],
         });
+
+        // Fetch the real Wellness Score from behavioral_indicators
+        // (do not use sentimentScore/10 — that is a per-entry raw score, not the Wellness Score)
+        try {
+          const wsRes = await supabase
+            .from("behavioral_indicators")
+            .select("wellness_score, wellness_level")
+            .eq("user_id", data.user_id)
+            .eq("lookback_days", 30)
+            .order("window_end_date", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (wsRes.data) {
+            setRealWellnessScore((wsRes.data as any).wellness_score ?? null);
+            setRealWellnessLevel((wsRes.data as any).wellness_level ?? null);
+          }
+        } catch {
+          // Non-critical — wellness score display degrades gracefully
+        }
       }
     } catch (error) {
       console.error("Error fetching entry:", error);
@@ -338,7 +360,10 @@ export default function AIAnalysisPage() {
   const sentimentLabel  = getSentimentLabel(analysis.sentiment);
   const sentimentEmoji  = getSentimentEmoji(analysis.sentiment);
   const sentimentColor  = getSentimentColor(analysis.sentiment);
-  const wellnessScore   = Math.round(analysis.sentimentScore / 10);
+  // Use the real Wellness Score from behavioral_indicators.
+  // Fall back to null (shows "—") when not yet computed.
+  const wellnessScore = realWellnessScore;
+  const wellnessLevel = realWellnessLevel;
 
   // ACI card config — fallback to "positive" if response_category is missing/invalid
   const aciCfg = (aciResponse && ACI_CATEGORY_CONFIG[aciResponse.response_category])
@@ -789,37 +814,54 @@ export default function AIAnalysisPage() {
           </AIReportErrorBoundary>
           {/* ── END EXPLAINABILITY PANEL ──────────────────────────────── */}
 
-          {/* Emotional Wellness Score */}
+          {/* Emotional Wellness Score — uses the real Wellness Score from behavioral_indicators */}
           <Card className="p-8 text-center bg-white shadow-sm">
             <h3 className="text-base font-poppins uppercase tracking-wider text-dark-text/70 mb-8 flex items-center gap-2 justify-center">
               <span>🧠</span>
-              Emotional Wellness Score
+              Wellness Score
             </h3>
-            <div className="relative w-52 h-52 mx-auto mb-8">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="45" fill="none" stroke="#E5E7EB" strokeWidth="10" />
-                <circle
-                  cx="50" cy="50" r="45"
-                  fill="none"
-                  stroke="url(#gradient)"
-                  strokeWidth="12"
-                  strokeDasharray="283"
-                  strokeDashoffset={283 - (analysis.sentimentScore / 100) * 283}
-                  strokeLinecap="round"
-                />
-                <defs>
-                  <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#A8DADC" />
-                    <stop offset="100%" stopColor="#CDB4DB" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center flex-col">
-                <span className="text-5xl font-dm-serif text-[#4F4F4F]">{wellnessScore}.0</span>
-                <span className="text-base font-inter text-[#A8DADC]">out of 10</span>
+            {wellnessScore != null ? (
+              <>
+                <div className="relative w-52 h-52 mx-auto mb-8">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="#E5E7EB" strokeWidth="10" />
+                    <circle
+                      cx="50" cy="50" r="45"
+                      fill="none"
+                      stroke="url(#wsGradient)"
+                      strokeWidth="12"
+                      strokeDasharray="283"
+                      strokeDashoffset={283 - (wellnessScore / 10) * 283}
+                      strokeLinecap="round"
+                    />
+                    <defs>
+                      <linearGradient id="wsGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#A8DADC" />
+                        <stop offset="100%" stopColor="#CDB4DB" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center flex-col">
+                    <span className="text-5xl font-dm-serif text-[#4F4F4F]">{wellnessScore.toFixed(1)}</span>
+                    <span className="text-base font-inter text-[#A8DADC]">out of 10</span>
+                  </div>
+                </div>
+                {wellnessLevel && (
+                  <p className="text-sm font-poppins font-semibold text-dark-text/70 mb-1">{wellnessLevel}</p>
+                )}
+                <p className="text-xs font-inter text-dark-text/40">30-day behavioral wellness score</p>
+                <p className="text-[10px] font-inter text-dark-text/30 mt-1">
+                  Algorithm-derived indicator · not a clinical assessment
+                </p>
+              </>
+            ) : (
+              <div className="py-8 text-center space-y-2">
+                <p className="text-sm text-dark-text/50 font-poppins">Not yet computed</p>
+                <p className="text-xs text-dark-text/35 font-inter">
+                  Save more journal entries — the score updates automatically.
+                </p>
               </div>
-            </div>
-            <p className="text-base font-inter text-[#4F4F4F]/70">Emotional Wellness Score</p>
+            )}
           </Card>
         </div>
       </div>

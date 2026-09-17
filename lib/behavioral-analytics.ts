@@ -53,24 +53,25 @@ function toDateOnlyKey(isoString: string): string {
 // =====================================================
 // INDICATOR #1 — BEHAVIORAL TREND SCORE
 // -----------------------------------------------------
-// DOCUMENTED FORMULA (Algorithm Discussion §Behavioral Analytics):
-//   BehavioralTrend = NegativeEntries / TotalEntries
+// ACTUAL FORMULA (as implemented):
+//   Split the lookback window entries into two halves:
+//     Earlier half: indices 0 … ceil(n/2)
+//     Later half:   indices ceil(n/2) … n
+//   For each entry use sentiment_score (0–100) when available,
+//   otherwise map sentiment label → signed score × 100.
+//   BTS = mean(laterHalfScores) − mean(earlierHalfScores)
+//   Clamped to [−100, +100].
 //
-// Where:
-//   NegativeEntries = entries with sentiment "negative" OR "distress" in window
-//   TotalEntries    = all entries in window
+// INTERPRETATION:
+//   +100 → strong positive trajectory (emotional state improving)
+//     0  → stable / insufficient data
+//   −100 → strong negative trajectory (emotional state deteriorating)
 //
-// OUTPUT RANGE:
-//   0.0  → all entries positive (best)
-//   0.5  → equal positive and negative
-//   1.0  → all entries negative/distress (worst)
-//
-// The score is stored as 0–100 (ratio × 100) to keep the same
-// unit scale as JournalingFrequency and MoodConsistency scores,
-// making weighted combination straightforward in the Wellness formula.
+// OUTPUT RANGE: −100 to +100  (trajectory delta, NOT a ratio)
+// Minimum 2 entries required; returns 0 with fewer entries.
 // =====================================================
 export interface BehavioralTrendResult {
-  /** Documented formula: (NegativeEntries / TotalEntries) × 100  →  0–100 */
+  /** Trajectory delta: mean(later half scores) − mean(earlier half scores) → range −100 to +100 */
   score: number;
   /** Raw counts used in the formula */
   negativeEntries: number;

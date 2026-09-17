@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 type UserProfileName = {
   first_name: string | null;
   username: string | null;
+  role: string | null;
 };
 
 export default async function ProtectedLayout({
@@ -15,17 +16,23 @@ export default async function ProtectedLayout({
   children: React.ReactNode;
 }) {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
 
   const { data: profile } = (await supabase
     .from("user_profiles")
-    .select("first_name, username")
+    .select("first_name, username, role")
     .eq("id", user.id)
     .single()) as { data: UserProfileName | null };
+
+  // Role-based redirects (moved from middleware to avoid Edge timeout)
+  const role = profile?.role ?? "user";
+
+  // Redirect privileged roles to their own dashboards
+  // (they should not be inside the member protected layout)
+  if (role === "counselor") redirect("/counselor/dashboard");
+  if (role === "admin" || role === "owner" || role === "researcher") redirect("/admin/dashboard");
 
   const userName =
     profile?.first_name ||

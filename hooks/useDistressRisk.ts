@@ -124,7 +124,9 @@ export function useDistressRisk(
       const res = await fetch(`/api/distress-risk?${params.toString()}`, {
         method: "GET",
         credentials: "same-origin",
-        cache: "no-store",
+        // 30-second client-side cache — reduces redundant DB hits on page navigation
+        cache: "default",
+        headers: { "Cache-Control": "max-age=30" },
       });
 
       if (!res.ok) {
