@@ -26,11 +26,9 @@ export default async function ProtectedLayout({
     .eq("id", user.id)
     .single()) as { data: UserProfileName | null };
 
-  // Role-based redirects (moved from middleware to avoid Edge timeout)
-  const role = profile?.role ?? "user";
-
-  // Redirect privileged roles to their own dashboards
-  // (they should not be inside the member protected layout)
+  // Role-based redirects — only redirect if profile actually loaded and role is confirmed
+  // Use null-safe check: if profile is null (network issue), don't redirect, let member pages load
+  const role = profile?.role;
   if (role === "counselor") redirect("/counselor/dashboard");
   if (role === "admin" || role === "owner" || role === "researcher") redirect("/admin/dashboard");
 
