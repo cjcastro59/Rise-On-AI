@@ -22,6 +22,9 @@ export default function NotificationBell({ userId, className = "" }: Notificatio
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [dropdownTop, setDropdownTop] = useState<number | null>(null);
+  const [useFixed, setUseFixed] = useState(false);
 
   const refreshNotifications = useCallback(() => {
     if (!userId) return;
@@ -40,7 +43,10 @@ export default function NotificationBell({ userId, className = "" }: Notificatio
   // Click outside to close
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const clickedInsideDropdown = dropdownRef.current && dropdownRef.current.contains(target);
+      const clickedOnButton = buttonRef.current && buttonRef.current.contains(target as Node);
+      if (!clickedInsideDropdown && !clickedOnButton) {
         setIsOpen(false);
       }
     };
@@ -101,9 +107,24 @@ export default function NotificationBell({ userId, className = "" }: Notificatio
     <div className={`relative ${className}`} ref={dropdownRef}>
       {/* Bell Button */}
       <button
+        ref={(el) => (buttonRef.current = el)}
         type="button"
         aria-label="Notifications"
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={() => {
+          const willOpen = !isOpen;
+          setIsOpen(willOpen);
+          if (willOpen && buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            // Use fixed positioning on narrow viewports so dropdown fits viewport
+            if (window.innerWidth < 640) {
+              setUseFixed(true);
+              setDropdownTop(Math.round(rect.bottom + 8));
+            } else {
+              setUseFixed(false);
+              setDropdownTop(null);
+            }
+          }
+        }}
         className="relative p-2 rounded-xl text-dark-text/80 hover:text-dark-text hover:bg-light-gray/70 transition-all focus:outline-none focus:ring-2 focus:ring-primary-blue/30"
       >
         <svg
@@ -129,7 +150,16 @@ export default function NotificationBell({ userId, className = "" }: Notificatio
 
       {/* Popover Dropdown */}
       {isOpen && (
-        <div className="fixed left-2 right-2 sm:absolute sm:left-auto sm:right-0 sm:w-96 top-[60px] sm:top-auto sm:mt-2 rounded-2xl bg-white shadow-2xl border border-light-gray z-[9999] overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150 text-dark-text">
+        <div
+          ref={dropdownRef}
+          className={
+            `rounded-2xl bg-white shadow-2xl border border-light-gray z-[9999] overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150 text-dark-text ` +
+            (useFixed
+              ? "fixed left-2 right-2"
+              : "absolute right-0 sm:w-96 sm:mt-2")
+          }
+          style={useFixed && dropdownTop ? { top: dropdownTop } : undefined}
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-light-gray bg-[#F8FAFC]">
             <div className="flex items-center gap-2">
@@ -182,9 +212,8 @@ export default function NotificationBell({ userId, className = "" }: Notificatio
               notifications.map((n) => {
                 const content = (
                   <div
-                    className={`flex items-start gap-3 p-3.5 transition-colors cursor-pointer ${
-                      n.isRead ? "bg-white hover:bg-light-gray/40" : "bg-primary-blue/5 hover:bg-primary-blue/10"
-                    }`}
+                    className={`flex items-start gap-3 p-3.5 transition-colors cursor-pointer ${n.isRead ? "bg-white hover:bg-light-gray/40" : "bg-primary-blue/5 hover:bg-primary-blue/10"
+                      }`}
                     onClick={() => handleNotificationClick(n)}
                   >
                     <div className="text-xl shrink-0 mt-0.5">{getTypeIcon(n.type)}</div>
