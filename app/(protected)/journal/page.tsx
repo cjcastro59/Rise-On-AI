@@ -43,6 +43,7 @@ const prompts = [
 
 export default function JournalEntryPage() {
   const [title, setTitle] = useState("");
+  const [userLanguage, setUserLanguage] = useState<string>("English");
   const [content, setContent] = useState("");
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [currentPrompt, setCurrentPrompt] = useState("");
@@ -65,6 +66,20 @@ export default function JournalEntryPage() {
   const supabase = createClient() as any;
   const editorRef = useRef<HTMLDivElement>(null);
   const isSubmittingRef = useRef(false);
+
+  useEffect(() => {
+    const fetchProfileLanguage = async () => {
+      if (!user) return;
+      try {
+        const { data } = await supabase.from("user_profiles").select("language").eq("id", user.id).single();
+        if (data?.language) setUserLanguage(data.language);
+      } catch (err) {
+        console.error("Failed to fetch user profile language:", err);
+      }
+    };
+
+    void fetchProfileLanguage();
+  }, [user, supabase]);
 
   useEffect(() => {
     setCurrentPrompt(prompts[Math.floor(Math.random() * prompts.length)]);
@@ -221,15 +236,15 @@ export default function JournalEntryPage() {
         void Promise.all([
           // mood_logs: one row per journal save with the selected mood + numeric score
           supabase.from("mood_logs").insert({
-            user_id:    user.id,
-            mood:       entryMood,
-            score:      moodScore,
-            notes:      null,
+            user_id: user.id,
+            mood: entryMood,
+            score: moodScore,
+            notes: null,
           }),
           // activity_logs: record that the user created a journal entry
           supabase.from("activity_logs").insert({
             user_id: user.id,
-            action:  "journal_entry_created",
+            action: "journal_entry_created",
             details: `Entry saved - mood: ${entryMood}`,
           }),
         ]).catch((err: unknown) =>
@@ -240,7 +255,7 @@ export default function JournalEntryPage() {
         void Promise.resolve(
           supabase.from("activity_logs").insert({
             user_id: user.id,
-            action:  "journal_entry_created",
+            action: "journal_entry_created",
             details: "Entry saved (no mood selected)",
           })
         ).catch((err: unknown) =>
@@ -331,8 +346,8 @@ export default function JournalEntryPage() {
               key={mood.label}
               onClick={() => setSelectedMood(selectedMood === mood.label ? null : mood.label)}
               className={`px-3 py-1.5 rounded-full text-xs font-poppins flex items-center gap-1.5 transition-all ${selectedMood === mood.label
-                  ? "bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] text-white shadow-md"
-                  : "bg-white text-dark-text border border-gray-100 hover:border-[#A8DADC]"
+                ? "bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] text-white shadow-md"
+                : "bg-white text-dark-text border border-gray-100 hover:border-[#A8DADC]"
                 }`}
             >
               <span className="text-base">{mood.emoji}</span>
@@ -412,9 +427,13 @@ export default function JournalEntryPage() {
             Voice
           </button>
           <div className="flex-1"></div>
-          <button className="px-2 py-1 rounded-full text-xs font-poppins bg-[#A8DADC]/30 text-dark-text flex items-center gap-1">
+          <button
+            className="px-2 py-1 rounded-full text-xs font-poppins bg-[#A8DADC]/30 text-dark-text flex items-center gap-1 cursor-default"
+            aria-disabled="true"
+            title={`Language: ${userLanguage}`}
+          >
             <span className="text-base">🔤</span>
-            Taglish Mode
+            {userLanguage === "Taglish" ? "Taglish Mode" : "English Mode"}
           </button>
         </div>
         {/* Editor Content */}

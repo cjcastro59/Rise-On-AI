@@ -43,6 +43,7 @@ const prompts = [
 
 export default function JournalEditorPage() {
   const [title, setTitle] = useState("");
+  const [userLanguage, setUserLanguage] = useState<string>("English");
   const [content, setContent] = useState("");
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [currentPrompt, setCurrentPrompt] = useState("");
@@ -64,6 +65,20 @@ export default function JournalEditorPage() {
   useEffect(() => {
     setCurrentPrompt(prompts[Math.floor(Math.random() * prompts.length)]);
   }, []);
+
+  useEffect(() => {
+    const fetchProfileLanguage = async () => {
+      if (!user) return;
+      try {
+        const { data } = await supabase.from("user_profiles").select("language").eq("id", user.id).single();
+        if (data?.language) setUserLanguage(data.language);
+      } catch (err) {
+        console.error("Failed to fetch user profile language:", err);
+      }
+    };
+
+    void fetchProfileLanguage();
+  }, [user, supabase]);
 
   // Close emoji picker when clicking outside
   useEffect(() => {
@@ -379,9 +394,13 @@ export default function JournalEditorPage() {
             Voice
           </button>
           <div className="flex-1"></div>
-          <button className="px-2 py-1 rounded-full text-xs font-poppins bg-[#A8DADC]/30 text-dark-text flex items-center gap-1">
+          <button
+            className="px-2 py-1 rounded-full text-xs font-poppins bg-[#A8DADC]/30 text-dark-text flex items-center gap-1 cursor-default"
+            aria-disabled="true"
+            title={`Language: ${userLanguage}`}
+          >
             <Image src="/icons/taglish-mode.svg" alt="Taglish Mode" width={16} height={16} className="w-4 h-4 object-contain" />
-            Taglish Mode
+            {userLanguage === "Taglish" ? "Taglish Mode" : "English Mode"}
           </button>
         </div>
         {/* Editor Content */}
