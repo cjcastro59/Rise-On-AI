@@ -107,7 +107,7 @@ export default function NotificationBell({ userId, className = "" }: Notificatio
     <div className={`relative ${className}`} ref={dropdownRef}>
       {/* Bell Button */}
       <button
-        ref={(el) => (buttonRef.current = el)}
+        ref={buttonRef}
         type="button"
         aria-label="Notifications"
         onClick={() => {
