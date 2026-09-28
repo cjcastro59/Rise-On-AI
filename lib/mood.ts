@@ -8,13 +8,21 @@ export interface MoodOption {
 }
 
 export const MOOD_OPTIONS: MoodOption[] = [
-  { label: "Happy", emoji: "😊", score: 5 },
-  { label: "Excited", emoji: "🎉", score: 5 },
-  { label: "Calm", emoji: "😌", score: 4 },
-  { label: "Confused", emoji: "😕", score: 3 },
-  { label: "Frustrated", emoji: "😤", score: 2 },
-  { label: "Anxious", emoji: "😰", score: 2 },
-  { label: "Sad", emoji: "😢", score: 1 },
+  { label: "Happy",       emoji: "😊", score: 5 },
+  { label: "Excited",     emoji: "🎉", score: 5 },
+  { label: "Hopeful",     emoji: "🌟", score: 5 },
+  { label: "Grateful",    emoji: "🥰", score: 5 },
+  { label: "Proud",       emoji: "😎", score: 4 },
+  { label: "Calm",        emoji: "😌", score: 4 },
+  { label: "Peaceful",    emoji: "🧘", score: 4 },
+  { label: "Bored",       emoji: "😑", score: 3 },
+  { label: "Confused",    emoji: "😕", score: 3 },
+  { label: "Tired",       emoji: "😴", score: 2 },
+  { label: "Stressed",    emoji: "😓", score: 2 },
+  { label: "Frustrated",  emoji: "😤", score: 2 },
+  { label: "Anxious",     emoji: "😰", score: 2 },
+  { label: "Lonely",      emoji: "🥺", score: 1 },
+  { label: "Sad",         emoji: "😢", score: 1 },
   { label: "Overwhelmed", emoji: "😵", score: 1 },
 ];
 

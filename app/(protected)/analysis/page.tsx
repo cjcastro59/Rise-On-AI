@@ -410,7 +410,7 @@ export default function AIAnalysisPage() {
         <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#A8DADC]/15 border border-[#A8DADC]/30 rounded-full text-[11px] font-poppins text-dark-text/60">
           🤖 Analyzed by <span className="font-semibold text-dark-text/80">XLM-RoBERTa</span> — multilingual NLP sentiment classifier
         </span>
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F5F5F5] border border-gray-200 rounded-full text-[11px] font-poppins text-dark-text/50">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F5F5F5] border border-gray-200 rounded-full text-[11px] font-poppins text-dark-text/60">
           3 classes: Positive · Negative · Distress
         </span>
       </div>
@@ -447,8 +447,8 @@ export default function AIAnalysisPage() {
               <span>📊</span>
               Sentiment Breakdown
             </h3>
-            <p className="text-[11px] text-dark-text/40 font-inter mb-4">
-              Classified by <span className="font-semibold text-dark-text/60">XLM-RoBERTa</span> — multilingual NLP model trained on English, Filipino, and Taglish text.
+            <p className="text-[11px] text-dark-text/60 font-inter mb-4">
+              Classified by <span className="font-semibold text-dark-text/70">XLM-RoBERTa</span> — multilingual NLP model trained on English, Filipino, and Taglish text.
               Outputs one of three classes: <span className="text-[#52B788] font-medium">Positive</span>, <span className="text-[#FFB700] font-medium">Negative</span>, or <span className="text-[#F4A6A6] font-medium">Distress</span>.
             </p>
             <div className="space-y-5">
@@ -529,12 +529,12 @@ export default function AIAnalysisPage() {
                 </button>
               )}
             </div>
-            <p className="text-[11px] text-dark-text/50 font-inter mb-4">
+            <p className="text-[11px] text-dark-text/60 font-inter mb-4">
               Context-aware supportive response · based on your sentiment, wellness, and behavioral patterns
             </p>
 
             {aciLoading ? (
-              <p className="text-xs text-dark-text/50 py-4 text-center">Generating your personalised response…</p>
+              <p className="text-xs text-dark-text/60 py-4 text-center">Generating your personalised response…</p>
             ) : !aciHasResponse || !aciResponse ? (
               <div className="space-y-3">
                 {aciError && (
@@ -542,7 +542,7 @@ export default function AIAnalysisPage() {
                     {aciError}
                   </p>
                 )}
-                <p className="text-xs text-dark-text/50 py-2">
+                <p className="text-xs text-dark-text/60 py-2">
                   Your adaptive response is being prepared. It will appear here shortly after analysis completes.
                 </p>
                 <button
@@ -553,7 +553,7 @@ export default function AIAnalysisPage() {
                   {aciRegenerating ? "Generating…" : "Generate Now"}
                 </button>
                 <div className="mt-3 pt-3 border-t border-[#F5F5F5]">
-                  <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/40 mb-2">
+                  <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-2">
                     Entry-level feedback (keyword analysis)
                   </p>
                   <p className="text-sm font-inter text-dark-text/70 leading-relaxed">{analysis.feedback}</p>
@@ -575,12 +575,12 @@ export default function AIAnalysisPage() {
                 </p>
                 <div className="p-3 rounded-xl border-l-2"
                   style={{ backgroundColor: aciCfg.bgColor + "40", borderLeftColor: aciCfg.borderColor }}>
-                  <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-1">Reflection Prompt</p>
+                  <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-1">Reflection Prompt</p>
                   <p className="text-sm font-inter text-dark-text/80 leading-relaxed italic">{aciResponse.reflection}</p>
                 </div>
                 {Array.isArray(aciResponse.suggestions) && aciResponse.suggestions.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-2">Suggestions</p>
+                    <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-2">Suggestions</p>
                     <div className="space-y-2">
                       {(aciResponse.suggestions as string[]).map((s, i) => (
                         <div key={i} className="flex items-start gap-3 p-3 bg-light-gray rounded-xl">
@@ -619,13 +619,13 @@ export default function AIAnalysisPage() {
                 </button>
               )}
             </div>
-            <p className="text-[11px] text-dark-text/40 font-inter mb-5">
+            <p className="text-[11px] text-dark-text/60 font-inter mb-5">
               Understanding the AI prediction · not a clinical interpretation
             </p>
 
             {/* ── Section 1: Confidence + probability bars ──────────── */}
             <div className="mb-5">
-              <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-2">
+              <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-2">
                 Prediction Confidence
               </p>
 
@@ -698,7 +698,7 @@ export default function AIAnalysisPage() {
             {/* ── Section 2: Keyword agreement signal ──────────────── */}
             {explainResult && agrCfg && (
               <div className="mb-5 pt-4 border-t border-[#F5F5F5]">
-                <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-2">
+                <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-2">
                   Cross-Model Validation
                 </p>
                 <div
@@ -719,7 +719,7 @@ export default function AIAnalysisPage() {
 
             {/* ── Section 3: Integrated Gradients ──────────────────── */}
             <div className="pt-4 border-t border-[#F5F5F5]">
-              <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-2">
+              <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-2">
                 Word-Level Attribution
                 <span className="ml-1.5 normal-case tracking-normal text-dark-text/30 font-inter font-normal">
                   (Integrated Gradients · on-demand only)
@@ -729,7 +729,7 @@ export default function AIAnalysisPage() {
               {!explainRequested ? (
                 /* Not yet requested */
                 <div className="space-y-3">
-                  <p className="text-[11px] text-dark-text/50 font-inter leading-relaxed">
+                  <p className="text-[11px] text-dark-text/60 font-inter leading-relaxed">
                     Word-level attribution uses Integrated Gradients to estimate which
                     words most influenced the AI prediction. This requires additional
                     computation and is not run automatically.
@@ -760,14 +760,14 @@ export default function AIAnalysisPage() {
 
               ) : explainLoading ? (
                 <div className="py-3 text-center">
-                  <p className="text-xs text-dark-text/50 font-poppins animate-pulse">
+                  <p className="text-xs text-dark-text/60 font-poppins animate-pulse">
                     Running Integrated Gradients analysis… this may take 10–30 seconds on CPU.
                   </p>
                 </div>
 
               ) : explainError ? (
                 <div className="space-y-2">
-                  <p className="text-xs text-dark-text/50 font-inter leading-relaxed">
+                  <p className="text-xs text-dark-text/60 font-inter leading-relaxed">
                     Explanation could not be generated:
                   </p>
                   <p className="text-[11px] text-[#9B3A1E] font-inter bg-[#F4A6A6]/20 px-3 py-2 rounded-lg">
@@ -811,7 +811,7 @@ export default function AIAnalysisPage() {
               ) : explainResult && !igReady ? (
                 /* Confidence + agreement loaded but IG server is disabled */
                 <div className="space-y-2">
-                  <p className="text-[11px] text-dark-text/50 font-inter leading-relaxed">
+                  <p className="text-[11px] text-dark-text/60 font-inter leading-relaxed">
                     Confidence and keyword agreement signals are loaded above.
                   </p>
                   <p className="text-[11px] text-[#7B5E2A] font-inter bg-[#FFE8A1]/30 px-3 py-2 rounded-lg">
@@ -859,15 +859,15 @@ export default function AIAnalysisPage() {
                 {wellnessLevel && (
                   <p className="text-sm font-poppins font-semibold text-dark-text/70 mb-1">{wellnessLevel}</p>
                 )}
-                <p className="text-xs font-inter text-dark-text/40">30-day behavioral wellness score</p>
+                <p className="text-xs font-inter text-dark-text/60">30-day behavioral wellness score</p>
                 <p className="text-[10px] font-inter text-dark-text/30 mt-1">
                   Algorithm-derived indicator · not a clinical assessment
                 </p>
               </>
             ) : (
               <div className="py-8 text-center space-y-2">
-                <p className="text-sm text-dark-text/50 font-poppins">Not yet computed</p>
-                <p className="text-xs text-dark-text/35 font-inter">
+                <p className="text-sm text-dark-text/60 font-poppins">Not yet computed</p>
+                <p className="text-xs text-dark-text/50 font-inter">
                   Save more journal entries — the score updates automatically.
                 </p>
               </div>

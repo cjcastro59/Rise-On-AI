@@ -25,6 +25,7 @@ export default function Setup2FAPage() {
   const [success, setSuccess] = useState("");
   const [step, setStep] = useState(1); // 1=intro, 2=setup, 3=complete
   const [verifyAttempts, setVerifyAttempts]    = useState(0); // S6: lockout counter
+  const [scannedConfirmed, setScannedConfirmed] = useState(false); // user confirms QR scanned
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -234,14 +235,19 @@ export default function Setup2FAPage() {
                 </Button>
               </div>
 
-              <Button
-                variant="ghost"
-                onClick={skip2FA}
-                disabled={loading}
-                className="w-full"
-              >
-                {loading ? "Redirecting…" : "Skip for now (not recommended)"}
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  variant="ghost"
+                  onClick={skip2FA}
+                  disabled={loading}
+                  className="w-full text-dark-text/50 hover:text-dark-text/70 border border-dashed border-light-gray"
+                >
+                  {loading ? "Redirecting…" : "Skip for now"}
+                </Button>
+                <p className="text-[11px] text-center text-warning-yellow font-inter px-2">
+                  ⚠️ Skipping 2FA leaves your account less secure. You can enable it later in Settings.
+                </p>
+              </div>
             </div>
           )}
 
@@ -252,9 +258,29 @@ export default function Setup2FAPage() {
                   Set Up Authenticator
                 </h2>
                 <p className="text-sm font-inter text-dark-text/70">
-                  Follow the steps below
+                  Follow the steps below carefully
                 </p>
               </div>
+
+              {/* Numbered step instructions */}
+              <ol className="space-y-2 text-sm font-inter text-dark-text">
+                <li className="flex items-start gap-3">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-blue/20 text-primary-blue text-xs font-bold flex items-center justify-center mt-0.5">1</span>
+                  <span>Open <strong>Google Authenticator</strong> (or another authenticator app) on your phone.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-blue/20 text-primary-blue text-xs font-bold flex items-center justify-center mt-0.5">2</span>
+                  <span>Tap <strong>+</strong> or <strong>Add account</strong>, then choose <strong>Scan a QR code</strong>.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-blue/20 text-primary-blue text-xs font-bold flex items-center justify-center mt-0.5">3</span>
+                  <span>Point your phone camera at the QR code below to scan it.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-primary-blue/20 text-primary-blue text-xs font-bold flex items-center justify-center mt-0.5">4</span>
+                  <span>Once added, your app will show a <strong>6-digit code</strong> for Rise On AI. Enter it below to confirm setup.</span>
+                </li>
+              </ol>
 
               {otpAuthUrl && (
                 <div className="flex justify-center">
@@ -270,13 +296,6 @@ export default function Setup2FAPage() {
               )}
 
               <div className="space-y-2">
-                <p className="text-sm font-poppins text-dark-text">
-                  Scan this QR code with{" "}
-                  <span className="font-semibold">Google Authenticator</span> or
-                  another authenticator app.
-                </p>
-
-                {/* S5 (Phase 8): Secret masked by default — toggle to reveal */}
                 <p className="text-xs font-inter text-dark-text/60">
                   Can&apos;t scan? Manually enter the secret key:
                 </p>
@@ -295,15 +314,28 @@ export default function Setup2FAPage() {
                     {secretVisible ? "Hide" : "Reveal"}
                   </button>
                 </div>
-                <p className="text-[10px] text-dark-text/40 font-inter">
+                <p className="text-[10px] text-dark-text/50 font-inter">
                   Keep this secret key private. Never share it with anyone.
                 </p>
               </div>
 
+              {/* Scan confirmation checkbox */}
+              <label className="flex items-center gap-3 p-3 bg-primary-blue/5 border border-primary-blue/20 rounded-xl cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={scannedConfirmed}
+                  onChange={(e) => setScannedConfirmed(e.target.checked)}
+                  className="w-4 h-4 accent-primary-blue shrink-0"
+                />
+                <span className="text-sm font-inter text-dark-text">
+                  I have scanned the QR code and can see a 6-digit code in my authenticator app.
+                </span>
+              </label>
+
               <div className="space-y-3">
                 <Input
                   type="text"
-                  placeholder="Enter 6-digit code"
+                  placeholder="Enter 6-digit code from your authenticator app"
                   value={verificationCode}
                   onChange={(e) =>
                     setVerificationCode(e.target.value.replace(/\D/g, ""))
@@ -311,8 +343,14 @@ export default function Setup2FAPage() {
                   maxLength={6}
                   inputMode="numeric"
                   autoComplete="one-time-code"
-                  disabled={verifyAttempts >= MAX_VERIFY_ATTEMPTS}
+                  disabled={verifyAttempts >= MAX_VERIFY_ATTEMPTS || !scannedConfirmed}
                 />
+
+                {!scannedConfirmed && (
+                  <p className="text-[11px] text-dark-text/50 font-inter">
+                    Please confirm you have scanned the QR code before entering the verification code.
+                  </p>
+                )}
 
                 {verifyAttempts > 0 && verifyAttempts < MAX_VERIFY_ATTEMPTS && (
                   <p className="text-[10px] text-dark-text/50 font-inter">
@@ -330,14 +368,14 @@ export default function Setup2FAPage() {
                 <div className="space-y-2">
                   <Button
                     onClick={verifyAndEnable2FA}
-                    disabled={loading || verifyAttempts >= MAX_VERIFY_ATTEMPTS}
+                    disabled={loading || verifyAttempts >= MAX_VERIFY_ATTEMPTS || !scannedConfirmed || verificationCode.length < 6}
                     className="w-full"
                   >
-                    {loading ? "Verifying…" : "Enable 2FA"}
+                    {loading ? "Verifying…" : "Verify & Enable 2FA"}
                   </Button>
                   <Button
                     variant="ghost"
-                    onClick={() => setStep(1)}
+                    onClick={() => { setStep(1); setScannedConfirmed(false); setVerificationCode(""); setError(""); }}
                     className="w-full"
                   >
                     Back

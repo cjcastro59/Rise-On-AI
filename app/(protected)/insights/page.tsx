@@ -491,18 +491,18 @@ export default function MoodInsightsPage() {
             Last 30 days
           </span>
         </div>
-        <p className="text-[11px] text-dark-text/50 font-inter mb-5">
+        <p className="text-[11px] text-dark-text/60 font-inter mb-5">
           Identifies emotional patterns and problems from your journal history · computed automatically after each entry · last 30 days
         </p>
 
         {indicatorsLoading ? (
-          <p className="text-xs text-dark-text/50 py-4 text-center">
+          <p className="text-xs text-dark-text/60 py-4 text-center">
             Loading behavioral data…
           </p>
         ) : !indicatorsHasData || !indicators ? (
           <div className="text-center py-6 space-y-2">
             <p className="text-sm text-dark-text/60">No behavioral data yet.</p>
-            <p className="text-xs text-dark-text/40">
+            <p className="text-xs text-dark-text/60">
               Write a few journal entries — indicators are computed automatically after each save.
             </p>
             <Link href="/journal">
@@ -530,7 +530,7 @@ export default function MoodInsightsPage() {
                 </span>
               </div>
               <TrendScoreBar value={indicators.behavioral_trend_score} />
-              <p className="text-[10px] text-dark-text/40 mt-1">
+              <p className="text-[10px] text-dark-text/60 mt-1">
                 Compares older vs. recent half of entries. Range: 0 (all positive) → 100 (all negative/distress).
                 Higher values indicate a worsening emotional pattern over time.
               </p>
@@ -551,7 +551,7 @@ export default function MoodInsightsPage() {
                 </span>
               </div>
               <IndicatorBar value={indicators.journaling_frequency_score} color="#A8DADC" />
-              <p className="text-[10px] text-dark-text/40 mt-1">
+              <p className="text-[10px] text-dark-text/60 mt-1">
                 Unique journaling days vs. expected cadence (every 3 days). Low scores indicate disengagement, which may signal avoidance or low motivation.
               </p>
             </div>
@@ -568,7 +568,7 @@ export default function MoodInsightsPage() {
                 </span>
               </div>
               <IndicatorBar value={indicators.mood_consistency_score} color="#CDB4DB" />
-              <p className="text-[10px] text-dark-text/40 mt-1">
+              <p className="text-[10px] text-dark-text/60 mt-1">
                 How stable your mood scores are day-to-day. Low scores indicate high volatility, which may signal emotional instability or recurring distress triggers.
               </p>
             </div>
@@ -611,7 +611,7 @@ export default function MoodInsightsPage() {
                   </span>
                 )}
               </div>
-              <p className="text-[10px] text-dark-text/40 mt-1">
+              <p className="text-[10px] text-dark-text/60 mt-1">
                 Unbroken streak of negative or distress entries. Streaks of 3+ may indicate a developing problem; 5+ entries trigger a counselor referral recommendation.
                 {indicators.consecutive_negative_count >= 5 && (
                   <span className="text-[#f77f7f] ml-1">Consider reaching out to a counselor.</span>
@@ -641,10 +641,10 @@ export default function MoodInsightsPage() {
             </button>
           </div>
         </div>
-        <p className="text-[11px] text-dark-text/50 font-inter mb-5">
+        <p className="text-[11px] text-dark-text/60 font-inter mb-5">
           Derived from the 4 behavioral indicators above · scale: 0 (High Risk) → 10 (Healthy)
           <br />
-          <span className="text-[10px] text-dark-text/40">
+          <span className="text-[10px] text-dark-text/50">
             Parameters aligned with mental health monitoring frameworks:
             emotional trend trajectory, journaling engagement frequency,
             mood variability, and consecutive distress streak.
@@ -652,11 +652,11 @@ export default function MoodInsightsPage() {
         </p>
 
         {wellnessLoading ? (
-          <p className="text-xs text-dark-text/50 py-4 text-center">Loading wellness data…</p>
+          <p className="text-xs text-dark-text/60 py-4 text-center">Loading wellness data…</p>
         ) : !wellnessLatest || wellnessLatest.wellness_score === null ? (
           <div className="text-center py-6 space-y-2">
             <p className="text-sm text-dark-text/60">Wellness score not yet computed.</p>
-            <p className="text-xs text-dark-text/40">
+            <p className="text-xs text-dark-text/60">
               Save a journal entry — the score updates automatically. Or use the Recalculate button above.
             </p>
           </div>
@@ -668,7 +668,7 @@ export default function MoodInsightsPage() {
                 score={wellnessLatest.wellness_score}
                 level={wellnessLatest.wellness_level as WellnessLevel}
               />
-              <p className="text-[11px] text-dark-text/50 text-center max-w-[220px]">
+              <p className="text-[11px] text-dark-text/60 text-center max-w-[220px]">
                 {WELLNESS_LEVEL_CONFIG[wellnessLatest.wellness_level as WellnessLevel].description}
               </p>
 
@@ -677,15 +677,15 @@ export default function MoodInsightsPage() {
                 const d = wellnessLatest.wellness_score_details as unknown as WellnessScoreDetails;
                 return (
                   <div className="w-full pt-3 border-t border-[#F5F5F5]">
-                    <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-2">
+                    <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-2">
                       Computation Breakdown
                     </p>
                     <table className="w-full text-[10px] font-inter">
                       <thead>
                         <tr className="border-b border-[#F5F5F5]">
-                          <th className="py-1 text-left text-dark-text/40 font-normal">Parameter (behavioral indicator)</th>
-                          <th className="py-1 text-right text-dark-text/40 font-normal">Weight</th>
-                          <th className="py-1 text-right text-dark-text/40 font-normal">Sub-score</th>
+                          <th className="py-1 text-left text-dark-text/60 font-normal">Parameter (behavioral indicator)</th>
+                          <th className="py-1 text-right text-dark-text/60 font-normal">Weight</th>
+                          <th className="py-1 text-right text-dark-text/60 font-normal">Sub-score</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#F5F5F5]">
@@ -698,9 +698,9 @@ export default function MoodInsightsPage() {
                           ["Wellness Score [0–10]",                    "—",   (d.rawScore * 10).toFixed(2)],
                         ].map(([label, weight, sub]) => (
                           <tr key={label as string}>
-                            <td className="py-1 text-dark-text/50 pr-2">{label}</td>
+                            <td className="py-1 text-dark-text/65 pr-2">{label}</td>
                             <td className="py-1 text-dark-text/70 text-right font-medium">{weight}</td>
-                            <td className="py-1 text-dark-text/60 text-right pl-2">{sub}</td>
+                            <td className="py-1 text-dark-text/65 text-right pl-2">{sub}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -723,7 +723,7 @@ export default function MoodInsightsPage() {
               {/* History sparkline / bar chart */}
               {wellnessHistory.filter(r => r.wellness_score !== null).length >= 2 && (
                 <div>
-                  <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-3">
+                  <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-3">
                     Wellness Score History
                   </p>
                   <WellnessHistoryChart
@@ -740,7 +740,7 @@ export default function MoodInsightsPage() {
 
               {/* Wellness level legend */}
               <div className="pt-3 border-t border-[#F5F5F5]">
-                <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-2">
+                <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-2">
                   Wellness Level Scale
                 </p>
                 <div className="space-y-1.5">
@@ -772,7 +772,7 @@ export default function MoodInsightsPage() {
                             {isActive ? <strong>{lvl}</strong> : lvl}
                           </span>
                         </div>
-                        <span className="text-[10px] text-dark-text/50 font-inter">{range}</span>
+                        <span className="text-[10px] text-dark-text/60 font-inter">{range}</span>
                       </div>
                     );
                   })}
@@ -781,15 +781,15 @@ export default function MoodInsightsPage() {
 
               {/* Metadata */}
               <div className="pt-3 border-t border-[#F5F5F5] space-y-1">
-                <div className="flex justify-between text-[10px] text-dark-text/40">
+                <div className="flex justify-between text-[10px] text-dark-text/60">
                   <span>Entries analysed</span>
-                  <span className="font-medium text-dark-text/60">{wellnessLatest.entries_analyzed}</span>
+                  <span className="font-medium text-dark-text/70">{wellnessLatest.entries_analyzed}</span>
                 </div>
-                <div className="flex justify-between text-[10px] text-dark-text/40">
+                <div className="flex justify-between text-[10px] text-dark-text/60">
                   <span>Lookback window</span>
-                  <span className="font-medium text-dark-text/60">Last {wellnessLatest.lookback_days} days</span>
+                  <span className="font-medium text-dark-text/70">Last {wellnessLatest.lookback_days} days</span>
                 </div>
-                <div className="flex justify-between text-[10px] text-dark-text/40">
+                <div className="flex justify-between text-[10px] text-dark-text/60">
                   <span>Last updated</span>
                   <span className="font-medium text-dark-text/60">
                     {new Date(wellnessLatest.updated_at).toLocaleDateString("en-US", {
@@ -797,9 +797,9 @@ export default function MoodInsightsPage() {
                     })}
                   </span>
                 </div>
-                <div className="flex justify-between text-[10px] text-dark-text/40">
+                <div className="flex justify-between text-[10px] text-dark-text/60">
                   <span>Compute history rows</span>
-                  <span className="font-medium text-dark-text/60">{wellnessHistory.length}</span>
+                  <span className="font-medium text-dark-text/70">{wellnessHistory.length}</span>
                 </div>
               </div>
             </div>
@@ -816,7 +816,7 @@ export default function MoodInsightsPage() {
             Distress Risk Indicator
           </h3>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-dark-text/40">Decision-support only · not a diagnosis</span>
+            <span className="text-[10px] text-dark-text/60">Decision-support only · not a diagnosis</span>
             <button
               onClick={() => triggerDRI()}
               disabled={driRecalculating}
@@ -826,17 +826,17 @@ export default function MoodInsightsPage() {
             </button>
           </div>
         </div>
-        <p className="text-[11px] text-dark-text/50 font-inter mb-5">
+        <p className="text-[11px] text-dark-text/60 font-inter mb-5">
           Evaluates patterns across sentiment, behavioral trend, wellness, streak, and distress frequency
           · updates automatically after each journal entry
         </p>
 
         {driLoading ? (
-          <p className="text-xs text-dark-text/50 py-4 text-center">Loading risk indicator…</p>
+          <p className="text-xs text-dark-text/60 py-4 text-center">Loading risk indicator…</p>
         ) : !driLatest ? (
           <div className="text-center py-6 space-y-2">
             <p className="text-sm text-dark-text/60">Risk assessment not yet computed.</p>
-            <p className="text-xs text-dark-text/40">
+            <p className="text-xs text-dark-text/60">
               Save a journal entry — the indicator updates automatically. Or use the Recalculate button above.
             </p>
           </div>

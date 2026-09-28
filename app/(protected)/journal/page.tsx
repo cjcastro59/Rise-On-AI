@@ -7,19 +7,10 @@ import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { createDistressAlertForJournalEntry } from "@/lib/distress-alerts";
-import { getMoodScore } from "@/lib/mood";
+import { getMoodScore, MOOD_OPTIONS } from "@/lib/mood";
 import Link from "next/link";
 
-const moods = [
-  { emoji: "😊", label: "Happy" },
-  { emoji: "😰", label: "Anxious" },
-  { emoji: "😢", label: "Sad" },
-  { emoji: "😤", label: "Frustrated" },
-  { emoji: "😌", label: "Calm" },
-  { emoji: "🎉", label: "Excited" },
-  { emoji: "😕", label: "Confused" },
-  { emoji: "😵", label: "Overwhelmed" },
-];
+const moods = MOOD_OPTIONS;
 
 const commonEmojis = [
   "😊", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃", "😉", "😊", "😇",

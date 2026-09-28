@@ -38,8 +38,8 @@ export interface AnalysisResult {
 // =====================================================
 
 export const getSentimentFromMood = (mood: string | null): Sentiment => {
-  const positiveMoods = ["happy", "calm", "excited"];
-  const negativeMoods = ["anxious", "sad", "frustrated", "overwhelmed"];
+  const positiveMoods = ["happy", "calm", "excited", "hopeful", "grateful", "proud", "peaceful"];
+  const negativeMoods = ["anxious", "sad", "frustrated", "overwhelmed", "tired", "stressed", "lonely", "bored", "confused"];
   if (!mood) return "positive";
   const normalized = mood.toLowerCase();
   if (positiveMoods.includes(normalized)) return "positive";

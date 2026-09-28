@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMoodTrend } from "@/hooks/useMoodTrend";
 import { useWellnessAssessment } from "@/hooks/useWellnessAssessment";
 import { getSentimentFromMood } from "@/lib/sentiment";
+import { MOOD_OPTIONS } from "@/lib/mood";
 import { WELLNESS_LEVEL_CONFIG, type WellnessLevel } from "@/lib/wellness-assessment";
 
 // ── Compact sparkline (SVG path, no library needed) ──────────────────────────
@@ -69,16 +70,9 @@ export default function DashboardPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient() as any, []);
 
-  const moodOptions = useMemo(() => [
-    { label: "Happy", icon: "😊", score: 10 },
-    { label: "Calm", icon: "😌", score: 8 },
-    { label: "Excited", icon: "🎉", score: 9 },
-    { label: "Anxious", icon: "😰", score: 3 },
-    { label: "Sad", icon: "😢", score: 2 },
-    { label: "Frustrated", icon: "😤", score: 4 },
-    { label: "Overwhelmed", icon: "😵", score: 1 },
-    { label: "Confused", icon: "😕", score: 5 },
-  ], []);
+  const moodOptions = useMemo(() =>
+    MOOD_OPTIONS.map((m) => ({ label: m.label, icon: m.emoji, score: m.score * 2 }))
+  , []);
 
   const calculateStreak = useCallback((entries: any[]) => {
     if (entries.length === 0) return 0;
