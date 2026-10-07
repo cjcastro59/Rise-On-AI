@@ -718,7 +718,7 @@ export default function SettingsPage() {
               </div>
             )}
             {success && (
-              <div className="text-green-600 text-xs bg-green-100 p-3 rounded-lg font-poppins">
+              <div className="text-success-green text-xs bg-success-green/10 p-3 rounded-lg font-poppins">
                 {success}
               </div>
             )}
@@ -784,7 +784,7 @@ export default function SettingsPage() {
               <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins">{error}</div>
             )}
             {success && (
-              <div className="text-green-600 text-xs bg-green-100 p-3 rounded-lg font-poppins">{success}</div>
+              <div className="text-success-green text-xs bg-success-green/10 p-3 rounded-lg font-poppins">{success}</div>
             )}
             <div className="flex flex-col gap-3">
               <Button variant="secondary" onClick={() => downloadSettingsData("json")} disabled={saving}>
@@ -821,7 +821,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Mobile-only section selector */}
       <div className="md:hidden">
         <select
@@ -938,7 +938,7 @@ export default function SettingsPage() {
               <button onClick={() => { setShowChangePw(false); setPwCurrent(""); setPwNew(""); setPwConfirm(""); }} className="text-dark-text/40 hover:text-dark-text text-2xl leading-none">×</button>
             </div>
             {error && <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins mb-3">{error}</div>}
-            {success && <div className="text-green-600 text-xs bg-green-100 p-3 rounded-lg font-poppins mb-3">{success}</div>}
+            {success && <div className="text-success-green text-xs bg-success-green/10 p-3 rounded-lg font-poppins mb-3">{success}</div>}
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-poppins text-dark-text/70 mb-1 block">Current Password</label>
@@ -974,7 +974,7 @@ export default function SettingsPage() {
       {/* Delete Account Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark-text/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border-l-4 border-l-[#FF6B6B]">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border-l-4 border-l-error-red">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-xl font-dm-serif text-dark-text">⚠️ Delete My Account</h3>
@@ -986,18 +986,18 @@ export default function SettingsPage() {
             </div>
             {error && <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins mb-3">{error}</div>}
             <div className="space-y-3">
-              <div className="p-3 bg-gradient-to-r from-red-400/20 to-pink-300/20 rounded-xl border border-[#FF6B6B]/20">
+              <div className="p-3 bg-error-red/10 rounded-xl border border-error-red/20">
                 <p className="text-xs font-poppins text-dark-text font-semibold mb-1">
                   Type exactly below to confirm:
                 </p>
-                <p className="text-sm font-mono text-[#FF6B6B] font-bold tracking-wide">DELETE MY ACCOUNT</p>
+                <p className="text-sm font-mono text-error-red font-bold tracking-wide">DELETE MY ACCOUNT</p>
               </div>
               <input
                 type="text"
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}
                 placeholder="Type confirmation phrase here"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins focus:outline-none focus:ring-2 focus:ring-[#FF6B6B]/30 focus:border-[#FF6B6B]"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins focus:outline-none focus:ring-2 focus:ring-error-red/30 focus:border-error-red"
               />
             </div>
             <div className="flex gap-3 mt-6">

@@ -371,7 +371,7 @@ export default function CounselorDashboardPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-lavender/20">💬</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">PENDING MESSAGES</p>
+              <p className="text-xs text-dark-text/60 font-poppins">OPEN CONVERSATIONS</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.pendingMessages}</p>
             </div>
           </div>
@@ -413,7 +413,7 @@ export default function CounselorDashboardPage() {
                 return (
                   <div key={point.date} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2">
                     <div
-                      className="w-full max-w-10 rounded-t-md bg-[#52B788]"
+                      className="w-full max-w-10 rounded-t-md bg-success-green"
                       style={{ height: `${height}%` }}
                       title={`${point.score}/10 average from ${point.count} user${point.count === 1 ? "" : "s"}`}
                     />
@@ -446,7 +446,7 @@ export default function CounselorDashboardPage() {
           </div>
           <Link
             href="/counselor/assigned-users"
-            className="text-xs font-poppins text-[#A8DADC] hover:underline"
+            className="text-xs font-poppins text-primary-blue hover:underline"
           >
             View All →
           </Link>
@@ -484,13 +484,13 @@ export default function CounselorDashboardPage() {
                 <div
                   key={u.id}
                   className={`grid grid-cols-[1fr_auto_auto_auto] gap-3 py-2.5 items-center ${
-                    flagged ? "bg-[#FFF1F1] -mx-1 px-1 rounded-lg" : ""
+                    flagged ? "bg-error-red/5 -mx-1 px-1 rounded-lg" : ""
                   }`}
                 >
                   {/* User name — anonymized (first name + last initial) */}
                   <div className="flex items-center gap-2 min-w-0">
                     {flagged && (
-                      <span className="text-[#f77f7f] text-xs shrink-0" title="Flagged user">⚠</span>
+                      <span className="text-error-red text-xs shrink-0" title="Flagged user">⚠</span>
                     )}
                     <span
                       className="text-sm font-poppins text-dark-text truncate"
@@ -542,12 +542,12 @@ export default function CounselorDashboardPage() {
               if (flaggedCount === 0) return null;
               return (
                 <div className="pt-3 flex items-center gap-2">
-                  <span className="text-xs text-[#f77f7f] font-poppins font-semibold">
+                  <span className="text-xs text-error-red font-poppins font-semibold">
                     ⚠ {flaggedCount} user{flaggedCount !== 1 ? "s" : ""} flagged (At Risk / High Risk / Critical Risk)
                   </span>
                   <Link
                     href="/counselor/cases"
-                    className="text-[10px] text-[#A8DADC] font-poppins hover:underline ml-auto"
+                    className="text-[10px] text-primary-blue font-poppins hover:underline ml-auto"
                   >
                     Review cases →
                   </Link>
@@ -565,10 +565,10 @@ export default function CounselorDashboardPage() {
         <Card variant="white" className="p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center">🚨</div>
+              <div className="w-8 h-8 bg-error-red/20 rounded-lg flex items-center justify-center">🚨</div>
               <p className="text-xs font-poppins text-dark-text/70">RECENT CASES</p>
             </div>
-            <Link href="/counselor/cases" className="text-xs font-poppins text-[#A8DADC] hover:underline">
+            <Link href="/counselor/cases" className="text-xs font-poppins text-primary-blue hover:underline">
               View All →
             </Link>
           </div>
@@ -583,7 +583,7 @@ export default function CounselorDashboardPage() {
               return (
                 <div
                   key={c.id || i}
-                  className="p-3 bg-[#F4A6A6]/10 rounded-xl border border-[#F4A6A6]/30"
+                  className="p-3 bg-error-red/10 rounded-xl border border-error-red/30"
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div className="min-w-0">
@@ -596,7 +596,7 @@ export default function CounselorDashboardPage() {
                     </div>
                     <Link
                       href="/counselor/cases"
-                      className="px-3 py-1 bg-[#F4A6A6]/30 text-[#F4A6A6] rounded-full text-xs font-semibold font-poppins shrink-0"
+                      className="px-3 py-1 bg-error-red/30 text-error-red rounded-full text-xs font-semibold font-poppins shrink-0"
                     >
                       View
                     </Link>
@@ -629,7 +629,7 @@ export default function CounselorDashboardPage() {
               <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">💬</div>
               <p className="text-xs font-poppins text-dark-text/70">RECENT MESSAGES</p>
             </div>
-            <Link href="/counselor/messages" className="text-xs font-poppins text-[#A8DADC] hover:underline">
+            <Link href="/counselor/messages" className="text-xs font-poppins text-primary-blue hover:underline">
               View All →
             </Link>
           </div>

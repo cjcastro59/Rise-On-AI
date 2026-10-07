@@ -201,6 +201,8 @@ export default function MoodInsightsPage() {
   const [timeRange, setTimeRange] = useState<MoodTrendRange>("Week");
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const [showLevelScale, setShowLevelScale] = useState(false);
   const { user } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const {
@@ -431,7 +433,7 @@ export default function MoodInsightsPage() {
       />
 
       {/* Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
         <Card className="p-5 bg-white">
           <div className="flex items-center justify-between">
             <div>
@@ -481,7 +483,7 @@ export default function MoodInsightsPage() {
       </div>
 
       {/* ── CARD 1: BEHAVIORAL ANALYTICS (4 indicators) ──────────────── */}
-      <Card className="p-6 bg-white mb-6">
+      <Card className="p-4 sm:p-6 bg-white mb-6 animate-in fade-in duration-200">
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 flex items-center gap-2">
             <span>🧠</span>
@@ -530,7 +532,7 @@ export default function MoodInsightsPage() {
                 </span>
               </div>
               <TrendScoreBar value={indicators.behavioral_trend_score} />
-              <p className="text-[10px] text-dark-text/60 mt-1">
+              <p className="text-[10px] sm:text-[10px] text-dark-text/60 mt-1">
                 Compares older vs. recent half of entries. Range: 0 (all positive) → 100 (all negative/distress).
                 Higher values indicate a worsening emotional pattern over time.
               </p>
@@ -624,7 +626,7 @@ export default function MoodInsightsPage() {
       {/* ── END CARD 1 ────────────────────────────────────────────────────── */}
 
       {/* ── CARD 2: WELLNESS ASSESSMENT ───────────────────────────────────── */}
-      <Card className="p-6 bg-white mb-8">
+      <Card className="p-4 sm:p-6 bg-white mb-8">
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 flex items-center gap-2">
             <span>💚</span>
@@ -672,46 +674,57 @@ export default function MoodInsightsPage() {
                 {WELLNESS_LEVEL_CONFIG[wellnessLatest.wellness_level as WellnessLevel].description}
               </p>
 
-              {/* Sub-score breakdown table */}
+              {/* Sub-score breakdown table — collapsed by default */}
               {wellnessLatest.wellness_score_details && (() => {
                 const d = wellnessLatest.wellness_score_details as unknown as WellnessScoreDetails;
                 return (
                   <div className="w-full pt-3 border-t border-[#F5F5F5]">
-                    <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-2">
-                      Computation Breakdown
-                    </p>
-                    <table className="w-full text-[10px] font-inter">
-                      <thead>
-                        <tr className="border-b border-[#F5F5F5]">
-                          <th className="py-1 text-left text-dark-text/60 font-normal">Parameter (behavioral indicator)</th>
-                          <th className="py-1 text-right text-dark-text/60 font-normal">Weight</th>
-                          <th className="py-1 text-right text-dark-text/60 font-normal">Sub-score</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#F5F5F5]">
-                        {[
-                          ["Emotional trend trajectory (w₁ = 0.40)",   "40%", d.trendSubScore.toFixed(2)],
-                          ["Journaling engagement frequency (w₂ = 0.20)", "20%", d.frequencySubScore.toFixed(2)],
-                          ["Mood variability / consistency (w₃ = 0.15)","15%", d.consistencySubScore.toFixed(2)],
-                          ["Baseline engagement floor",               "25%", "0.25"],
-                          ["Consecutive distress penalty",            d.streakPenalty > 0 ? `−${(d.streakPenalty * 100).toFixed(0)}%` : "0%", d.streakPenalty > 0 ? `−${d.streakPenalty.toFixed(2)}` : "0.00"],
-                          ["Wellness Score [0–10]",                    "—",   (d.rawScore * 10).toFixed(2)],
-                        ].map(([label, weight, sub]) => (
-                          <tr key={label as string}>
-                            <td className="py-1 text-dark-text/65 pr-2">{label}</td>
-                            <td className="py-1 text-dark-text/70 text-right font-medium">{weight}</td>
-                            <td className="py-1 text-dark-text/65 text-right pl-2">{sub}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <p className="text-[9px] text-dark-text/35 font-inter mt-1.5">
-                      Algorithm-derived behavioral indicator · not clinically validated
-                    </p>
-                    {d.inputClamped && (
-                      <p className="text-[9px] text-[#f4a261] mt-1">
-                        ⚠ One or more inputs were out of expected range and were clamped.
-                      </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowBreakdown((v) => !v)}
+                      className="flex items-center justify-between w-full text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-2 hover:text-dark-text/80 transition-colors"
+                    >
+                      <span>Computation Breakdown</span>
+                      <span className="text-[11px] normal-case tracking-normal font-normal">
+                        {showBreakdown ? "Hide ↑" : "Show ↓"}
+                      </span>
+                    </button>
+                    {showBreakdown && (
+                      <>
+                        <table className="w-full text-[10px] font-inter">
+                          <thead>
+                            <tr className="border-b border-[#F5F5F5]">
+                              <th className="py-1 text-left text-dark-text/60 font-normal">Parameter (behavioral indicator)</th>
+                              <th className="py-1 text-right text-dark-text/60 font-normal">Weight</th>
+                              <th className="py-1 text-right text-dark-text/60 font-normal">Sub-score</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-[#F5F5F5]">
+                            {[
+                              ["Emotional trend trajectory (w₁ = 0.40)",   "40%", d.trendSubScore.toFixed(2)],
+                              ["Journaling engagement frequency (w₂ = 0.20)", "20%", d.frequencySubScore.toFixed(2)],
+                              ["Mood variability / consistency (w₃ = 0.15)","15%", d.consistencySubScore.toFixed(2)],
+                              ["Baseline engagement floor",               "25%", "0.25"],
+                              ["Consecutive distress penalty",            d.streakPenalty > 0 ? `−${(d.streakPenalty * 100).toFixed(0)}%` : "0%", d.streakPenalty > 0 ? `−${d.streakPenalty.toFixed(2)}` : "0.00"],
+                              ["Wellness Score [0–10]",                    "—",   (d.rawScore * 10).toFixed(2)],
+                            ].map(([label, weight, sub]) => (
+                              <tr key={label as string}>
+                                <td className="py-1 text-dark-text/65 pr-2">{label}</td>
+                                <td className="py-1 text-dark-text/70 text-right font-medium">{weight}</td>
+                                <td className="py-1 text-dark-text/65 text-right pl-2">{sub}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <p className="text-[9px] text-dark-text/35 font-inter mt-1.5">
+                          Algorithm-derived behavioral indicator · not clinically validated
+                        </p>
+                        {d.inputClamped && (
+                          <p className="text-[9px] text-[#f4a261] mt-1">
+                            ⚠ One or more inputs were out of expected range and were clamped.
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 );
@@ -738,45 +751,54 @@ export default function MoodInsightsPage() {
                 </div>
               )}
 
-              {/* Wellness level legend */}
+              {/* Wellness level legend — collapsed by default */}
               <div className="pt-3 border-t border-[#F5F5F5]">
-                <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-2">
-                  Wellness Level Scale
-                </p>
-                <div className="space-y-1.5">
-                  {(
-                    [
-                      ["Healthy", "8.00–10.00"],
-                      ["Stable", "6.00–7.99"],
-                      ["Moderate Concern", "4.00–5.99"],
-                      ["At Risk",  "2.00–3.99"],
-                      ["High Risk",  "0.00–1.99"],
-                    ] as [WellnessLevel, string][]
-                  ).map(([lvl, range]) => {
-                    const c = WELLNESS_LEVEL_CONFIG[lvl];
-                    const isActive = wellnessLatest.wellness_level === lvl;
-                    return (
-                      <div key={lvl}
-                        className={`flex items-center justify-between px-2 py-1 rounded-md transition-all ${
-                          isActive ? "ring-1" : ""
-                        }`}
-                        style={{
-                          backgroundColor: isActive ? c.bgColor + "60" : "transparent",
-                        }}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px]">{c.emoji}</span>
-                          <span className="text-[10px] font-poppins"
-                            style={{ color: isActive ? c.color : undefined }}
-                          >
-                            {isActive ? <strong>{lvl}</strong> : lvl}
-                          </span>
+                <button
+                  type="button"
+                  onClick={() => setShowLevelScale((v) => !v)}
+                  className="flex items-center justify-between w-full text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-2 hover:text-dark-text/80 transition-colors"
+                >
+                  <span>Wellness Level Scale</span>
+                  <span className="text-[11px] normal-case tracking-normal font-normal">
+                    {showLevelScale ? "Hide ↑" : "Show ↓"}
+                  </span>
+                </button>
+                {showLevelScale && (
+                  <div className="space-y-1.5">
+                    {(
+                      [
+                        ["Healthy", "8.00–10.00"],
+                        ["Stable", "6.00–7.99"],
+                        ["Moderate Concern", "4.00–5.99"],
+                        ["At Risk",  "2.00–3.99"],
+                        ["High Risk",  "0.00–1.99"],
+                      ] as [WellnessLevel, string][]
+                    ).map(([lvl, range]) => {
+                      const c = WELLNESS_LEVEL_CONFIG[lvl];
+                      const isActive = wellnessLatest.wellness_level === lvl;
+                      return (
+                        <div key={lvl}
+                          className={`flex items-center justify-between px-2 py-1 rounded-md transition-all ${
+                            isActive ? "ring-1" : ""
+                          }`}
+                          style={{
+                            backgroundColor: isActive ? c.bgColor + "60" : "transparent",
+                          }}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px]">{c.emoji}</span>
+                            <span className="text-[10px] font-poppins"
+                              style={{ color: isActive ? c.color : undefined }}
+                            >
+                              {isActive ? <strong>{lvl}</strong> : lvl}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-dark-text/60 font-inter">{range}</span>
                         </div>
-                        <span className="text-[10px] text-dark-text/60 font-inter">{range}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Metadata */}
@@ -809,7 +831,7 @@ export default function MoodInsightsPage() {
       {/* ── END CARD 2 ────────────────────────────────────────────────────── */}
 
       {/* ── CARD 3: DISTRESS RISK INDICATOR ──────────────────────────────── */}
-      <Card className="p-6 bg-white mb-8">
+      <Card className="p-4 sm:p-6 bg-white mb-8">
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 flex items-center gap-2">
             <span>⚠️</span>

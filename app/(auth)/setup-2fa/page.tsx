@@ -205,7 +205,7 @@ export default function Setup2FAPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-4">
-      <div className="max-w-md w-full">
+      <div className="max-w-md w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
         <Card className="p-8">
           {step === 1 && (
             <div className="space-y-6">

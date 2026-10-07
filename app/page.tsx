@@ -11,7 +11,7 @@ export default function LandingPage() {
       <LandingHeader />
 
       {/* Hero Section */}
-      <section className="max-w-5xl mx-auto px-6 py-16 text-center">
+      <section className="max-w-5xl mx-auto px-6 py-16 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="inline-flex items-center gap-2 bg-light-gray rounded-full px-4 py-2 mb-8">
           <span className="text-sm font-poppins font-medium text-dark-text">
              For Students and Young Adults
@@ -43,7 +43,7 @@ export default function LandingPage() {
         {/* Capability Showcase (Option 1) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
           {/* Card 1: Taglish & English NLP */}
-          <Card className="p-6 bg-white border border-light-gray shadow-sm rounded-2xl hover:shadow-md transition-shadow">
+          <Card className="p-6 bg-white border border-light-gray shadow-sm rounded-2xl hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-primary-blue/10 rounded-xl flex items-center justify-center text-2xl shrink-0">
                 🇵🇭
@@ -61,7 +61,7 @@ export default function LandingPage() {
           </Card>
 
           {/* Card 2: AI Insights */}
-          <Card className="p-6 bg-white border border-light-gray shadow-sm rounded-2xl hover:shadow-md transition-shadow">
+          <Card className="p-6 bg-white border border-light-gray shadow-sm rounded-2xl hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-lavender/20 rounded-xl flex items-center justify-center text-2xl shrink-0">
                 💡
@@ -79,7 +79,7 @@ export default function LandingPage() {
           </Card>
 
           {/* Card 3: Safe & Confidential */}
-          <Card className="p-6 bg-white border border-light-gray shadow-sm rounded-2xl hover:shadow-md transition-shadow">
+          <Card className="p-6 bg-white border border-light-gray shadow-sm rounded-2xl hover:shadow-md hover:-translate-y-1 transition-all duration-200">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-teal/15 rounded-xl flex items-center justify-center text-2xl shrink-0">
                 🔒

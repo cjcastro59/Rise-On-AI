@@ -38,6 +38,13 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [flashSuccess, setFlashSuccess] = useState("");
+  const [flashError, setFlashError] = useState("");
+
+  const flash = (type: "success" | "error", msg: string, ms = 3500) => {
+    if (type === "success") { setFlashSuccess(msg); setTimeout(() => setFlashSuccess(""), ms); }
+    else { setFlashError(msg); setTimeout(() => setFlashError(""), ms); }
+  };
   const [profile, setProfile] = useState<Profile>({
     first_name: null,
     last_name: null,
@@ -161,7 +168,7 @@ export default function ProfilePage() {
   const saveProfile = async () => {
     if (!user) {
       console.error("No user found");
-      alert("Please log in to save profile");
+      flash("error", "Please log in to save profile");
       return;
     }
     
@@ -205,7 +212,7 @@ export default function ProfilePage() {
       
       if (error) {
         console.error("Error saving profile:", error);
-        alert(`Failed to save profile: ${error.message}`);
+        flash("error", `Failed to save profile: ${error.message}`);
         return;
       }
       
@@ -213,10 +220,10 @@ export default function ProfilePage() {
       await fetchProfileAndStats();
       
       setIsEditing(false);
-      alert("Profile saved successfully!");
+      flash("success", "✅ Profile saved successfully!");
     } catch (error) {
       console.error("Error saving profile:", error);
-      alert(`Failed to save profile: ${(error as Error).message}`);
+      flash("error", `Failed to save profile: ${(error as Error).message}`);
     } finally {
       setSaving(false);
     }
@@ -286,9 +293,9 @@ export default function ProfilePage() {
         throw updateError;
       }
       
-      alert("Avatar uploaded successfully!");
+      flash("success", "✅ Avatar uploaded successfully!");
     } catch (error) {
-      alert(`Error uploading avatar: ${(error as Error).message}`);
+      flash("error", `Error uploading avatar: ${(error as Error).message}`);
       console.error(error);
     } finally {
       setUploading(false);
@@ -325,6 +332,18 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
+      {/* Flash messages */}
+      {flashSuccess && (
+        <div className="text-success-green text-sm bg-success-green/10 px-4 py-3 rounded-xl font-poppins border border-success-green/20 animate-in fade-in duration-150">
+          {flashSuccess}
+        </div>
+      )}
+      {flashError && (
+        <div className="text-error-red text-sm bg-error-red/10 px-4 py-3 rounded-xl font-poppins border border-error-red/20 animate-in fade-in duration-150">
+          {flashError}
+        </div>
+      )}
+
       {/* Profile Header */}
       <div className="bg-white rounded-2xl p-6 border border-light-gray shadow-sm">
         <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">

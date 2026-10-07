@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { createDistressAlertForJournalEntry } from "@/lib/distress-alerts";
 import { getMoodScore, MOOD_OPTIONS } from "@/lib/mood";
+import { MoodCard } from "@/components/dashboard/mood-card";
 import Link from "next/link";
 
 const moods = MOOD_OPTIONS;
@@ -333,23 +334,19 @@ export default function JournalEntryPage() {
         <p className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-3">How are you feeling?</p>
         <div className="flex flex-wrap gap-2">
           {moods.map((mood) => (
-            <button
+            <MoodCard
               key={mood.label}
+              mood={mood.label}
+              icon={mood.emoji}
+              selected={selectedMood === mood.label}
               onClick={() => setSelectedMood(selectedMood === mood.label ? null : mood.label)}
-              className={`px-3 py-1.5 rounded-full text-xs font-poppins flex items-center gap-1.5 transition-all ${selectedMood === mood.label
-                ? "bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] text-white shadow-md"
-                : "bg-white text-dark-text border border-gray-100 hover:border-[#A8DADC]"
-                }`}
-            >
-              <span className="text-base">{mood.emoji}</span>
-              <span>{mood.label}</span>
-            </button>
+            />
           ))}
         </div>
       </div>
 
       {/* Writing Tip Card */}
-      <Card className="mb-6 p-4 bg-gradient-to-r from-[#EAF7F8]/60 to-[#CDB4DB]/30 border-0">
+      <Card className="mb-6 p-4 bg-gradient-to-r from-header-bg/60 to-lavender/20 border-0">
         <div className="flex items-start gap-3">
           <div className="w-8 h-8 rounded-full bg-white/80 flex items-center justify-center text-lg">
             💭
@@ -410,7 +407,7 @@ export default function JournalEntryPage() {
                 };
                 recognition.start();
               } else {
-                alert("Voice input not supported in this browser.");
+                setContent(prev => prev + "\n[Voice input not supported in this browser]");
               }
             }}
           >

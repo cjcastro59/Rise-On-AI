@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-4">
-      <div className="max-w-md w-full">
+      <div className="max-w-md w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="mb-8">
           <Link href="/login">
             <Button variant="ghost" className="text-sm flex items-center gap-2">

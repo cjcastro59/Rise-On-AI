@@ -54,6 +54,7 @@ export default function DashboardPage() {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [todayMood, setTodayMood] = useState<string | null>(null);
   const [todayEntryPreview, setTodayEntryPreview] = useState<any | null>(null);
+  const [showAllMoods, setShowAllMoods] = useState(false);
   const [stats, setStats] = useState({
     streak: 0,
     totalEntries: 0,
@@ -222,17 +223,17 @@ export default function DashboardPage() {
   return (
     <>
       {/* Top Header */}
-      <header className="mb-8 flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
+      <header className="mb-6 flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
         <div className="hidden w-24 sm:block" aria-hidden="true" />
-        <nav className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+        <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 sm:gap-x-6">
           <Link href="/dashboard" className="text-dark-text text-sm font-poppins font-semibold">Home</Link>
           <Link href="/journal" className="text-dark-text/60 text-sm font-poppins font-medium hover:text-primary-blue">Journal</Link>
           <Link href="/insights" className="text-dark-text/60 text-sm font-poppins font-medium hover:text-primary-blue">Insights</Link>
           <Link href="/journal/history" className="text-dark-text/60 text-sm font-poppins font-medium hover:text-primary-blue">History</Link>
         </nav>
         <div className="flex items-center justify-center sm:justify-end">
-          <Link href="/support" className="flex items-center gap-2 rounded-full bg-pink-100 px-4 py-2 text-xs font-poppins font-semibold text-pink-60 transition-all hover:bg-pink-200">
-            <Image src="/icons/crisis-report.svg" alt="Crisis Support" width={16} height={16} className="object-contain" />
+          <Link href="/support" className="flex items-center gap-2 rounded-full bg-pink-100 px-3 py-1.5 text-xs font-poppins font-semibold text-pink-600 transition-all hover:bg-pink-200">
+            <Image src="/icons/crisis-report.svg" alt="Crisis Support" width={14} height={14} className="object-contain" />
             Crisis Support
           </Link>
         </div>
@@ -249,61 +250,72 @@ export default function DashboardPage() {
           </>
         }
       />
-      <div className="flex flex-wrap items-center gap-4 mb-8">
-        {moodOptions.map((mood) => (
-          <MoodCard
-            key={mood.label}
-            mood={mood.label}
-            icon={mood.icon}
-            selected={selectedMood === mood.label}
-            onClick={() => handleSaveMood(mood.label)}
-          />
-        ))}
+      <div className="mb-8">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          {(showAllMoods ? moodOptions : moodOptions.slice(0, 8)).map((mood) => (
+            <MoodCard
+              key={mood.label}
+              mood={mood.label}
+              icon={mood.icon}
+              selected={selectedMood === mood.label}
+              onClick={() => handleSaveMood(mood.label)}
+            />
+          ))}
+        </div>
+        {moodOptions.length > 8 && (
+          <button
+            type="button"
+            onClick={() => setShowAllMoods((v) => !v)}
+            className="mt-2 text-xs font-poppins text-[#4EAAB3] hover:underline"
+          >
+            {showAllMoods ? "Show less ↑" : `Show ${moodOptions.length - 8} more emotions ↓`}
+          </button>
+        )}
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card className="p-5 bg-white">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 animate-in fade-in duration-200">
+        <Card className="p-4 sm:p-5 bg-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-dark-text/60 text-xs font-poppins mb-1">Streak</p>
               <p className="text-2xl font-dm-serif text-dark-text">{stats.streak}</p>
             </div>
-            <div className="w-12 h-12 bg-warning-yellow/30 rounded-xl flex items-center justify-center">
-              <Image src="/icons/streak.svg" alt="Streak" width={24} height={24} className="object-contain" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-warning-yellow/30 rounded-xl flex items-center justify-center">
+              <Image src="/icons/streak.svg" alt="Streak" width={20} height={20} className="object-contain" />
             </div>
           </div>
         </Card>
-        <Card className="p-5 bg-white">
+        <Card className="p-4 sm:p-5 bg-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-dark-text/60 text-xs font-poppins mb-1">Total Entries</p>
               <p className="text-2xl font-dm-serif text-dark-text">{stats.totalEntries}</p>
             </div>
-            <div className="w-12 h-12 bg-primary-blue/30 rounded-xl flex items-center justify-center">
-              <Image src="/icons/entries.svg" alt="Entries" width={24} height={24} className="object-contain" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary-blue/30 rounded-xl flex items-center justify-center">
+              <Image src="/icons/entries.svg" alt="Entries" width={20} height={20} className="object-contain" />
             </div>
           </div>
         </Card>
-        <Card className="p-5 bg-white">
+        <Card className="p-4 sm:p-5 bg-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-dark-text/60 text-xs font-poppins mb-1">Avg. Mood Score</p>
               <p className="text-2xl font-dm-serif text-dark-text">{stats.avgMoodScore}</p>
             </div>
-            <div className="w-12 h-12 bg-lavender/30 rounded-xl flex items-center justify-center">
-              <Image src="/icons/mood.svg" alt="Mood" width={24} height={24} className="object-contain" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-lavender/30 rounded-xl flex items-center justify-center">
+              <Image src="/icons/mood.svg" alt="Mood" width={20} height={20} className="object-contain" />
             </div>
           </div>
         </Card>
-        <Card className="p-5 bg-white">
+        <Card className="p-4 sm:p-5 bg-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-dark-text/60 text-xs font-poppins mb-1">Positivity This Week</p>
               <p className="text-2xl font-dm-serif text-dark-text">{stats.positivityThisWeek}%</p>
             </div>
-            <div className="w-12 h-12 bg-success-green/30 rounded-xl flex items-center justify-center">
-              <Image src="/icons/trends.svg" alt="Trends" width={24} height={24} className="object-contain" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-success-green/30 rounded-xl flex items-center justify-center">
+              <Image src="/icons/trends.svg" alt="Trends" width={20} height={20} className="object-contain" />
             </div>
           </div>
         </Card>
@@ -401,7 +413,7 @@ export default function DashboardPage() {
       {/* ── END Wellness Banner ────────────────────────────────────────────── */}
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-300">
         {/* Today's Journal Preview */}
         <Card className="p-6 bg-white">
           <div className="flex items-center justify-between mb-4">
@@ -459,28 +471,28 @@ export default function DashboardPage() {
         <Card className="p-6 bg-white">
           <h3 className="font-poppins font-semibold text-dark-text mb-4">Quick Actions</h3>
           <div className="space-y-3">
-            <Link href="/journal" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray transition-all">
+            <Link href="/journal" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray hover:-translate-y-0.5 hover:shadow-sm transition-all duration-150">
               <Image src="/icons/new-entry.svg" alt="Write New Entry" width={20} height={20} className="object-contain" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">Write New Entry</p>
                 <p className="text-xs text-dark-text/60 font-inter">Express your thoughts freely</p>
               </div>
             </Link>
-            <Link href="/journal/history" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray transition-all">
+            <Link href="/journal/history" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray hover:-translate-y-0.5 hover:shadow-sm transition-all duration-150">
               <Image src="/icons/journal.svg" alt="View History" width={20} height={20} className="object-contain" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">View History</p>
                 <p className="text-xs text-dark-text/60 font-inter">See your past entries</p>
               </div>
             </Link>
-            <Link href="/insights" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray transition-all">
+            <Link href="/insights" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray hover:-translate-y-0.5 hover:shadow-sm transition-all duration-150">
               <Image src="/icons/mood-insights.svg" alt="View Insights" width={20} height={20} className="object-contain" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">View Insights</p>
                 <p className="text-xs text-dark-text/60 font-inter">Analyze your mood trends</p>
               </div>
             </Link>
-            <Link href="/mood-trends" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray transition-all">
+            <Link href="/mood-trends" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray hover:-translate-y-0.5 hover:shadow-sm transition-all duration-150">
               <Image src="/icons/trends.svg" alt="Mood Trends" width={20} height={20} className="object-contain" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">Mood Trends</p>

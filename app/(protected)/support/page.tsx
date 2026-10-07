@@ -425,10 +425,10 @@ export default function SupportPage() {
             </div>
             <button
               type="button"
-              className="text-sm text-dark-text/40 hover:text-dark-text"
+              className="text-sm text-dark-text/40 hover:text-dark-text leading-none"
               onClick={() => setToast(null)}
             >
-              x
+              ×
             </button>
           </div>
         </div>
@@ -584,7 +584,7 @@ export default function SupportPage() {
                                 )}
                               </div>
                               <p className="mt-1 text-[11px] font-inter text-dark-text/50">
-                                {conversation.status} - {new Date(conversation.updated_at).toLocaleDateString()}
+                                {conversation.status === "open" ? "Open" : "Closed"} · {new Date(conversation.updated_at).toLocaleDateString()}
                               </p>
                             </button>
                           );
@@ -614,7 +614,7 @@ export default function SupportPage() {
                           ? "bg-success-green/15 text-success-green"
                           : "bg-gray-100 text-dark-text/50"
                       }`}>
-                        {selectedConversation.status}
+                      {selectedConversation.status === "open" ? "Open" : "Closed"}
                       </span>
                       {/* Member can delete their own conversation */}
                       <button

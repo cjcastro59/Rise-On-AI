@@ -415,34 +415,36 @@ export default function AIAnalysisPage() {
         </span>
       </div>
 
-      {/* Progress Steps */}
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        <div className="flex items-center gap-2 px-3 py-1 bg-[#A8DADC]/40 rounded-full">
-          <span className="text-sm">📝</span>
-          <span className="text-sm font-poppins text-dark-text">Wrote Entry</span>
-        </div>
-        <div className="text-sm text-dark-text/40">→</div>
-        <div className="flex items-center gap-2 px-3 py-1 bg-[#A8DADC]/40 rounded-full">
-          <span className="text-sm">🧠</span>
-          <span className="text-sm font-poppins text-dark-text">AI Analyzed</span>
-        </div>
-        <div className="text-sm text-dark-text/50">→</div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-primary-blue to-lavender rounded-full shadow-sm">
-          <span className="text-sm">✨</span>
-          <span className="text-sm font-poppins text-white">Insights Ready</span>
-        </div>
-        <div className="text-sm text-dark-text/50">→</div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-[#E5E7EB] rounded-full">
-          <span className="text-sm">📊</span>
-          <span className="text-sm font-poppins text-dark-text">Track Over Time</span>
+      {/* Progress Steps — horizontal scroll on mobile */}
+      <div className="overflow-x-auto pb-1 mb-6">
+        <div className="flex items-center gap-2 min-w-max sm:flex-wrap sm:min-w-0">
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-[#A8DADC]/40 rounded-full">
+            <span className="text-sm">📝</span>
+            <span className="text-xs font-poppins text-dark-text">Wrote Entry</span>
+          </div>
+          <span className="text-xs text-dark-text/40">→</span>
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-[#A8DADC]/40 rounded-full">
+            <span className="text-sm">🧠</span>
+            <span className="text-xs font-poppins text-dark-text">AI Analyzed</span>
+          </div>
+          <span className="text-xs text-dark-text/40">→</span>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-primary-blue to-lavender rounded-full shadow-sm">
+            <span className="text-sm">✨</span>
+            <span className="text-xs font-poppins text-white">Insights Ready</span>
+          </div>
+          <span className="text-xs text-dark-text/40">→</span>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#E5E7EB] rounded-full">
+            <span className="text-sm">📊</span>
+            <span className="text-xs font-poppins text-dark-text">Track Over Time</span>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-6 lg:gap-x-7">
+      <div className="grid grid-cols-1 lg:grid-cols-2 items-start gap-6 lg:gap-x-7 animate-in fade-in duration-300">
         {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
         <div className="space-y-6">
           {/* Sentiment Breakdown */}
-          <Card className="p-6 bg-white shadow-sm">
+          <Card className="p-4 sm:p-6 bg-white shadow-sm">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-1 flex items-center gap-2">
               <span>📊</span>
               Sentiment Breakdown
@@ -471,7 +473,7 @@ export default function AIAnalysisPage() {
           </Card>
 
           {/* Detected Emotions */}
-          <Card className="p-6 bg-white shadow-sm">
+          <Card className="p-4 sm:p-6 bg-white shadow-sm">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
               <span>🌈</span>
               Detected Emotions
@@ -488,7 +490,7 @@ export default function AIAnalysisPage() {
 
           {/* Key Phrases */}
           {analysis.keyPhrases.length > 0 && (
-            <Card className="p-6 bg-white shadow-sm">
+            <Card className="p-4 sm:p-6 bg-white shadow-sm">
               <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
                 <span>🔑</span>
                 Key Phrases Detected
@@ -513,7 +515,7 @@ export default function AIAnalysisPage() {
             style={{ borderLeftColor: aciCfg.borderColor }}
           >
           <AIReportErrorBoundary>
-          <Card className="p-6 bg-white shadow-sm rounded-l-none border-l-0">
+          <Card className="p-4 sm:p-6 bg-white shadow-sm rounded-l-none border-l-0">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 flex items-center gap-2">
                 <span>{aciCfg.emoji}</span>
@@ -602,7 +604,7 @@ export default function AIAnalysisPage() {
 
           {/* ── EXPLAINABILITY PANEL ─────────────────────────────────── */}
           <AIReportErrorBoundary>
-          <Card className="p-6 bg-white shadow-sm">
+          <Card className="p-4 sm:p-6 bg-white shadow-sm">
             {/* Header */}
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 flex items-center gap-2">
@@ -825,14 +827,14 @@ export default function AIAnalysisPage() {
           {/* ── END EXPLAINABILITY PANEL ──────────────────────────────── */}
 
           {/* Emotional Wellness Score — uses the real Wellness Score from behavioral_indicators */}
-          <Card className="p-8 text-center bg-white shadow-sm">
-            <h3 className="text-base font-poppins uppercase tracking-wider text-dark-text/70 mb-8 flex items-center gap-2 justify-center">
+          <Card className="p-4 sm:p-8 text-center bg-white shadow-sm">
+            <h3 className="text-base font-poppins uppercase tracking-wider text-dark-text/70 mb-4 sm:mb-8 flex items-center gap-2 justify-center">
               <span>🧠</span>
               Wellness Score
             </h3>
             {wellnessScore != null ? (
               <>
-                <div className="relative w-52 h-52 mx-auto mb-8">
+                <div className="relative w-36 h-36 sm:w-52 sm:h-52 mx-auto mb-4 sm:mb-8">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="45" fill="none" stroke="#E5E7EB" strokeWidth="10" />
                     <circle
@@ -852,8 +854,8 @@ export default function AIAnalysisPage() {
                     </defs>
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center flex-col">
-                    <span className="text-5xl font-dm-serif text-[#4F4F4F]">{wellnessScore.toFixed(1)}</span>
-                    <span className="text-base font-inter text-[#A8DADC]">out of 10</span>
+                    <span className="text-3xl sm:text-5xl font-dm-serif text-[#4F4F4F]">{wellnessScore.toFixed(1)}</span>
+                    <span className="text-sm font-inter text-[#A8DADC]">out of 10</span>
                   </div>
                 </div>
                 {wellnessLevel && (

@@ -502,7 +502,7 @@ export default function AdminUsersPage() {
           </div>
           <div className="h-1 bg-gradient-to-r from-purple-400 to-pink-300 rounded-full"></div>
         </Card>
-        <Card className="p-5 border-l-4 border-l-[#F4A6A6]">
+        <Card className="p-5 border-l-4 border-l-error-red">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">🚫</div>
             <div className="text-right">
@@ -683,8 +683,16 @@ export default function AdminUsersPage() {
                   </td>
                 </tr>
               ))}
+              {paginatedUsers.length === 0 && (
+                <tr>
+                  <td colSpan={10} className="py-12 text-center">
+                    <p className="text-sm font-poppins text-dark-text/60">No users found matching the current filters.</p>
+                    <p className="text-xs font-inter text-dark-text/40 mt-1">Try adjusting your search or filter criteria.</p>
+                  </td>
+                </tr>
+              )}
               {/* Add empty rows to maintain consistent table height */}
-              {Array.from({ length: PAGE_SIZE - paginatedUsers.length }).map((_, index) => (
+              {paginatedUsers.length > 0 && Array.from({ length: PAGE_SIZE - paginatedUsers.length }).map((_, index) => (
                 <tr key={`empty-${index}`} className="border-b border-gray-100">
                   <td className="py-4 px-3"></td>
                   <td className="py-4 px-3"></td>

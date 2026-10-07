@@ -229,10 +229,6 @@ export default function MoodTrendsPage() {
             title="Mood Distribution"
             subtitle={`Sentiment breakdown from ${distribution?.total ?? 0} classified entries`}
           />
-          {/* Data source disclosure */}
-          <p className="text-[10px] text-dark-text/30 font-inter mb-4">
-            Source: journal_entries.sentiment · Positive / Negative / Distress only
-          </p>
           {/* Relative wrapper so the centre donut label can be absolute */}
           <div className="relative">
             <MoodDistributionChart
@@ -303,8 +299,8 @@ export default function MoodTrendsPage() {
               ) : null
             }
           />
-          <p className="text-[10px] text-dark-text/30 font-inter mb-4">
-            Source: behavioral_indicators.wellness_score · lookback_days=30
+          <p className="text-[10px] text-dark-text/40 font-inter mb-4">
+            30-day behavioral wellness score · algorithm-derived indicator
           </p>
           <WellnessScoreTrendChart
             data={wellnessTrend}
@@ -345,8 +341,8 @@ export default function MoodTrendsPage() {
               ) : null
             }
           />
-          <p className="text-[10px] text-dark-text/30 font-inter mb-4">
-            Source: behavioral_indicators.behavioral_trend_score · positive = improving
+          <p className="text-[10px] text-dark-text/40 font-inter mb-4">
+            Compares older vs. recent journal entries · positive values indicate improving trend
           </p>
           <BehavioralTrendChart
             data={behavioralTrend}
@@ -385,8 +381,8 @@ export default function MoodTrendsPage() {
             ) : null
           }
         />
-        <p className="text-[10px] text-dark-text/30 font-inter mb-4">
-          Source: distress_risk_assessments.risk_level · decision-support only · not a clinical diagnosis
+        <p className="text-[10px] text-dark-text/40 font-inter mb-4">
+          Decision-support only · not a clinical diagnosis
         </p>
         <DistressRiskChart
           data={distressRisk}

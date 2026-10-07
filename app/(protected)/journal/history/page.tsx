@@ -9,6 +9,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getSentimentFromMood } from "@/lib/sentiment";
+import { MOOD_OPTIONS } from "@/lib/mood";
 import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 
 type JournalEntry = {
@@ -41,6 +42,8 @@ export default function JournalHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sentimentFilter, setSentimentFilter] = useState("All");
+  const [moodFilter, setMoodFilter] = useState("All");
+  const [showMoodFilter, setShowMoodFilter] = useState(false);
   const [collapsedMonths, setCollapsedMonths] = useState<Set<string>>(new Set());
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { user } = useAuth();
@@ -135,8 +138,12 @@ export default function JournalHistoryPage() {
       result = result.filter((entry) => getSentiment(entry) === sentimentFilter);
     }
 
+    if (moodFilter !== "All") {
+      result = result.filter((entry) => entry.mood === moodFilter);
+    }
+
     setFilteredEntries(result);
-  }, [entries, getSentiment, searchQuery, sentimentFilter]);
+  }, [entries, getSentiment, searchQuery, sentimentFilter, moodFilter]);
 
   useEffect(() => {
     if (user) {
@@ -149,17 +156,9 @@ export default function JournalHistoryPage() {
   }, [applyFilters]);
 
   const getMoodEmoji = (mood: string | null): string => {
-    const moodMap: Record<string, string> = {
-      "Happy": "😊",
-      "Calm": "😌",
-      "Excited": "🎉",
-      "Confused": "😕",
-      "Anxious": "😰",
-      "Sad": "😢",
-      "Frustrated": "😤",
-      "Overwhelmed": "😵"
-    };
-    return mood ? (moodMap[mood] || "😐") : "😐";
+    if (!mood) return "😐";
+    const found = MOOD_OPTIONS.find((m) => m.label === mood);
+    return found?.emoji ?? "😐";
   };
 
   const getSentimentColor = (sentiment: string): string => {
@@ -169,7 +168,7 @@ export default function JournalHistoryPage() {
       case "Negative":
         return "bg-[#F4A6A6]/20 text-[#F4A6A6]";
       case "Distress":
-        return "bg-red-100 text-red-600";
+        return "bg-error-red/15 text-error-red";
       default:
         return "bg-gray-100 text-gray-600";
     }
@@ -234,7 +233,8 @@ export default function JournalHistoryPage() {
       <PageHeader title="My Journal" subtitle="Your personal entries, organized" />
 
       {/* Search and Filters */}
-      <div className="flex flex-col gap-4 mb-6">
+      <div className="flex flex-col gap-3 mb-6">
+        {/* Search */}
         <div className="relative flex-1">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-text/60">🔍</span>
           <input
@@ -242,21 +242,102 @@ export default function JournalHistoryPage() {
             placeholder="Search entries..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl text-sm font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/50"
+            className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl text-sm font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/50 transition-shadow"
           />
         </div>
-        <div className="flex flex-wrap gap-2">
-          {["All", "Positive", "Negative", "Distress"].map((filter) => (
-            <Button
-              key={filter}
-              variant={sentimentFilter === filter ? "primary" : "secondary"}
-              size="sm"
-              onClick={() => setSentimentFilter(filter)}
-            >
-              {filter}
-            </Button>
-          ))}
+
+        {/* Sentiment filter pills */}
+        <div>
+          <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-2">Filter by sentiment</p>
+          <div className="flex flex-wrap gap-2">
+            {["All", "Positive", "Negative", "Distress"].map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setSentimentFilter(filter)}
+                className={`px-3 py-1.5 rounded-full text-xs font-poppins font-medium transition-all duration-150 hover:scale-105 active:scale-95 ${
+                  sentimentFilter === filter
+                    ? filter === "Positive"
+                      ? "bg-[#52B788] text-white shadow-sm"
+                      : filter === "Negative"
+                      ? "bg-[#F4A6A6] text-white shadow-sm"
+                      : filter === "Distress"
+                      ? "bg-error-red text-white shadow-sm"
+                      : "bg-primary-blue text-white shadow-sm"
+                    : "bg-white border border-gray-200 text-dark-text/70 hover:border-primary-blue/40 hover:text-dark-text"
+                }`}
+              >
+                {filter === "Positive" ? "😊 " : filter === "Negative" ? "😔 " : filter === "Distress" ? "⚠️ " : ""}
+                {filter}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Mood filter — collapsible */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowMoodFilter((v) => !v)}
+            className="flex items-center gap-2 text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 hover:text-dark-text/80 transition-colors mb-2"
+          >
+            <span>Filter by mood</span>
+            <span className="text-[11px] normal-case tracking-normal font-normal">
+              {moodFilter !== "All" && (
+                <span className="ml-1 px-2 py-0.5 bg-primary-blue/15 text-primary-blue rounded-full">
+                  {MOOD_OPTIONS.find(m => m.label === moodFilter)?.emoji} {moodFilter}
+                </span>
+              )}
+              {showMoodFilter ? " ↑" : " ↓"}
+            </span>
+          </button>
+          {showMoodFilter && (
+            <div className="flex flex-wrap gap-2 p-3 bg-light-gray/30 rounded-xl border border-light-gray animate-in fade-in duration-150">
+              <button
+                onClick={() => setMoodFilter("All")}
+                className={`px-3 py-1.5 rounded-full text-xs font-poppins font-medium transition-all duration-150 hover:scale-105 active:scale-95 ${
+                  moodFilter === "All"
+                    ? "bg-primary-blue text-white shadow-sm"
+                    : "bg-white border border-gray-200 text-dark-text/70 hover:border-primary-blue/40"
+                }`}
+              >
+                All moods
+              </button>
+              {MOOD_OPTIONS.map((mood) => (
+                <button
+                  key={mood.label}
+                  onClick={() => setMoodFilter(mood.label)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-poppins font-medium transition-all duration-150 hover:scale-105 active:scale-95 flex items-center gap-1 ${
+                    moodFilter === mood.label
+                      ? "bg-primary-blue text-white shadow-sm"
+                      : "bg-white border border-gray-200 text-dark-text/70 hover:border-primary-blue/40"
+                  }`}
+                >
+                  <span>{mood.emoji}</span>
+                  {mood.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Active filter summary + clear */}
+        {(sentimentFilter !== "All" || moodFilter !== "All" || searchQuery) && (
+          <div className="flex items-center justify-between text-xs font-inter text-dark-text/60 bg-primary-blue/5 px-3 py-2 rounded-lg">
+            <span>
+              Showing {filteredEntries.length} of {entries.length} entries
+              {sentimentFilter !== "All" && ` · Sentiment: ${sentimentFilter}`}
+              {moodFilter !== "All" && ` · Mood: ${moodFilter}`}
+              {searchQuery && ` · Search: "${searchQuery}"`}
+            </span>
+            <button
+              type="button"
+              onClick={() => { setSentimentFilter("All"); setMoodFilter("All"); setSearchQuery(""); }}
+              className="text-primary-blue hover:underline font-poppins ml-3 shrink-0"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Entries List */}
@@ -266,20 +347,20 @@ export default function JournalHistoryPage() {
             <div key={group.monthKey} className="space-y-3">
               <button
                 onClick={() => toggleMonth(group.monthKey)}
-                className="flex items-center gap-2 text-lg font-semibold text-dark-text hover:text-dark-text/80 w-full text-left"
+                className="flex items-center gap-2 text-lg font-poppins font-semibold text-dark-text hover:text-dark-text/80 w-full text-left transition-colors"
               >
-                <span className="text-lg">
+                <span className="text-sm leading-none">
                   {collapsedMonths.has(group.monthKey) ? "▶" : "▼"}
                 </span>
                 {group.monthName}
                 <span className="text-sm font-normal text-dark-text/50">
-                  ({group.entries.length} entries)
+                  ({group.entries.length} {group.entries.length === 1 ? "entry" : "entries"})
                 </span>
               </button>
               {!collapsedMonths.has(group.monthKey) && (
                 <div className="space-y-3 pl-6">
                   {group.entries.map((entry) => (
-                    <Card key={entry.id} className="p-4 sm:p-6 bg-white hover:shadow-md transition-shadow">
+                    <Card key={entry.id} className="p-4 sm:p-6 bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-150">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <Link href={`/journal/${entry.id}`} className="flex-1 min-w-0 cursor-pointer">
                           <div className="flex items-center gap-3 mb-2">
