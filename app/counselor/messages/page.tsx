@@ -612,7 +612,7 @@ export default function CounselorMessagesPage() {
                       <Button
                         onClick={closeConversation}
                         disabled={closingConversation}
-                        className="bg-gradient-to-r from-soft-red to-pink-400 hover:from-soft-red/90 hover:to-pink-500"
+                        className="bg-rose-600 text-white hover:bg-rose-700"
                       >
                         {closingConversation ? "Closing..." : "Close Conversation"}
                       </Button>
@@ -665,10 +665,10 @@ export default function CounselorMessagesPage() {
                               className={`rounded-2xl px-4 py-2 shadow-sm ${
                                 isCurrentUser
                                   ? "bg-gradient-to-r from-primary-blue to-lavender text-white rounded-tr-none"
-                                  : "bg-gray-100 text-dark-text rounded-tl-none"
+                                  : "bg-slate-50/80 text-slate-800 rounded-tl-none border border-slate-100"
                               }`}
                             >
-                              <p className="text-sm">{msg.content}</p>
+                              <p className="text-sm leading-relaxed">{msg.content}</p>
                               <p className={`text-xs mt-1 opacity-70 ${isCurrentUser ? "text-right" : "text-left"}`}>
                                 {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </p>

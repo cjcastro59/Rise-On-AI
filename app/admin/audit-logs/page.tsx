@@ -203,7 +203,7 @@ export default function AdminAuditLogsPage() {
   // Get role pill color
   const getRolePillClass = (role: string) => {
     switch (role) {
-      case "owner": return "badge-error";
+      case "owner": return "badge-warning";
       case "admin": return "badge-success";
       case "counselor": return "badge-info";
       default: return "badge-warning";
@@ -366,7 +366,7 @@ export default function AdminAuditLogsPage() {
                   } transition-colors`}
                 >
                   <td><p className="text-sm font-inter text-slate-600">{formatTimestamp(log.created_at)}</p></td>
-                  <td><p className="text-sm font-poppins text-dark-text">{log.admin}</p></td>
+                  <td><p className="text-sm font-poppins font-semibold text-slate-900 hover:text-indigo-600">{log.admin}</p></td>
                   <td>
                     <span className={`badge ${getRolePillClass(log.role)}`}>
                       {log.role?.charAt(0).toUpperCase() + log.role?.slice(1) || "Unknown"}
@@ -384,7 +384,7 @@ export default function AdminAuditLogsPage() {
                     </div>
                   </td>
                   <td><p className="text-sm font-mono text-dark-text">{log.details || "-"}</p></td>
-                  <td><p className="text-sm font-mono text-slate-600">{log.ip_address || "-"}</p></td>
+                  <td><p className="text-sm font-mono font-semibold text-slate-900">{log.ip_address || "-"}</p></td>
                   <td>
                     <span className={`badge ${
                       log.status === "Success" ? "badge-success" : "badge-error"

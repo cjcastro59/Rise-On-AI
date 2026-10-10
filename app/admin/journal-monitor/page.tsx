@@ -365,16 +365,16 @@ export default function AdminJournalMonitorPage() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="admin-table w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">ENTRY ID</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">TIMESTAMP</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">WORD COUNT</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">LANGUAGE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">MOOD TAG</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">SENTIMENT SCORE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">AI PROCESSED</th>
+                <th className="text-left py-4 px-3">ENTRY ID</th>
+                <th className="text-left py-4 px-3">TIMESTAMP</th>
+                <th className="text-left py-4 px-3">WORD COUNT</th>
+                <th className="text-left py-4 px-3">LANGUAGE</th>
+                <th className="text-left py-4 px-3">MOOD TAG</th>
+                <th className="text-left py-4 px-3">SENTIMENT SCORE</th>
+                <th className="text-left py-4 px-3">AI PROCESSED</th>
               </tr>
             </thead>
             <tbody>
@@ -403,7 +403,7 @@ export default function AdminJournalMonitorPage() {
                     return (
                       <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="py-4 px-3">
-                          <p className="font-mono text-sm text-[#A8DADC] font-semibold">{formatDisplayId(entry.id, "entry", displayIdFormat)}</p>
+                          <p className="font-mono text-sm font-semibold text-slate-900">{formatDisplayId(entry.id, "entry", displayIdFormat)}</p>
                         </td>
                         <td className="py-4 px-3">
                           <p className="text-sm font-inter text-slate-700">{new Date(entry.created_at).toLocaleString()}</p>

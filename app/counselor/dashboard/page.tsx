@@ -79,8 +79,13 @@ function RiskBadge({ riskLevel }: { riskLevel: string | null }) {
   const cfg = DISTRESS_RISK_CONFIG[lvl] ?? DISTRESS_RISK_CONFIG["Low Risk"];
   return (
     <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-poppins font-medium"
-      style={{ backgroundColor: cfg.bgColor, color: cfg.color }}
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-poppins font-semibold ${
+        lvl === "Critical Risk" || lvl === "High Risk"
+          ? "border-rose-200 bg-rose-100 text-rose-800"
+          : lvl === "Moderate Risk"
+            ? "border-amber-200 bg-amber-100 text-amber-900"
+            : "border-emerald-200 bg-emerald-100 text-emerald-800"
+      }`}
     >
       {cfg.emoji} {lvl}
     </span>
@@ -446,7 +451,7 @@ export default function CounselorDashboardPage() {
           </div>
           <Link
             href="/counselor/assigned-users"
-            className="text-xs font-poppins text-primary-blue hover:underline"
+            className="text-xs font-poppins font-semibold text-indigo-700 hover:text-indigo-900 hover:underline"
           >
             View All →
           </Link>
@@ -547,7 +552,7 @@ export default function CounselorDashboardPage() {
                   </span>
                   <Link
                     href="/counselor/cases"
-                    className="text-xs text-primary-blue font-poppins hover:underline ml-auto"
+                    className="text-xs font-poppins font-semibold text-indigo-700 hover:text-indigo-900 hover:underline ml-auto"
                   >
                     Review cases →
                   </Link>
@@ -568,7 +573,7 @@ export default function CounselorDashboardPage() {
               <div className="w-8 h-8 bg-error-red/20 rounded-lg flex items-center justify-center">🚨</div>
               <p className="text-xs font-poppins text-slate-700">RECENT CASES</p>
             </div>
-            <Link href="/counselor/cases" className="text-xs font-poppins text-primary-blue hover:underline">
+            <Link href="/counselor/cases" className="text-xs font-poppins font-semibold text-indigo-700 hover:text-indigo-900 hover:underline">
               View All →
             </Link>
           </div>
@@ -629,7 +634,7 @@ export default function CounselorDashboardPage() {
               <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">💬</div>
               <p className="text-xs font-poppins text-slate-700">RECENT MESSAGES</p>
             </div>
-            <Link href="/counselor/messages" className="text-xs font-poppins text-primary-blue hover:underline">
+            <Link href="/counselor/messages" className="text-xs font-poppins font-semibold text-indigo-700 hover:text-indigo-900 hover:underline">
               View All →
             </Link>
           </div>

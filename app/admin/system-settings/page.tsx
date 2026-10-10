@@ -746,7 +746,7 @@ export default function AdminSystemSettingsPage() {
                           <tr key={role}>
                             <td>
                               <span className={`badge ${
-                                role === "owner" ? "badge-error" :
+                                role === "owner" ? "badge-warning" :
                                 role === "admin" ? "badge-success" :
                                 role === "counselor" ? "badge-info" :
                                 ""
@@ -835,7 +835,7 @@ export default function AdminSystemSettingsPage() {
                         <tr key={role}>
                           <td>
                             <span className={`badge ${
-                              role === "owner" ? "badge-error" :
+                              role === "owner" ? "badge-warning" :
                               role === "admin" ? "badge-success" :
                               role === "counselor" ? "badge-info" :
                               ""

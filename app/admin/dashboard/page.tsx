@@ -986,7 +986,7 @@ export default function AdminDashboardPage() {
               <div className="w-8 h-8 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center">🚨</div>
               <p className="text-xs font-poppins text-slate-700">RECENT DISTRESS ALERTS</p>
             </div>
-            <Link href="/admin/distress-alerts" className="text-xs font-poppins text-[#A8DADC] hover:underline">View All →</Link>
+            <Link href="/admin/distress-alerts" className="text-xs font-poppins font-semibold text-indigo-700 hover:text-indigo-900 hover:underline">View All →</Link>
           </div>
           <div className="space-y-3">
             {loading ? (
@@ -994,12 +994,12 @@ export default function AdminDashboardPage() {
             ) : recentAlerts.length === 0 ? (
               <p className="text-sm text-slate-700 font-inter">No distress alerts found yet.</p>
             ) : recentAlerts.map((alert, index) => (
-              <div key={alert.id || index} className="p-3 bg-[#F4A6A6]/10 rounded-xl border border-[#F4A6A6]/30 flex justify-between items-center">
+              <div key={alert.id || index} className="p-3 bg-rose-50 border-l-4 border-l-rose-500 border border-rose-200 rounded-xl flex justify-between items-center">
                 <div>
                   <p className="text-sm font-semibold font-poppins text-dark-text">{alert.trigger || "Distress alert"}</p>
                   <p className="text-xs text-slate-700 font-inter">{alert.notes || alert.severity || "Recent alert"} • {formatTime(alert.created_at)}</p>
                 </div>
-                <Link href="/admin/distress-alerts" className="px-3 py-1 bg-[#F4A6A6]/30 text-[#F4A6A6] rounded-full text-xs font-semibold font-poppins">Review</Link>
+                <Link href="/admin/distress-alerts" className="rounded-lg bg-amber-500 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-amber-600">Review</Link>
               </div>
             ))}
           </div>
@@ -1012,7 +1012,7 @@ export default function AdminDashboardPage() {
               <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📝</div>
               <p className="text-xs font-poppins text-slate-700">RECENT JOURNAL ENTRIES</p>
             </div>
-            <Link href="/admin/journal-monitor" className="text-xs font-poppins text-[#A8DADC] hover:underline">View All →</Link>
+            <Link href="/admin/journal-monitor" className="text-xs font-poppins font-semibold text-indigo-700 hover:text-indigo-900 hover:underline">View All →</Link>
           </div>
           <div className="space-y-3">
             {loading ? (
@@ -1023,14 +1023,14 @@ export default function AdminDashboardPage() {
               recentEntries.map((entry) => (
                 <div key={entry.id} className="rounded-xl border border-slate-200 bg-slate-100/60 p-3">
                   <div className="mb-2 flex items-center justify-between gap-3">
-                    <p className="truncate font-mono text-sm font-semibold text-[#A8DADC]">
+                    <p className="truncate font-mono text-sm font-semibold text-slate-900">
                       {formatDisplayId(entry.id, "entry", displayIdFormat)}
                     </p>
                     <span className="whitespace-nowrap text-xs font-inter text-slate-600">
                       {formatTime(entry.created_at)}
                     </span>
                   </div>
-                  <p className="text-xs font-inter text-slate-600">
+                  <p className="text-xs font-inter font-semibold text-slate-900">
                     User {formatDisplayId(entry.user_id, "user", displayIdFormat)}
                   </p>
                   <p className="mt-1 line-clamp-1 text-sm font-poppins text-dark-text">

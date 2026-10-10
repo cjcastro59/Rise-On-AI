@@ -210,13 +210,13 @@ export default function CounselorNotesPage() {
                       <div className="flex gap-2">
                         <button 
                           onClick={() => startEditing(note)}
-                          className="text-primary-blue hover:underline"
+                          className="rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-slate-800"
                         >
                           Edit
                         </button>
                         <button 
                           onClick={() => handleDeleteNote(note.id)}
-                          className="text-[#F4A6A6] hover:underline"
+                          className="rounded-lg bg-rose-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-rose-700"
                         >
                           Delete
                         </button>

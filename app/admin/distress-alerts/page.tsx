@@ -99,8 +99,13 @@ export default function AdminDistressAlertsPage() {
     const cfg = DISTRESS_RISK_CONFIG[lvl] ?? DISTRESS_RISK_CONFIG["Low Risk"];
     return (
       <span
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-poppins font-medium whitespace-nowrap"
-        style={{ backgroundColor: cfg.bgColor, color: cfg.color }}
+        className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-poppins font-semibold ${
+          lvl === "Critical Risk" || lvl === "High Risk"
+            ? "border-rose-200 bg-rose-100 text-rose-800"
+            : lvl === "Moderate Risk"
+              ? "border-amber-200 bg-amber-100 text-amber-900"
+              : "border-emerald-200 bg-emerald-100 text-emerald-800"
+        }`}
         title={`${snap.total_points} point${snap.total_points !== 1 ? "s" : ""}`}
       >
         {cfg.emoji} {lvl}
@@ -286,13 +291,13 @@ export default function AdminDistressAlertsPage() {
     return (
       <div className="space-y-3">
         {entries.slice(0, 2).map((entry) => (
-          <div key={entry.id} className="rounded-2xl bg-slate-50 p-3">
+          <div key={entry.id} className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
             <div className="flex items-center justify-between gap-3 mb-2">
-              <span className="font-mono text-xs font-semibold uppercase tracking-wide text-primary-blue">{formatEntryId(entry.id)}</span>
+              <span className="font-mono text-xs font-semibold uppercase tracking-wide text-slate-900">{formatEntryId(entry.id)}</span>
               <span className="text-xs text-slate-600">{new Date(entry.created_at).toLocaleDateString()}</span>
             </div>
             <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-600">{entry.mood || "Mood unknown"}</p>
-            <p className="text-sm font-inter text-dark-text/90 line-clamp-2">{entry.title || entry.content || "No text available."}</p>
+            <p className="text-sm font-inter leading-relaxed text-slate-800 line-clamp-2">{entry.title || entry.content || "No text available."}</p>
           </div>
         ))}
       </div>
@@ -390,7 +395,7 @@ export default function AdminDistressAlertsPage() {
         </select>
         <button
           type="button"
-          className="btn-sm border border-primary-blue text-primary-blue disabled:opacity-60"
+          className="btn-sm bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60"
           disabled={!!actionLoading[`assign:${alert.id}`] || counselors.length === 0}
           onClick={() => runAlertAction(alert.id, "assign")}
         >
@@ -492,14 +497,14 @@ export default function AdminDistressAlertsPage() {
         {!loading && error && <p className="text-sm text-error-red">{error}</p>}
         {!loading && criticalAlerts.length === 0 && !error && <p className="text-sm text-slate-600">No critical alerts at the moment.</p>}
         {criticalAlerts.map((alert) => (
-          <Card key={alert.id} className="p-5 bg-error-red/5 border border-error-red/20 rounded-2xl">
+          <Card key={alert.id} className="p-5 bg-rose-50 border-l-4 border-l-rose-500 border border-rose-200 text-rose-900 rounded-2xl">
             <div className="flex flex-col gap-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-full bg-error-red/30 flex items-center justify-center text-2xl">!</div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-sm font-semibold text-primary-blue">{formatAlertId(alert.id)}</span>
+                      <span className="font-mono text-sm font-semibold text-slate-900">{formatAlertId(alert.id)}</span>
                       <span className="badge-error">Active</span>
                     </div>
                     <p className="text-sm font-poppins font-semibold text-dark-text">{alert.trigger || "Detected distress trigger"}</p>
@@ -508,7 +513,7 @@ export default function AdminDistressAlertsPage() {
                 <div className="flex min-w-[230px] flex-col gap-2">
                   <button
                     type="button"
-                    className="btn-sm bg-error-red text-white disabled:opacity-60"
+                    className="btn-sm bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-60"
                     onClick={() => setSelectedAlert(alert)}
                   >
                     Review Now
@@ -581,10 +586,10 @@ export default function AdminDistressAlertsPage() {
                 {mediumAlerts.map((alert) => (
                   <tr key={alert.id}>
                     <td>
-                      <p className="font-mono text-sm font-semibold text-primary-blue">{formatAlertId(alert.id)}</p>
+                      <p className="font-mono text-sm font-semibold text-slate-900">{formatAlertId(alert.id)}</p>
                     </td>
                     <td>
-                      <p className="font-mono text-sm text-slate-700">{formatUserId(alert.user_id)}</p>
+                      <p className="font-mono text-sm font-semibold text-slate-900">{formatUserId(alert.user_id)}</p>
                     </td>
                     <td>
                       <p className="text-sm font-inter text-dark-text">{alert.trigger || "Pending review"}</p>
@@ -598,7 +603,7 @@ export default function AdminDistressAlertsPage() {
                     <td>
                       {entriesByUser[alert.user_id]?.[0] ? (
                         <div>
-                          <p className="font-mono text-xs font-semibold text-primary-blue">{formatEntryId(entriesByUser[alert.user_id][0].id)}</p>
+                          <p className="font-mono text-xs font-semibold text-slate-900">{formatEntryId(entriesByUser[alert.user_id][0].id)}</p>
                           <p className="text-xs font-inter text-slate-600">
                             {new Date(entriesByUser[alert.user_id][0].created_at).toLocaleDateString()}
                           </p>
@@ -611,7 +616,7 @@ export default function AdminDistressAlertsPage() {
                       <p className="text-sm font-inter text-dark-text">{getProfileName(getAssignedCounselor(alert))}</p>
                     </td>
                     <td>
-                      <span className="badge-info">{getResponseStatus(alert.notes)}</span>
+                      <span className={`badge ${alert.notes?.trim() ? "badge-success" : "badge-info"}`}>{getResponseStatus(alert.notes)}</span>
                     </td>
                     <td>
                       <span className="badge-info">{alert.notes ? "Followed up" : "Pending"}</span>
@@ -620,7 +625,7 @@ export default function AdminDistressAlertsPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <button
                           type="button"
-                          className="btn-sm border border-warning-yellow text-[#FFB700] disabled:opacity-60"
+                          className="btn-sm bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-60"
                           onClick={() => setSelectedAlert(alert)}
                         >
                           Review
@@ -647,7 +652,7 @@ export default function AdminDistressAlertsPage() {
             <div className="relative bg-white rounded-2xl p-6 w-full max-w-3xl shadow-xl z-10 m-4 max-h-[90vh] overflow-y-auto">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
-                  <p className="font-mono text-sm font-semibold text-primary-blue">{formatAlertId(selectedAlert.id)}</p>
+                  <p className="font-mono text-sm font-semibold text-slate-900">{formatAlertId(selectedAlert.id)}</p>
                   <h3 className="mt-1 text-xl font-dm-serif text-dark-text">Distress Alert Details</h3>
                   <p className="text-sm text-slate-600 font-poppins">{selectedAlert.trigger || "Detected distress trigger"}</p>
                 </div>
@@ -673,7 +678,7 @@ export default function AdminDistressAlertsPage() {
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">User ID</p>
-                  <p className="mt-1 font-mono text-sm font-poppins text-dark-text">{formatUserId(selectedAlert.user_id)}</p>
+                  <p className="mt-1 font-poppins text-dark-text">{formatUserId(selectedAlert.user_id)}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Created</p>
@@ -696,7 +701,7 @@ export default function AdminDistressAlertsPage() {
 
               <div className="mt-5">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Action notes</p>
-                <div className="min-h-[80px] whitespace-pre-wrap rounded-xl bg-slate-50 p-4 text-sm font-inter text-dark-text/80">
+                <div className="min-h-[80px] whitespace-pre-wrap rounded-lg border border-slate-100 bg-slate-50/80 p-3 text-sm font-inter leading-relaxed text-slate-800">
                   {selectedAlert.notes || "No action notes recorded yet."}
                 </div>
               </div>
@@ -705,14 +710,14 @@ export default function AdminDistressAlertsPage() {
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Recent journal entries</p>
                 <div className="space-y-3">
                   {(entriesByUser[selectedAlert.user_id] || []).slice(0, 5).map((entry) => (
-                    <div key={entry.id} className="rounded-xl border border-gray-100 p-4">
+                    <div key={entry.id} className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
                       <div className="mb-2 flex items-center justify-between gap-3">
-                        <span className="font-mono text-xs font-semibold uppercase tracking-wide text-primary-blue">{formatEntryId(entry.id)}</span>
+                        <span className="font-mono text-xs font-semibold uppercase tracking-wide text-slate-900">{formatEntryId(entry.id)}</span>
                         <span className="text-xs text-slate-600">{new Date(entry.created_at).toLocaleString()}</span>
                       </div>
                       <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-600">{entry.mood || "Mood unknown"}</p>
-                      <p className="text-sm font-semibold text-dark-text">{entry.title || "Untitled entry"}</p>
-                      <p className="mt-1 whitespace-pre-wrap text-sm font-inter text-dark-text/80">{entry.content || "No text available."}</p>
+                      <p className="text-sm font-semibold text-slate-900">{entry.title || "Untitled entry"}</p>
+                      <p className="mt-1 whitespace-pre-wrap text-sm font-inter leading-relaxed text-slate-800">{entry.content || "No text available."}</p>
                     </div>
                   ))}
                   {(entriesByUser[selectedAlert.user_id] || []).length === 0 && (
@@ -724,7 +729,7 @@ export default function AdminDistressAlertsPage() {
               <div className="mt-6 flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4">
                 <button
                   type="button"
-                  className="btn-sm bg-error-red text-white disabled:opacity-60"
+                  className="btn-sm bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
                   disabled={!!actionLoading[`review:${selectedAlert.id}`]}
                   onClick={() => runAlertAction(selectedAlert.id, "review")}
                 >

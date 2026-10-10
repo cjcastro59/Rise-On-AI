@@ -555,32 +555,32 @@ export default function AdminUsersPage() {
       {/* Users Table */}
       <Card className="p-6 bg-slate-100/60 border-slate-200">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="admin-table w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">NAME</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">ROLE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">COUNTRY</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">AGE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">ENTRIES</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">LAST ACTIVE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">AVG MOOD</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">SENTIMENT</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">STATUS</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">ACTIONS</th>
+                <th className="text-left py-4 px-3">NAME</th>
+                <th className="text-left py-4 px-3">ROLE</th>
+                <th className="text-left py-4 px-3">COUNTRY</th>
+                <th className="text-left py-4 px-3">AGE</th>
+                <th className="text-left py-4 px-3">ENTRIES</th>
+                <th className="text-left py-4 px-3">LAST ACTIVE</th>
+                <th className="text-left py-4 px-3">AVG MOOD</th>
+                <th className="text-left py-4 px-3">SENTIMENT</th>
+                <th className="text-left py-4 px-3">STATUS</th>
+                <th className="text-left py-4 px-3">ACTIONS</th>
               </tr>
             </thead>
             <tbody>
               {paginatedUsers.map((user) => (
                 <tr key={user.id} className="border-b border-gray-200 hover:bg-slate-100/60">
                   <td className="py-4 px-3">
-                    <p className="font-poppins text-sm text-dark-text font-medium">{user.fullName}</p>
+                    <p className="font-poppins text-sm font-semibold text-slate-900 hover:text-indigo-600">{user.fullName}</p>
                   </td>
                   <td className="py-4 px-3">
                     {currentUserProfile?.role === "owner" || currentUserProfile?.role === "admin" ? (
                       <>
                         {user.role === "owner" ? (
-                          <span className="px-2 py-1 rounded-full text-xs font-semibold bg-[#F4A6A6]/20 text-[#F4A6A6]">
+                          <span className="px-2.5 py-1 rounded-full border border-amber-200 bg-amber-100 text-xs font-semibold text-amber-900">
                             Owner
                           </span>
                         ) : (
@@ -597,7 +597,7 @@ export default function AdminUsersPage() {
                             {currentUserProfile?.role === "owner" && (
                               <button
                                 onClick={() => handleTransferOwnership(user.id, user.fullName)}
-                                className="px-2 py-1 rounded-full text-xs font-semibold border border-[#F4A6A6] text-[#F4A6A6] hover:bg-[#F4A6A6]/10"
+                                className="rounded-lg border border-amber-600 bg-amber-500 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-amber-600"
                                 title="Transfer Ownership"
                               >
                                 Transfer Ownership
@@ -607,10 +607,10 @@ export default function AdminUsersPage() {
                         )}
                       </>
                     ) : (
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.role === "owner" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" :
-                          user.role === "admin" ? "bg-[#52B788]/20 text-[#52B788]" :
-                            user.role === "counselor" ? "bg-primary-blue/30 text-dark-text/80" :
-                              "bg-gray-100 text-slate-600"
+                      <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${user.role === "owner" ? "border-amber-200 bg-amber-100 text-amber-900" :
+                          user.role === "admin" ? "border-emerald-200 bg-emerald-100 text-emerald-800" :
+                            user.role === "counselor" ? "border-indigo-200 bg-indigo-100 text-indigo-800" :
+                              "border-slate-200 bg-slate-100 text-slate-800"
                         }`}>
                         {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                       </span>
@@ -632,17 +632,17 @@ export default function AdminUsersPage() {
                     <p className="text-sm font-poppins text-dark-text">{user.avgMood}</p>
                   </td>
                   <td className="py-4 px-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.sentiment === "Positive" ? "bg-[#52B788]/20 text-[#52B788]" : user.sentiment === "Neutral" ? "bg-primary-blue/30 text-dark-text/80" : user.sentiment === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : user.sentiment === "Distress" ? "bg-red-100 text-red-600" : "bg-gray-100 text-slate-600"}`}>
+                    <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${user.sentiment === "Positive" ? "border-emerald-200 bg-emerald-100 text-emerald-800" : user.sentiment === "Neutral" ? "border-indigo-200 bg-indigo-100 text-indigo-800" : user.sentiment === "Negative" || user.sentiment === "Distress" ? "border-rose-200 bg-rose-100 text-rose-800" : "border-slate-200 bg-slate-100 text-slate-800"}`}>
                       {user.sentiment}
                     </span>
                   </td>
                   <td className="py-4 px-3">
                     {!user.isAccountActive ? (
-                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-200 text-slate-600">
+                      <span className="px-2.5 py-1 rounded-full border border-slate-300 bg-slate-100 text-xs font-semibold text-slate-800">
                         Deactivated
                       </span>
                     ) : (
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.activityStatus === "Active" ? "bg-[#52B788]/20 text-[#52B788]" : user.activityStatus === "At Risk" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : "bg-gray-100 text-slate-600"}`}>
+                      <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${user.activityStatus === "Active" ? "border-emerald-200 bg-emerald-100 text-emerald-800" : user.activityStatus === "At Risk" ? "border-amber-200 bg-amber-100 text-amber-900" : "border-slate-200 bg-slate-100 text-slate-800"}`}>
                         {user.activityStatus}
                       </span>
                     )}
@@ -652,7 +652,7 @@ export default function AdminUsersPage() {
                       {/* View Button */}
                       <button
                         onClick={() => handleViewUser(user.id)}
-                        className="w-9 h-9 flex items-center justify-center rounded-lg text-primary-blue hover:bg-primary-blue/10 transition-colors"
+                        className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors"
                         title="View User"
                       >
                         <EyeIcon className="w-5 h-5" />
@@ -662,7 +662,7 @@ export default function AdminUsersPage() {
                       {(currentUserProfile?.role === "owner" || currentUserProfile?.role === "admin") && user.id !== currentUser?.id && !(currentUserProfile?.role === "admin" && user.role === "owner") && (
                         <button
                           onClick={() => handleToggleActive(user.id, user.fullName, user.isAccountActive)}
-                          className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-600 hover:bg-gray-100 transition-colors"
+                          className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-200 text-slate-900 hover:bg-slate-300 transition-colors"
                           title={user.isAccountActive ? "Deactivate User" : "Activate User"}
                         >
                           <PowerIcon className="w-5 h-5" />
@@ -673,7 +673,7 @@ export default function AdminUsersPage() {
                       {currentUserProfile?.role === "owner" && user.id !== currentUser?.id && (
                         <button
                           onClick={() => handleDeleteUser(user.id, user.fullName)}
-                          className="w-9 h-9 flex items-center justify-center rounded-lg text-[#F4A6A6] hover:bg-[#F4A6A6]/10 transition-colors"
+                          className="w-9 h-9 flex items-center justify-center rounded-lg bg-rose-600 text-white hover:bg-rose-700 transition-colors"
                           title="Delete User"
                         >
                           <TrashIcon className="w-5 h-5" />

@@ -518,16 +518,16 @@ export default function AdminSentimentMonitoringPage() {
           <div className="text-xs text-[#F4A6A6] font-poppins">{lowConfidenceQueue.length} entries</div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="admin-table w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">ENTRY ID</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">USER ID</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">TIMESTAMP</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">LANGUAGE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">AI SCORE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">CONFIDENCE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">ACTION</th>
+                <th className="text-left py-4 px-3">ENTRY ID</th>
+                <th className="text-left py-4 px-3">USER ID</th>
+                <th className="text-left py-4 px-3">TIMESTAMP</th>
+                <th className="text-left py-4 px-3">LANGUAGE</th>
+                <th className="text-left py-4 px-3">AI SCORE</th>
+                <th className="text-left py-4 px-3">CONFIDENCE</th>
+                <th className="text-left py-4 px-3">ACTION</th>
               </tr>
             </thead>
             <tbody>
@@ -547,32 +547,32 @@ export default function AdminSentimentMonitoringPage() {
                     onClick={() => setSelectedEntry(entry.id === selectedEntry ? null : entry.id)}
                   >
                     <td className="py-4 px-3">
-                      <p className="font-poppins text-sm text-[#A8DADC] font-semibold">{entry.id}</p>
+                      <p className="font-poppins text-sm font-semibold text-slate-900">{entry.id}</p>
                     </td>
                     <td className="py-4 px-3">
-                      <p className="text-sm font-poppins text-dark-text">{entry.userId}</p>
+                      <p className="text-sm font-poppins font-semibold text-slate-900 hover:text-indigo-600">{entry.userId}</p>
                     </td>
                     <td className="py-4 px-3">
                       <p className="text-sm font-inter text-slate-700">{entry.timestamp}</p>
                     </td>
                     <td className="py-4 px-3">
-                      <span className="px-2 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-semibold font-poppins text-dark-text">{entry.language}</span>
+                      <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-semibold font-poppins text-slate-800">{entry.language}</span>
                     </td>
                     <td className="py-4 px-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        entry.aiScore === "Positive" ? "bg-[#52B788]/20 text-[#52B788]" :
-                        entry.aiScore === "Negative" || entry.aiScore === "Distress" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" :
-                        "bg-[#FFE8A1]/30 text-[#FFB700]"
+                      <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${
+                        entry.aiScore === "Positive" ? "border-emerald-200 bg-emerald-100 text-emerald-800" :
+                        entry.aiScore === "Negative" || entry.aiScore === "Distress" ? "border-rose-200 bg-rose-100 text-rose-800" :
+                        "border-amber-200 bg-amber-100 text-amber-900"
                       }`}>{entry.aiScore}</span>
                     </td>
                     <td className="py-4 px-3">
-                      <span className="px-2 py-1 bg-[#FFE8A1]/30 rounded-full text-xs font-semibold font-poppins text-[#FFB700]">{entry.confidence}</span>
+                      <span className="rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-xs font-semibold font-poppins text-amber-900">{entry.confidence}</span>
                     </td>
                     <td className="py-4 px-3">
                       <Link
                         href={`/admin/journal-monitor`}
                         onClick={(e) => e.stopPropagation()}
-                        className="px-3 py-1 bg-[#FFE8A1]/40 border border-[#FFB700]/30 rounded-full text-xs font-semibold font-poppins text-[#FFB700] hover:bg-[#FFE8A1]/60 inline-block"
+                        className="rounded-lg bg-amber-500 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-amber-600 inline-block"
                       >
                         Review
                       </Link>

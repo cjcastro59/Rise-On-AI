@@ -614,7 +614,7 @@ export default function AdminSupportPage() {
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <p className="font-semibold text-sm text-dark-text">
+                      <p className="font-semibold text-sm text-slate-900 hover:text-indigo-600">
                         {(() => {
                           const getFirstName = (name: string | undefined | null) => {
                             if (!name) return "Unknown User";
@@ -625,13 +625,13 @@ export default function AdminSupportPage() {
                       </p>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                         convo.status === "open" 
-                          ? "bg-gradient-to-r from-success-green/20 to-teal-200 text-success-green" 
-                          : "bg-gradient-to-r from-gray-200 to-gray-300 text-slate-600"
+                          ? "border border-emerald-200 bg-emerald-100 text-emerald-800"
+                          : "border border-slate-200 bg-slate-100 text-slate-800"
                       }`}>
                         {convo.status}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-600">
+                    <p className="rounded-lg border border-slate-100 bg-slate-50/80 p-3 text-sm leading-relaxed text-slate-800">
                       {conversationPreviews[convo.id]?.content || "No messages yet."}
                     </p>
                     <p className="mt-1 text-xs text-slate-600">
@@ -671,7 +671,7 @@ export default function AdminSupportPage() {
                       <Button
                         onClick={closeConversation}
                         disabled={closingConversation}
-                        className="bg-gradient-to-r from-soft-red to-pink-400 hover:from-soft-red/90 hover:to-pink-500"
+                        className="bg-rose-600 text-white hover:bg-rose-700"
                       >
                         {closingConversation ? "Closing..." : "Close Conversation"}
                       </Button>

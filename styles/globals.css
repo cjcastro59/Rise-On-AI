@@ -52,23 +52,23 @@ body {
 
   /* Badges */
   .badge {
-    @apply px-2 py-1 rounded-full text-xs font-semibold font-poppins;
+    @apply px-2.5 py-1 rounded-full text-xs font-semibold font-poppins border;
   }
 
   .badge-success {
-    @apply badge bg-success-green/30 text-success-green;
+    @apply badge bg-emerald-100 text-emerald-800 border-emerald-200;
   }
 
   .badge-warning {
-    @apply badge bg-warning-yellow/40 text-[#FFB700];
+    @apply badge bg-amber-100 text-amber-900 border-amber-200;
   }
 
   .badge-error {
-    @apply badge bg-error-red/20 text-error-red;
+    @apply badge bg-rose-50 text-rose-900 border-rose-200;
   }
 
   .badge-info {
-    @apply badge bg-primary-blue/20 text-primary-blue;
+    @apply badge bg-indigo-100 text-indigo-800 border-indigo-200;
   }
 
   /* Buttons */
@@ -81,7 +81,7 @@ body {
   }
 
   .btn-sm {
-    @apply px-3 py-1 rounded-full text-xs font-semibold font-poppins;
+    @apply px-3.5 py-1.5 rounded-lg text-xs font-medium font-poppins shadow-sm transition-all duration-200;
   }
 
   /* Toggle Switch */
@@ -99,11 +99,11 @@ body {
   }
 
   .admin-table th {
-    @apply text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider;
+    @apply text-left py-4 px-3 pb-2 text-xs font-bold text-slate-700 font-poppins uppercase tracking-wider border-b border-slate-200;
   }
 
   .admin-table tr {
-    @apply border-b border-gray-100 hover:bg-gray-50 transition-colors;
+    @apply border-b border-slate-200 hover:bg-slate-50 transition-colors;
   }
 
   .admin-table td {
