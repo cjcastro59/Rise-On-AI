@@ -56,7 +56,7 @@ function DauTooltip({ active, payload }: TooltipContentProps) {
   const point = payload[0].payload as DauPoint;
   return (
     <div className="rounded-lg bg-white px-3 py-2 shadow-md border border-light-gray">
-      <p className="text-xs font-poppins text-dark-text/70">{point.fullDate}</p>
+      <p className="text-xs font-poppins text-slate-700">{point.fullDate}</p>
       <p className="text-sm font-poppins text-dark-text font-semibold">{point.count} Active User{point.count === 1 ? "" : "s"}</p>
     </div>
   );
@@ -608,10 +608,10 @@ export default function AdminDashboardPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white/80 px-6 py-5 shadow-sm border border-white/40 backdrop-blur-md">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Dashboard Overview</h1>
-          <p className="text-sm text-dark-text/70 font-poppins">
+          <p className="text-sm text-slate-700 font-poppins">
             {currentDate} - {firstUserDate ? `First user registered: ${formatFullDate(new Date(firstUserDate))}` : "No users yet"}
           </p>
-          <span className="mt-2 inline-flex rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-[10px] font-poppins font-semibold uppercase tracking-wide text-purple-700">
+          <span className="mt-2 inline-flex rounded-full border border-amber-200 bg-amber-50/50 px-2.5 py-1 text-xs font-poppins font-semibold uppercase tracking-wide text-amber-800">
             Admin / Owner Operations
           </span>
         </div>
@@ -635,7 +635,7 @@ export default function AdminDashboardPage() {
             >
               <Image src="/icons/notifications.svg" alt="" width={18} height={18} className="object-contain" />
               {notifications.length > 0 && (
-                <span className="absolute -right-1 -top-1 rounded-full bg-[#F4A6A6] px-1.5 py-0.5 text-[10px] font-bold text-[#1E293B]">
+                <span className="absolute -right-1 -top-1 rounded-full bg-[#F4A6A6] px-1.5 py-0.5 text-xs font-bold text-[#1E293B]">
                   {notifications.length}
                 </span>
               )}
@@ -647,7 +647,7 @@ export default function AdminDashboardPage() {
                 </div>
                 <div className="max-h-80 overflow-y-auto">
                   {notifications.length === 0 ? (
-                    <p className="px-4 py-6 text-center text-sm font-inter text-dark-text/50">
+                    <p className="px-4 py-6 text-center text-sm font-inter text-slate-600">
                       No new notifications.
                     </p>
                   ) : (
@@ -664,8 +664,8 @@ export default function AdminDashboardPage() {
                           }`} />
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-semibold font-poppins text-dark-text">{notification.title}</p>
-                            <p className="mt-1 line-clamp-2 text-xs font-inter text-dark-text/70">{notification.message}</p>
-                            <p className="mt-1 text-[11px] font-inter text-dark-text/40">{formatTime(notification.created_at)}</p>
+                            <p className="mt-1 line-clamp-2 text-xs font-inter text-slate-700">{notification.message}</p>
+                            <p className="mt-1 text-xs font-inter text-slate-600">{formatTime(notification.created_at)}</p>
                           </div>
                         </div>
                       </Link>
@@ -680,20 +680,20 @@ export default function AdminDashboardPage() {
 
       <Card variant="white" className="p-5 bg-white/80 border border-white/40 shadow-sm backdrop-blur-md">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-xs font-poppins text-dark-text/70 uppercase tracking-wider">Announcements</p>
-          <span className="rounded-full border border-purple-200 bg-purple-50 px-2 py-1 text-[10px] font-semibold text-purple-700">
+          <p className="text-xs font-poppins text-slate-700 uppercase tracking-wider">Announcements</p>
+          <span className="rounded-full border border-purple-200 bg-purple-50 px-2 py-1 text-xs font-semibold text-purple-700">
             Live
           </span>
         </div>
         <div className="space-y-3">
           {announcements.length === 0 ? (
-            <p className="text-sm font-inter text-dark-text/60">No active announcements.</p>
+            <p className="text-sm font-inter text-slate-600">No active announcements.</p>
           ) : (
             announcements.map((announcement) => (
-              <div key={announcement.id} className="rounded-xl border border-purple-100 bg-purple-50/50 p-3">
+              <div key={announcement.id} className="rounded-xl border border-amber-200 bg-amber-50/50 p-3">
                 <p className="text-sm font-semibold font-poppins text-dark-text">{announcement.title}</p>
-                <p className="mt-1 line-clamp-2 text-xs font-inter text-dark-text/65">{announcement.content}</p>
-                <p className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-[11px] font-inter text-dark-text/60">{formatTime(announcement.created_at)}</p>
+                <p className="mt-1 line-clamp-2 text-xs font-inter text-slate-700">{announcement.content}</p>
+                <p className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-xs font-inter text-slate-600">{formatTime(announcement.created_at)}</p>
               </div>
             ))
           )}
@@ -709,12 +709,12 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 rounded-2xl border border-purple-100 bg-purple-50/20 p-3">
-        <Card variant="white" className="stat-card border-l-4 border-l-primary-blue">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 rounded-2xl border border-slate-200 bg-slate-100/60 p-3">
+        <Card variant="white" className="stat-card border-l-4 border-l-primary-blue bg-slate-100/60">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-primary-blue/20">👥</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">TOTAL USERS</p>
+              <p className="text-xs text-slate-600 font-poppins">TOTAL USERS</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.totalUsers}</p>
               <p className="text-xs text-success-green font-poppins">Live from user profiles</p>
             </div>
@@ -722,11 +722,11 @@ export default function AdminDashboardPage() {
           <div className="stat-card-pill bg-gradient-to-r from-primary-blue to-teal" />
         </Card>
 
-        <Card variant="white" className="stat-card border-l-4 border-l-success-green">
+        <Card variant="white" className="stat-card border-l-4 border-l-success-green bg-slate-100/60">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-success-green/20">📝</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">TOTAL ENTRIES</p>
+              <p className="text-xs text-slate-600 font-poppins">TOTAL ENTRIES</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.totalEntries}</p>
               <p className="text-xs text-success-green font-poppins">Live from journal entries</p>
             </div>
@@ -734,23 +734,23 @@ export default function AdminDashboardPage() {
           <div className="stat-card-pill bg-gradient-to-r from-green-400 to-emerald-300" />
         </Card>
 
-        <Card variant="white" className="stat-card border-l-4 border-l-warning-yellow">
+        <Card variant="white" className="stat-card border-l-4 border-l-warning-yellow bg-slate-100/60">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-warning-yellow/30">💖</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">AVG POSITIVE RATE</p>
+              <p className="text-xs text-slate-600 font-poppins">AVG POSITIVE RATE</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : `${stats.positiveRate}%`}</p>
-              <p className="text-xs text-dark-text/60 font-poppins">Based on current journal mood/text</p>
+              <p className="text-xs text-slate-600 font-poppins">Based on current journal mood/text</p>
             </div>
           </div>
           <div className="stat-card-pill bg-gradient-to-r from-yellow-400 to-orange-300" />
         </Card>
 
-        <Card variant="white" className="stat-card border-l-4 border-l-error-red">
+        <Card variant="white" className="stat-card border-l-4 border-l-error-red bg-slate-100/60">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-error-red/30">🚨</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">TOTAL DISTRESS LOGS</p>
+              <p className="text-xs text-slate-600 font-poppins">TOTAL DISTRESS LOGS</p>
               <p className="text-2xl font-dm-serif text-error-red">{loading ? "—" : stats.totalDistressLogs}</p>
               <p className="text-xs text-error-red font-poppins">Live from distress logs</p>
             </div>
@@ -758,11 +758,11 @@ export default function AdminDashboardPage() {
           <div className="stat-card-pill bg-gradient-to-r from-red-400 to-pink-300" />
         </Card>
 
-        <Card variant="white" className="stat-card border-l-4 border-l-lavender">
+        <Card variant="white" className="stat-card border-l-4 border-l-lavender bg-slate-100/60">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-lavender/20">👤</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">NEW USERS TODAY</p>
+              <p className="text-xs text-slate-600 font-poppins">NEW USERS TODAY</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.newUsersToday}</p>
               <p className="text-xs text-success-green font-poppins">Live from user profiles</p>
             </div>
@@ -778,7 +778,7 @@ export default function AdminDashboardPage() {
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📈</div>
               <div>
-                <p className="text-xs font-poppins text-dark-text/70">
+                <p className="text-xs font-poppins text-slate-700">
                 DAILY ACTIVE USERS — {dauPeriod === "month" ? new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "LAST 7 DAYS"}
               </p>
               </div>
@@ -786,12 +786,12 @@ export default function AdminDashboardPage() {
             <div className="flex gap-2">
               <button 
                 onClick={() => setDauPeriod("week")}
-                className={`px-3 py-1 rounded-lg text-xs font-poppins ${dauPeriod === "week" ? "bg-[#A8DADC]/30 text-dark-text" : "bg-gray-100 text-dark-text/60"}`}>
+                className={`px-3 py-1 rounded-lg text-xs font-poppins ${dauPeriod === "week" ? "bg-[#A8DADC]/30 text-dark-text" : "bg-gray-100 text-slate-600"}`}>
                 Week
               </button>
               <button 
                 onClick={() => setDauPeriod("month")}
-                className={`px-3 py-1 rounded-lg text-xs font-poppins ${dauPeriod === "month" ? "bg-[#A8DADC]/30 text-dark-text" : "bg-gray-100 text-dark-text/60"}`}>
+                className={`px-3 py-1 rounded-lg text-xs font-poppins ${dauPeriod === "month" ? "bg-[#A8DADC]/30 text-dark-text" : "bg-gray-100 text-slate-600"}`}>
                 Month
               </button>
             </div>
@@ -799,19 +799,19 @@ export default function AdminDashboardPage() {
           {/* DAU Summary Row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
             <div className="bg-light-gray/30 rounded-lg px-3 py-2">
-              <p className="text-[10px] font-poppins text-dark-text/60 uppercase tracking-wide">Today</p>
+              <p className="text-xs font-poppins text-slate-600 uppercase tracking-wide">Today</p>
               <p className="text-sm font-dm-serif text-dark-text">{loading ? "—" : dauSummary.today}</p>
             </div>
             <div className="bg-light-gray/30 rounded-lg px-3 py-2">
-              <p className="text-[10px] font-poppins text-dark-text/60 uppercase tracking-wide">Yesterday</p>
+              <p className="text-xs font-poppins text-slate-600 uppercase tracking-wide">Yesterday</p>
               <p className="text-sm font-dm-serif text-dark-text">{loading ? "—" : dauSummary.yesterday}</p>
             </div>
             <div className="bg-light-gray/30 rounded-lg px-3 py-2">
-              <p className="text-[10px] font-poppins text-dark-text/60 uppercase tracking-wide">Weekly Avg</p>
+              <p className="text-xs font-poppins text-slate-600 uppercase tracking-wide">Weekly Avg</p>
               <p className="text-sm font-dm-serif text-dark-text">{loading ? "—" : dauSummary.weeklyAvg}</p>
             </div>
             <div className="bg-light-gray/30 rounded-lg px-3 py-2">
-              <p className="text-[10px] font-poppins text-dark-text/60 uppercase tracking-wide">Peak Day</p>
+              <p className="text-xs font-poppins text-slate-600 uppercase tracking-wide">Peak Day</p>
               <p className="text-sm font-dm-serif text-dark-text truncate">
                 {loading ? "—" : dauSummary.peakCount > 0 ? `${dauSummary.peakDate} (${dauSummary.peakCount})` : "—"}
               </p>
@@ -863,7 +863,7 @@ export default function AdminDashboardPage() {
                 </ResponsiveContainer>
                 {!dauHasActivity && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <p className="text-sm text-dark-text/70 font-poppins bg-white/85 px-3 py-1 rounded-full">
+                    <p className="text-sm text-slate-700 font-poppins bg-white/85 px-3 py-1 rounded-full">
                       No activity data available.
                     </p>
                   </div>
@@ -871,7 +871,7 @@ export default function AdminDashboardPage() {
               </>
             ) : (
               <div className="flex items-center justify-center w-full h-full">
-                <p className="text-sm text-dark-text/70 font-poppins">No activity data available.</p>
+                <p className="text-sm text-slate-700 font-poppins">No activity data available.</p>
               </div>
             )}
           </div>
@@ -881,7 +881,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">📊</div>
             <div>
-                <p className="text-xs font-poppins text-dark-text/70">PLATFORM MOOD DISTRIBUTION</p>
+                <p className="text-xs font-poppins text-slate-700">PLATFORM MOOD DISTRIBUTION</p>
               </div>
           </div>
           <div className="flex items-center gap-8">
@@ -945,7 +945,7 @@ export default function AdminDashboardPage() {
                       return total ? `${Math.round((moodDistribution.positive / total) * 100)}%` : "0%";
                     })()}
                   </p>
-                  <p className="text-xs text-dark-text/70 font-poppins">Positive</p>
+                  <p className="text-xs text-slate-700 font-poppins">Positive</p>
                 </div>
               </div>
             </div>
@@ -984,20 +984,20 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center">🚨</div>
-              <p className="text-xs font-poppins text-dark-text/70">RECENT DISTRESS ALERTS</p>
+              <p className="text-xs font-poppins text-slate-700">RECENT DISTRESS ALERTS</p>
             </div>
             <Link href="/admin/distress-alerts" className="text-xs font-poppins text-[#A8DADC] hover:underline">View All →</Link>
           </div>
           <div className="space-y-3">
             {loading ? (
-              <p className="text-sm text-dark-text/70 font-inter">Loading alerts…</p>
+              <p className="text-sm text-slate-700 font-inter">Loading alerts…</p>
             ) : recentAlerts.length === 0 ? (
-              <p className="text-sm text-dark-text/70 font-inter">No distress alerts found yet.</p>
+              <p className="text-sm text-slate-700 font-inter">No distress alerts found yet.</p>
             ) : recentAlerts.map((alert, index) => (
               <div key={alert.id || index} className="p-3 bg-[#F4A6A6]/10 rounded-xl border border-[#F4A6A6]/30 flex justify-between items-center">
                 <div>
                   <p className="text-sm font-semibold font-poppins text-dark-text">{alert.trigger || "Distress alert"}</p>
-                  <p className="text-xs text-dark-text/70 font-inter">{alert.notes || alert.severity || "Recent alert"} • {formatTime(alert.created_at)}</p>
+                  <p className="text-xs text-slate-700 font-inter">{alert.notes || alert.severity || "Recent alert"} • {formatTime(alert.created_at)}</p>
                 </div>
                 <Link href="/admin/distress-alerts" className="px-3 py-1 bg-[#F4A6A6]/30 text-[#F4A6A6] rounded-full text-xs font-semibold font-poppins">Review</Link>
               </div>
@@ -1010,27 +1010,27 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📝</div>
-              <p className="text-xs font-poppins text-dark-text/70">RECENT JOURNAL ENTRIES</p>
+              <p className="text-xs font-poppins text-slate-700">RECENT JOURNAL ENTRIES</p>
             </div>
             <Link href="/admin/journal-monitor" className="text-xs font-poppins text-[#A8DADC] hover:underline">View All →</Link>
           </div>
           <div className="space-y-3">
             {loading ? (
-              <p className="text-sm text-dark-text/70 font-inter">Loading entries...</p>
+              <p className="text-sm text-slate-700 font-inter">Loading entries...</p>
             ) : recentEntries.length === 0 ? (
-              <p className="text-sm text-dark-text/70 font-inter">No journal entries found yet.</p>
+              <p className="text-sm text-slate-700 font-inter">No journal entries found yet.</p>
             ) : (
               recentEntries.map((entry) => (
-                <div key={entry.id} className="rounded-xl border border-gray-100 bg-light-gray/30 p-3">
+                <div key={entry.id} className="rounded-xl border border-slate-200 bg-slate-100/60 p-3">
                   <div className="mb-2 flex items-center justify-between gap-3">
                     <p className="truncate font-mono text-sm font-semibold text-[#A8DADC]">
                       {formatDisplayId(entry.id, "entry", displayIdFormat)}
                     </p>
-                    <span className="whitespace-nowrap text-[11px] font-inter text-dark-text/45">
+                    <span className="whitespace-nowrap text-xs font-inter text-slate-600">
                       {formatTime(entry.created_at)}
                     </span>
                   </div>
-                  <p className="text-xs font-inter text-dark-text/60">
+                  <p className="text-xs font-inter text-slate-600">
                     User {formatDisplayId(entry.user_id, "user", displayIdFormat)}
                   </p>
                   <p className="mt-1 line-clamp-1 text-sm font-poppins text-dark-text">
@@ -1047,7 +1047,7 @@ export default function AdminDashboardPage() {
           <Card variant="white" className="p-5">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-[#52B788]/20 rounded-lg flex items-center justify-center">⚙️</div>
-              <p className="text-xs font-poppins text-dark-text/70">PLATFORM OVERVIEW</p>
+              <p className="text-xs font-poppins text-slate-700">PLATFORM OVERVIEW</p>
             </div>
             <div className="space-y-3">
               {/* Row 1: Total users registered */}
@@ -1057,7 +1057,7 @@ export default function AdminDashboardPage() {
                   <span className="text-sm font-poppins text-dark-text">Registered Users</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-dark-text/70 font-inter">{loading ? "…" : (stats.totalUsers || 0).toLocaleString()}</span>
+                  <span className="text-xs text-slate-700 font-inter">{loading ? "…" : (stats.totalUsers || 0).toLocaleString()}</span>
                   <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-[#52B788] to-[#A8DADC]" style={{ width: "100%" }}></div>
                   </div>
@@ -1070,7 +1070,7 @@ export default function AdminDashboardPage() {
                   <span className="text-sm font-poppins text-dark-text">Journal Entries</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-dark-text/70 font-inter">{loading ? "…" : (stats.totalEntries || 0).toLocaleString()}</span>
+                  <span className="text-xs text-slate-700 font-inter">{loading ? "…" : (stats.totalEntries || 0).toLocaleString()}</span>
                   <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB]" style={{ width: "100%" }}></div>
                   </div>
@@ -1083,7 +1083,7 @@ export default function AdminDashboardPage() {
                   <span className="text-sm font-poppins text-dark-text">Positive Rate</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-dark-text/70 font-inter">{loading ? "…" : `${stats.positiveRate ?? 0}%`}</span>
+                  <span className="text-xs text-slate-700 font-inter">{loading ? "…" : `${stats.positiveRate ?? 0}%`}</span>
                   <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-[#52B788] to-[#B7E4C7]"
@@ -1099,7 +1099,7 @@ export default function AdminDashboardPage() {
                   <span className="text-sm font-poppins text-dark-text">Distress Logs</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-dark-text/70 font-inter">{loading ? "…" : (stats.totalDistressLogs || 0).toLocaleString()}</span>
+                  <span className="text-xs text-slate-700 font-inter">{loading ? "…" : (stats.totalDistressLogs || 0).toLocaleString()}</span>
                   <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-[#F4A6A6] to-[#FFB700]"
@@ -1116,16 +1116,16 @@ export default function AdminDashboardPage() {
           </Card>
 
           <Card variant="white" className="p-5">
-            <p className="text-xs font-poppins text-dark-text/70 mb-3">RECENT ADMIN ACTIVITY</p>
+            <p className="text-xs font-poppins text-slate-700 mb-3">RECENT ADMIN ACTIVITY</p>
             <div className="space-y-3">
               {loading ? (
-                <p className="text-sm text-dark-text/70 font-inter">Loading activity…</p>
+                <p className="text-sm text-slate-700 font-inter">Loading activity…</p>
               ) : recentActivity.length === 0 ? (
-                <p className="text-sm text-dark-text/70 font-inter">No admin activity recorded yet.</p>
+                <p className="text-sm text-slate-700 font-inter">No admin activity recorded yet.</p>
               ) : recentActivity.map((item) => (
                 <div key={item.id} className="flex justify-between items-center text-xs gap-2">
                   <p className="font-poppins text-dark-text flex-1">{item.action || item.details || "Admin activity"}</p>
-                  <p className="text-dark-text/70 font-inter whitespace-nowrap">{formatTime(item.created_at)}</p>
+                  <p className="text-slate-700 font-inter whitespace-nowrap">{formatTime(item.created_at)}</p>
                 </div>
               ))}
             </div>
@@ -1147,7 +1147,7 @@ export default function AdminDashboardPage() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-poppins text-dark-text/70">Title</label>
+                <label className="text-xs font-poppins text-slate-700">Title</label>
                 <input 
                   type="text"
                   value={announcementTitle}
@@ -1157,7 +1157,7 @@ export default function AdminDashboardPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-poppins text-dark-text/70">Content</label>
+                <label className="text-xs font-poppins text-slate-700">Content</label>
                 <textarea 
                   value={announcementContent}
                   onChange={(e) => setAnnouncementContent(e.target.value)}

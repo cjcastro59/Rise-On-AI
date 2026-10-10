@@ -188,7 +188,7 @@ export default function CounselorProfilePage() {
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#A8DADC] mx-auto mb-4"></div>
-          <p className="text-dark-text/60 font-poppins">Loading profile...</p>
+          <p className="text-slate-600 font-poppins">Loading profile...</p>
         </div>
       </div>
     );
@@ -254,7 +254,7 @@ export default function CounselorProfilePage() {
               <h1 className="text-2xl font-dm-serif text-dark-text">
                 {profile.first_name || "Counselor"} {profile.last_name || ""}
               </h1>
-              <p className="text-sm text-dark-text/60 font-poppins">
+              <p className="text-sm text-slate-600 font-poppins">
                 @{profile.username || "counselor"} • {profile.country || "Not set"}
               </p>
               <div className="flex gap-4 mt-2">
@@ -264,7 +264,7 @@ export default function CounselorProfilePage() {
                 <span className="px-3 py-1 bg-lavender/30 rounded-full text-xs font-poppins text-dark-text">
                   👤 {stats.activeUsers} users
                 </span>
-                <span className={`px-3 py-1 rounded-full text-xs font-poppins ${profile.is_online ? "bg-green-500/20 text-green-600" : "bg-light-gray text-dark-text/60"}`}>
+                <span className={`px-3 py-1 rounded-full text-xs font-poppins ${profile.is_online ? "bg-green-500/20 text-green-600" : "bg-light-gray text-slate-600"}`}>
                   {profile.is_online ? "🟢 Online" : "⚪ Offline"}
                 </span>
               </div>
@@ -291,14 +291,14 @@ export default function CounselorProfilePage() {
       {/* Personal Information */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card variant="white" className="p-6">
-          <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
+          <h3 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4 flex items-center gap-2">
             <span>👤</span>
             Personal Information
           </h3>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">First Name</label>
+                <label className="text-xs font-poppins text-slate-600">First Name</label>
                 {isEditing ? (
                   <input
                     type="text"
@@ -313,7 +313,7 @@ export default function CounselorProfilePage() {
                 )}
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">Last Name</label>
+                <label className="text-xs font-poppins text-slate-600">Last Name</label>
                 {isEditing ? (
                   <input
                     type="text"
@@ -331,7 +331,7 @@ export default function CounselorProfilePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">Age</label>
+                <label className="text-xs font-poppins text-slate-600">Age</label>
                 {isEditing ? (
                   <input
                     type="number"
@@ -346,7 +346,7 @@ export default function CounselorProfilePage() {
                 )}
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">Sex</label>
+                <label className="text-xs font-poppins text-slate-600">Sex</label>
                 {isEditing ? (
                   <select
                     value={profile.sex || ""}
@@ -366,7 +366,7 @@ export default function CounselorProfilePage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Country</label>
+              <label className="text-xs font-poppins text-slate-600">Country</label>
               {isEditing ? (
                 <select
                   value={profile.country || ""}
@@ -386,7 +386,7 @@ export default function CounselorProfilePage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Username</label>
+              <label className="text-xs font-poppins text-slate-600">Username</label>
               {isEditing ? (
                 <input
                   type="text"
@@ -402,14 +402,14 @@ export default function CounselorProfilePage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Email Address</label>
-              <div className="px-3 py-2 bg-light-gray/30 rounded-lg text-sm font-inter text-dark-text/70">
+              <label className="text-xs font-poppins text-slate-600">Email Address</label>
+              <div className="px-3 py-2 bg-light-gray/30 rounded-lg text-sm font-inter text-slate-700">
                 {profile.email || currentUser?.email}
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Bio / About Me</label>
+              <label className="text-xs font-poppins text-slate-600">Bio / About Me</label>
               {isEditing ? (
                 <textarea
                   value={profile.bio || ""}
@@ -428,22 +428,22 @@ export default function CounselorProfilePage() {
 
         {/* Counselor Stats */}
         <Card variant="white" className="p-6">
-          <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
+          <h3 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4 flex items-center gap-2">
             <span>📊</span>
             Counselor Stats
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-primary-blue/10 p-4 rounded-xl text-center">
               <div className="text-2xl font-dm-serif text-dark-text">{stats.totalCases}</div>
-              <div className="text-xs font-poppins text-dark-text/60 uppercase">Total Cases</div>
+              <div className="text-xs font-poppins text-slate-600 uppercase">Total Cases</div>
             </div>
             <div className="bg-lavender/30 p-4 rounded-xl text-center">
               <div className="text-2xl font-dm-serif text-dark-text">{stats.activeUsers}</div>
-              <div className="text-xs font-poppins text-dark-text/60 uppercase">Assigned Users</div>
+              <div className="text-xs font-poppins text-slate-600 uppercase">Assigned Users</div>
             </div>
             <div className="bg-light-gray/50 p-4 rounded-xl text-center col-span-2">
               <div className="text-xl font-dm-serif text-dark-text">{formatJoinDate(profile.created_at)}</div>
-              <div className="text-xs font-poppins text-dark-text/60 uppercase">Counselor Since</div>
+              <div className="text-xs font-poppins text-slate-600 uppercase">Counselor Since</div>
             </div>
           </div>
         </Card>

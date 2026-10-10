@@ -215,7 +215,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-dark-text/70">Loading your dashboard...</p>
+        <p className="text-slate-700">Loading your dashboard...</p>
       </div>
     );
   }
@@ -227,9 +227,9 @@ export default function DashboardPage() {
         <div className="hidden w-24 sm:block" aria-hidden="true" />
         <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 sm:gap-x-6">
           <Link href="/dashboard" className="text-dark-text text-sm font-poppins font-semibold">Home</Link>
-          <Link href="/journal" className="text-dark-text/60 text-sm font-poppins font-medium hover:text-primary-blue">Journal</Link>
-          <Link href="/insights" className="text-dark-text/60 text-sm font-poppins font-medium hover:text-primary-blue">Insights</Link>
-          <Link href="/journal/history" className="text-dark-text/60 text-sm font-poppins font-medium hover:text-primary-blue">History</Link>
+          <Link href="/journal" className="text-slate-600 text-sm font-poppins font-medium hover:text-primary-blue">Journal</Link>
+          <Link href="/insights" className="text-slate-600 text-sm font-poppins font-medium hover:text-primary-blue">Insights</Link>
+          <Link href="/journal/history" className="text-slate-600 text-sm font-poppins font-medium hover:text-primary-blue">History</Link>
         </nav>
         <div className="flex items-center justify-center sm:justify-end">
           <Link href="/support" className="flex items-center gap-2 rounded-full bg-pink-100 px-3 py-1.5 text-xs font-poppins font-semibold text-pink-600 transition-all duration-200 hover:bg-pink-200 hover:shadow-md active:scale-95">
@@ -278,7 +278,7 @@ export default function DashboardPage() {
         <Card className="p-4 sm:p-5 bg-white/80 backdrop-blur-md border border-white/40 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-dark-text/60 text-xs font-poppins mb-1">Streak</p>
+              <p className="text-slate-600 text-xs font-poppins mb-1">Streak</p>
               <p className="text-2xl font-dm-serif text-dark-text">{stats.streak}</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-warning-yellow/30 rounded-xl flex items-center justify-center">
@@ -289,7 +289,7 @@ export default function DashboardPage() {
         <Card className="p-4 sm:p-5 bg-white/80 backdrop-blur-md border border-white/40 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-dark-text/60 text-xs font-poppins mb-1">Total Entries</p>
+              <p className="text-slate-600 text-xs font-poppins mb-1">Total Entries</p>
               <p className="text-2xl font-dm-serif text-dark-text">{stats.totalEntries}</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary-blue/30 rounded-xl flex items-center justify-center">
@@ -300,7 +300,7 @@ export default function DashboardPage() {
         <Card className="p-4 sm:p-5 bg-white/80 backdrop-blur-md border border-white/40 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-dark-text/60 text-xs font-poppins mb-1">Avg. Mood Score</p>
+              <p className="text-slate-600 text-xs font-poppins mb-1">Avg. Mood Score</p>
               <p className="text-2xl font-dm-serif text-dark-text">{stats.avgMoodScore}</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-lavender/30 rounded-xl flex items-center justify-center">
@@ -311,7 +311,7 @@ export default function DashboardPage() {
         <Card className="p-4 sm:p-5 bg-white/80 backdrop-blur-md border border-white/40 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-dark-text/60 text-xs font-poppins mb-1">Positivity This Week</p>
+              <p className="text-slate-600 text-xs font-poppins mb-1">Positivity This Week</p>
               <p className="text-2xl font-dm-serif text-dark-text">{stats.positivityThisWeek}%</p>
             </div>
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-success-green/30 rounded-xl flex items-center justify-center">
@@ -328,14 +328,14 @@ export default function DashboardPage() {
       >
         <Card className="px-6 py-4 bg-white/80 backdrop-blur-md transition-all" variant="white">
           {wellnessLoading ? (
-            <p className="text-xs text-dark-text/50 py-1">Loading wellness data…</p>
+            <p className="text-xs text-slate-600 py-1">Loading wellness data…</p>
           ) : !wellnessLatest || wellnessLatest.wellness_score === null ? (
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div>
-                <p className="text-xs font-poppins font-semibold text-dark-text/70 uppercase tracking-wider mb-0.5">
+                <p className="text-xs font-poppins font-semibold text-slate-700 uppercase tracking-wider mb-0.5">
                   Wellness Assessment
                 </p>
-                <p className="text-sm text-dark-text/60 font-inter">
+                <p className="text-sm text-slate-600 font-inter">
                   No data yet — write your first journal entry to get your Wellness Score.
                 </p>
               </div>
@@ -360,11 +360,11 @@ export default function DashboardPage() {
                   <span className="text-xl leading-none">
                     {wellnessLatest.wellness_score!.toFixed(1)}
                   </span>
-                  <span className="text-[9px] font-normal opacity-70 leading-none mt-0.5">/10</span>
+                  <span className="text-xs font-normal opacity-70 leading-none mt-0.5">/10</span>
                 </div>
                 {/* Label */}
                 <div>
-                  <p className="text-[10px] font-poppins font-semibold uppercase tracking-wider text-dark-text/50 mb-0.5">
+                  <p className="text-xs font-poppins font-semibold uppercase tracking-wider text-slate-600 mb-0.5">
                     Wellness Assessment
                   </p>
                   <p
@@ -373,7 +373,7 @@ export default function DashboardPage() {
                   >
                     {wellnessCfg!.emoji} {wellnessLatest.wellness_level}
                   </p>
-                  <p className="text-xs text-dark-text/60 font-inter mt-0.5 max-w-xs">
+                  <p className="text-xs text-slate-600 font-inter mt-0.5 max-w-xs">
                     {wellnessCfg!.description}
                   </p>
                 </div>
@@ -386,7 +386,7 @@ export default function DashboardPage() {
                     points={sparklinePoints}
                     color={wellnessCfg!.color}
                   />
-                  <span className="text-[10px] text-dark-text/40 font-inter">
+                  <span className="text-xs text-slate-600 font-inter">
                     Last {sparklinePoints.length} updates
                   </span>
                 </div>
@@ -394,10 +394,10 @@ export default function DashboardPage() {
 
               {/* Right: metadata + link */}
               <div className="flex flex-col items-end gap-1.5 ml-auto">
-                <p className="text-[10px] text-dark-text/40 font-inter">
+                <p className="text-xs text-slate-600 font-inter">
                   {wellnessLatest.entries_analyzed} entries · last 30 days
                 </p>
-                <p className="text-[10px] text-dark-text/40 font-inter">
+                <p className="text-xs text-slate-600 font-inter">
                   Updated {new Date(wellnessLatest.updated_at).toLocaleDateString("en-US", {
                     month: "short", day: "numeric",
                   })}
@@ -418,14 +418,14 @@ export default function DashboardPage() {
         <Card className="p-6 bg-white/80 backdrop-blur-md border border-white/40 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-poppins font-semibold text-dark-text">Today&apos;s Journal</h3>
-            <span className="text-xs font-poppins text-dark-text/60">Tap to open</span>
+            <span className="text-xs font-poppins text-slate-600">Tap to open</span>
           </div>
 
           {todayEntryPreview ? (
             <button
               type="button"
               onClick={() => router.push(`/journal/${todayEntryPreview.id}`)}
-              className="w-full text-left rounded-xl border border-light-gray bg-light-gray/40 p-4 transition-all hover:border-primary-blue/40 hover:bg-primary-blue/10"
+              className="w-full text-left rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 transition-all hover:border-emerald-300 hover:bg-emerald-50"
             >
               <div className="flex items-center justify-between gap-3 mb-3">
                 <p className="text-sm font-poppins font-semibold text-dark-text">
@@ -437,7 +437,7 @@ export default function DashboardPage() {
                   </span>
                 )}
               </div>
-              <p className="text-sm font-inter text-dark-text/70 leading-relaxed whitespace-pre-wrap line-clamp-5">
+              <p className="text-sm font-inter text-slate-700 leading-relaxed whitespace-pre-wrap line-clamp-5">
                 {todayEntryPreview.content?.trim() || "Open this entry to read or continue writing."}
               </p>
               <p className="mt-3 text-xs font-poppins text-primary-blue">Open entry →</p>
@@ -445,7 +445,7 @@ export default function DashboardPage() {
           ) : (
             <div className="rounded-xl border border-dashed border-light-gray bg-light-gray/40 p-6 text-center">
               <p className="text-sm font-poppins font-semibold text-dark-text">No entries made yet today</p>
-              <p className="mt-2 text-sm font-inter text-dark-text/70">Choose an emotion to start a new journal entry.</p>
+              <p className="mt-2 text-sm font-inter text-slate-700">Choose an emotion to start a new journal entry.</p>
             </div>
           )}
         </Card>
@@ -475,28 +475,28 @@ export default function DashboardPage() {
               <Image src="/icons/new-entry.svg" alt="Write New Entry" width={20} height={20} className="object-contain" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">Write New Entry</p>
-                <p className="text-xs text-dark-text/60 font-inter">Express your thoughts freely</p>
+                <p className="text-xs text-slate-600 font-inter">Express your thoughts freely</p>
               </div>
             </Link>
             <Link href="/journal/history" className="flex items-center gap-3 p-3 bg-sky-50/70 rounded-xl border border-sky-100 hover:bg-sky-50 hover:-translate-y-0.5 hover:shadow-md active:scale-95 transition-all duration-200">
               <Image src="/icons/journal.svg" alt="View History" width={20} height={20} className="object-contain" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">View History</p>
-                <p className="text-xs text-dark-text/60 font-inter">See your past entries</p>
+                <p className="text-xs text-slate-600 font-inter">See your past entries</p>
               </div>
             </Link>
             <Link href="/insights" className="flex items-center gap-3 p-3 bg-violet-50/70 rounded-xl border border-violet-100 hover:bg-violet-50 hover:-translate-y-0.5 hover:shadow-md active:scale-95 transition-all duration-200">
               <Image src="/icons/mood-insights.svg" alt="View Insights" width={20} height={20} className="object-contain" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">View Insights</p>
-                <p className="text-xs text-dark-text/60 font-inter">Analyze your mood trends</p>
+                <p className="text-xs text-slate-600 font-inter">Analyze your mood trends</p>
               </div>
             </Link>
             <Link href="/mood-trends" className="flex items-center gap-3 p-3 bg-amber-50/70 rounded-xl border border-amber-100 hover:bg-amber-50 hover:-translate-y-0.5 hover:shadow-md active:scale-95 transition-all duration-200">
               <Image src="/icons/trends.svg" alt="Mood Trends" width={20} height={20} className="object-contain" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">Mood Trends</p>
-                <p className="text-xs text-dark-text/60 font-inter">Charts: distribution, wellness, risk</p>
+                <p className="text-xs text-slate-600 font-inter">Charts: distribution, wellness, risk</p>
               </div>
             </Link>
           </div>

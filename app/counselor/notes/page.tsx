@@ -138,7 +138,7 @@ export default function CounselorNotesPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text">Notes</h1>
-          <p className="text-sm text-dark-text/60 font-poppins">Write and manage your notes.</p>
+          <p className="text-sm text-slate-600 font-poppins">Write and manage your notes.</p>
         </div>
       </div>
 
@@ -163,7 +163,7 @@ export default function CounselorNotesPage() {
       <Card className="p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-poppins font-semibold text-dark-text">Your Notes</h3>
-          <span className="text-sm text-dark-text/60 font-poppins">{notes.length} notes</span>
+          <span className="text-sm text-slate-600 font-poppins">{notes.length} notes</span>
         </div>
 
         {loading ? (
@@ -171,7 +171,7 @@ export default function CounselorNotesPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-blue"></div>
           </div>
         ) : notes.length === 0 ? (
-          <div className="text-center py-12 text-dark-text/60">
+          <div className="text-center py-12 text-slate-600">
             <p>No notes yet. Create your first note above!</p>
           </div>
         ) : (
@@ -205,7 +205,7 @@ export default function CounselorNotesPage() {
                 ) : (
                   <>
                     <blockquote className="text-dark-text mb-3 font-inter leading-relaxed whitespace-pre-wrap">{note.content}</blockquote>
-                    <div className="flex items-center justify-between text-xs text-dark-text/60">
+                    <div className="flex items-center justify-between text-xs text-slate-600">
                       <span className="rounded-full bg-indigo-50 px-2 py-1 text-indigo-700">Updated: {formatDate(note.updated_at)}</span>
                       <div className="flex gap-2">
                         <button 

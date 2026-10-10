@@ -421,11 +421,11 @@ export default function SupportPage() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold font-poppins text-dark-text">New support message</p>
-              <p className="mt-1 text-xs font-inter text-dark-text/70">{toast}</p>
+              <p className="mt-1 text-xs font-inter text-slate-700">{toast}</p>
             </div>
             <button
               type="button"
-              className="text-sm text-dark-text/40 hover:text-dark-text leading-none"
+              className="text-sm text-slate-600 hover:text-dark-text leading-none"
               onClick={() => setToast(null)}
             >
               ×
@@ -437,7 +437,7 @@ export default function SupportPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text">Support Center</h1>
-          <p className="text-sm text-dark-text/60 font-poppins">
+          <p className="text-sm text-slate-600 font-poppins">
             Choose counselor support for wellbeing concerns or admin feedback for platform help.
           </p>
         </div>
@@ -457,7 +457,7 @@ export default function SupportPage() {
       <div className="grid grid-cols-1 xl:grid-cols-[0.8fr_1.4fr] gap-6">
         <div className="space-y-6">
           <Card className="p-6 bg-gradient-to-br from-primary-blue/5 via-white to-lavender/10 border border-primary-blue/10">
-            <p className="text-xs font-poppins uppercase tracking-wider text-dark-text/60">Immediate Resources</p>
+            <p className="text-xs font-poppins uppercase tracking-wider text-slate-600">Immediate Resources</p>
             <div className="mt-4 space-y-3">
               {[
                 ["National Center for Mental Health", "1553", "24/7 Crisis Hotline"],
@@ -473,7 +473,7 @@ export default function SupportPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold font-poppins text-dark-text">{name}</p>
-                      <p className="text-xs font-inter text-dark-text/60">{description}</p>
+                      <p className="text-xs font-inter text-slate-600">{description}</p>
                     </div>
                     <span className="text-sm font-semibold font-poppins text-primary-blue">{phone}</span>
                   </div>
@@ -483,7 +483,7 @@ export default function SupportPage() {
           </Card>
 
           <Card className="p-6 bg-gradient-to-br from-warning-yellow/10 via-white to-success-green/10 border border-warning-yellow/10">
-            <p className="text-xs font-poppins uppercase tracking-wider text-dark-text/60">Grounding Check</p>
+            <p className="text-xs font-poppins uppercase tracking-wider text-slate-600">Grounding Check</p>
             <div className="mt-4 grid gap-3">
               {[
                 "5 things you can see",
@@ -507,8 +507,8 @@ export default function SupportPage() {
           <div className="border-b border-gray-100 px-5 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-poppins uppercase tracking-wider text-dark-text/60">Support Channels</p>
-                <p className="text-sm font-inter text-dark-text/60">
+                <p className="text-xs font-poppins uppercase tracking-wider text-slate-600">Support Channels</p>
+                <p className="text-sm font-inter text-slate-600">
                   {unreadTotal > 0 ? `${unreadTotal} unread message${unreadTotal === 1 ? "" : "s"}` : "No unread messages"}
                 </p>
               </div>
@@ -536,10 +536,10 @@ export default function SupportPage() {
                   <section key={channel} className="mb-5 last:mb-0">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <div>
-                        <p className="text-xs font-semibold font-poppins uppercase tracking-wide text-dark-text/70">
+                        <p className="text-xs font-semibold font-poppins uppercase tracking-wide text-slate-700">
                           {channelCopy[channel].title}
                         </p>
-                        <p className="text-[11px] font-inter text-dark-text/45">
+                        <p className="text-xs font-inter text-slate-600">
                           {channelCopy[channel].subtitle}
                         </p>
                       </div>
@@ -578,12 +578,12 @@ export default function SupportPage() {
                                   {getDisplayName(recipient)}
                                 </p>
                                 {unread > 0 && (
-                                  <span className="rounded-full bg-soft-red px-2 py-0.5 text-[10px] font-bold text-white">
+                                  <span className="rounded-full bg-soft-red px-2 py-0.5 text-xs font-bold text-white">
                                     {unread}
                                   </span>
                                 )}
                               </div>
-                              <p className="mt-1 text-[11px] font-inter text-dark-text/50">
+                              <p className="mt-1 text-xs font-inter text-slate-600">
                                 {conversation.status === "open" ? "Open" : "Closed"} · {new Date(conversation.updated_at).toLocaleDateString()}
                               </p>
                             </button>
@@ -602,7 +602,7 @@ export default function SupportPage() {
                   <div className="border-b border-gray-100 px-5 py-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="text-xs font-poppins uppercase tracking-wider text-dark-text/60">
+                        <p className="text-xs font-poppins uppercase tracking-wider text-slate-600">
                           {channelCopy[selectedChannel].title}
                         </p>
                         <h2 className="mt-1 text-lg font-dm-serif text-dark-text">
@@ -612,7 +612,7 @@ export default function SupportPage() {
                       <span className={`rounded-full px-3 py-1 text-xs font-semibold font-poppins ${
                         selectedConversation.status === "open"
                           ? "bg-success-green/15 text-success-green"
-                          : "bg-gray-100 text-dark-text/50"
+                          : "bg-gray-100 text-slate-600"
                       }`}>
                       {selectedConversation.status === "open" ? "Open" : "Closed"}
                       </span>
@@ -640,12 +640,12 @@ export default function SupportPage() {
 
                   <div className="min-h-0 flex-1 overflow-y-auto p-5">
                     {loading ? (
-                      <p className="text-center text-sm font-inter text-dark-text/50">Loading messages...</p>
+                      <p className="text-center text-sm font-inter text-slate-600">Loading messages...</p>
                     ) : messages.length === 0 ? (
                       <div className="flex h-full items-center justify-center text-center">
                         <div>
                           <p className="text-sm font-semibold font-poppins text-dark-text">No messages yet</p>
-                          <p className="mt-1 text-xs font-inter text-dark-text/50">
+                          <p className="mt-1 text-xs font-inter text-slate-600">
                             Send the first message in this support channel.
                           </p>
                         </div>
@@ -663,12 +663,12 @@ export default function SupportPage() {
                                   : "rounded-tl-none bg-gray-100 text-dark-text"
                               }`}>
                                 {!isMine && (
-                                  <p className="mb-1 text-[11px] font-semibold font-poppins opacity-75">
+                                  <p className="mb-1 text-xs font-semibold font-poppins opacity-75">
                                     {getRoleLabel(sender?.role)} {getDisplayName(sender)}
                                   </p>
                                 )}
                                 <p className="whitespace-pre-wrap text-sm font-inter">{message.content}</p>
-                                <p className={`mt-1 text-[11px] opacity-65 ${isMine ? "text-right" : "text-left"}`}>
+                                <p className={`mt-1 text-xs opacity-65 ${isMine ? "text-right" : "text-left"}`}>
                                   {new Date(message.created_at).toLocaleTimeString([], {
                                     hour: "2-digit",
                                     minute: "2-digit",
@@ -702,7 +702,7 @@ export default function SupportPage() {
                       </Button>
                     </form>
                   ) : (
-                    <div className="border-t border-gray-100 p-4 text-center text-sm font-inter text-dark-text/50">
+                    <div className="border-t border-gray-100 p-4 text-center text-sm font-inter text-slate-600">
                       This conversation is closed.
                     </div>
                   )}
@@ -711,7 +711,7 @@ export default function SupportPage() {
                 <div className="flex h-full items-center justify-center p-6 text-center">
                   <div>
                     <p className="text-lg font-dm-serif text-dark-text">Choose a support channel</p>
-                    <p className="mt-2 text-sm font-inter text-dark-text/60">
+                    <p className="mt-2 text-sm font-inter text-slate-600">
                       Start counselor support for assigned care, or admin feedback for platform help.
                     </p>
                   </div>

@@ -94,12 +94,12 @@ export default function AdminDistressAlertsPage() {
   // â”€â”€ Risk badge (shared inline component) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const RiskBadge = ({ userId }: { userId: string }) => {
     const snap = riskByUser.get(userId);
-    if (!snap) return <span className="text-[10px] text-dark-text/40 font-inter italic">No data</span>;
+    if (!snap) return <span className="text-xs text-slate-600 font-inter italic">No data</span>;
     const lvl = snap.risk_level as DistressRiskLevel;
     const cfg = DISTRESS_RISK_CONFIG[lvl] ?? DISTRESS_RISK_CONFIG["Low Risk"];
     return (
       <span
-        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-poppins font-medium whitespace-nowrap"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-poppins font-medium whitespace-nowrap"
         style={{ backgroundColor: cfg.bgColor, color: cfg.color }}
         title={`${snap.total_points} point${snap.total_points !== 1 ? "s" : ""}`}
       >
@@ -280,7 +280,7 @@ export default function AdminDistressAlertsPage() {
   const renderEntrySnippets = (userId: string) => {
     const entries = entriesByUser[userId] || [];
     if (entries.length === 0) {
-      return <p className="text-sm text-dark-text/60 font-inter">No journal entries available for this user yet.</p>;
+      return <p className="text-sm text-slate-600 font-inter">No journal entries available for this user yet.</p>;
     }
 
     return (
@@ -289,9 +289,9 @@ export default function AdminDistressAlertsPage() {
           <div key={entry.id} className="rounded-2xl bg-slate-50 p-3">
             <div className="flex items-center justify-between gap-3 mb-2">
               <span className="font-mono text-xs font-semibold uppercase tracking-wide text-primary-blue">{formatEntryId(entry.id)}</span>
-              <span className="text-xs text-dark-text/60">{new Date(entry.created_at).toLocaleDateString()}</span>
+              <span className="text-xs text-slate-600">{new Date(entry.created_at).toLocaleDateString()}</span>
             </div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-dark-text/60">{entry.mood || "Mood unknown"}</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-600">{entry.mood || "Mood unknown"}</p>
             <p className="text-sm font-inter text-dark-text/90 line-clamp-2">{entry.title || entry.content || "No text available."}</p>
           </div>
         ))}
@@ -397,7 +397,7 @@ export default function AdminDistressAlertsPage() {
           {actionLoading[`assign:${alert.id}`] ? "Assigning..." : assignedCounselor ? "Reassign" : "Assign"}
         </button>
         {!compact && (
-          <p className="text-xs text-dark-text/60 font-inter">
+          <p className="text-xs text-slate-600 font-inter">
             Assigned: <span className="font-semibold text-dark-text">{getProfileName(assignedCounselor)}</span>
           </p>
         )}
@@ -411,7 +411,7 @@ export default function AdminDistressAlertsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-error-red mb-1">Distress Alert Monitoring</h1>
-          <p className="text-sm text-dark-text/60 font-poppins">Real-time emotional crisis detection  Anonymized IDs  Requires immediate review</p>
+          <p className="text-sm text-slate-600 font-poppins">Real-time emotional crisis detection  Anonymized IDs  Requires immediate review</p>
         </div>
         <div className="flex gap-3">
           <span className="badge-error animate-pulse">{activeAlertCount} Active Alerts</span>
@@ -440,7 +440,7 @@ export default function AdminDistressAlertsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-error-red/30">!</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">CRITICAL ALERTS</p>
+              <p className="text-xs text-slate-600 font-poppins">CRITICAL ALERTS</p>
               <p className="text-2xl font-dm-serif text-error-red">{criticalAlerts.length}</p>
               <p className="text-xs text-error-red font-poppins">Needs immediate review</p>
             </div>
@@ -451,9 +451,9 @@ export default function AdminDistressAlertsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-warning-yellow/30">!</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">MEDIUM ALERTS</p>
+              <p className="text-xs text-slate-600 font-poppins">MEDIUM ALERTS</p>
               <p className="text-2xl font-dm-serif text-dark-text">{mediumAlerts.length}</p>
-              <p className="text-xs text-dark-text/60 font-poppins">Monitor closely</p>
+              <p className="text-xs text-slate-600 font-poppins">Monitor closely</p>
             </div>
           </div>
           <div className="stat-card-pill bg-gradient-to-r from-yellow-400 to-orange-300" />
@@ -462,7 +462,7 @@ export default function AdminDistressAlertsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-success-green/30">+</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">RESPONSES RECORDED</p>
+              <p className="text-xs text-slate-600 font-poppins">RESPONSES RECORDED</p>
               <p className="text-2xl font-dm-serif text-dark-text">{respondedLogs.length}</p>
               <p className="text-xs text-success-green font-poppins">Follow-up actions logged</p>
             </div>
@@ -473,9 +473,9 @@ export default function AdminDistressAlertsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-primary-blue/20">+</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">RESPONSE RATE</p>
+              <p className="text-xs text-slate-600 font-poppins">RESPONSE RATE</p>
               <p className="text-2xl font-dm-serif text-dark-text">{responseRate}%</p>
-              <p className="text-xs text-dark-text/60 font-poppins">Alerts with a logged response</p>
+              <p className="text-xs text-slate-600 font-poppins">Alerts with a logged response</p>
             </div>
           </div>
           <div className="stat-card-pill bg-gradient-to-r from-primary-blue to-teal" />
@@ -488,9 +488,9 @@ export default function AdminDistressAlertsPage() {
           <span className="w-2 h-2 rounded-full bg-error-red" />
           <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Critical - Immediate Attention Required</h2>
         </div>
-        {loading && <p className="text-sm text-dark-text/60">Loading alerts...</p>}
+        {loading && <p className="text-sm text-slate-600">Loading alerts...</p>}
         {!loading && error && <p className="text-sm text-error-red">{error}</p>}
-        {!loading && criticalAlerts.length === 0 && !error && <p className="text-sm text-dark-text/60">No critical alerts at the moment.</p>}
+        {!loading && criticalAlerts.length === 0 && !error && <p className="text-sm text-slate-600">No critical alerts at the moment.</p>}
         {criticalAlerts.map((alert) => (
           <Card key={alert.id} className="p-5 bg-error-red/5 border border-error-red/20 rounded-2xl">
             <div className="flex flex-col gap-4">
@@ -519,33 +519,33 @@ export default function AdminDistressAlertsPage() {
 
               <div className="grid gap-3 md:grid-cols-5">
                 <div>
-                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">User ID</p>
+                  <p className="text-xs text-slate-600 uppercase tracking-wide">User ID</p>
                   <p className="mt-1 font-mono text-sm text-dark-text">{formatUserId(alert.user_id)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">Last alert</p>
+                  <p className="text-xs text-slate-600 uppercase tracking-wide">Last alert</p>
                   <p className="mt-1 text-sm text-dark-text">{new Date(alert.created_at).toLocaleString()}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">Response status</p>
+                  <p className="text-xs text-slate-600 uppercase tracking-wide">Response status</p>
                   <p className="mt-1 text-sm text-dark-text">{getResponseStatus(alert.notes)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">Distress Risk</p>
+                  <p className="text-xs text-slate-600 uppercase tracking-wide">Distress Risk</p>
                   <div className="mt-1">
                     <RiskBadge userId={alert.user_id} />
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">Counselor</p>
+                  <p className="text-xs text-slate-600 uppercase tracking-wide">Counselor</p>
                   <p className="mt-1 text-sm text-dark-text">{getProfileName(getAssignedCounselor(alert))}</p>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Recent journal entries</span>
-                  <span className="text-xs text-dark-text/60">({entriesByUser[alert.user_id]?.length || 0})</span>
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Recent journal entries</span>
+                  <span className="text-xs text-slate-600">({entriesByUser[alert.user_id]?.length || 0})</span>
                 </div>
                 {renderEntrySnippets(alert.user_id)}
               </div>
@@ -584,7 +584,7 @@ export default function AdminDistressAlertsPage() {
                       <p className="font-mono text-sm font-semibold text-primary-blue">{formatAlertId(alert.id)}</p>
                     </td>
                     <td>
-                      <p className="font-mono text-sm text-dark-text/70">{formatUserId(alert.user_id)}</p>
+                      <p className="font-mono text-sm text-slate-700">{formatUserId(alert.user_id)}</p>
                     </td>
                     <td>
                       <p className="text-sm font-inter text-dark-text">{alert.trigger || "Pending review"}</p>
@@ -599,12 +599,12 @@ export default function AdminDistressAlertsPage() {
                       {entriesByUser[alert.user_id]?.[0] ? (
                         <div>
                           <p className="font-mono text-xs font-semibold text-primary-blue">{formatEntryId(entriesByUser[alert.user_id][0].id)}</p>
-                          <p className="text-xs font-inter text-dark-text/60">
+                          <p className="text-xs font-inter text-slate-600">
                             {new Date(entriesByUser[alert.user_id][0].created_at).toLocaleDateString()}
                           </p>
                         </div>
                       ) : (
-                        <p className="text-sm font-inter text-dark-text/60">No entry</p>
+                        <p className="text-sm font-inter text-slate-600">No entry</p>
                       )}
                     </td>
                     <td>
@@ -649,7 +649,7 @@ export default function AdminDistressAlertsPage() {
                 <div>
                   <p className="font-mono text-sm font-semibold text-primary-blue">{formatAlertId(selectedAlert.id)}</p>
                   <h3 className="mt-1 text-xl font-dm-serif text-dark-text">Distress Alert Details</h3>
-                  <p className="text-sm text-dark-text/60 font-poppins">{selectedAlert.trigger || "Detected distress trigger"}</p>
+                  <p className="text-sm text-slate-600 font-poppins">{selectedAlert.trigger || "Detected distress trigger"}</p>
                 </div>
                 <button
                   type="button"
@@ -662,61 +662,61 @@ export default function AdminDistressAlertsPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Severity</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Severity</p>
                   <p className="mt-1 text-sm font-poppins text-dark-text">{selectedAlert.severity || "Unknown"}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Distress Risk Level</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Distress Risk Level</p>
                   <div className="mt-1">
                     <RiskBadge userId={selectedAlert.user_id} />
                   </div>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">User ID</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">User ID</p>
                   <p className="mt-1 font-mono text-sm font-poppins text-dark-text">{formatUserId(selectedAlert.user_id)}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Created</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Created</p>
                   <p className="mt-1 text-sm font-poppins text-dark-text">{new Date(selectedAlert.created_at).toLocaleString()}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Response</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Response</p>
                   <p className="mt-1 text-sm font-poppins text-dark-text">{getResponseStatus(selectedAlert.notes)}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Counselor</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Counselor</p>
                   <p className="mt-1 text-sm font-poppins text-dark-text">{getProfileName(getAssignedCounselor(selectedAlert))}</p>
                 </div>
               </div>
 
               <div className="mt-5 rounded-xl border border-gray-100 p-4">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-dark-text/60">Assign counselor</p>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Assign counselor</p>
                 {renderAssignmentControls(selectedAlert)}
               </div>
 
               <div className="mt-5">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-dark-text/60">Action notes</p>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Action notes</p>
                 <div className="min-h-[80px] whitespace-pre-wrap rounded-xl bg-slate-50 p-4 text-sm font-inter text-dark-text/80">
                   {selectedAlert.notes || "No action notes recorded yet."}
                 </div>
               </div>
 
               <div className="mt-5">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-dark-text/60">Recent journal entries</p>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Recent journal entries</p>
                 <div className="space-y-3">
                   {(entriesByUser[selectedAlert.user_id] || []).slice(0, 5).map((entry) => (
                     <div key={entry.id} className="rounded-xl border border-gray-100 p-4">
                       <div className="mb-2 flex items-center justify-between gap-3">
                         <span className="font-mono text-xs font-semibold uppercase tracking-wide text-primary-blue">{formatEntryId(entry.id)}</span>
-                        <span className="text-xs text-dark-text/60">{new Date(entry.created_at).toLocaleString()}</span>
+                        <span className="text-xs text-slate-600">{new Date(entry.created_at).toLocaleString()}</span>
                       </div>
-                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-dark-text/60">{entry.mood || "Mood unknown"}</p>
+                      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-600">{entry.mood || "Mood unknown"}</p>
                       <p className="text-sm font-semibold text-dark-text">{entry.title || "Untitled entry"}</p>
                       <p className="mt-1 whitespace-pre-wrap text-sm font-inter text-dark-text/80">{entry.content || "No text available."}</p>
                     </div>
                   ))}
                   {(entriesByUser[selectedAlert.user_id] || []).length === 0 && (
-                    <p className="text-sm text-dark-text/60 font-inter">No journal entries available for this user yet.</p>
+                    <p className="text-sm text-slate-600 font-inter">No journal entries available for this user yet.</p>
                   )}
                 </div>
               </div>

@@ -53,17 +53,17 @@ function RiskTooltip({ active, payload }: TooltipContentProps) {
   const cfg = DISTRESS_RISK_CONFIG[pt.riskLevel as DistressRiskLevel];
   return (
     <div className="rounded-xl bg-white px-4 py-2.5 shadow-lg border border-light-gray text-left min-w-[150px]">
-      <p className="text-[10px] font-inter text-dark-text/50 mb-1">{pt.date}</p>
+      <p className="text-xs font-inter text-slate-600 mb-1">{pt.date}</p>
       <p
         className="text-sm font-poppins font-bold"
         style={{ color: cfg?.color ?? "#333" }}
       >
         {cfg?.emoji ?? ""} {pt.riskLevel}
       </p>
-      <p className="text-[10px] text-dark-text/50 mt-0.5">
+      <p className="text-xs text-slate-600 mt-0.5">
         {pt.totalPoints} point{pt.totalPoints !== 1 ? "s" : ""}
       </p>
-      <p className="text-[9px] text-dark-text/35 mt-1 max-w-[160px] leading-snug">
+      <p className="text-xs text-slate-600 mt-1 max-w-[160px] leading-snug">
         Decision-support indicator · not a diagnosis
       </p>
     </div>
@@ -94,7 +94,7 @@ export default function DistressRiskChart({
         className="flex items-center justify-center rounded-xl bg-light-gray/30"
         style={{ height }}
       >
-        <p className="text-xs text-dark-text/50 font-poppins">
+        <p className="text-xs text-slate-600 font-poppins">
           Loading distress risk data…
         </p>
       </div>
@@ -108,7 +108,7 @@ export default function DistressRiskChart({
         style={{ height }}
       >
         <span className="text-2xl">🛡️</span>
-        <p className="text-xs text-dark-text/50 font-poppins text-center px-4">
+        <p className="text-xs text-slate-600 font-poppins text-center px-4">
           No distress risk history yet.
           <br />
           Save journal entries to generate risk assessments.
@@ -184,7 +184,7 @@ export default function DistressRiskChart({
                 className="inline-block w-3 h-3 rounded-sm border"
                 style={{ backgroundColor: RISK_FILL[lvl], borderColor: RISK_STROKE[lvl] }}
               />
-              <span className="text-[10px] font-inter text-dark-text/60">
+              <span className="text-xs font-inter text-slate-600">
                 {cfg.emoji} {lvl}
               </span>
             </div>
@@ -192,7 +192,7 @@ export default function DistressRiskChart({
         })}
       </div>
 
-      <p className="text-[9px] text-dark-text/30 text-center mt-2 font-inter">
+      <p className="text-xs text-slate-600 text-center mt-2 font-inter">
         Decision-support indicator only · not a clinical diagnosis
       </p>
     </div>

@@ -219,7 +219,7 @@ export default function AdminAuditLogsPage() {
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue mx-auto mb-4"></div>
-          <p className="text-dark-text/60 font-poppins">Loading audit logs...</p>
+          <p className="text-slate-600 font-poppins">Loading audit logs...</p>
         </div>
       </div>
     );
@@ -242,7 +242,7 @@ export default function AdminAuditLogsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Audit Logs / Activity Monitor</h1>
-          <p className="text-sm text-dark-text/60 font-poppins">Complete record of every admin action, timestamped, and immutable; ensures full accountability</p>
+          <p className="text-sm text-slate-600 font-poppins">Complete record of every admin action, timestamped, and immutable; ensures full accountability</p>
         </div>
         <div className="flex gap-3">
           <button 
@@ -260,7 +260,7 @@ export default function AdminAuditLogsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-primary-blue/20">📋</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">TOTAL LOG ENTRIES</p>
+              <p className="text-xs text-slate-600 font-poppins">TOTAL LOG ENTRIES</p>
               <p className="text-2xl font-dm-serif text-dark-text">{totalLogs.toLocaleString()}</p>
             </div>
           </div>
@@ -270,7 +270,7 @@ export default function AdminAuditLogsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-lavender/20">👤</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">ACTIVE ADMIN SESSIONS</p>
+              <p className="text-xs text-slate-600 font-poppins">ACTIVE ADMIN SESSIONS</p>
               <p className="text-2xl font-dm-serif text-dark-text">{activeSessions}</p>
             </div>
           </div>
@@ -280,7 +280,7 @@ export default function AdminAuditLogsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-warning-yellow/30">⚠️</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">SUSPICIOUS ACTIONS</p>
+              <p className="text-xs text-slate-600 font-poppins">SUSPICIOUS ACTIONS</p>
               <p className="text-2xl font-dm-serif text-dark-text">{suspiciousCount}</p>
               <p className="text-xs text-warning-yellow font-poppins">Flagged this week</p>
             </div>
@@ -291,7 +291,7 @@ export default function AdminAuditLogsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-success-green/30">🔒</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">ENCRYPTED STORAGE</p>
+              <p className="text-xs text-slate-600 font-poppins">ENCRYPTED STORAGE</p>
               <p className="text-2xl font-dm-serif text-dark-text">{encryptedPercentage}%</p>
             </div>
           </div>
@@ -305,7 +305,7 @@ export default function AdminAuditLogsPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="md:col-span-2">
             <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-text/60">🔍</span>
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600">🔍</span>
               <input
                 type="text"
                 placeholder="Search by action, admin, or IP address..."
@@ -341,8 +341,8 @@ export default function AdminAuditLogsPage() {
         <div className="overflow-x-auto">
           {filteredLogs.length === 0 ? (
             <div className="py-12 text-center">
-              <p className="text-dark-text/60 font-poppins">No audit logs yet.</p>
-              <p className="text-xs text-dark-text/40 font-inter mt-2">Audit logs will appear here when administrative actions are performed.</p>
+              <p className="text-slate-600 font-poppins">No audit logs yet.</p>
+              <p className="text-xs text-slate-600 font-inter mt-2">Audit logs will appear here when administrative actions are performed.</p>
             </div>
           ) : (
             <table className="admin-table">
@@ -365,7 +365,7 @@ export default function AdminAuditLogsPage() {
                     isSuspicious(log) ? "bg-red-50 hover:bg-red-100" : ""
                   } transition-colors`}
                 >
-                  <td><p className="text-sm font-inter text-dark-text/60">{formatTimestamp(log.created_at)}</p></td>
+                  <td><p className="text-sm font-inter text-slate-600">{formatTimestamp(log.created_at)}</p></td>
                   <td><p className="text-sm font-poppins text-dark-text">{log.admin}</p></td>
                   <td>
                     <span className={`badge ${getRolePillClass(log.role)}`}>
@@ -384,7 +384,7 @@ export default function AdminAuditLogsPage() {
                     </div>
                   </td>
                   <td><p className="text-sm font-mono text-dark-text">{log.details || "-"}</p></td>
-                  <td><p className="text-sm font-mono text-dark-text/60">{log.ip_address || "-"}</p></td>
+                  <td><p className="text-sm font-mono text-slate-600">{log.ip_address || "-"}</p></td>
                   <td>
                     <span className={`badge ${
                       log.status === "Success" ? "badge-success" : "badge-error"
@@ -414,7 +414,7 @@ export default function AdminAuditLogsPage() {
         {/* Pagination */}
         {filteredLogs.length > 0 && (
           <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
-            <p className="text-sm text-dark-text/60 font-poppins">
+            <p className="text-sm text-slate-600 font-poppins">
               Showing {startIndex + 1}-{Math.min(startIndex + PAGE_SIZE, filteredLogs.length)} of {filteredLogs.length} entries
             </p>
             <div className="flex items-center gap-2">

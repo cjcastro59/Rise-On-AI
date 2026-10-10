@@ -213,7 +213,7 @@ export default function AdminJournalMonitorPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Journal Monitoring</h1>
-          <p className="text-sm text-dark-text/70 font-poppins">Anonymized entry analytics; no content displayed</p>
+          <p className="text-sm text-slate-700 font-poppins">Anonymized entry analytics; no content displayed</p>
         </div>
         <div className="flex gap-3">
           <button
@@ -255,7 +255,7 @@ export default function AdminJournalMonitorPage() {
       )}
 
       <div className="p-4 bg-gradient-to-r from-[#A8DADC]/20 to-[#CDB4DB]/20 rounded-xl border-l-4 border-l-[#A8DADC]">
-        <p className="text-sm font-poppins text-dark-text/70 flex items-center gap-2">
+        <p className="text-sm font-poppins text-slate-700 flex items-center gap-2">
           <span>🔒</span> Privacy Protected: journal content remains hidden. Only metadata and aggregated signals are visible.
         </p>
       </div>
@@ -265,7 +265,7 @@ export default function AdminJournalMonitorPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">📝</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">TOTAL ENTRIES</p>
+              <p className="text-xs text-slate-700 font-poppins">TOTAL ENTRIES</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : totalEntries}</p>
             </div>
           </div>
@@ -275,9 +275,9 @@ export default function AdminJournalMonitorPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center text-2xl">📊</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">ENTRIES TODAY</p>
+              <p className="text-xs text-slate-700 font-poppins">ENTRIES TODAY</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : todaysEntries}</p>
-              <p className="text-xs text-dark-text/70 font-poppins">Recent activity shown live</p>
+              <p className="text-xs text-slate-700 font-poppins">Recent activity shown live</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-purple-400 to-pink-300 rounded-full"></div>
@@ -286,7 +286,7 @@ export default function AdminJournalMonitorPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">📄</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">AVG WORDS/ENTRY</p>
+              <p className="text-xs text-slate-700 font-poppins">AVG WORDS/ENTRY</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : averageWords}</p>
             </div>
           </div>
@@ -296,7 +296,7 @@ export default function AdminJournalMonitorPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#FFE8A1]/30 rounded-lg flex items-center justify-center text-2xl">⚠️</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">DISTRESS SIGNALS</p>
+              <p className="text-xs text-slate-700 font-poppins">DISTRESS SIGNALS</p>
               <p className="text-2xl font-dm-serif text-[#F4A6A6]">{loading ? "—" : distressSignals}</p>
             </div>
           </div>
@@ -308,13 +308,13 @@ export default function AdminJournalMonitorPage() {
         <Card className="p-6 bg-[#eef3f8]">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📈</div>
-            <p className="text-xs font-poppins text-dark-text/70">ENTRY VOLUME - LAST 7 DAYS</p>
+            <p className="text-xs font-poppins text-slate-700">ENTRY VOLUME - LAST 7 DAYS</p>
           </div>
           <div className="h-40 flex items-end justify-between gap-2 px-4">
             {volumeByDay.map((value, index) => (
               <div key={`${value}-${index}`} className="flex-1 flex flex-col items-center gap-1">
                 <div className="w-full rounded-t-2xl shadow-sm" style={{ height: `${value ? Math.max(6, (value / maxVolume) * 100) : 0}%`, background: "linear-gradient(to top, #52B788, #A8DADC)" }}></div>
-                <span className="text-xs text-dark-text/70 font-poppins">{lastSevenDays[index].toLocaleDateString("en", { weekday: "short" })}</span>
+                <span className="text-xs text-slate-700 font-poppins">{lastSevenDays[index].toLocaleDateString("en", { weekday: "short" })}</span>
               </div>
             ))}
           </div>
@@ -323,7 +323,7 @@ export default function AdminJournalMonitorPage() {
         <Card className="p-6 bg-[#eef3f8]">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">🕒</div>
-            <p className="text-xs font-poppins text-dark-text/70">PEAK WRITING HOURS</p>
+            <p className="text-xs font-poppins text-slate-700">PEAK WRITING HOURS</p>
           </div>
           <div className="space-y-3">
             {[
@@ -335,7 +335,7 @@ export default function AdminJournalMonitorPage() {
               <div key={segment.label} className="flex items-center justify-between">
                 <p className="text-sm font-poppins text-dark-text">{segment.label}</p>
                 <div className="flex items-center gap-2">
-                  <p className="text-xs font-inter text-dark-text/70">{segment.value}%</p>
+                  <p className="text-xs font-inter text-slate-700">{segment.value}%</p>
                   <div className="w-40 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB]" style={{ width: `${segment.value}%` }}></div>
                   </div>
@@ -344,11 +344,11 @@ export default function AdminJournalMonitorPage() {
             ))}
           </div>
           <div className="mt-6 pt-4 border-t border-gray-100">
-            <p className="text-xs font-poppins text-dark-text/70 mb-3">LANGUAGE USED</p>
+            <p className="text-xs font-poppins text-slate-700 mb-3">LANGUAGE USED</p>
             <div className="flex flex-wrap items-center gap-3">
               {topLanguages.length > 0 ? topLanguages.map(([language, count]) => (
                 <span key={language} className="px-3 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-poppins text-dark-text">{language} {Math.round((count / Math.max(totalEntries, 1)) * 100)}%</span>
-              )) : <span className="text-sm text-dark-text/70">No entries yet</span>}
+              )) : <span className="text-sm text-slate-700">No entries yet</span>}
             </div>
           </div>
         </Card>
@@ -356,7 +356,7 @@ export default function AdminJournalMonitorPage() {
 
       <Card className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <p className="text-xs font-poppins text-dark-text/70">RECENT ENTRY METADATA (ANONYMIZED)</p>
+          <p className="text-xs font-poppins text-slate-700">RECENT ENTRY METADATA (ANONYMIZED)</p>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 px-2 py-1 bg-[#A8DADC]/10 rounded-full border border-[#A8DADC]/30">
               <span className="text-xs">🤐</span>
@@ -368,23 +368,23 @@ export default function AdminJournalMonitorPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/70 font-poppins uppercase tracking-wider">ENTRY ID</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/70 font-poppins uppercase tracking-wider">TIMESTAMP</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/70 font-poppins uppercase tracking-wider">WORD COUNT</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/70 font-poppins uppercase tracking-wider">LANGUAGE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/70 font-poppins uppercase tracking-wider">MOOD TAG</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/70 font-poppins uppercase tracking-wider">SENTIMENT SCORE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/70 font-poppins uppercase tracking-wider">AI PROCESSED</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">ENTRY ID</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">TIMESTAMP</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">WORD COUNT</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">LANGUAGE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">MOOD TAG</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">SENTIMENT SCORE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">AI PROCESSED</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-6 text-center text-sm text-dark-text/70 font-inter">Loading entry analytics…</td>
+                  <td colSpan={7} className="py-6 text-center text-sm text-slate-700 font-inter">Loading entry analytics…</td>
                 </tr>
               ) : currentEntries.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-6 text-center text-sm text-dark-text/70 font-inter">No journal entries found yet.</td>
+                  <td colSpan={7} className="py-6 text-center text-sm text-slate-700 font-inter">No journal entries found yet.</td>
                 </tr>
               ) : (
                 <>
@@ -406,7 +406,7 @@ export default function AdminJournalMonitorPage() {
                           <p className="font-mono text-sm text-[#A8DADC] font-semibold">{formatDisplayId(entry.id, "entry", displayIdFormat)}</p>
                         </td>
                         <td className="py-4 px-3">
-                          <p className="text-sm font-inter text-dark-text/70">{new Date(entry.created_at).toLocaleString()}</p>
+                          <p className="text-sm font-inter text-slate-700">{new Date(entry.created_at).toLocaleString()}</p>
                         </td>
                         <td className="py-4 px-3">
                           <p className="text-sm font-poppins text-dark-text">{getWordCount(entry.content)}</p>
@@ -428,7 +428,7 @@ export default function AdminJournalMonitorPage() {
                               ✓ {confidencePct}% conf.
                             </span>
                           ) : (
-                            <span className="px-2 py-1 bg-gray-100 rounded-full text-xs font-semibold font-poppins text-dark-text/50">
+                            <span className="px-2 py-1 bg-gray-100 rounded-full text-xs font-semibold font-poppins text-slate-600">
                               Pending
                             </span>
                           )}
@@ -457,7 +457,7 @@ export default function AdminJournalMonitorPage() {
         {/* Pagination Controls */}
         {!loading && entries.length > 0 && (
           <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
-            <p className="text-sm text-dark-text/70 font-poppins">
+            <p className="text-sm text-slate-700 font-poppins">
               Showing {indexOfFirstEntry + 1}–{Math.min(indexOfLastEntry, entries.length)} of {entries.length} entries
             </p>
             <div className="flex items-center gap-2">

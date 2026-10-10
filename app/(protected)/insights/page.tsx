@@ -132,7 +132,7 @@ function WellnessGauge({
           style={{ color: cfg.color }}
         >
           {score.toFixed(1)}
-          <span className="text-sm font-normal text-dark-text/50"> / 10</span>
+          <span className="text-sm font-normal text-slate-600"> / 10</span>
         </p>
         <span
           className="inline-block mt-1 px-3 py-0.5 rounded-full text-xs font-poppins font-medium"
@@ -184,12 +184,12 @@ function WellnessHistoryChart({
         })}
       </div>
       {/* X-axis: first and last date */}
-      <div className="flex justify-between text-[9px] text-dark-text/40 font-inter px-0.5">
+      <div className="flex justify-between text-xs text-slate-600 font-inter px-0.5">
         <span>{pts[0]?.window_end_date?.slice(5)}</span>
         <span>{pts[pts.length - 1]?.window_end_date?.slice(5)}</span>
       </div>
       {/* Y-axis legend */}
-      <div className="flex justify-between text-[9px] text-dark-text/30 font-inter">
+      <div className="flex justify-between text-xs text-slate-600 font-inter">
         <span>0</span><span>5</span><span>10</span>
       </div>
     </div>
@@ -406,7 +406,7 @@ export default function MoodInsightsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-dark-text/70">Loading your insights...</p>
+        <p className="text-slate-700">Loading your insights...</p>
       </div>
     );
   }
@@ -424,7 +424,7 @@ export default function MoodInsightsPage() {
             className={`px-3 py-1.5 rounded-full text-xs font-poppins transition-all ${
               timeRange === range
                 ? "bg-[#A8DADC] text-white shadow-md"
-                : "bg-gray-100 text-dark-text/60 hover:bg-[#F5F5F5]"
+                : "bg-gray-100 text-slate-600 hover:bg-[#F5F5F5]"
             }`}
           >
             {range}
@@ -437,7 +437,7 @@ export default function MoodInsightsPage() {
         <Card className="p-5 bg-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-dark-text/70 text-xs font-poppins mb-1">Total Entries</p>
+              <p className="text-slate-700 text-xs font-poppins mb-1">Total Entries</p>
               <p className="text-2xl font-bold text-dark-text">{totalEntries}</p>
             </div>
             <div className="w-10 h-10 bg-[#A8DADC]/30 rounded-full flex items-center justify-center">
@@ -448,7 +448,7 @@ export default function MoodInsightsPage() {
         <Card className="p-5 bg-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-dark-text/70 text-xs font-poppins mb-1">Positive Entries</p>
+              <p className="text-slate-700 text-xs font-poppins mb-1">Positive Entries</p>
               <p className="text-2xl font-bold text-dark-text">{positivePercentage}%</p>
             </div>
             <div className="w-10 h-10 bg-[#B7E4C7]/40 rounded-full flex items-center justify-center">
@@ -459,7 +459,7 @@ export default function MoodInsightsPage() {
         <Card className="p-5 bg-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-dark-text/70 text-xs font-poppins mb-1">Current Streak</p>
+              <p className="text-slate-700 text-xs font-poppins mb-1">Current Streak</p>
               <p className="text-2xl font-bold text-dark-text">{currentStreak}</p>
             </div>
             <div className="w-10 h-10 bg-[#FFE8A1]/40 rounded-full flex items-center justify-center">
@@ -470,7 +470,7 @@ export default function MoodInsightsPage() {
         <Card className="p-5 bg-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-dark-text/70 text-xs font-poppins mb-1">Mood Growth</p>
+              <p className="text-slate-700 text-xs font-poppins mb-1">Mood Growth</p>
               <p className="text-2xl font-bold text-dark-text">
                 {moodGrowth > 0 ? "+" : ""}{moodGrowth}%
               </p>
@@ -485,26 +485,26 @@ export default function MoodInsightsPage() {
       {/* ── CARD 1: BEHAVIORAL ANALYTICS (4 indicators) ──────────────── */}
       <Card className="p-4 sm:p-6 bg-white mb-6 animate-in fade-in duration-200">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 flex items-center gap-2">
+          <h3 className="text-sm font-poppins uppercase tracking-wider text-slate-700 flex items-center gap-2">
             <span>🧠</span>
             Behavioral Analytics
           </h3>
-          <span className="text-[10px] font-normal text-dark-text/40">
+          <span className="text-xs font-normal text-slate-600">
             Last 30 days
           </span>
         </div>
-        <p className="text-[11px] text-dark-text/60 font-inter mb-5">
+        <p className="text-xs text-slate-600 font-inter mb-5">
           Identifies emotional patterns and problems from your journal history · computed automatically after each entry · last 30 days
         </p>
 
         {indicatorsLoading ? (
-          <p className="text-xs text-dark-text/60 py-4 text-center">
+          <p className="text-xs text-slate-600 py-4 text-center">
             Loading behavioral data…
           </p>
         ) : !indicatorsHasData || !indicators ? (
           <div className="text-center py-6 space-y-2">
-            <p className="text-sm text-dark-text/60">No behavioral data yet.</p>
-            <p className="text-xs text-dark-text/60">
+            <p className="text-sm text-slate-600">No behavioral data yet.</p>
+            <p className="text-xs text-slate-600">
               Write a few journal entries — indicators are computed automatically after each save.
             </p>
             <Link href="/journal">
@@ -525,14 +525,14 @@ export default function MoodInsightsPage() {
                 <span className="text-xs font-semibold"
                   style={{ color: trendColor(indicators.behavioral_trend_score) }}>
                   {trendLabel(indicators.behavioral_trend_score)}{" "}
-                  <span className="font-normal text-dark-text/50">
+                  <span className="font-normal text-slate-600">
                     ({indicators.behavioral_trend_score > 0 ? "+" : ""}
                     {indicators.behavioral_trend_score})
                   </span>
                 </span>
               </div>
               <TrendScoreBar value={indicators.behavioral_trend_score} />
-              <p className="text-[10px] sm:text-[10px] text-dark-text/60 mt-1">
+              <p className="text-xs text-slate-600 mt-1">
                 Compares older vs. recent half of entries. Range: 0 (all positive) → 100 (all negative/distress).
                 Higher values indicate a worsening emotional pattern over time.
               </p>
@@ -544,16 +544,16 @@ export default function MoodInsightsPage() {
                 <span className="text-xs font-poppins text-dark-text/80">
                   Journaling Frequency
                 </span>
-                <span className="text-xs font-semibold text-dark-text/70">
+                <span className="text-xs font-semibold text-slate-700">
                   {indicators.journaling_frequency_score.toFixed(0)}
-                  <span className="font-normal text-dark-text/40"> / 100</span>
-                  <span className="ml-2 font-normal text-dark-text/50">
+                  <span className="font-normal text-slate-600"> / 100</span>
+                  <span className="ml-2 font-normal text-slate-600">
                     ({indicators.unique_days_journaled} day{indicators.unique_days_journaled !== 1 ? "s" : ""})
                   </span>
                 </span>
               </div>
               <IndicatorBar value={indicators.journaling_frequency_score} color="#A8DADC" />
-              <p className="text-[10px] text-dark-text/60 mt-1">
+              <p className="text-xs text-slate-600 mt-1">
                 Unique journaling days vs. expected cadence (every 3 days). Low scores indicate disengagement, which may signal avoidance or low motivation.
               </p>
             </div>
@@ -564,13 +564,13 @@ export default function MoodInsightsPage() {
                 <span className="text-xs font-poppins text-dark-text/80">
                   Mood Consistency
                 </span>
-                <span className="text-xs font-semibold text-dark-text/70">
+                <span className="text-xs font-semibold text-slate-700">
                   {indicators.mood_consistency_score.toFixed(0)}
-                  <span className="font-normal text-dark-text/40"> / 100</span>
+                  <span className="font-normal text-slate-600"> / 100</span>
                 </span>
               </div>
               <IndicatorBar value={indicators.mood_consistency_score} color="#CDB4DB" />
-              <p className="text-[10px] text-dark-text/60 mt-1">
+              <p className="text-xs text-slate-600 mt-1">
                 How stable your mood scores are day-to-day. Low scores indicate high volatility, which may signal emotional instability or recurring distress triggers.
               </p>
             </div>
@@ -586,10 +586,10 @@ export default function MoodInsightsPage() {
                     ? "text-[#f77f7f]"
                     : indicators.consecutive_negative_count >= 3
                     ? "text-[#f4a261]"
-                    : "text-dark-text/70"
+                    : "text-slate-700"
                 }`}>
                   {indicators.consecutive_negative_count}
-                  <span className="font-normal text-dark-text/40">
+                  <span className="font-normal text-slate-600">
                     {" "}entr{indicators.consecutive_negative_count !== 1 ? "ies" : "y"}
                   </span>
                 </span>
@@ -608,12 +608,12 @@ export default function MoodInsightsPage() {
                   )
                 )}
                 {indicators.consecutive_negative_count > 14 && (
-                  <span className="text-[10px] text-dark-text/50 self-center ml-1">
+                  <span className="text-xs text-slate-600 self-center ml-1">
                     +{indicators.consecutive_negative_count - 14} more
                   </span>
                 )}
               </div>
-              <p className="text-[10px] text-dark-text/60 mt-1">
+              <p className="text-xs text-slate-600 mt-1">
                 Unbroken streak of negative or distress entries. Streaks of 3+ may indicate a developing problem; 5+ entries trigger a counselor referral recommendation.
                 {indicators.consecutive_negative_count >= 5 && (
                   <span className="text-[#f77f7f] ml-1">Consider reaching out to a counselor.</span>
@@ -628,25 +628,25 @@ export default function MoodInsightsPage() {
       {/* ── CARD 2: WELLNESS ASSESSMENT ───────────────────────────────────── */}
       <Card className="p-4 sm:p-6 bg-white mb-8">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 flex items-center gap-2">
+          <h3 className="text-sm font-poppins uppercase tracking-wider text-slate-700 flex items-center gap-2">
             <span>💚</span>
             Wellness Assessment
           </h3>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-dark-text/40">0–10 scale</span>
+            <span className="text-xs text-slate-600">0–10 scale</span>
             <button
               onClick={() => triggerRecalculate()}
               disabled={wellnessRecalculating}
-              className="text-[10px] font-poppins text-[#4EAAB3] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-xs font-poppins text-[#4EAAB3] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {wellnessRecalculating ? "Recalculating…" : "↻ Recalculate"}
             </button>
           </div>
         </div>
-        <p className="text-[11px] text-dark-text/60 font-inter mb-5">
+        <p className="text-xs text-slate-600 font-inter mb-5">
           Derived from the 4 behavioral indicators above · scale: 0 (High Risk) → 10 (Healthy)
           <br />
-          <span className="text-[10px] text-dark-text/50">
+          <span className="text-xs text-slate-600">
             Parameters aligned with mental health monitoring frameworks:
             emotional trend trajectory, journaling engagement frequency,
             mood variability, and consecutive distress streak.
@@ -654,11 +654,11 @@ export default function MoodInsightsPage() {
         </p>
 
         {wellnessLoading ? (
-          <p className="text-xs text-dark-text/60 py-4 text-center">Loading wellness data…</p>
+          <p className="text-xs text-slate-600 py-4 text-center">Loading wellness data…</p>
         ) : !wellnessLatest || wellnessLatest.wellness_score === null ? (
           <div className="text-center py-6 space-y-2">
-            <p className="text-sm text-dark-text/60">Wellness score not yet computed.</p>
-            <p className="text-xs text-dark-text/60">
+            <p className="text-sm text-slate-600">Wellness score not yet computed.</p>
+            <p className="text-xs text-slate-600">
               Save a journal entry — the score updates automatically. Or use the Recalculate button above.
             </p>
           </div>
@@ -670,7 +670,7 @@ export default function MoodInsightsPage() {
                 score={wellnessLatest.wellness_score}
                 level={wellnessLatest.wellness_level as WellnessLevel}
               />
-              <p className="text-[11px] text-dark-text/60 text-center max-w-[220px]">
+              <p className="text-xs text-slate-600 text-center max-w-[220px]">
                 {WELLNESS_LEVEL_CONFIG[wellnessLatest.wellness_level as WellnessLevel].description}
               </p>
 
@@ -682,21 +682,21 @@ export default function MoodInsightsPage() {
                     <button
                       type="button"
                       onClick={() => setShowBreakdown((v) => !v)}
-                      className="flex items-center justify-between w-full text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-2 hover:text-dark-text/80 transition-colors"
+                      className="flex items-center justify-between w-full text-xs font-poppins uppercase tracking-wider text-slate-600 mb-2 hover:text-dark-text/80 transition-colors"
                     >
                       <span>Computation Breakdown</span>
-                      <span className="text-[11px] normal-case tracking-normal font-normal">
+                      <span className="text-xs normal-case tracking-normal font-normal">
                         {showBreakdown ? "Hide ↑" : "Show ↓"}
                       </span>
                     </button>
                     {showBreakdown && (
                       <>
-                        <table className="w-full text-[10px] font-inter">
+                        <table className="w-full text-xs font-inter">
                           <thead>
                             <tr className="border-b border-[#F5F5F5]">
-                              <th className="py-1 text-left text-dark-text/60 font-normal">Parameter (behavioral indicator)</th>
-                              <th className="py-1 text-right text-dark-text/60 font-normal">Weight</th>
-                              <th className="py-1 text-right text-dark-text/60 font-normal">Sub-score</th>
+                              <th className="py-1 text-left text-slate-600 font-normal">Parameter (behavioral indicator)</th>
+                              <th className="py-1 text-right text-slate-600 font-normal">Weight</th>
+                              <th className="py-1 text-right text-slate-600 font-normal">Sub-score</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-[#F5F5F5]">
@@ -709,18 +709,18 @@ export default function MoodInsightsPage() {
                               ["Wellness Score [0–10]",                    "—",   (d.rawScore * 10).toFixed(2)],
                             ].map(([label, weight, sub]) => (
                               <tr key={label as string}>
-                                <td className="py-1 text-dark-text/65 pr-2">{label}</td>
-                                <td className="py-1 text-dark-text/70 text-right font-medium">{weight}</td>
-                                <td className="py-1 text-dark-text/65 text-right pl-2">{sub}</td>
+                                <td className="py-1 text-slate-700 pr-2">{label}</td>
+                                <td className="py-1 text-slate-700 text-right font-medium">{weight}</td>
+                                <td className="py-1 text-slate-700 text-right pl-2">{sub}</td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
-                        <p className="text-[9px] text-dark-text/35 font-inter mt-1.5">
+                        <p className="text-xs text-slate-600 font-inter mt-1.5">
                           Algorithm-derived behavioral indicator · not clinically validated
                         </p>
                         {d.inputClamped && (
-                          <p className="text-[9px] text-[#f4a261] mt-1">
+                          <p className="text-xs text-[#f4a261] mt-1">
                             ⚠ One or more inputs were out of expected range and were clamped.
                           </p>
                         )}
@@ -736,7 +736,7 @@ export default function MoodInsightsPage() {
               {/* History sparkline / bar chart */}
               {wellnessHistory.filter(r => r.wellness_score !== null).length >= 2 && (
                 <div>
-                  <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-3">
+                  <p className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-3">
                     Wellness Score History
                   </p>
                   <WellnessHistoryChart
@@ -756,10 +756,10 @@ export default function MoodInsightsPage() {
                 <button
                   type="button"
                   onClick={() => setShowLevelScale((v) => !v)}
-                  className="flex items-center justify-between w-full text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-2 hover:text-dark-text/80 transition-colors"
+                  className="flex items-center justify-between w-full text-xs font-poppins uppercase tracking-wider text-slate-600 mb-2 hover:text-dark-text/80 transition-colors"
                 >
                   <span>Wellness Level Scale</span>
-                  <span className="text-[11px] normal-case tracking-normal font-normal">
+                  <span className="text-xs normal-case tracking-normal font-normal">
                     {showLevelScale ? "Hide ↑" : "Show ↓"}
                   </span>
                 </button>
@@ -786,14 +786,14 @@ export default function MoodInsightsPage() {
                           }}
                         >
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[11px]">{c.emoji}</span>
-                            <span className="text-[10px] font-poppins"
+                            <span className="text-xs">{c.emoji}</span>
+                            <span className="text-xs font-poppins"
                               style={{ color: isActive ? c.color : undefined }}
                             >
                               {isActive ? <strong>{lvl}</strong> : lvl}
                             </span>
                           </div>
-                          <span className="text-[10px] text-dark-text/60 font-inter">{range}</span>
+                          <span className="text-xs text-slate-600 font-inter">{range}</span>
                         </div>
                       );
                     })}
@@ -803,25 +803,25 @@ export default function MoodInsightsPage() {
 
               {/* Metadata */}
               <div className="pt-3 border-t border-[#F5F5F5] space-y-1">
-                <div className="flex justify-between text-[10px] text-dark-text/60">
+                <div className="flex justify-between text-xs text-slate-600">
                   <span>Entries analysed</span>
-                  <span className="font-medium text-dark-text/70">{wellnessLatest.entries_analyzed}</span>
+                  <span className="font-medium text-slate-700">{wellnessLatest.entries_analyzed}</span>
                 </div>
-                <div className="flex justify-between text-[10px] text-dark-text/60">
+                <div className="flex justify-between text-xs text-slate-600">
                   <span>Lookback window</span>
-                  <span className="font-medium text-dark-text/70">Last {wellnessLatest.lookback_days} days</span>
+                  <span className="font-medium text-slate-700">Last {wellnessLatest.lookback_days} days</span>
                 </div>
-                <div className="flex justify-between text-[10px] text-dark-text/60">
+                <div className="flex justify-between text-xs text-slate-600">
                   <span>Last updated</span>
-                  <span className="font-medium text-dark-text/60">
+                  <span className="font-medium text-slate-600">
                     {new Date(wellnessLatest.updated_at).toLocaleDateString("en-US", {
                       month: "short", day: "numeric", year: "numeric",
                     })}
                   </span>
                 </div>
-                <div className="flex justify-between text-[10px] text-dark-text/60">
+                <div className="flex justify-between text-xs text-slate-600">
                   <span>Compute history rows</span>
-                  <span className="font-medium text-dark-text/70">{wellnessHistory.length}</span>
+                  <span className="font-medium text-slate-700">{wellnessHistory.length}</span>
                 </div>
               </div>
             </div>
@@ -833,32 +833,32 @@ export default function MoodInsightsPage() {
       {/* ── CARD 3: DISTRESS RISK INDICATOR ──────────────────────────────── */}
       <Card className="p-4 sm:p-6 bg-white mb-8">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 flex items-center gap-2">
+          <h3 className="text-sm font-poppins uppercase tracking-wider text-slate-700 flex items-center gap-2">
             <span>⚠️</span>
             Distress Risk Indicator
           </h3>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-dark-text/60">Decision-support only · not a diagnosis</span>
+            <span className="text-xs text-slate-600">Decision-support only · not a diagnosis</span>
             <button
               onClick={() => triggerDRI()}
               disabled={driRecalculating}
-              className="text-[10px] font-poppins text-[#4EAAB3] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+              className="text-xs font-poppins text-[#4EAAB3] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {driRecalculating ? "Recalculating…" : "↻ Recalculate"}
             </button>
           </div>
         </div>
-        <p className="text-[11px] text-dark-text/60 font-inter mb-5">
+        <p className="text-xs text-slate-600 font-inter mb-5">
           Evaluates patterns across sentiment, behavioral trend, wellness, streak, and distress frequency
           · updates automatically after each journal entry
         </p>
 
         {driLoading ? (
-          <p className="text-xs text-dark-text/60 py-4 text-center">Loading risk indicator…</p>
+          <p className="text-xs text-slate-600 py-4 text-center">Loading risk indicator…</p>
         ) : !driLatest ? (
           <div className="text-center py-6 space-y-2">
-            <p className="text-sm text-dark-text/60">Risk assessment not yet computed.</p>
-            <p className="text-xs text-dark-text/60">
+            <p className="text-sm text-slate-600">Risk assessment not yet computed.</p>
+            <p className="text-xs text-slate-600">
               Save a journal entry — the indicator updates automatically. Or use the Recalculate button above.
             </p>
           </div>
@@ -881,13 +881,13 @@ export default function MoodInsightsPage() {
                 >
                   <span className="text-3xl">{cfg.emoji}</span>
                   <div>
-                    <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-0.5">
+                    <p className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-0.5">
                       Risk Level
                     </p>
                     <p className="text-xl font-poppins font-bold" style={{ color: cfg.color }}>
                       {driLatest.risk_level}
                     </p>
-                    <p className="text-[10px] text-dark-text/50 font-inter mt-0.5">
+                    <p className="text-xs text-slate-600 font-inter mt-0.5">
                       {DISTRESS_RISK_POINT_RANGES[driLatest.risk_level as DistressRiskLevel]}
                       {" "}· {driLatest.total_points} point{driLatest.total_points !== 1 ? "s" : ""} total
                     </p>
@@ -895,7 +895,7 @@ export default function MoodInsightsPage() {
                 </div>
 
                 {/* Description */}
-                <p className="text-xs text-dark-text/70 font-inter leading-relaxed">
+                <p className="text-xs text-slate-700 font-inter leading-relaxed">
                   {cfg.description}
                 </p>
 
@@ -915,7 +915,7 @@ export default function MoodInsightsPage() {
 
                 {/* Risk level legend */}
                 <div className="pt-3 border-t border-[#F5F5F5]">
-                  <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-2">
+                  <p className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-2">
                     Risk Level Scale
                   </p>
                   <div className="space-y-1.5">
@@ -932,12 +932,12 @@ export default function MoodInsightsPage() {
                           }}
                         >
                           <div className="flex items-center gap-1.5">
-                            <span className="text-[11px]">{c.emoji}</span>
-                            <span className="text-[10px] font-poppins" style={{ color: isActive ? c.color : undefined }}>
+                            <span className="text-xs">{c.emoji}</span>
+                            <span className="text-xs font-poppins" style={{ color: isActive ? c.color : undefined }}>
                               {isActive ? <strong>{lvl}</strong> : lvl}
                             </span>
                           </div>
-                          <span className="text-[10px] text-dark-text/50 font-inter">
+                          <span className="text-xs text-slate-600 font-inter">
                             {DISTRESS_RISK_POINT_RANGES[lvl]}
                           </span>
                         </div>
@@ -947,7 +947,7 @@ export default function MoodInsightsPage() {
                 </div>
 
                 {/* Disclaimer */}
-                <p className="text-[9px] text-dark-text/30 font-inter leading-relaxed border-t border-[#F5F5F5] pt-2 mt-1">
+                <p className="text-xs text-slate-600 font-inter leading-relaxed border-t border-[#F5F5F5] pt-2 mt-1">
                   This indicator is a system-generated decision-support tool only. It does not constitute
                   a clinical diagnosis, medical assessment, or mental health evaluation.
                 </p>
@@ -958,7 +958,7 @@ export default function MoodInsightsPage() {
 
                 {/* Condition breakdown table */}
                 <div>
-                  <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-2">
+                  <p className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-2">
                     Condition Breakdown
                   </p>
                   <div className="space-y-2">
@@ -969,30 +969,30 @@ export default function MoodInsightsPage() {
                         }`}
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="text-[10px] font-poppins font-medium text-dark-text/80 truncate">
+                          <p className="text-xs font-poppins font-medium text-dark-text/80 truncate">
                             {c.label}
                           </p>
-                          <p className="text-[9px] text-dark-text/50 font-inter">{c.observedValue}</p>
+                          <p className="text-xs text-slate-600 font-inter">{c.observedValue}</p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span
-                            className={`text-[10px] font-poppins font-bold px-1.5 py-0.5 rounded ${
+                            className={`text-xs font-poppins font-bold px-1.5 py-0.5 rounded ${
                               c.points >= 3 ? "bg-[#FECACA] text-[#7B1C1C]"
                               : c.points >= 2 ? "bg-[#F4A6A6] text-[#9B3A1E]"
                               : c.points >= 1 ? "bg-[#FFE8A1] text-[#7B5E2A]"
-                              : "bg-[#F3F4F6] text-dark-text/40"
+                              : "bg-[#F3F4F6] text-slate-600"
                             }`}
                           >
                             {c.points > 0 ? `+${c.points}` : "0"}
                           </span>
-                          <span className="text-[9px] text-dark-text/40">pts</span>
+                          <span className="text-xs text-slate-600">pts</span>
                         </div>
                       </div>
                     ))}
 
                     {/* Total points footer */}
                     <div className="flex justify-between items-center pt-2 border-t border-[#F5F5F5]">
-                      <span className="text-[10px] font-poppins font-semibold text-dark-text/70">Total Points</span>
+                      <span className="text-xs font-poppins font-semibold text-slate-700">Total Points</span>
                       <span
                         className="text-sm font-bold font-poppins"
                         style={{ color: cfg.color }}
@@ -1006,7 +1006,7 @@ export default function MoodInsightsPage() {
                 {/* History mini-chart */}
                 {driHistory.filter(r => r.total_points !== undefined).length >= 2 && (
                   <div>
-                    <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-2">
+                    <p className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-2">
                       Risk History
                     </p>
                     <div className="flex items-end gap-1 h-16">
@@ -1030,7 +1030,7 @@ export default function MoodInsightsPage() {
                           );
                         })}
                     </div>
-                    <div className="flex justify-between text-[9px] text-dark-text/40 font-inter mt-1">
+                    <div className="flex justify-between text-xs text-slate-600 font-inter mt-1">
                       <span>
                         {driHistory
                           .filter(r => r.total_points !== undefined)
@@ -1045,31 +1045,31 @@ export default function MoodInsightsPage() {
 
                 {/* Metadata */}
                 <div className="pt-3 border-t border-[#F5F5F5] space-y-1">
-                  <div className="flex justify-between text-[10px] text-dark-text/40">
+                  <div className="flex justify-between text-xs text-slate-600">
                     <span>Latest sentiment</span>
-                    <span className="font-medium text-dark-text/60 capitalize">
+                    <span className="font-medium text-slate-600 capitalize">
                       {driLatest.latest_sentiment ?? "N/A"}
                     </span>
                   </div>
-                  <div className="flex justify-between text-[10px] text-dark-text/40">
+                  <div className="flex justify-between text-xs text-slate-600">
                     <span>Consecutive negative</span>
-                    <span className="font-medium text-dark-text/60">
+                    <span className="font-medium text-slate-600">
                       {driLatest.consecutive_negative_count ?? 0} entries
                     </span>
                   </div>
-                  <div className="flex justify-between text-[10px] text-dark-text/40">
+                  <div className="flex justify-between text-xs text-slate-600">
                     <span>Distress entries in window</span>
-                    <span className="font-medium text-dark-text/60">
+                    <span className="font-medium text-slate-600">
                       {driLatest.distress_entries_window ?? 0} / {driLatest.total_entries_window ?? 0}
                     </span>
                   </div>
-                  <div className="flex justify-between text-[10px] text-dark-text/40">
+                  <div className="flex justify-between text-xs text-slate-600">
                     <span>Lookback window</span>
-                    <span className="font-medium text-dark-text/60">Last {driLatest.lookback_days} days</span>
+                    <span className="font-medium text-slate-600">Last {driLatest.lookback_days} days</span>
                   </div>
-                  <div className="flex justify-between text-[10px] text-dark-text/40">
+                  <div className="flex justify-between text-xs text-slate-600">
                     <span>Last updated</span>
-                    <span className="font-medium text-dark-text/60">
+                    <span className="font-medium text-slate-600">
                       {new Date(driLatest.updated_at).toLocaleDateString("en-US", {
                         month: "short", day: "numeric", year: "numeric",
                       })}
@@ -1090,7 +1090,7 @@ export default function MoodInsightsPage() {
           {/* Mood Trajectory Chart */}
           <Card className="p-6 bg-white">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
-              <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70">
+              <h3 className="text-sm font-poppins uppercase tracking-wider text-slate-700">
                 Mood Trajectory — This {timeRange}
               </h3>
               {moodTrend.direction !== "none" && (
@@ -1100,7 +1100,7 @@ export default function MoodInsightsPage() {
                       ? "bg-success-green/20 text-success-dark"
                       : moodTrend.direction === "down"
                       ? "bg-[#F4A6A6]/20 text-[#F4A6A6]"
-                      : "bg-light-gray text-dark-text/60"
+                      : "bg-light-gray text-slate-600"
                   }`}
                 >
                   {moodTrend.direction === "up"
@@ -1132,7 +1132,7 @@ export default function MoodInsightsPage() {
 
           {/* Journaling Calendar */}
           <Card className="p-6 bg-white">
-            <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
+            <h3 className="text-sm font-poppins uppercase tracking-wider text-slate-700 mb-4 flex items-center gap-2">
               <span>🗓️</span>
               Journaling Calendar —{" "}
               {new Date().toLocaleDateString("en-US", {
@@ -1144,7 +1144,7 @@ export default function MoodInsightsPage() {
               {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
                 <div
                   key={i}
-                  className="text-center text-[10px] font-poppins text-[#4F4F4F]/60 py-1"
+                  className="text-center text-xs font-poppins text-[#4F4F4F]/60 py-1"
                 >
                   {day}
                 </div>
@@ -1190,7 +1190,7 @@ export default function MoodInsightsPage() {
                 return (
                   <div
                     key={i}
-                    className={`aspect-square rounded-sm flex items-center justify-center text-[10px] font-inter text-[#4F4F4F] ${bgColor}`}
+                    className={`aspect-square rounded-sm flex items-center justify-center text-xs font-inter text-[#4F4F4F] ${bgColor}`}
                   >
                     {date}
                   </div>
@@ -1204,7 +1204,7 @@ export default function MoodInsightsPage() {
         <div className="space-y-6">
           {/* Emotion Distribution */}
           <Card className="p-6 bg-white">
-            <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-6 flex items-center gap-2">
+            <h3 className="text-sm font-poppins uppercase tracking-wider text-slate-700 mb-6 flex items-center gap-2">
               <span>🎨</span>
               Emotion Distribution
             </h3>
@@ -1218,7 +1218,7 @@ export default function MoodInsightsPage() {
                     <p className="text-xl font-dm-serif text-[#4F4F4F]">
                       {positivePercentage}%
                     </p>
-                    <p className="text-[10px] font-inter text-[#4F4F4F]/60">
+                    <p className="text-xs font-inter text-[#4F4F4F]/60">
                       Positive
                     </p>
                   </div>
@@ -1259,7 +1259,7 @@ export default function MoodInsightsPage() {
 
           {/* Top Emotional Keywords */}
           <Card className="p-6 bg-white">
-            <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
+            <h3 className="text-sm font-poppins uppercase tracking-wider text-slate-700 mb-4 flex items-center gap-2">
               <span>🔤</span>
               Top Emotional Keywords
             </h3>
@@ -1328,7 +1328,7 @@ export default function MoodInsightsPage() {
           <p className="text-sm font-poppins font-semibold text-dark-text">
             📊 Mood Trend Visualization
           </p>
-          <p className="text-xs text-dark-text/50 font-inter mt-0.5">
+          <p className="text-xs text-slate-600 font-inter mt-0.5">
             Full charts: Distribution · Weekly · Monthly · Wellness Trend · Behavioral Trend · Distress Risk
           </p>
         </div>

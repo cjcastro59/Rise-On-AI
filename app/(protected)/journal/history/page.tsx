@@ -222,7 +222,7 @@ export default function JournalHistoryPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-dark-text/70">Loading entries...</p>
+        <p className="text-slate-700">Loading entries...</p>
       </div>
     );
   }
@@ -236,7 +236,7 @@ export default function JournalHistoryPage() {
       <div className="flex flex-col gap-3 mb-6">
         {/* Search */}
         <div className="relative flex-1">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-text/60">🔍</span>
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600">🔍</span>
           <input
             type="text"
             placeholder="Search entries..."
@@ -248,7 +248,7 @@ export default function JournalHistoryPage() {
 
         {/* Sentiment filter pills */}
         <div>
-          <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 mb-2">Filter by sentiment</p>
+          <p className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-2">Filter by sentiment</p>
           <div className="flex flex-wrap gap-2">
             {["All", "Positive", "Negative", "Distress"].map((filter) => (
               <button
@@ -263,7 +263,7 @@ export default function JournalHistoryPage() {
                       : filter === "Distress"
                       ? "bg-error-red text-white shadow-sm"
                       : "bg-primary-blue text-white shadow-sm"
-                    : "bg-white border border-gray-200 text-dark-text/70 hover:border-primary-blue/40 hover:text-dark-text"
+                    : "bg-white border border-gray-200 text-slate-700 hover:border-primary-blue/40 hover:text-dark-text"
                 }`}
               >
                 {filter === "Positive" ? "😊 " : filter === "Negative" ? "😔 " : filter === "Distress" ? "⚠️ " : ""}
@@ -278,10 +278,10 @@ export default function JournalHistoryPage() {
           <button
             type="button"
             onClick={() => setShowMoodFilter((v) => !v)}
-            className="flex items-center gap-2 text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 hover:text-dark-text/80 transition-colors mb-2"
+            className="flex items-center gap-2 text-xs font-poppins uppercase tracking-wider text-slate-600 hover:text-dark-text/80 transition-colors mb-2"
           >
             <span>Filter by mood</span>
-            <span className="text-[11px] normal-case tracking-normal font-normal">
+            <span className="text-xs normal-case tracking-normal font-normal">
               {moodFilter !== "All" && (
                 <span className="ml-1 px-2 py-0.5 bg-primary-blue/15 text-primary-blue rounded-full">
                   {MOOD_OPTIONS.find(m => m.label === moodFilter)?.emoji} {moodFilter}
@@ -297,7 +297,7 @@ export default function JournalHistoryPage() {
                 className={`px-3 py-1.5 rounded-full text-xs font-poppins font-medium transition-all duration-150 hover:scale-105 active:scale-95 ${
                   moodFilter === "All"
                     ? "bg-primary-blue text-white shadow-sm"
-                    : "bg-white border border-gray-200 text-dark-text/70 hover:border-primary-blue/40"
+                    : "bg-white border border-gray-200 text-slate-700 hover:border-primary-blue/40"
                 }`}
               >
                 All moods
@@ -309,7 +309,7 @@ export default function JournalHistoryPage() {
                   className={`px-3 py-1.5 rounded-full text-xs font-poppins font-medium transition-all duration-150 hover:scale-105 active:scale-95 flex items-center gap-1 ${
                     moodFilter === mood.label
                       ? "bg-primary-blue text-white shadow-sm"
-                      : "bg-white border border-gray-200 text-dark-text/70 hover:border-primary-blue/40"
+                      : "bg-white border border-gray-200 text-slate-700 hover:border-primary-blue/40"
                   }`}
                 >
                   <span>{mood.emoji}</span>
@@ -322,7 +322,7 @@ export default function JournalHistoryPage() {
 
         {/* Active filter summary + clear */}
         {(sentimentFilter !== "All" || moodFilter !== "All" || searchQuery) && (
-          <div className="flex items-center justify-between text-xs font-inter text-dark-text/60 bg-primary-blue/5 px-3 py-2 rounded-lg">
+          <div className="flex items-center justify-between text-xs font-inter text-slate-600 bg-primary-blue/5 px-3 py-2 rounded-lg">
             <span>
               Showing {filteredEntries.length} of {entries.length} entries
               {sentimentFilter !== "All" && ` · Sentiment: ${sentimentFilter}`}
@@ -353,7 +353,7 @@ export default function JournalHistoryPage() {
                   {collapsedMonths.has(group.monthKey) ? "▶" : "▼"}
                 </span>
                 {group.monthName}
-                <span className="text-sm font-normal text-dark-text/50">
+                <span className="text-sm font-normal text-slate-600">
                   ({group.entries.length} {group.entries.length === 1 ? "entry" : "entries"})
                 </span>
               </button>
@@ -378,12 +378,12 @@ export default function JournalHistoryPage() {
                                   {getSentiment(entry)}
                                 </span>
                               </div>
-                              <p className="text-xs font-inter text-dark-text/60">
+                              <p className="text-xs font-inter text-slate-600">
                                 {formatDate(entry.created_at)} • {getWordCount(entry.content)} words
                               </p>
                             </div>
                           </div>
-                          <p className="text-sm font-inter text-dark-text/70">
+                          <p className="text-sm font-inter text-slate-700">
                             {getExcerpt(entry.content)}
                           </p>
                         </Link>
@@ -419,7 +419,7 @@ export default function JournalHistoryPage() {
           <h3 className="text-xl font-dm-serif text-dark-text mb-2">
             {searchQuery ? "No entries found" : "No entries yet"}
           </h3>
-          <p className="text-sm font-inter text-dark-text/70 mb-6">
+          <p className="text-sm font-inter text-slate-700 mb-6">
             {searchQuery ? "Try a different search term" : "Start your journaling journey today"}
           </p>
           {!searchQuery && (

@@ -529,7 +529,7 @@ export default function CounselorSettingsPage() {
           <div className="space-y-4">
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Counselor Settings</h3>
-              <p className="text-sm text-dark-text/60 font-poppins">
+              <p className="text-sm text-slate-600 font-poppins">
                 Manage your availability and counselor preferences.
               </p>
             </div>
@@ -537,7 +537,7 @@ export default function CounselorSettingsPage() {
               <div className="flex items-center justify-between p-4 bg-light-gray/30 rounded-xl">
                 <div>
                   <h4 className="text-sm font-semibold font-poppins text-dark-text">Set as Online</h4>
-                  <p className="text-xs text-dark-text/60 font-inter">Show users that you are available to chat</p>
+                  <p className="text-xs text-slate-600 font-inter">Show users that you are available to chat</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -554,7 +554,7 @@ export default function CounselorSettingsPage() {
               <div className="p-4 bg-light-gray/30 rounded-xl space-y-3">
                 <div>
                   <h4 className="text-sm font-semibold font-poppins text-dark-text">Shift Schedule</h4>
-                  <p className="text-xs text-dark-text/60 font-inter">Set your working shift so admins can schedule you accordingly</p>
+                  <p className="text-xs text-slate-600 font-inter">Set your working shift so admins can schedule you accordingly</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -568,7 +568,7 @@ export default function CounselorSettingsPage() {
                   >
                     <span className="text-xl">☀️</span>
                     <p className="text-sm font-poppins text-dark-text mt-1">Day Shift</p>
-                    <p className="text-xs text-dark-text/50 font-inter">6 AM – 6 PM</p>
+                    <p className="text-xs text-slate-600 font-inter">6 AM – 6 PM</p>
                   </button>
                   <button
                     type="button"
@@ -581,7 +581,7 @@ export default function CounselorSettingsPage() {
                   >
                     <span className="text-xl">🌙</span>
                     <p className="text-sm font-poppins text-dark-text mt-1">Night Shift</p>
-                    <p className="text-xs text-dark-text/50 font-inter">6 PM – 6 AM</p>
+                    <p className="text-xs text-slate-600 font-inter">6 PM – 6 AM</p>
                   </button>
                 </div>
                 <div className="flex justify-end">
@@ -598,7 +598,7 @@ export default function CounselorSettingsPage() {
           <div className="space-y-4">
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Notifications</h3>
-              <p className="text-sm text-dark-text/60 font-poppins">
+              <p className="text-sm text-slate-600 font-poppins">
                 Control when and how you receive notifications.
               </p>
             </div>
@@ -606,7 +606,7 @@ export default function CounselorSettingsPage() {
               <div className="flex items-center justify-between p-4 bg-light-gray/30 rounded-xl">
                 <div>
                   <h4 className="text-sm font-semibold font-poppins text-dark-text">Email Alerts</h4>
-                  <p className="text-xs text-dark-text/60 font-inter">Receive email notifications for important updates</p>
+                  <p className="text-xs text-slate-600 font-inter">Receive email notifications for important updates</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -622,7 +622,7 @@ export default function CounselorSettingsPage() {
               <div className="flex items-center justify-between p-4 bg-light-gray/30 rounded-xl">
                 <div>
                   <h4 className="text-sm font-semibold font-poppins text-dark-text">New Case Alerts</h4>
-                  <p className="text-xs text-dark-text/60 font-inter">Get notified when new distress cases are reported</p>
+                  <p className="text-xs text-slate-600 font-inter">Get notified when new distress cases are reported</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -638,7 +638,7 @@ export default function CounselorSettingsPage() {
               <div className="flex items-center justify-between p-4 bg-light-gray/30 rounded-xl">
                 <div>
                   <h4 className="text-sm font-semibold font-poppins text-dark-text">Message Alerts</h4>
-                  <p className="text-xs text-dark-text/60 font-inter">Get notified when receiving new messages</p>
+                  <p className="text-xs text-slate-600 font-inter">Get notified when receiving new messages</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -664,7 +664,7 @@ export default function CounselorSettingsPage() {
           <div className="space-y-4">
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Privacy &amp; Data</h3>
-              <p className="text-sm text-dark-text/60 font-poppins">
+              <p className="text-sm text-slate-600 font-poppins">
                 Control how your data is used and who can see it.
               </p>
             </div>
@@ -672,7 +672,7 @@ export default function CounselorSettingsPage() {
               <div className="flex items-center justify-between p-4 bg-light-gray/30 rounded-xl">
                 <div>
                   <h4 className="text-sm font-semibold font-poppins text-dark-text">Share Anonymous Data</h4>
-                  <p className="text-xs text-dark-text/60 font-inter">Help improve AI by sharing anonymized insights</p>
+                  <p className="text-xs text-slate-600 font-inter">Help improve AI by sharing anonymized insights</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -722,12 +722,12 @@ export default function CounselorSettingsPage() {
           <div className="space-y-4">
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Language &amp; Region</h3>
-              <p className="text-sm text-dark-text/60 font-poppins">
+              <p className="text-sm text-slate-600 font-poppins">
                 Choose your preferred language for the app.
               </p>
             </div>
             <div className="p-4 bg-light-gray/30 rounded-xl">
-              <label className="text-xs font-poppins text-dark-text/60">Language</label>
+              <label className="text-xs font-poppins text-slate-600">Language</label>
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
@@ -752,7 +752,7 @@ export default function CounselorSettingsPage() {
           <div className="space-y-4">
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Security &amp; Login</h3>
-              <p className="text-sm text-dark-text/60 font-poppins">
+              <p className="text-sm text-slate-600 font-poppins">
                 Manage your password and login security.
               </p>
             </div>
@@ -779,7 +779,7 @@ export default function CounselorSettingsPage() {
                   ) : (
                     <div className="p-4 bg-light-gray/30 rounded-xl space-y-4">
                       <h4 className="text-sm font-semibold font-poppins text-dark-text">Scan QR Code</h4>
-                      <p className="text-xs text-dark-text/60 font-inter">
+                      <p className="text-xs text-slate-600 font-inter">
                         Scan this QR code with Google Authenticator or Authy
                       </p>
                       {qrCodeUrl && (
@@ -823,7 +823,7 @@ export default function CounselorSettingsPage() {
           <div className="space-y-4">
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Data &amp; Export</h3>
-              <p className="text-sm text-dark-text/60 font-poppins">
+              <p className="text-sm text-slate-600 font-poppins">
                 Download or delete your data.
               </p>
             </div>
@@ -840,7 +840,7 @@ export default function CounselorSettingsPage() {
                 🗑️ Delete My Account
               </Button>
             </div>
-            <p className="text-xs text-dark-text/50 font-inter mt-2">
+            <p className="text-xs text-slate-600 font-inter mt-2">
               Export includes profile info, conversations, case notes, and assigned clients.
             </p>
           </div>
@@ -852,7 +852,7 @@ export default function CounselorSettingsPage() {
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Account</h3>
             </div>
-            <p className="text-sm text-dark-text/60 font-poppins">
+            <p className="text-sm text-slate-600 font-poppins">
               Manage your account details here. Go to Profile to edit personal info.
             </p>
             <Link href="/counselor/profile">
@@ -873,13 +873,13 @@ export default function CounselorSettingsPage() {
       {/* Sidebar */}
       <div className="w-64 flex-shrink-0 hidden md:block">
         <Card variant="white" className="p-4 space-y-2">
-          <h2 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4">Settings</h2>
+          <h2 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4">Settings</h2>
           <button
             onClick={() => setActiveSection("counselor")}
             className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
               activeSection === "counselor"
                 ? "bg-primary-blue/20 text-primary-blue"
-                : "text-dark-text/70 hover:text-dark-text hover:bg-light-gray"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
             }`}
           >
             <span className="flex items-center gap-2">
@@ -891,7 +891,7 @@ export default function CounselorSettingsPage() {
             className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
               activeSection === "notifications"
                 ? "bg-primary-blue/20 text-primary-blue"
-                : "text-dark-text/70 hover:text-dark-text hover:bg-light-gray"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
             }`}
           >
             <span className="flex items-center gap-2">
@@ -903,7 +903,7 @@ export default function CounselorSettingsPage() {
             className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
               activeSection === "privacy"
                 ? "bg-primary-blue/20 text-primary-blue"
-                : "text-dark-text/70 hover:text-dark-text hover:bg-light-gray"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
             }`}
           >
             <span className="flex items-center gap-2">
@@ -915,7 +915,7 @@ export default function CounselorSettingsPage() {
             className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
               activeSection === "language"
                 ? "bg-primary-blue/20 text-primary-blue"
-                : "text-dark-text/70 hover:text-dark-text hover:bg-light-gray"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
             }`}
           >
             <span className="flex items-center gap-2">
@@ -927,7 +927,7 @@ export default function CounselorSettingsPage() {
             className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
               activeSection === "security"
                 ? "bg-primary-blue/20 text-primary-blue"
-                : "text-dark-text/70 hover:text-dark-text hover:bg-light-gray"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
             }`}
           >
             <span className="flex items-center gap-2">
@@ -939,7 +939,7 @@ export default function CounselorSettingsPage() {
             className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
               activeSection === "data"
                 ? "bg-primary-blue/20 text-primary-blue"
-                : "text-dark-text/70 hover:text-dark-text hover:bg-light-gray"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
             }`}
           >
             <span className="flex items-center gap-2">
@@ -951,7 +951,7 @@ export default function CounselorSettingsPage() {
             className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
               activeSection === "account"
                 ? "bg-primary-blue/20 text-primary-blue"
-                : "text-dark-text/70 hover:text-dark-text hover:bg-light-gray"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
             }`}
           >
             <span className="flex items-center gap-2">
@@ -974,12 +974,12 @@ export default function CounselorSettingsPage() {
             <div className="flex items-start justify-between mb-5">
               <div>
                 <h3 className="text-xl font-dm-serif text-dark-text">Change Password</h3>
-                <p className="text-xs text-dark-text/60 font-poppins mt-1">Update your login credentials</p>
+                <p className="text-xs text-slate-600 font-poppins mt-1">Update your login credentials</p>
               </div>
               <button
                 type="button"
                 onClick={() => { setShowChangePw(false); setPwCurrent(""); setPwNew(""); setPwConfirm(""); }}
-                className="text-dark-text/40 hover:text-dark-text text-2xl leading-none"
+                className="text-slate-600 hover:text-dark-text text-2xl leading-none"
               >
                 x
               </button>
@@ -987,18 +987,18 @@ export default function CounselorSettingsPage() {
             {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-lg font-poppins mb-3">{error}</div>}
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-poppins text-dark-text/70 mb-1 block">Current Password</label>
+                <label className="text-xs font-poppins text-slate-700 mb-1 block">Current Password</label>
                 <Input type="password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} placeholder="Enter current password" />
               </div>
               <div>
-                <label className="text-xs font-poppins text-dark-text/70 mb-1 block">New Password</label>
+                <label className="text-xs font-poppins text-slate-700 mb-1 block">New Password</label>
                 <Input type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} placeholder="Enter new password" />
-                <p className="mt-1 text-[11px] text-dark-text/50 font-inter">
+                <p className="mt-1 text-xs text-slate-600 font-inter">
                   Use at least 8 characters with uppercase, lowercase, number, and special character.
                 </p>
               </div>
               <div>
-                <label className="text-xs font-poppins text-dark-text/70 mb-1 block">Confirm New Password</label>
+                <label className="text-xs font-poppins text-slate-700 mb-1 block">Confirm New Password</label>
                 <Input type="password" value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)} placeholder="Repeat new password" />
               </div>
             </div>
@@ -1029,14 +1029,14 @@ export default function CounselorSettingsPage() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-xl font-dm-serif text-dark-text">Delete My Account</h3>
-                <p className="text-xs text-dark-text/70 font-poppins mt-1 leading-relaxed">
+                <p className="text-xs text-slate-700 font-poppins mt-1 leading-relaxed">
                   This deactivates your counselor profile and unassigns your clients.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
-                className="text-dark-text/40 hover:text-dark-text text-2xl leading-none"
+                className="text-slate-600 hover:text-dark-text text-2xl leading-none"
               >
                 x
               </button>

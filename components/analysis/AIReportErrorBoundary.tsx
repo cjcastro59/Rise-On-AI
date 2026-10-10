@@ -39,10 +39,10 @@ export default class AIReportErrorBoundary extends Component<
           <p className="text-sm font-poppins font-semibold text-[#9B3A1E]">
             AI report unavailable
           </p>
-          <p className="mt-2 text-xs font-inter leading-relaxed text-dark-text/60">
+          <p className="mt-2 text-xs font-inter leading-relaxed text-slate-600">
             {this.state.message}
           </p>
-          <p className="mt-2 text-[11px] font-inter leading-relaxed text-dark-text/40">
+          <p className="mt-2 text-xs font-inter leading-relaxed text-slate-600">
             The rest of the analysis remains available.
           </p>
         </div>

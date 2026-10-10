@@ -19,11 +19,11 @@ function MoodTooltip({ active, payload }: TooltipContentProps) {
   if (point.score === null) return null;
   return (
     <div className="rounded-lg bg-white px-3 py-2 shadow-md border border-light-gray">
-      <p className="text-xs font-poppins text-dark-text/70">{point.tooltipLabel}</p>
+      <p className="text-xs font-poppins text-slate-700">{point.tooltipLabel}</p>
       <p className="text-sm font-poppins text-dark-text">
         {point.emoji} {point.mood || "Mood logged"}
       </p>
-      <p className="text-xs font-poppins text-dark-text/70">Score: {point.score}</p>
+      <p className="text-xs font-poppins text-slate-700">Score: {point.score}</p>
     </div>
   );
 }
@@ -56,7 +56,7 @@ export default function WeeklyMoodChart({
   if (loading) {
     return (
       <div className={`${heightClassName} flex items-center justify-center`}>
-        <p className="text-sm text-dark-text/70 font-poppins">Loading mood data...</p>
+        <p className="text-sm text-slate-700 font-poppins">Loading mood data...</p>
       </div>
     );
   }
@@ -106,7 +106,7 @@ export default function WeeklyMoodChart({
       </ResponsiveContainer>
       {!hasData && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <p className="text-sm text-dark-text/70 font-poppins bg-white/85 px-3 py-1 rounded-full">
+          <p className="text-sm text-slate-700 font-poppins bg-white/85 px-3 py-1 rounded-full">
             {emptyMessage}
           </p>
         </div>

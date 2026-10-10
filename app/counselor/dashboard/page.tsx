@@ -55,14 +55,14 @@ function WellnessBadge({
 }) {
   if (score === null) {
     return (
-      <span className="text-[10px] font-inter text-dark-text/40 italic">No data</span>
+      <span className="text-xs font-inter text-slate-600 italic">No data</span>
     );
   }
   const lvl  = (level as WellnessLevel) ?? classifyWellnessLevel(score);
   const cfg  = WELLNESS_LEVEL_CONFIG[lvl];
   return (
     <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-poppins font-medium"
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-poppins font-medium"
       style={{ backgroundColor: cfg.bgColor, color: cfg.color }}
     >
       {cfg.emoji} {score.toFixed(1)} · {lvl}
@@ -73,13 +73,13 @@ function WellnessBadge({
 // ── Distress Risk badge ───────────────────────────────────────────────────────
 function RiskBadge({ riskLevel }: { riskLevel: string | null }) {
   if (!riskLevel) {
-    return <span className="text-[10px] font-inter text-dark-text/40 italic">No data</span>;
+    return <span className="text-xs font-inter text-slate-600 italic">No data</span>;
   }
   const lvl = riskLevel as DistressRiskLevel;
   const cfg = DISTRESS_RISK_CONFIG[lvl] ?? DISTRESS_RISK_CONFIG["Low Risk"];
   return (
     <span
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-poppins font-medium"
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-poppins font-medium"
       style={{ backgroundColor: cfg.bgColor, color: cfg.color }}
     >
       {cfg.emoji} {lvl}
@@ -328,7 +328,7 @@ export default function CounselorDashboardPage() {
   if (!isMounted) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <p className="text-dark-text/70 font-poppins">Loading...</p>
+        <p className="text-slate-700 font-poppins">Loading...</p>
       </div>
     );
   }
@@ -339,7 +339,7 @@ export default function CounselorDashboardPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white/80 px-6 py-5 shadow-sm border border-white/40 backdrop-blur-md">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Dashboard Overview</h1>
-          <p className="text-sm text-dark-text/70 font-poppins">{currentDate}</p>
+          <p className="text-sm text-slate-700 font-poppins">{currentDate}</p>
         </div>
       </div>
 
@@ -349,7 +349,7 @@ export default function CounselorDashboardPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-primary-blue/20">👥</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">ASSIGNED USERS</p>
+              <p className="text-xs text-slate-600 font-poppins">ASSIGNED USERS</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.assignedUsers}</p>
             </div>
           </div>
@@ -360,7 +360,7 @@ export default function CounselorDashboardPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-error-red/30">🚨</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">ACTIVE CASES</p>
+              <p className="text-xs text-slate-600 font-poppins">ACTIVE CASES</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.activeCases}</p>
             </div>
           </div>
@@ -371,7 +371,7 @@ export default function CounselorDashboardPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-lavender/20">💬</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">OPEN CONVERSATIONS</p>
+              <p className="text-xs text-slate-600 font-poppins">OPEN CONVERSATIONS</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.pendingMessages}</p>
             </div>
           </div>
@@ -383,25 +383,25 @@ export default function CounselorDashboardPage() {
       <Card variant="white" className="p-5 bg-white/80 border border-white/40 shadow-sm backdrop-blur-md">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-poppins text-dark-text/70 uppercase tracking-wider">
+            <p className="text-xs font-poppins text-slate-700 uppercase tracking-wider">
               Aggregate Wellness Trend
             </p>
-            <p className="mt-0.5 text-[10px] text-dark-text/40 font-inter">
+            <p className="mt-0.5 text-xs text-slate-600 font-inter">
               Assigned users only, averaged by assessment date
             </p>
           </div>
           {!loading && !wellnessLoading && aggregateWellnessTrend.length > 0 && (
-            <span className="text-xs font-poppins text-dark-text/60">
+            <span className="text-xs font-poppins text-slate-600">
               {aggregateWellnessTrend.length} points
             </span>
           )}
         </div>
 
         {loading || wellnessLoading ? (
-          <p className="py-8 text-sm text-dark-text/50 font-inter">Loading trend data...</p>
+          <p className="py-8 text-sm text-slate-600 font-inter">Loading trend data...</p>
         ) : aggregateWellnessTrend.length === 0 ? (
           <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
-            <p className="text-sm text-dark-text/60 font-inter">
+            <p className="text-sm text-slate-600 font-inter">
               No wellness trend data for assigned users yet.
             </p>
           </div>
@@ -421,7 +421,7 @@ export default function CounselorDashboardPage() {
                 );
               })}
             </div>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-[10px] text-dark-text/40 font-inter">
+            <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-600 font-inter">
               <span>{new Date(aggregateWellnessTrend[0]?.date).toLocaleDateString()}</span>
               <span className="text-right">
                 {new Date(aggregateWellnessTrend[aggregateWellnessTrend.length - 1]?.date).toLocaleDateString()}
@@ -436,10 +436,10 @@ export default function CounselorDashboardPage() {
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-[#B7E4C7]/30 rounded-lg flex items-center justify-center">💚</div>
             <div>
-              <p className="text-xs font-poppins text-dark-text/70 uppercase tracking-wider">
+              <p className="text-xs font-poppins text-slate-700 uppercase tracking-wider">
                 ASSIGNED USERS — WELLNESS OVERVIEW
               </p>
-              <p className="text-[10px] text-dark-text/40 font-inter mt-0.5">
+              <p className="text-xs text-slate-600 font-inter mt-0.5">
                 Latest 30-day Wellness Score per user · names anonymized for privacy
               </p>
             </div>
@@ -453,17 +453,17 @@ export default function CounselorDashboardPage() {
         </div>
 
         {loading || wellnessLoading ? (
-          <p className="text-sm text-dark-text/50 py-3 font-inter">Loading wellness data…</p>
+          <p className="text-sm text-slate-600 py-3 font-inter">Loading wellness data…</p>
         ) : assignedUsers.length === 0 ? (
-          <p className="text-sm text-dark-text/70 font-inter">No users assigned to you yet.</p>
+          <p className="text-sm text-slate-700 font-inter">No users assigned to you yet.</p>
         ) : (
           <div className="divide-y divide-[#F5F5F5]">
             {/* Table header */}
             <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 pb-2">
-              <span className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50">User</span>
-              <span className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 text-right">Wellness</span>
-              <span className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 text-right">Risk</span>
-              <span className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/50 text-right">Updated</span>
+              <span className="text-xs font-poppins uppercase tracking-wider text-slate-600">User</span>
+              <span className="text-xs font-poppins uppercase tracking-wider text-slate-600 text-right">Wellness</span>
+              <span className="text-xs font-poppins uppercase tracking-wider text-slate-600 text-right">Risk</span>
+              <span className="text-xs font-poppins uppercase tracking-wider text-slate-600 text-right">Updated</span>
             </div>
 
             {/* Rows */}
@@ -516,7 +516,7 @@ export default function CounselorDashboardPage() {
                   </div>
 
                   {/* Last updated */}
-                  <span className="text-[10px] text-dark-text/40 font-inter text-right whitespace-nowrap">
+                  <span className="text-xs text-slate-600 font-inter text-right whitespace-nowrap">
                     {snap?.window_end_date
                       ? new Date(snap.window_end_date).toLocaleDateString("en-US", {
                           month: "short", day: "numeric",
@@ -547,7 +547,7 @@ export default function CounselorDashboardPage() {
                   </span>
                   <Link
                     href="/counselor/cases"
-                    className="text-[10px] text-primary-blue font-poppins hover:underline ml-auto"
+                    className="text-xs text-primary-blue font-poppins hover:underline ml-auto"
                   >
                     Review cases →
                   </Link>
@@ -566,7 +566,7 @@ export default function CounselorDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-error-red/20 rounded-lg flex items-center justify-center">🚨</div>
-              <p className="text-xs font-poppins text-dark-text/70">RECENT CASES</p>
+              <p className="text-xs font-poppins text-slate-700">RECENT CASES</p>
             </div>
             <Link href="/counselor/cases" className="text-xs font-poppins text-primary-blue hover:underline">
               View All →
@@ -574,23 +574,23 @@ export default function CounselorDashboardPage() {
           </div>
           <div className="space-y-3">
             {loading ? (
-              <p className="text-sm text-dark-text/70 font-inter">Loading cases…</p>
+              <p className="text-sm text-slate-700 font-inter">Loading cases…</p>
             ) : recentCases.length === 0 ? (
-              <p className="text-sm text-dark-text/70 font-inter">No cases yet.</p>
+              <p className="text-sm text-slate-700 font-inter">No cases yet.</p>
             ) : recentCases.map((c, i) => {
               const snap    = wellnessMap.get(c.user_id);
               const rSnap   = riskMap.get(c.user_id);
               return (
                 <div
                   key={c.id || i}
-                  className="p-3 bg-rose-50/80 rounded-xl border border-rose-200 border-l-4 border-l-indigo-500"
+                  className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-200 border-l-4 border-l-indigo-600"
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold font-poppins text-dark-text truncate">
                         {c.trigger || "Case"}
                       </p>
-                      <p className="text-xs text-dark-text/70 font-inter">
+                      <p className="text-xs text-slate-700 font-inter">
                         {c.severity || "Recent"} · {formatTime(c.created_at)}
                       </p>
                     </div>
@@ -605,13 +605,13 @@ export default function CounselorDashboardPage() {
                   <div className="mt-1.5 flex items-center gap-2 flex-wrap">
                     {snap && snap.wellness_score !== null && (
                       <div className="flex items-center gap-1">
-                        <span className="text-[9px] text-dark-text/40 font-inter">Wellness:</span>
+                        <span className="text-xs text-slate-600 font-inter">Wellness:</span>
                         <WellnessBadge score={snap.wellness_score} level={snap.wellness_level} />
                       </div>
                     )}
                     {rSnap?.risk_level && (
                       <div className="flex items-center gap-1">
-                        <span className="text-[9px] text-dark-text/40 font-inter">Risk:</span>
+                        <span className="text-xs text-slate-600 font-inter">Risk:</span>
                         <RiskBadge riskLevel={rSnap.risk_level} />
                       </div>
                     )}
@@ -627,7 +627,7 @@ export default function CounselorDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">💬</div>
-              <p className="text-xs font-poppins text-dark-text/70">RECENT MESSAGES</p>
+              <p className="text-xs font-poppins text-slate-700">RECENT MESSAGES</p>
             </div>
             <Link href="/counselor/messages" className="text-xs font-poppins text-primary-blue hover:underline">
               View All →
@@ -635,9 +635,9 @@ export default function CounselorDashboardPage() {
           </div>
           <div className="space-y-3">
             {loading ? (
-              <p className="text-sm text-dark-text/70 font-inter">Loading messages…</p>
+              <p className="text-sm text-slate-700 font-inter">Loading messages…</p>
             ) : recentMessages.length === 0 ? (
-              <p className="text-sm text-dark-text/70 font-inter">No messages yet.</p>
+              <p className="text-sm text-slate-700 font-inter">No messages yet.</p>
             ) : recentMessages.map((m, i) => (
               <div
                 key={m.id || i}
@@ -645,7 +645,7 @@ export default function CounselorDashboardPage() {
               >
                 <div>
                   <p className="text-sm font-semibold font-poppins text-dark-text">New Message</p>
-                  <p className="text-xs text-dark-text/70 font-inter">{formatTime(m.created_at)}</p>
+                  <p className="text-xs text-slate-700 font-inter">{formatTime(m.created_at)}</p>
                 </div>
                 <Link
                   href="/counselor/messages"

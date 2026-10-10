@@ -33,7 +33,7 @@ import { DISTRESS_RISK_CONFIG, type DistressRiskLevel } from "@/lib/distress-ris
 // Loading fallbacks show skeleton cards to prevent layout shift.
 const ChartSkeleton = () => (
   <div className="h-52 flex items-center justify-center rounded-xl bg-light-gray/30 animate-pulse">
-    <p className="text-xs text-dark-text/30 font-inter">Loading chart…</p>
+    <p className="text-xs text-slate-600 font-inter">Loading chart…</p>
   </div>
 );
 
@@ -70,7 +70,7 @@ function RangePill({
       className={`px-3 py-1.5 rounded-full text-xs font-poppins transition-all ${
         active
           ? "bg-[#A8DADC] text-white shadow-md"
-          : "bg-gray-100 text-dark-text/60 hover:bg-[#F5F5F5]"
+          : "bg-gray-100 text-slate-600 hover:bg-[#F5F5F5]"
       }`}
     >
       {label}
@@ -93,12 +93,12 @@ function SectionHeader({
   return (
     <div className="flex items-start justify-between mb-1">
       <div>
-        <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 flex items-center gap-2">
+        <h3 className="text-sm font-poppins uppercase tracking-wider text-slate-700 flex items-center gap-2">
           <span>{emoji}</span>
           {title}
         </h3>
         {subtitle && (
-          <p className="text-[11px] text-dark-text/40 font-inter mt-0.5">
+          <p className="text-xs text-slate-600 font-inter mt-0.5">
             {subtitle}
           </p>
         )}
@@ -121,7 +121,7 @@ function StatPill({
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-light-gray">
       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-      <span className="text-[10px] font-inter text-dark-text/60">{label}</span>
+      <span className="text-xs font-inter text-slate-600">{label}</span>
       <span className="text-xs font-poppins font-semibold text-dark-text">{value}</span>
     </div>
   );
@@ -248,7 +248,7 @@ export default function MoodTrendsPage() {
             subtitle="Mood score over time (mood_logs + journal_entries)"
             action={
               moodAvg !== null && (
-                <span className="text-[11px] font-poppins text-dark-text/60 bg-light-gray px-2 py-0.5 rounded-full">
+                <span className="text-xs font-poppins text-slate-600 bg-light-gray px-2 py-0.5 rounded-full">
                   Avg {moodAvg} / 5
                 </span>
               )
@@ -273,7 +273,7 @@ export default function MoodTrendsPage() {
             ticks={moodTicks}
             emptyMessage="No mood data recorded for this period."
           />
-          <p className="text-[10px] text-dark-text/30 font-inter mt-2">
+          <p className="text-xs text-slate-600 font-inter mt-2">
             Score 1–5 · mood_logs.score (authoritative) + journal_entries.mood
           </p>
         </Card>
@@ -291,7 +291,7 @@ export default function MoodTrendsPage() {
             action={
               latestWellness && wellnessCfg ? (
                 <span
-                  className="text-[10px] font-poppins px-2 py-0.5 rounded-full"
+                  className="text-xs font-poppins px-2 py-0.5 rounded-full"
                   style={{ backgroundColor: wellnessCfg.bgColor, color: wellnessCfg.color }}
                 >
                   {wellnessCfg.emoji} {latestWellness.wellnessScore.toFixed(1)} — {latestWellness.wellnessLevel}
@@ -299,7 +299,7 @@ export default function MoodTrendsPage() {
               ) : null
             }
           />
-          <p className="text-[10px] text-dark-text/40 font-inter mb-4">
+          <p className="text-xs text-slate-600 font-inter mb-4">
             30-day behavioral wellness score · algorithm-derived indicator
           </p>
           <WellnessScoreTrendChart
@@ -314,7 +314,7 @@ export default function MoodTrendsPage() {
               return (
                 <div key={lvl} className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.bgColor }} />
-                  <span className="text-[9px] font-inter text-dark-text/50">{c.emoji} {lvl}</span>
+                  <span className="text-xs font-inter text-slate-600">{c.emoji} {lvl}</span>
                 </div>
               );
             })}
@@ -330,7 +330,7 @@ export default function MoodTrendsPage() {
             action={
               latestBTS ? (
                 <span
-                  className="text-[10px] font-poppins px-2 py-0.5 rounded-full"
+                  className="text-xs font-poppins px-2 py-0.5 rounded-full"
                   style={{
                     backgroundColor: latestBTS.bts >= 10 ? "#B7E4C7" : latestBTS.bts <= -10 ? "#F4A6A6" : "#E5E7EB",
                     color:           latestBTS.bts >= 10 ? "#2D6A4F" : latestBTS.bts <= -10 ? "#7B1C1C" : "#6B7280",
@@ -341,7 +341,7 @@ export default function MoodTrendsPage() {
               ) : null
             }
           />
-          <p className="text-[10px] text-dark-text/40 font-inter mb-4">
+          <p className="text-xs text-slate-600 font-inter mb-4">
             Compares older vs. recent journal entries · positive values indicate improving trend
           </p>
           <BehavioralTrendChart
@@ -357,7 +357,7 @@ export default function MoodTrendsPage() {
             ].map((d) => (
               <div key={d.label} className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: d.color }} />
-                <span className="text-[9px] font-inter text-dark-text/50">{d.label}</span>
+                <span className="text-xs font-inter text-slate-600">{d.label}</span>
               </div>
             ))}
           </div>
@@ -373,7 +373,7 @@ export default function MoodTrendsPage() {
           action={
             latestRisk && riskCfg ? (
               <span
-                className="text-[10px] font-poppins px-2 py-0.5 rounded-full"
+                className="text-xs font-poppins px-2 py-0.5 rounded-full"
                 style={{ backgroundColor: riskCfg.bgColor, color: riskCfg.color }}
               >
                 {riskCfg.emoji} Latest: {latestRisk.riskLevel}
@@ -381,7 +381,7 @@ export default function MoodTrendsPage() {
             ) : null
           }
         />
-        <p className="text-[10px] text-dark-text/40 font-inter mb-4">
+        <p className="text-xs text-slate-600 font-inter mb-4">
           Decision-support only · not a clinical diagnosis
         </p>
         <DistressRiskChart
@@ -393,7 +393,7 @@ export default function MoodTrendsPage() {
 
       {/* ── Bottom disclaimer + navigation ──────────────────────────────── */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-2">
-        <p className="text-[10px] text-dark-text/35 font-inter max-w-xl text-center sm:text-left">
+        <p className="text-xs text-slate-600 font-inter max-w-xl text-center sm:text-left">
           All charts reflect stored database values only. Charts update automatically after
           each journal entry. No data is fabricated or interpolated.
           Distress Risk is a decision-support indicator — not a clinical diagnosis.

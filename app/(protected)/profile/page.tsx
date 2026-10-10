@@ -311,7 +311,7 @@ export default function ProfilePage() {
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue mx-auto mb-4"></div>
-          <p className="text-dark-text/60 font-poppins">Loading profile...</p>
+          <p className="text-slate-600 font-poppins">Loading profile...</p>
         </div>
       </div>
     );
@@ -389,7 +389,7 @@ export default function ProfilePage() {
               <h1 className="text-2xl font-dm-serif text-dark-text truncate">
                 {profile.first_name || "User"} {profile.last_name || ""}
               </h1>
-              <p className="text-sm text-dark-text/60 font-poppins truncate">
+              <p className="text-sm text-slate-600 font-poppins truncate">
                 @{profile.username || "user"} • {profile.country || "Not set"}
               </p>
               <div className="flex flex-wrap gap-2 mt-2">
@@ -426,14 +426,14 @@ export default function ProfilePage() {
       {/* Personal Information */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card variant="white" className="p-6">
-          <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
+          <h3 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4 flex items-center gap-2">
             <span>👤</span>
             Personal Information
           </h3>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">First Name</label>
+                <label className="text-xs font-poppins text-slate-600">First Name</label>
                 {isEditing ? (
                   <input
                     type="text"
@@ -448,7 +448,7 @@ export default function ProfilePage() {
                 )}
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">Last Name</label>
+                <label className="text-xs font-poppins text-slate-600">Last Name</label>
                 {isEditing ? (
                   <input
                     type="text"
@@ -466,7 +466,7 @@ export default function ProfilePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">Age</label>
+                <label className="text-xs font-poppins text-slate-600">Age</label>
                 {isEditing ? (
                   <input
                     type="number"
@@ -481,7 +481,7 @@ export default function ProfilePage() {
                 )}
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">Sex</label>
+                <label className="text-xs font-poppins text-slate-600">Sex</label>
                 {isEditing ? (
                   <select
                     value={profile.sex || ""}
@@ -501,7 +501,7 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Country</label>
+              <label className="text-xs font-poppins text-slate-600">Country</label>
               {isEditing ? (
                 <select
                   value={profile.country || ""}
@@ -521,7 +521,7 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Username</label>
+              <label className="text-xs font-poppins text-slate-600">Username</label>
               {isEditing ? (
                 <input
                   type="text"
@@ -537,14 +537,14 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Email Address</label>
-              <div className="px-3 py-2 bg-light-gray/30 rounded-lg text-sm font-inter text-dark-text/70">
+              <label className="text-xs font-poppins text-slate-600">Email Address</label>
+              <div className="px-3 py-2 bg-light-gray/30 rounded-lg text-sm font-inter text-slate-700">
                 {profile.email || user?.email}
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Bio / About Me</label>
+              <label className="text-xs font-poppins text-slate-600">Bio / About Me</label>
               {isEditing ? (
                 <textarea
                   value={profile.bio || ""}
@@ -559,7 +559,7 @@ export default function ProfilePage() {
               )}
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Family Background</label>
+              <label className="text-xs font-poppins text-slate-600">Family Background</label>
               {isEditing ? (
                 <textarea
                   value={profile.family_background || ""}
@@ -574,7 +574,7 @@ export default function ProfilePage() {
               )}
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Current Living Situation</label>
+              <label className="text-xs font-poppins text-slate-600">Current Living Situation</label>
               {isEditing ? (
                 <input
                   type="text"
@@ -593,13 +593,13 @@ export default function ProfilePage() {
 
         {/* Mood Preferences */}
         <Card variant="white" className="p-6">
-          <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
+          <h3 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4 flex items-center gap-2">
             <span>⏰</span>
             Mood Preferences
           </h3>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Enable Mood Reminders</label>
+              <label className="text-xs font-poppins text-slate-600">Enable Mood Reminders</label>
               {isEditing ? (
                 <div className="flex items-center gap-3">
                   <input
@@ -625,7 +625,7 @@ export default function ProfilePage() {
             </div>
             {profile.mood_reminder_enabled && (
               <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">Reminder Time</label>
+                <label className="text-xs font-poppins text-slate-600">Reminder Time</label>
                 {isEditing ? (
                   <input
                     type="time"
@@ -641,7 +641,7 @@ export default function ProfilePage() {
               </div>
             )}
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Current Mood Baseline</label>
+              <label className="text-xs font-poppins text-slate-600">Current Mood Baseline</label>
               {isEditing ? (
                 <select
                   value={profile.mood_baseline || ""}
@@ -661,7 +661,7 @@ export default function ProfilePage() {
               )}
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Mood Baseline Details</label>
+              <label className="text-xs font-poppins text-slate-600">Mood Baseline Details</label>
               {isEditing ? (
                 <textarea
                   value={profile.mood_baseline_details || ""}
@@ -676,7 +676,7 @@ export default function ProfilePage() {
               )}
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Language</label>
+              <label className="text-xs font-poppins text-slate-600">Language</label>
               {isEditing ? (
                 <select
                   value={profile.language || ""}
@@ -699,26 +699,26 @@ export default function ProfilePage() {
 
       {/* My Wellness Journey */}
       <Card variant="white" className="p-6">
-        <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
+        <h3 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4 flex items-center gap-2">
           <span>📊</span>
           My Wellness Journey
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-light-gray/30 p-4 rounded-xl text-center">
             <div className="text-2xl font-dm-serif text-dark-text">{stats.totalEntries}</div>
-            <div className="text-xs font-poppins text-dark-text/60 uppercase">Total Entries</div>
+            <div className="text-xs font-poppins text-slate-600 uppercase">Total Entries</div>
           </div>
           <div className="bg-success-green/20 p-4 rounded-xl text-center">
             <div className="text-2xl font-dm-serif text-dark-text">🔥 {stats.streak}</div>
-            <div className="text-xs font-poppins text-dark-text/60 uppercase">Day Streak</div>
+            <div className="text-xs font-poppins text-slate-600 uppercase">Day Streak</div>
           </div>
           <div className="bg-primary-blue/10 p-4 rounded-xl text-center">
             <div className="text-2xl font-dm-serif text-dark-text">{stats.avgMood}</div>
-            <div className="text-xs font-poppins text-dark-text/60 uppercase">Avg Mood Score</div>
+            <div className="text-xs font-poppins text-slate-600 uppercase">Avg Mood Score</div>
           </div>
           <div className="bg-lavender/30 p-4 rounded-xl text-center">
             <div className="text-2xl font-dm-serif text-dark-text">{formatJoinDate(profile.created_at)}</div>
-            <div className="text-xs font-poppins text-dark-text/60 uppercase">Member Since</div>
+            <div className="text-xs font-poppins text-slate-600 uppercase">Member Since</div>
           </div>
         </div>
       </Card>
@@ -726,7 +726,7 @@ export default function ProfilePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Wellness Goals */}
         <Card variant="white" className="p-6">
-          <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
+          <h3 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4 flex items-center gap-2">
             <span>🎯</span>
             Wellness Goals
           </h3>
@@ -763,7 +763,7 @@ export default function ProfilePage() {
 
         {/* Recent Activity */}
         <Card variant="white" className="p-6">
-          <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-4 flex items-center gap-2">
+          <h3 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4 flex items-center gap-2">
             <span>📝</span>
             Recent Activity
           </h3>
@@ -775,7 +775,7 @@ export default function ProfilePage() {
                 <div className="flex items-center justify-between p-3 bg-light-gray/30 rounded-lg hover:bg-light-gray/50 transition-colors">
                   <div className="space-y-1">
                     <p className="text-sm font-inter text-dark-text">{activity.title}</p>
-                    <p className="text-xs font-poppins text-dark-text/60">{activity.date}</p>
+                    <p className="text-xs font-poppins text-slate-600">{activity.date}</p>
                   </div>
                   <span className="text-sm font-poppins text-primary-blue">→</span>
                 </div>

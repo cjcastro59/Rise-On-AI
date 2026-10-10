@@ -218,7 +218,7 @@ export default function CounselorAssignedUsersPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue mx-auto mb-4"></div>
-          <p className="text-dark-text/60 font-poppins">Loading users…</p>
+          <p className="text-slate-600 font-poppins">Loading users…</p>
         </div>
       </div>
     );
@@ -230,7 +230,7 @@ export default function CounselorAssignedUsersPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Assigned Users</h1>
-          <p className="text-sm text-dark-text/60 font-poppins">{totalUsers} total assigned users</p>
+          <p className="text-sm text-slate-600 font-poppins">{totalUsers} total assigned users</p>
         </div>
       </div>
 
@@ -240,7 +240,7 @@ export default function CounselorAssignedUsersPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-primary-blue/20">👥</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">TOTAL USERS</p>
+              <p className="text-xs text-slate-600 font-poppins">TOTAL USERS</p>
               <p className="text-2xl font-dm-serif text-dark-text">{totalUsers}</p>
             </div>
           </div>
@@ -250,7 +250,7 @@ export default function CounselorAssignedUsersPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-success-green/20">✅</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">ACTIVE (30d)</p>
+              <p className="text-xs text-slate-600 font-poppins">ACTIVE (30d)</p>
               <p className="text-2xl font-dm-serif text-dark-text">{activeUsers}</p>
             </div>
           </div>
@@ -260,7 +260,7 @@ export default function CounselorAssignedUsersPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-lavender/20">⏸️</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">INACTIVE</p>
+              <p className="text-xs text-slate-600 font-poppins">INACTIVE</p>
               <p className="text-2xl font-dm-serif text-dark-text">{inactiveUsers}</p>
             </div>
           </div>
@@ -270,7 +270,7 @@ export default function CounselorAssignedUsersPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-error-red/30">🚫</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">AT RISK</p>
+              <p className="text-xs text-slate-600 font-poppins">AT RISK</p>
               <p className="text-2xl font-dm-serif text-error-red">{atRiskUsers}</p>
             </div>
           </div>
@@ -282,7 +282,7 @@ export default function CounselorAssignedUsersPage() {
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex-1 min-w-[250px]">
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-text/60">🔍</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600">🔍</span>
             <input
               type="text"
               placeholder="Search by Name, Country, Username..."
@@ -310,15 +310,15 @@ export default function CounselorAssignedUsersPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">NAME</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">COUNTRY</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">AGE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">ENTRIES</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">LAST ACTIVE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">AVG MOOD</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">SENTIMENT</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">STATUS</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">ACTION</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">NAME</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">COUNTRY</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">AGE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">ENTRIES</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">LAST ACTIVE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">AVG MOOD</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">SENTIMENT</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">STATUS</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">ACTION</th>
               </tr>
             </thead>
             <tbody>
@@ -337,23 +337,23 @@ export default function CounselorAssignedUsersPage() {
                     <p className="text-sm font-poppins text-dark-text">{user.entries}</p>
                   </td>
                   <td className="py-4 px-3">
-                    <p className="text-sm font-inter text-dark-text/60">{user.lastActive}</p>
+                    <p className="text-sm font-inter text-slate-600">{user.lastActive}</p>
                   </td>
                   <td className="py-4 px-3">
                     <p className="text-sm font-poppins text-dark-text">{user.avgMood}</p>
                   </td>
                   <td className="py-4 px-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.sentiment === "Positive" ? "bg-[#52B788]/20 text-[#52B788]" : user.sentiment === "Neutral" ? "bg-primary-blue/30 text-dark-text/80" : user.sentiment === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : user.sentiment === "Distress" ? "bg-red-100 text-red-600" : "bg-gray-100 text-dark-text/60"}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.sentiment === "Positive" ? "bg-[#52B788]/20 text-[#52B788]" : user.sentiment === "Neutral" ? "bg-primary-blue/30 text-dark-text/80" : user.sentiment === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : user.sentiment === "Distress" ? "bg-red-100 text-red-600" : "bg-gray-100 text-slate-600"}`}>
                       {user.sentiment}
                     </span>
                   </td>
                   <td className="py-4 px-3">
                     {!user.isAccountActive ? (
-                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-500">
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-200 text-slate-600">
                         Deactivated
                       </span>
                     ) : (
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.activityStatus === "Active" ? "bg-[#52B788]/20 text-[#52B788]" : user.activityStatus === "At Risk" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : "bg-gray-100 text-dark-text/60"}`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.activityStatus === "Active" ? "bg-[#52B788]/20 text-[#52B788]" : user.activityStatus === "At Risk" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : "bg-gray-100 text-slate-600"}`}>
                         {user.activityStatus}
                       </span>
                     )}
@@ -391,7 +391,7 @@ export default function CounselorAssignedUsersPage() {
         {/* Pagination */}
         {filteredUsers.length > 0 && (
           <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
-            <p className="text-sm text-dark-text/60 font-poppins">Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length} users</p>
+            <p className="text-sm text-slate-600 font-poppins">Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length} users</p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}

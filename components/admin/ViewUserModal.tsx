@@ -101,7 +101,7 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg"
             >
-              <XIcon className="w-5 h-5 text-dark-text/60" />
+              <XIcon className="w-5 h-5 text-slate-600" />
             </button>
           </div>
 
@@ -109,14 +109,14 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue mx-auto mb-4"></div>
-                <p className="text-dark-text/60 font-poppins">Loading user details...</p>
+                <p className="text-slate-600 font-poppins">Loading user details...</p>
               </div>
             </div>
           ) : user ? (
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider mb-1">
+                  <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
                     Full Name
                   </p>
                   <p className="text-sm font-poppins text-dark-text">
@@ -126,7 +126,7 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider mb-1">
+                  <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
                     Username
                   </p>
                   <p className="text-sm font-poppins text-dark-text">
@@ -134,7 +134,7 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider mb-1">
+                  <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
                     Email
                   </p>
                   <p className="text-sm font-poppins text-dark-text">
@@ -142,7 +142,7 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider mb-1">
+                  <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
                     Role
                   </p>
                   <p className="text-sm font-poppins text-dark-text">
@@ -150,7 +150,7 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider mb-1">
+                  <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
                     Age
                   </p>
                   <p className="text-sm font-poppins text-dark-text">
@@ -158,7 +158,7 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider mb-1">
+                  <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
                     Sex
                   </p>
                   <p className="text-sm font-poppins text-dark-text">
@@ -166,7 +166,7 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider mb-1">
+                  <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
                     Country
                   </p>
                   <p className="text-sm font-poppins text-dark-text">
@@ -174,14 +174,14 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider mb-1">
+                  <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
                     Status
                   </p>
                   <p className="text-sm font-poppins">
                     {user.is_active !== false ? (
                       <span className="text-green-600">Active</span>
                     ) : (
-                      <span className="text-gray-500">Deactivated</span>
+                      <span className="text-slate-600">Deactivated</span>
                     )}
                   </p>
                 </div>
@@ -189,7 +189,7 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
 
               {user.bio && (
                 <div>
-                  <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider mb-1">
+                  <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
                     Bio
                   </p>
                   <p className="text-sm font-poppins text-dark-text">
@@ -199,7 +199,7 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
               )}
 
               <div>
-                <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider mb-1">
+                <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
                   Joined
                 </p>
                 <p className="text-sm font-poppins text-dark-text">
@@ -213,7 +213,7 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
             </div>
           ) : (
             <div className="text-center py-12">
-              <p className="text-dark-text/60 font-poppins">User not found</p>
+              <p className="text-slate-600 font-poppins">User not found</p>
             </div>
           )}
 

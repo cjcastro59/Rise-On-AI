@@ -43,11 +43,11 @@ function DistributionTooltip({ active, payload }: TooltipContentProps) {
   const pct = formatPercent((pt as any)?.percent);
   return (
     <div className="rounded-xl bg-white px-4 py-2.5 shadow-lg border border-light-gray text-left">
-      <p className="text-xs font-poppins text-dark-text/60 mb-0.5">{name}</p>
+      <p className="text-xs font-poppins text-slate-600 mb-0.5">{name}</p>
       <p className="text-sm font-poppins font-semibold text-dark-text">
         {value} entr{value === 1 ? "y" : "ies"}
       </p>
-      {pct && <p className="text-xs text-dark-text/50">{pct} of total</p>}
+      {pct && <p className="text-xs text-slate-600">{pct} of total</p>}
     </div>
   );
 }
@@ -66,10 +66,10 @@ function DistributionLegend({
             className="inline-block w-3 h-3 rounded-full"
             style={{ backgroundColor: d.colour }}
           />
-          <span className="text-[11px] font-inter text-dark-text/70">
+          <span className="text-xs font-inter text-slate-700">
             {d.name}
           </span>
-          <span className="text-[11px] font-poppins font-semibold text-dark-text/80">
+          <span className="text-xs font-poppins font-semibold text-dark-text/80">
             {d.percent}%
           </span>
         </div>
@@ -120,7 +120,7 @@ export default function MoodDistributionChart({
         className="flex items-center justify-center rounded-xl bg-light-gray/30"
         style={{ height }}
       >
-        <p className="text-xs text-dark-text/50 font-poppins">
+        <p className="text-xs text-slate-600 font-poppins">
           Loading distribution…
         </p>
       </div>
@@ -135,7 +135,7 @@ export default function MoodDistributionChart({
         style={{ height }}
       >
         <span className="text-2xl">📊</span>
-        <p className="text-xs text-dark-text/50 font-poppins text-center px-4">
+        <p className="text-xs text-slate-600 font-poppins text-center px-4">
           No classified entries yet.
           <br />
           Write a journal entry to see your mood distribution.
@@ -209,7 +209,7 @@ export default function MoodDistributionChart({
           <p className="text-2xl font-dm-serif text-dark-text leading-none">
             {safeData.total}
           </p>
-          <p className="text-[10px] font-inter text-dark-text/50 mt-0.5">
+          <p className="text-xs font-inter text-slate-600 mt-0.5">
             entries
           </p>
         </div>

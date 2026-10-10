@@ -163,7 +163,7 @@ export default function AdminMoodTrendsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Mood Trend Reports</h1>
-          <p className="text-sm text-dark-text/70 font-poppins">Platform-wide emotional analytics; aggregated and anonymized</p>
+          <p className="text-sm text-slate-700 font-poppins">Platform-wide emotional analytics; aggregated and anonymized</p>
         </div>
         <div className="flex gap-3">
           <button
@@ -213,7 +213,7 @@ export default function AdminMoodTrendsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">😊</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">POSITIVE ENTRIES</p>
+              <p className="text-xs text-slate-700 font-poppins">POSITIVE ENTRIES</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : `${positivePercent}%`}</p>
             </div>
           </div>
@@ -223,7 +223,7 @@ export default function AdminMoodTrendsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">😢</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">NEGATIVE ENTRIES</p>
+              <p className="text-xs text-slate-700 font-poppins">NEGATIVE ENTRIES</p>
               <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : `${negativePercent}%`}</p>
             </div>
           </div>
@@ -233,7 +233,7 @@ export default function AdminMoodTrendsPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">😫</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/70 font-poppins">DISTRESS SIGNALS</p>
+              <p className="text-xs text-slate-700 font-poppins">DISTRESS SIGNALS</p>
               <p className="text-2xl font-dm-serif text-[#F4A6A6]">{loading ? "—" : `${distressPercent}%`}</p>
             </div>
           </div>
@@ -245,7 +245,7 @@ export default function AdminMoodTrendsPage() {
         <Card className="p-6 bg-[#eef3f8]">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📈</div>
-            <p className="text-xs font-poppins text-dark-text/70">PLATFORM MOOD SCORE TREND - LAST 7 DAYS</p>
+            <p className="text-xs font-poppins text-slate-700">PLATFORM MOOD SCORE TREND - LAST 7 DAYS</p>
           </div>
           <div className="h-56 flex items-end justify-between gap-2 px-2">
             {dailyScores.map((score, index) => (
@@ -263,7 +263,7 @@ export default function AdminMoodTrendsPage() {
                     title={`Distress: ${dailyDistressScores[index]}%`}
                   />
                 </div>
-                <span className="text-xs text-dark-text/70 font-poppins">
+                <span className="text-xs text-slate-700 font-poppins">
                   {lastSevenDays[index].toLocaleDateString("en", { weekday: "short" })}
                 </span>
               </div>
@@ -284,20 +284,20 @@ export default function AdminMoodTrendsPage() {
         <Card className="p-6 bg-[#eef3f8]">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">🎭</div>
-            <p className="text-xs font-poppins text-dark-text/70">TOP EMOTIONS PLATFORM-WIDE</p>
+            <p className="text-xs font-poppins text-slate-700">TOP EMOTIONS PLATFORM-WIDE</p>
           </div>
           <div className="space-y-3">
             {topEmotions.length > 0 ? topEmotions.map(([emotion, count]) => (
               <div key={emotion} className="flex items-center justify-between">
                 <p className="text-sm font-poppins text-dark-text">{emotion}</p>
                 <div className="flex items-center gap-2">
-                  <p className="text-xs font-inter text-dark-text/70">{Math.round((count / totalEntries) * 100)}%</p>
+                  <p className="text-xs font-inter text-slate-700">{Math.round((count / totalEntries) * 100)}%</p>
                   <div className="w-32 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-[#52B788] to-[#A8DADC]" style={{ width: `${Math.round((count / totalEntries) * 100)}%` }}></div>
                   </div>
                 </div>
               </div>
-            )) : <p className="text-sm text-dark-text/70">No emotion tags yet.</p>}
+            )) : <p className="text-sm text-slate-700">No emotion tags yet.</p>}
           </div>
         </Card>
       </div>
@@ -306,21 +306,21 @@ export default function AdminMoodTrendsPage() {
       <Card className="p-6 bg-[#eef3f8]">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-8 h-8 bg-[#B7E4C7]/30 rounded-lg flex items-center justify-center">💚</div>
-          <p className="text-xs font-poppins text-dark-text/70 uppercase tracking-wider">
+          <p className="text-xs font-poppins text-slate-700 uppercase tracking-wider">
             PLATFORM WELLNESS DISTRIBUTION
           </p>
-          <span className="ml-auto text-[10px] text-dark-text/40 font-inter normal-case tracking-normal">
+          <span className="ml-auto text-xs text-slate-600 font-inter normal-case tracking-normal">
             Most recent 30-day score per user
           </span>
         </div>
-        <p className="text-[11px] text-dark-text/40 font-inter mb-5 ml-11">
+        <p className="text-xs text-slate-600 font-inter mb-5 ml-11">
           Aggregated &amp; anonymised · scores sourced from behavioral_indicators table
         </p>
 
         {wellnessLoading ? (
-          <p className="text-xs text-dark-text/50 py-4 text-center">Loading wellness distribution…</p>
+          <p className="text-xs text-slate-600 py-4 text-center">Loading wellness distribution…</p>
         ) : wellnessStats.length === 0 ? (
-          <p className="text-xs text-dark-text/50 py-4 text-center">
+          <p className="text-xs text-slate-600 py-4 text-center">
             No wellness scores computed yet. Users need at least one journal entry.
           </p>
         ) : (
@@ -338,14 +338,14 @@ export default function AdminMoodTrendsPage() {
                   >
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm">{cfg.emoji}</span>
-                      <span className="text-[10px] font-poppins font-semibold" style={{ color: cfg.color }}>
+                      <span className="text-xs font-poppins font-semibold" style={{ color: cfg.color }}>
                         {lvl}
                       </span>
                     </div>
                     <p className="text-xl font-dm-serif" style={{ color: cfg.color }}>
                       {stat ? stat.count : 0}
                     </p>
-                    <p className="text-[10px] text-dark-text/50 font-inter">
+                    <p className="text-xs text-slate-600 font-inter">
                       {stat ? Math.round((stat.count / total) * 100) : 0}% of users
                       {stat ? ` · avg ${stat.avgScore.toFixed(1)}` : ""}
                     </p>
@@ -384,7 +384,7 @@ export default function AdminMoodTrendsPage() {
                       return (
                         <div key={lvl} className="flex items-center gap-1">
                           <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cfg.bgColor }} />
-                          <span className="text-[10px] font-inter text-dark-text/60">{lvl}</span>
+                          <span className="text-xs font-inter text-slate-600">{lvl}</span>
                         </div>
                       );
                     })}

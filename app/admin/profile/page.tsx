@@ -210,7 +210,7 @@ export default function AdminProfilePage() {
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue mx-auto mb-4"></div>
-          <p className="text-dark-text/60 font-poppins">Loading profile...</p>
+          <p className="text-slate-600 font-poppins">Loading profile...</p>
         </div>
       </div>
     );
@@ -271,7 +271,7 @@ export default function AdminProfilePage() {
               <h1 className="text-2xl font-dm-serif text-dark-text">
                 {profile.first_name || profile.full_name || profile.username || "Admin"} {profile.last_name || ""}
               </h1>
-              <p className="text-sm text-dark-text/60 font-poppins">
+              <p className="text-sm text-slate-600 font-poppins">
                 @{profile.username || "admin"} • {profile.country || "Not set"}
               </p>
               <div className="flex gap-4 mt-2">
@@ -302,14 +302,14 @@ export default function AdminProfilePage() {
       {/* Personal Information & Preferences */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card variant="white" className="p-6">
-          <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-6 flex items-center gap-2">
+          <h3 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-6 flex items-center gap-2">
             <span>👤</span>
             Personal Information
           </h3>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">First Name</label>
+                <label className="text-xs font-poppins text-slate-600">First Name</label>
                 {isEditing ? (
                   <input
                     type="text"
@@ -324,7 +324,7 @@ export default function AdminProfilePage() {
                 )}
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">Last Name</label>
+                <label className="text-xs font-poppins text-slate-600">Last Name</label>
                 {isEditing ? (
                   <input
                     type="text"
@@ -342,7 +342,7 @@ export default function AdminProfilePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">Age</label>
+                <label className="text-xs font-poppins text-slate-600">Age</label>
                 {isEditing ? (
                   <input
                     type="number"
@@ -357,7 +357,7 @@ export default function AdminProfilePage() {
                 )}
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-poppins text-dark-text/60">Sex</label>
+                <label className="text-xs font-poppins text-slate-600">Sex</label>
                 {isEditing ? (
                   <select
                     value={profile.sex || ""}
@@ -377,7 +377,7 @@ export default function AdminProfilePage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Country</label>
+              <label className="text-xs font-poppins text-slate-600">Country</label>
               {isEditing ? (
                 <select
                   value={profile.country || ""}
@@ -397,7 +397,7 @@ export default function AdminProfilePage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Username</label>
+              <label className="text-xs font-poppins text-slate-600">Username</label>
               {isEditing ? (
                 <input
                   type="text"
@@ -413,14 +413,14 @@ export default function AdminProfilePage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Email Address</label>
-              <div className="px-3 py-2 bg-light-gray/30 rounded-lg text-sm font-inter text-dark-text/70">
+              <label className="text-xs font-poppins text-slate-600">Email Address</label>
+              <div className="px-3 py-2 bg-light-gray/30 rounded-lg text-sm font-inter text-slate-700">
                 {profile.email || currentUser?.email}
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Bio / About Me</label>
+              <label className="text-xs font-poppins text-slate-600">Bio / About Me</label>
               {isEditing ? (
                 <textarea
                   value={profile.bio || ""}
@@ -438,13 +438,13 @@ export default function AdminProfilePage() {
         </Card>
 
         <Card variant="white" className="p-6">
-          <h3 className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-6 flex items-center gap-2">
+          <h3 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-6 flex items-center gap-2">
             <span>⏰</span>
             Preferences
           </h3>
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-dark-text/60">Language</label>
+              <label className="text-xs font-poppins text-slate-600">Language</label>
               {isEditing ? (
                 <select
                   value={profile.language || ""}

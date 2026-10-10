@@ -165,7 +165,7 @@ export default function CounselorCasesPage() {
   const renderEntrySnippets = (userId: string) => {
     const entries = entriesByUser[userId] || [];
     if (entries.length === 0) {
-      return <p className="text-sm text-dark-text/60 font-inter">No journal entries available for this user yet.</p>;
+      return <p className="text-sm text-slate-600 font-inter">No journal entries available for this user yet.</p>;
     }
 
     return (
@@ -173,8 +173,8 @@ export default function CounselorCasesPage() {
         {entries.slice(0, 2).map((entry) => (
           <div key={entry.id} className="rounded-2xl bg-slate-50 p-3">
             <div className="flex items-center justify-between gap-3 mb-2">
-              <span className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">{entry.mood || "Mood unknown"}</span>
-              <span className="text-xs text-dark-text/60">{new Date(entry.created_at).toLocaleDateString()}</span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">{entry.mood || "Mood unknown"}</span>
+              <span className="text-xs text-slate-600">{new Date(entry.created_at).toLocaleDateString()}</span>
             </div>
             <p className="text-sm font-inter text-dark-text/90 line-clamp-2">{entry.title || entry.content || "No text available."}</p>
           </div>
@@ -242,7 +242,7 @@ export default function CounselorCasesPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-error-red mb-1">Cases</h1>
-          <p className="text-sm text-dark-text/60 font-poppins">Manage and review distress cases</p>
+          <p className="text-sm text-slate-600 font-poppins">Manage and review distress cases</p>
         </div>
       </div>
 
@@ -258,7 +258,7 @@ export default function CounselorCasesPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-error-red/30">🔴</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">CRITICAL CASES</p>
+              <p className="text-xs text-slate-600 font-poppins">CRITICAL CASES</p>
               <p className="text-2xl font-dm-serif text-error-red">{criticalAlerts.length}</p>
               <p className="text-xs text-error-red font-poppins">Needs immediate attention</p>
             </div>
@@ -269,9 +269,9 @@ export default function CounselorCasesPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-warning-yellow/30">🟠</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">MEDIUM CASES</p>
+              <p className="text-xs text-slate-600 font-poppins">MEDIUM CASES</p>
               <p className="text-2xl font-dm-serif text-dark-text">{mediumAlerts.length}</p>
-              <p className="text-xs text-dark-text/60 font-poppins">Monitor closely</p>
+              <p className="text-xs text-slate-600 font-poppins">Monitor closely</p>
             </div>
           </div>
           <div className="stat-card-pill bg-gradient-to-r from-yellow-400 to-orange-300" />
@@ -280,7 +280,7 @@ export default function CounselorCasesPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-success-green/30">🟢</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">RESPONDED CASES</p>
+              <p className="text-xs text-slate-600 font-poppins">RESPONDED CASES</p>
               <p className="text-2xl font-dm-serif text-dark-text">{respondedLogs.length}</p>
               <p className="text-xs text-success-green font-poppins">Follow-up actions logged</p>
             </div>
@@ -291,9 +291,9 @@ export default function CounselorCasesPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-primary-blue/20">✅</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">RESPONSE RATE</p>
+              <p className="text-xs text-slate-600 font-poppins">RESPONSE RATE</p>
               <p className="text-2xl font-dm-serif text-dark-text">{responseRate}%</p>
-              <p className="text-xs text-dark-text/60 font-poppins">Cases with a logged response</p>
+              <p className="text-xs text-slate-600 font-poppins">Cases with a logged response</p>
             </div>
           </div>
           <div className="stat-card-pill bg-gradient-to-r from-primary-blue to-teal" />
@@ -306,9 +306,9 @@ export default function CounselorCasesPage() {
           <span className="w-2 h-2 rounded-full bg-error-red" />
           <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Critical — Immediate Attention Required</h2>
         </div>
-        {loading && <p className="text-sm text-dark-text/60">Loading cases…</p>}
+        {loading && <p className="text-sm text-slate-600">Loading cases…</p>}
         {!loading && error && <p className="text-sm text-error-red">{error}</p>}
-        {!loading && criticalAlerts.length === 0 && !error && <p className="text-sm text-dark-text/60">No critical cases at the moment.</p>}
+        {!loading && criticalAlerts.length === 0 && !error && <p className="text-sm text-slate-600">No critical cases at the moment.</p>}
         {criticalAlerts.map((alert) => (
           <Card key={alert.id} className="p-5 bg-error-red/5 border border-error-red/20 rounded-2xl">
             <div className="flex flex-col gap-4">
@@ -321,7 +321,7 @@ export default function CounselorCasesPage() {
                       <span className="badge-error">Active</span>
                     </div>
                     <p className="text-sm font-poppins font-semibold text-dark-text">{alert.trigger || "Detected distress trigger"}</p>
-                    <p className="text-xs text-dark-text/60 font-inter">User: {getUserDisplayName(alert.user_profiles)}</p>
+                    <p className="text-xs text-slate-600 font-inter">User: {getUserDisplayName(alert.user_profiles)}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
@@ -345,15 +345,15 @@ export default function CounselorCasesPage() {
 
               <div className="grid gap-3 md:grid-cols-3">
                 <div>
-                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">Last alert</p>
+                  <p className="text-xs text-slate-600 uppercase tracking-wide">Last alert</p>
                   <p className="mt-1 text-sm text-dark-text">{new Date(alert.created_at).toLocaleString()}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">Response status</p>
+                  <p className="text-xs text-slate-600 uppercase tracking-wide">Response status</p>
                   <p className="mt-1 text-sm text-dark-text">{getResponseStatus(alert.notes)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-dark-text/60 uppercase tracking-wide">Latest entry</p>
+                  <p className="text-xs text-slate-600 uppercase tracking-wide">Latest entry</p>
                   <p className="mt-1 text-sm text-dark-text">
                     {entriesByUser[alert.user_id]?.[0]?.title || entriesByUser[alert.user_id]?.[0]?.content?.slice(0, 80) || "No entry found"}
                   </p>
@@ -362,8 +362,8 @@ export default function CounselorCasesPage() {
 
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Recent journal entries</span>
-                  <span className="text-xs text-dark-text/60">({entriesByUser[alert.user_id]?.length || 0})</span>
+                  <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Recent journal entries</span>
+                  <span className="text-xs text-slate-600">({entriesByUser[alert.user_id]?.length || 0})</span>
                 </div>
                 {renderEntrySnippets(alert.user_id)}
               </div>
@@ -405,7 +405,7 @@ export default function CounselorCasesPage() {
                       <p className="text-sm font-poppins text-dark-text">{entriesByUser[alert.user_id]?.[0]?.mood || "—"}</p>
                     </td>
                     <td>
-                      <p className="text-sm font-inter text-dark-text/60">
+                      <p className="text-sm font-inter text-slate-600">
                         {entriesByUser[alert.user_id]?.[0]
                           ? new Date(entriesByUser[alert.user_id]?.[0].created_at).toLocaleDateString()
                           : "No entry"}
@@ -456,7 +456,7 @@ export default function CounselorCasesPage() {
                 <div>
                   <p className="font-mono text-sm font-semibold text-primary-blue">{selectedAlert.id.slice(0, 8)}</p>
                   <h3 className="mt-1 text-xl font-dm-serif text-dark-text">Review Case Details</h3>
-                  <p className="text-sm text-dark-text/60 font-poppins">{selectedAlert.trigger || "Detected distress trigger"}</p>
+                  <p className="text-sm text-slate-600 font-poppins">{selectedAlert.trigger || "Detected distress trigger"}</p>
                 </div>
                 <button
                   type="button"
@@ -469,45 +469,45 @@ export default function CounselorCasesPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">User</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">User</p>
                   <p className="mt-1 text-sm font-poppins text-dark-text">{getUserDisplayName(selectedAlert.user_profiles)}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Severity</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Severity</p>
                   <p className="mt-1 text-sm font-poppins text-dark-text">{selectedAlert.severity || "Unknown"}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Created</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Created</p>
                   <p className="mt-1 text-sm font-poppins text-dark-text">{new Date(selectedAlert.created_at).toLocaleString()}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">Response</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Response</p>
                   <p className="mt-1 text-sm font-poppins text-dark-text">{getResponseStatus(selectedAlert.notes)}</p>
                 </div>
               </div>
 
               <div className="mt-5">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-dark-text/60">Action notes</p>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Action notes</p>
                 <div className="min-h-[80px] whitespace-pre-wrap rounded-xl bg-slate-50 p-4 text-sm font-inter text-dark-text/80">
                   {selectedAlert.notes || "No action notes recorded yet."}
                 </div>
               </div>
 
               <div className="mt-5">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-dark-text/60">Specific journal entries</p>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Specific journal entries</p>
                 <div className="space-y-3">
                   {(entriesByUser[selectedAlert.user_id] || []).slice(0, 5).map((entry) => (
                     <div key={entry.id} className="rounded-xl border border-gray-100 p-4">
                       <div className="mb-2 flex items-center justify-between gap-3">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-dark-text/60">{entry.mood || "Mood unknown"}</span>
-                        <span className="text-xs text-dark-text/60">{new Date(entry.created_at).toLocaleString()}</span>
+                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">{entry.mood || "Mood unknown"}</span>
+                        <span className="text-xs text-slate-600">{new Date(entry.created_at).toLocaleString()}</span>
                       </div>
                       <p className="text-sm font-semibold text-dark-text">{entry.title || "Untitled entry"}</p>
                       <p className="mt-1 whitespace-pre-wrap text-sm font-inter text-dark-text/80">{entry.content || "No text available."}</p>
                     </div>
                   ))}
                   {(entriesByUser[selectedAlert.user_id] || []).length === 0 && (
-                    <p className="text-sm text-dark-text/60 font-inter">No journal entries available for this user yet.</p>
+                    <p className="text-sm text-slate-600 font-inter">No journal entries available for this user yet.</p>
                   )}
                 </div>
               </div>

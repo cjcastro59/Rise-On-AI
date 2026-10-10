@@ -157,7 +157,7 @@ export default function AdminSidebar() {
       <nav className="min-h-0 flex-1">
         {/* MAIN Section */}
         <div className="mb-3">
-          <p className="text-[11px] font-poppins text-white/50 uppercase tracking-wider mb-2">Main</p>
+          <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-2">Main</p>
           <div className="space-y-1">
             <Link
               href="/admin/dashboard"
@@ -180,7 +180,7 @@ export default function AdminSidebar() {
 
         {/* ANALYTICS Section */}
         <div className="mb-3">
-          <p className="text-[11px] font-poppins text-white/50 uppercase tracking-wider mb-2">Analytics</p>
+          <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-2">Analytics</p>
           <div className="space-y-1">
             <Link
               href="/admin/journal-monitor"
@@ -211,7 +211,7 @@ export default function AdminSidebar() {
 
         {/* SUPPORT Section */}
         <div className="mb-3">
-          <p className="text-[11px] font-poppins text-white/50 uppercase tracking-wider mb-2">Support</p>
+          <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-2">Support</p>
           <div className="space-y-1">
             <Link
               href="/admin/support"
@@ -226,7 +226,7 @@ export default function AdminSidebar() {
 
         {/* SAFETY Section */}
         <div className="mb-3">
-          <p className="text-[11px] font-poppins text-white/50 uppercase tracking-wider mb-2">Safety</p>
+          <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-2">Safety</p>
           <div className="space-y-1">
             <Link
               href="/admin/distress-alerts"
@@ -236,7 +236,7 @@ export default function AdminSidebar() {
             >
               <Image src="/icons/crisis-support.svg" alt="Distress Alerts" width={16} height={16} className="object-contain" /> Distress Alerts
               {distressAlertCount > 0 && (
-                <span className="ml-auto bg-[#F4A6A6] text-[#1E293B] text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                <span className="ml-auto bg-[#F4A6A6] text-[#1E293B] text-xs px-1.5 py-0.5 rounded-full font-bold">
                   {distressAlertCount}
                 </span>
               )}
@@ -246,7 +246,7 @@ export default function AdminSidebar() {
 
         {/* SYSTEM Section */}
         <div className="mb-3">
-          <p className="text-[11px] font-poppins text-white/50 uppercase tracking-wider mb-2">System</p>
+          <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-2">System</p>
           <div className="space-y-1">
             <Link
               href="/admin/system-settings"

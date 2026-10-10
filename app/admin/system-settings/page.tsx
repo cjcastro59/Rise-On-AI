@@ -696,27 +696,27 @@ export default function AdminSystemSettingsPage() {
                 <Card variant="white" className="lg:col-span-1 p-6">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-8 h-8 bg-primary-blue/20 rounded-lg flex items-center justify-center">⚙️</div>
-                    <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider">Global Settings</p>
+                    <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider">Global Settings</p>
                   </div>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-poppins text-dark-text">Platform Name</p>
-                      <span className="text-sm font-poppins text-dark-text/60">Rise On</span>
+                      <span className="text-sm font-poppins text-slate-600">Rise On</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-poppins text-dark-text">Institution</p>
-                      <span className="text-sm font-poppins text-dark-text/60">Multi-University Platform</span>
+                      <span className="text-sm font-poppins text-slate-600">Multi-University Platform</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-poppins text-dark-text">Support Email</p>
-                      <span className="text-sm font-poppins text-dark-text/60">support@rise-on.edu.ph</span>
+                      <span className="text-sm font-poppins text-slate-600">support@rise-on.edu.ph</span>
                     </div>
                     <div className="flex items-center justify-between gap-4">
                       <div>
                         <p className="text-sm font-poppins text-dark-text">ID Display</p>
-                        <p className="text-xs text-dark-text/50 font-inter">Used on dashboards and alert views</p>
+                        <p className="text-xs text-slate-600 font-inter">Used on dashboards and alert views</p>
                       </div>
-                      <span className="text-right text-sm font-poppins text-dark-text/60">
+                      <span className="text-right text-sm font-poppins text-slate-600">
                         {displayIdFormat === "full_uuid" ? "Full UUID" : displayIdFormat === "short" ? "ID only" : "Anonymized"}
                       </span>
                     </div>
@@ -726,7 +726,7 @@ export default function AdminSystemSettingsPage() {
                 <Card variant="white" className="lg:col-span-2 p-6">
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-8 h-8 bg-lavender/20 rounded-lg flex items-center justify-center">🔐</div>
-                    <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider">Role-Based Access Control</p>
+                    <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider">Role-Based Access Control</p>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="admin-table">
@@ -778,25 +778,25 @@ export default function AdminSystemSettingsPage() {
               <Card variant="white" className="lg:col-span-1 p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-8 h-8 bg-primary-blue/20 rounded-lg flex items-center justify-center">⚙️</div>
-                  <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider">Global Settings</p>
+                  <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider">Global Settings</p>
                 </div>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-poppins text-dark-text">Platform Name</p>
-                    <span className="text-sm font-poppins text-dark-text/60">Rise On</span>
+                    <span className="text-sm font-poppins text-slate-600">Rise On</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-poppins text-dark-text">Institution</p>
-                    <span className="text-sm font-poppins text-dark-text/60">Multi-University Platform</span>
+                    <span className="text-sm font-poppins text-slate-600">Multi-University Platform</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-poppins text-dark-text">Support Email</p>
-                    <span className="text-sm font-poppins text-dark-text/60">support@rise-on.edu.ph</span>
+                    <span className="text-sm font-poppins text-slate-600">support@rise-on.edu.ph</span>
                   </div>
                   <div className="space-y-2">
                     <div>
                       <p className="text-sm font-poppins text-dark-text">ID Display Format</p>
-                      <p className="text-xs text-dark-text/60 font-inter">Controls User ID and Entry ID labels in staff dashboards</p>
+                      <p className="text-xs text-slate-600 font-inter">Controls User ID and Entry ID labels in staff dashboards</p>
                     </div>
                     <select
                       value={displayIdFormat}
@@ -815,7 +815,7 @@ export default function AdminSystemSettingsPage() {
               <Card variant="white" className="lg:col-span-2 p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-8 h-8 bg-lavender/20 rounded-lg flex items-center justify-center">🔐</div>
-                  <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider">Role-Based Access Control</p>
+                  <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider">Role-Based Access Control</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="admin-table">
@@ -861,14 +861,14 @@ export default function AdminSystemSettingsPage() {
             <Card variant="white" className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-8 h-8 bg-success-green/30 rounded-lg flex items-center justify-center">🤖</div>
-                <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider">AI Modules & Alert Rules</p>
+                <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider">AI Modules & Alert Rules</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-poppins text-dark-text">AI Sentiment Analysis</p>
-                      <p className="text-xs text-dark-text/60 font-inter">Enable emotion detection on journal entries</p>
+                      <p className="text-xs text-slate-600 font-inter">Enable emotion detection on journal entries</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -883,7 +883,7 @@ export default function AdminSystemSettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-poppins text-dark-text">Taglish NLP Mode</p>
-                      <p className="text-xs text-dark-text/60 font-inter">Supports mixed Filipino & English text</p>
+                      <p className="text-xs text-slate-600 font-inter">Supports mixed Filipino & English text</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -898,7 +898,7 @@ export default function AdminSystemSettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-poppins text-dark-text">Auto Crisis Detection</p>
-                      <p className="text-xs text-dark-text/60 font-inter">Automatic flagging of self-harm keywords</p>
+                      <p className="text-xs text-slate-600 font-inter">Automatic flagging of self-harm keywords</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -915,7 +915,7 @@ export default function AdminSystemSettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-poppins text-dark-text">Email Alerts to Counselors</p>
-                      <p className="text-xs text-dark-text/60 font-inter">Send notifications for high-severity distress flags</p>
+                      <p className="text-xs text-slate-600 font-inter">Send notifications for high-severity distress flags</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -930,7 +930,7 @@ export default function AdminSystemSettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-poppins text-dark-text">Data Anonymization</p>
-                      <p className="text-xs text-dark-text/60 font-inter">Hides real names; protects user privacy</p>
+                      <p className="text-xs text-slate-600 font-inter">Hides real names; protects user privacy</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -945,7 +945,7 @@ export default function AdminSystemSettingsPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-poppins text-dark-text">Maintenance Mode</p>
-                      <p className="text-xs text-dark-text/60 font-inter">Temporarily disable new entries for updates</p>
+                      <p className="text-xs text-slate-600 font-inter">Temporarily disable new entries for updates</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
@@ -976,7 +976,7 @@ export default function AdminSystemSettingsPage() {
           <div className="space-y-4">
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Notifications</h3>
-              <p className="text-sm text-dark-text/60 font-poppins">
+              <p className="text-sm text-slate-600 font-poppins">
                 Control when and how you receive notifications.
               </p>
             </div>
@@ -984,7 +984,7 @@ export default function AdminSystemSettingsPage() {
               <div className="flex items-center justify-between p-4 bg-light-gray/50 rounded-xl">
                 <div>
                   <h4 className="text-sm font-semibold font-poppins text-dark-text">Email Alerts</h4>
-                  <p className="text-xs text-dark-text/60 font-inter">Receive email notifications for important updates</p>
+                  <p className="text-xs text-slate-600 font-inter">Receive email notifications for important updates</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -1000,7 +1000,7 @@ export default function AdminSystemSettingsPage() {
               <div className="flex items-center justify-between p-4 bg-light-gray/50 rounded-xl">
                 <div>
                   <h4 className="text-sm font-semibold font-poppins text-dark-text">New User Alerts</h4>
-                  <p className="text-xs text-dark-text/60 font-inter">Get notified when new users register</p>
+                  <p className="text-xs text-slate-600 font-inter">Get notified when new users register</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -1016,7 +1016,7 @@ export default function AdminSystemSettingsPage() {
               <div className="flex items-center justify-between p-4 bg-light-gray/50 rounded-xl">
                 <div>
                   <h4 className="text-sm font-semibold font-poppins text-dark-text">Distress Alert Alerts</h4>
-                  <p className="text-xs text-dark-text/60 font-inter">Get notified when new distress alerts are received</p>
+                  <p className="text-xs text-slate-600 font-inter">Get notified when new distress alerts are received</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -1042,7 +1042,7 @@ export default function AdminSystemSettingsPage() {
           <div className="space-y-4">
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Privacy & Data</h3>
-              <p className="text-sm text-dark-text/60 font-poppins">
+              <p className="text-sm text-slate-600 font-poppins">
                 Control how your data is used and who can see it.
               </p>
             </div>
@@ -1050,7 +1050,7 @@ export default function AdminSystemSettingsPage() {
               <div className="flex items-center justify-between p-4 bg-light-gray/50 rounded-xl">
                 <div>
                   <h4 className="text-sm font-semibold font-poppins text-dark-text">Share Anonymous Data</h4>
-                  <p className="text-xs text-dark-text/60 font-inter">Help improve AI by sharing anonymized insights</p>
+                  <p className="text-xs text-slate-600 font-inter">Help improve AI by sharing anonymized insights</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -1091,12 +1091,12 @@ export default function AdminSystemSettingsPage() {
           <div className="space-y-4">
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Language & Region</h3>
-              <p className="text-sm text-dark-text/60 font-poppins">
+              <p className="text-sm text-slate-600 font-poppins">
                 Choose your preferred language for the app.
               </p>
             </div>
             <div className="p-4 bg-light-gray/50 rounded-xl">
-              <label className="text-xs font-poppins text-dark-text/60">Language</label>
+              <label className="text-xs font-poppins text-slate-600">Language</label>
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
@@ -1119,7 +1119,7 @@ export default function AdminSystemSettingsPage() {
           <div className="space-y-4">
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Security & Login</h3>
-              <p className="text-sm text-dark-text/60 font-poppins">
+              <p className="text-sm text-slate-600 font-poppins">
                 Manage your password and login security.
               </p>
             </div>
@@ -1144,13 +1144,13 @@ export default function AdminSystemSettingsPage() {
               {!twoFactorEnabled ? (
                 <div>
                   {!showSetup2FA ? (
-                    <Button variant="ghost" onClick={startSetupAuthenticator} disabled={loadingPersonal} className="text-dark-text/70 hover:text-dark-text hover:bg-gray-100">
+                    <Button variant="ghost" onClick={startSetupAuthenticator} disabled={loadingPersonal} className="text-slate-700 hover:text-dark-text hover:bg-gray-100">
                       {loadingPersonal ? "Setting up..." : "Enable Two-Factor Authentication"}
                     </Button>
                   ) : (
                     <div className="p-4 bg-light-gray/50 rounded-xl space-y-4">
                       <h4 className="text-sm font-semibold font-poppins text-dark-text">Scan QR Code</h4>
-                      <p className="text-xs text-dark-text/60 font-inter">
+                      <p className="text-xs text-slate-600 font-inter">
                         Scan this QR code with Google Authenticator or Authy
                       </p>
                       {qrCodeUrl && (
@@ -1172,7 +1172,7 @@ export default function AdminSystemSettingsPage() {
                         />
                       </div>
                       <div className="flex gap-2">
-                        <Button variant="ghost" onClick={() => setShowSetup2FA(false)} className="text-dark-text/70 hover:text-dark-text hover:bg-gray-100">Cancel</Button>
+                        <Button variant="ghost" onClick={() => setShowSetup2FA(false)} className="text-slate-700 hover:text-dark-text hover:bg-gray-100">Cancel</Button>
                         <Button onClick={verifyAndEnable2FA} disabled={loadingPersonal} className="bg-primary-blue text-white hover:bg-primary-blue/80">
                           {loadingPersonal ? "Verifying..." : "Verify & Enable"}
                         </Button>
@@ -1194,7 +1194,7 @@ export default function AdminSystemSettingsPage() {
           <div className="space-y-4">
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Data & Export</h3>
-              <p className="text-sm text-dark-text/60 font-poppins">
+              <p className="text-sm text-slate-600 font-poppins">
                 Download or delete your data.
               </p>
             </div>
@@ -1234,7 +1234,7 @@ export default function AdminSystemSettingsPage() {
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Account</h3>
             </div>
-            <p className="text-sm text-dark-text/60 font-poppins">
+            <p className="text-sm text-slate-600 font-poppins">
               Manage your account details here. Go to Profile to edit personal info.
             </p>
             <Link href="/admin/profile">
@@ -1255,7 +1255,7 @@ export default function AdminSystemSettingsPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue mx-auto mb-4"></div>
-          <p className="text-dark-text/60 font-poppins">Loading settings...</p>
+          <p className="text-slate-600 font-poppins">Loading settings...</p>
         </div>
       </div>
     );
@@ -1267,7 +1267,7 @@ export default function AdminSystemSettingsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">System Settings</h1>
-          <p className="text-sm text-dark-text/60 font-poppins">Configure system, personal, and security settings</p>
+          <p className="text-sm text-slate-600 font-poppins">Configure system, personal, and security settings</p>
         </div>
         {activeSection === "system" && isOwner && (
           <button className="btn-primary" onClick={saveSystemSettings}>
@@ -1280,13 +1280,13 @@ export default function AdminSystemSettingsPage() {
         {/* Settings Sidebar */}
         <div className="w-64 flex-shrink-0 hidden md:block">
           <Card variant="white" className="p-4 space-y-2 bg-white border border-gray-100">
-            <p className="text-xs font-poppins text-dark-text/60 uppercase tracking-wider mb-4">Settings</p>
+            <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-4">Settings</p>
             <button
               onClick={() => setActiveSection("system")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
                 activeSection === "system"
                   ? "bg-primary-blue/10 text-primary-blue"
-                  : "text-dark-text/70 hover:text-dark-text hover:bg-gray-100"
+                  : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
               }`}
             >
               <span className="flex items-center gap-2">
@@ -1298,7 +1298,7 @@ export default function AdminSystemSettingsPage() {
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
                 activeSection === "notifications"
                   ? "bg-primary-blue/10 text-primary-blue"
-                  : "text-dark-text/70 hover:text-dark-text hover:bg-gray-100"
+                  : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
               }`}
             >
               <span className="flex items-center gap-2">
@@ -1310,7 +1310,7 @@ export default function AdminSystemSettingsPage() {
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
                 activeSection === "privacy"
                   ? "bg-primary-blue/10 text-primary-blue"
-                  : "text-dark-text/70 hover:text-dark-text hover:bg-gray-100"
+                  : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
               }`}
             >
               <span className="flex items-center gap-2">
@@ -1322,7 +1322,7 @@ export default function AdminSystemSettingsPage() {
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
                 activeSection === "language"
                   ? "bg-primary-blue/10 text-primary-blue"
-                  : "text-dark-text/70 hover:text-dark-text hover:bg-gray-100"
+                  : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
               }`}
             >
               <span className="flex items-center gap-2">
@@ -1334,7 +1334,7 @@ export default function AdminSystemSettingsPage() {
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
                 activeSection === "security"
                   ? "bg-primary-blue/10 text-primary-blue"
-                  : "text-dark-text/70 hover:text-dark-text hover:bg-gray-100"
+                  : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
               }`}
             >
               <span className="flex items-center gap-2">
@@ -1346,7 +1346,7 @@ export default function AdminSystemSettingsPage() {
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
                 activeSection === "data"
                   ? "bg-primary-blue/10 text-primary-blue"
-                  : "text-dark-text/70 hover:text-dark-text hover:bg-gray-100"
+                  : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
               }`}
             >
               <span className="flex items-center gap-2">
@@ -1358,7 +1358,7 @@ export default function AdminSystemSettingsPage() {
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
                 activeSection === "account"
                   ? "bg-primary-blue/10 text-primary-blue"
-                  : "text-dark-text/70 hover:text-dark-text hover:bg-gray-100"
+                  : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
               }`}
             >
               <span className="flex items-center gap-2">
@@ -1382,12 +1382,12 @@ export default function AdminSystemSettingsPage() {
             <div className="flex items-start justify-between mb-5">
               <div>
                 <h3 className="text-xl font-dm-serif text-dark-text">Change Password</h3>
-                <p className="text-xs text-dark-text/60 font-poppins mt-1">Update your login credentials</p>
+                <p className="text-xs text-slate-600 font-poppins mt-1">Update your login credentials</p>
               </div>
               <button
                 type="button"
                 onClick={() => { setShowChangePw(false); setPwCurrent(""); setPwNew(""); setPwConfirm(""); }}
-                className="text-dark-text/40 hover:text-dark-text text-2xl leading-none"
+                className="text-slate-600 hover:text-dark-text text-2xl leading-none"
               >
                 x
               </button>
@@ -1395,18 +1395,18 @@ export default function AdminSystemSettingsPage() {
             {error && <div className="text-red-500 text-xs bg-red-50 p-3 rounded-lg font-poppins mb-3">{error}</div>}
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-poppins text-dark-text/70 mb-1 block">Current Password</label>
+                <label className="text-xs font-poppins text-slate-700 mb-1 block">Current Password</label>
                 <Input type="password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} placeholder="Enter current password" />
               </div>
               <div>
-                <label className="text-xs font-poppins text-dark-text/70 mb-1 block">New Password</label>
+                <label className="text-xs font-poppins text-slate-700 mb-1 block">New Password</label>
                 <Input type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} placeholder="Enter new password" />
-                <p className="mt-1 text-[11px] text-dark-text/50 font-inter">
+                <p className="mt-1 text-xs text-slate-600 font-inter">
                   Use at least 8 characters with uppercase, lowercase, number, and special character.
                 </p>
               </div>
               <div>
-                <label className="text-xs font-poppins text-dark-text/70 mb-1 block">Confirm New Password</label>
+                <label className="text-xs font-poppins text-slate-700 mb-1 block">Confirm New Password</label>
                 <Input type="password" value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)} placeholder="Repeat new password" />
               </div>
             </div>
@@ -1437,14 +1437,14 @@ export default function AdminSystemSettingsPage() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-xl font-dm-serif text-dark-text">Delete My Account</h3>
-                <p className="text-xs text-dark-text/70 font-poppins mt-1 leading-relaxed">
+                <p className="text-xs text-slate-700 font-poppins mt-1 leading-relaxed">
                   This deactivates your admin profile. Owner accounts cannot be deleted here.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
-                className="text-dark-text/40 hover:text-dark-text text-2xl leading-none"
+                className="text-slate-600 hover:text-dark-text text-2xl leading-none"
               >
                 x
               </button>

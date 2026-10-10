@@ -325,7 +325,7 @@ export default function AdminSentimentMonitoringPage() {
       <div className="flex items-center justify-center py-24">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue mx-auto mb-4"></div>
-          <p className="text-dark-text/60 font-poppins">Loading sentiment metrics…</p>
+          <p className="text-slate-600 font-poppins">Loading sentiment metrics…</p>
         </div>
       </div>
     );
@@ -337,7 +337,7 @@ export default function AdminSentimentMonitoringPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Sentiment Analysis Monitoring</h1>
-          <p className="text-sm text-dark-text/70 font-poppins">AI Model performance &amp; platform-wide NLP metrics</p>
+          <p className="text-sm text-slate-700 font-poppins">AI Model performance &amp; platform-wide NLP metrics</p>
           {error && <p className="text-xs text-error-red font-poppins mt-2">⚠️ {error}</p>}
         </div>
         <div className="flex gap-3">
@@ -362,9 +362,9 @@ export default function AdminSentimentMonitoringPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">✅</div>
             <div className="text-right flex-1">
-              <p className="text-xs text-dark-text/70 font-poppins">AI ACCURACY</p>
+              <p className="text-xs text-slate-700 font-poppins">AI ACCURACY</p>
               <p className="text-2xl font-dm-serif text-dark-text">82.6%</p>
-              <p className="text-xs text-dark-text/50 font-poppins">
+              <p className="text-xs text-slate-600 font-poppins">
                 F1 macro · {activeModel}
               </p>
             </div>
@@ -375,11 +375,11 @@ export default function AdminSentimentMonitoringPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center text-2xl">⚡</div>
             <div className="text-right flex-1">
-              <p className="text-xs text-dark-text/70 font-poppins">AVG CONFIDENCE</p>
+              <p className="text-xs text-slate-700 font-poppins">AVG CONFIDENCE</p>
               <p className="text-2xl font-dm-serif text-dark-text">
                 {avgConfidence != null ? fmtPct(avgConfidence * 100) : "—"}
               </p>
-              <p className="text-xs text-dark-text/70 font-poppins">{totalEntries.toLocaleString()} entries</p>
+              <p className="text-xs text-slate-700 font-poppins">{totalEntries.toLocaleString()} entries</p>
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-full"></div>
@@ -388,7 +388,7 @@ export default function AdminSentimentMonitoringPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center text-2xl">🌐</div>
             <div className="text-right flex-1">
-              <p className="text-xs text-dark-text/70 font-poppins">TAGALOG ENTRIES</p>
+              <p className="text-xs text-slate-700 font-poppins">TAGALOG ENTRIES</p>
               <p className="text-2xl font-dm-serif text-dark-text">{fmtPct(languageStats.tagalogPct)}</p>
             </div>
           </div>
@@ -398,7 +398,7 @@ export default function AdminSentimentMonitoringPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">⚠️</div>
             <div className="text-right flex-1">
-              <p className="text-xs text-dark-text/70 font-poppins">LOW CONFIDENCE</p>
+              <p className="text-xs text-slate-700 font-poppins">LOW CONFIDENCE</p>
               <p className="text-2xl font-dm-serif text-[#F4A6A6]">{fmtPct(lowConfidencePct)}</p>
               <p className="text-xs text-[#F4A6A6] font-poppins">{lowConfidenceQueue.length} in queue</p>
             </div>
@@ -413,7 +413,7 @@ export default function AdminSentimentMonitoringPage() {
         <Card className="p-6 bg-[#eef3f8]">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📊</div>
-            <p className="text-xs font-poppins text-dark-text/70">SENTIMENT CONFIDENCE DISTRIBUTION</p>
+            <p className="text-xs font-poppins text-slate-700">SENTIMENT CONFIDENCE DISTRIBUTION</p>
           </div>
           <div className="space-y-3">
             {[
@@ -436,7 +436,7 @@ export default function AdminSentimentMonitoringPage() {
             ))}
           </div>
           <div className="mt-6 pt-4 border-t border-gray-100">
-            <p className="text-xs font-poppins text-dark-text/70 mb-3">MODEL PERFORMANCE BY LANGUAGE</p>
+            <p className="text-xs font-poppins text-slate-700 mb-3">MODEL PERFORMANCE BY LANGUAGE</p>
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 bg-[#52B788]/20 rounded-full text-xs font-semibold font-poppins text-[#52B788]">
@@ -456,7 +456,7 @@ export default function AdminSentimentMonitoringPage() {
         <Card className="p-6 bg-[#eef3f8]">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">📈</div>
-            <p className="text-xs font-poppins text-dark-text/70">PLATFORM EMOTION BREAKDOWN (LAST 24 HOURS)</p>
+            <p className="text-xs font-poppins text-slate-700">PLATFORM EMOTION BREAKDOWN (LAST 24 HOURS)</p>
           </div>
           <div className="relative w-full h-48 flex items-center justify-center">
             <svg className="w-48 h-48 transform -rotate-90" viewBox="0 0 100 100">
@@ -480,7 +480,7 @@ export default function AdminSentimentMonitoringPage() {
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
                 <p className="text-lg font-dm-serif text-dark-text">{fmtPct(emotionBreakdown.positive)}</p>
-                <p className="text-xs text-dark-text/70 font-poppins">Positive</p>
+                <p className="text-xs text-slate-700 font-poppins">Positive</p>
               </div>
             </div>
           </div>
@@ -511,8 +511,8 @@ export default function AdminSentimentMonitoringPage() {
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center">🔍</div>
             <div>
-              <p className="text-xs font-poppins text-dark-text/70">LOW CONFIDENCE QUEUE - REQUIRES MANUAL REVIEW</p>
-              <p className="text-[11px] text-dark-text/50 font-inter mt-0.5">Entries with model confidence below 65%</p>
+              <p className="text-xs font-poppins text-slate-700">LOW CONFIDENCE QUEUE - REQUIRES MANUAL REVIEW</p>
+              <p className="text-xs text-slate-600 font-inter mt-0.5">Entries with model confidence below 65%</p>
             </div>
           </div>
           <div className="text-xs text-[#F4A6A6] font-poppins">{lowConfidenceQueue.length} entries</div>
@@ -521,19 +521,19 @@ export default function AdminSentimentMonitoringPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/70 font-poppins uppercase tracking-wider">ENTRY ID</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/70 font-poppins uppercase tracking-wider">USER ID</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/70 font-poppins uppercase tracking-wider">TIMESTAMP</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/70 font-poppins uppercase tracking-wider">LANGUAGE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/70 font-poppins uppercase tracking-wider">AI SCORE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/70 font-poppins uppercase tracking-wider">CONFIDENCE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/70 font-poppins uppercase tracking-wider">ACTION</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">ENTRY ID</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">USER ID</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">TIMESTAMP</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">LANGUAGE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">AI SCORE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">CONFIDENCE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-700 font-poppins uppercase tracking-wider">ACTION</th>
               </tr>
             </thead>
             <tbody>
               {lowConfidenceQueue.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 px-3 text-center text-dark-text/50 text-sm font-poppins">
+                  <td colSpan={7} className="py-8 px-3 text-center text-slate-600 text-sm font-poppins">
                     🎉 No low-confidence entries at the moment. Model is performing well!
                   </td>
                 </tr>
@@ -553,7 +553,7 @@ export default function AdminSentimentMonitoringPage() {
                       <p className="text-sm font-poppins text-dark-text">{entry.userId}</p>
                     </td>
                     <td className="py-4 px-3">
-                      <p className="text-sm font-inter text-dark-text/70">{entry.timestamp}</p>
+                      <p className="text-sm font-inter text-slate-700">{entry.timestamp}</p>
                     </td>
                     <td className="py-4 px-3">
                       <span className="px-2 py-1 bg-[#A8DADC]/20 rounded-full text-xs font-semibold font-poppins text-dark-text">{entry.language}</span>

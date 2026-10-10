@@ -584,7 +584,7 @@ export default function AdminSupportPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text">Support Chat</h1>
-          <p className="text-sm text-dark-text/60 font-poppins">Respond to user inquiries and manage conversations.</p>
+          <p className="text-sm text-slate-600 font-poppins">Respond to user inquiries and manage conversations.</p>
         </div>
       </div>
 
@@ -599,7 +599,7 @@ export default function AdminSupportPage() {
             </div>
             <div className="flex-1 overflow-y-auto min-h-0">
               {conversations.length === 0 ? (
-                <div className="p-8 text-center text-dark-text/50">
+                <div className="p-8 text-center text-slate-600">
                   <p>No conversations yet.</p>
                 </div>
               ) : (
@@ -626,15 +626,15 @@ export default function AdminSupportPage() {
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                         convo.status === "open" 
                           ? "bg-gradient-to-r from-success-green/20 to-teal-200 text-success-green" 
-                          : "bg-gradient-to-r from-gray-200 to-gray-300 text-gray-500"
+                          : "bg-gradient-to-r from-gray-200 to-gray-300 text-slate-600"
                       }`}>
                         {convo.status}
                       </span>
                     </div>
-                    <p className="text-xs text-dark-text/50">
+                    <p className="text-xs text-slate-600">
                       {conversationPreviews[convo.id]?.content || "No messages yet."}
                     </p>
-                    <p className="mt-1 text-[11px] text-dark-text/40">
+                    <p className="mt-1 text-xs text-slate-600">
                       {new Date(conversationPreviews[convo.id]?.created_at || convo.created_at).toLocaleString()}
                     </p>
                   </button>
@@ -661,8 +661,8 @@ export default function AdminSupportPage() {
                           return getFirstName(selectedConversation.user?.full_name) || getFirstName(selectedConversation.user?.username) || "Unknown User";
                         })()}
                       </h3>
-                      <p className="text-xs text-dark-text/50">
-                        Status: <span className={`font-semibold ${selectedConversation.status === "open" ? "text-success-green" : "text-gray-500"}`}>
+                      <p className="text-xs text-slate-600">
+                        Status: <span className={`font-semibold ${selectedConversation.status === "open" ? "text-success-green" : "text-slate-600"}`}>
                           {selectedConversation.status}
                         </span>
                       </p>
@@ -681,7 +681,7 @@ export default function AdminSupportPage() {
                 
                 <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-2 min-h-0">
                   {messages.length === 0 ? (
-                    <div className="text-center text-sm text-dark-text/50 py-8">
+                    <div className="text-center text-sm text-slate-600 py-8">
                       <p>No messages yet.</p>
                     </div>
                   ) : (
@@ -780,13 +780,13 @@ export default function AdminSupportPage() {
                   </form>
                 ) : (
                   <div className="text-center py-4">
-                    <p className="text-sm text-dark-text/50">This conversation has been closed.</p>
+                    <p className="text-sm text-slate-600">This conversation has been closed.</p>
                   </div>
                 )}
               </>
             ) : (
               <div className="flex-1 flex items-center justify-center text-center">
-                <div className="text-dark-text/50">
+                <div className="text-slate-600">
                   <p className="text-lg mb-2">Select a conversation</p>
                   <p className="text-sm">Choose a conversation from the list to view and respond.</p>
                 </div>

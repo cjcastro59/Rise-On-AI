@@ -411,7 +411,7 @@ export default function AdminUsersPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue mx-auto mb-4"></div>
-          <p className="text-dark-text/60 font-poppins">Loading users...</p>
+          <p className="text-slate-600 font-poppins">Loading users...</p>
         </div>
       </div>
     );
@@ -430,7 +430,7 @@ export default function AdminUsersPage() {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">User Management</h1>
-          <p className="text-sm text-dark-text/60 font-poppins">{totalUsers} total registered users</p>
+          <p className="text-sm text-slate-600 font-poppins">{totalUsers} total registered users</p>
         </div>
         <div className="flex gap-3">
           <button
@@ -476,7 +476,7 @@ export default function AdminUsersPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-primary-blue/20 rounded-lg flex items-center justify-center text-2xl">👥</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">TOTAL USERS</p>
+              <p className="text-xs text-slate-600 font-poppins">TOTAL USERS</p>
               <p className="text-2xl font-dm-serif text-dark-text">{totalUsers}</p>
             </div>
           </div>
@@ -486,7 +486,7 @@ export default function AdminUsersPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">✅</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">ACTIVE (30d)</p>
+              <p className="text-xs text-slate-600 font-poppins">ACTIVE (30d)</p>
               <p className="text-2xl font-dm-serif text-dark-text">{activeUsers}</p>
             </div>
           </div>
@@ -496,7 +496,7 @@ export default function AdminUsersPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-lavender/20 rounded-lg flex items-center justify-center text-2xl">⏸️</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">INACTIVE</p>
+              <p className="text-xs text-slate-600 font-poppins">INACTIVE</p>
               <p className="text-2xl font-dm-serif text-dark-text">{inactiveUsers}</p>
             </div>
           </div>
@@ -506,7 +506,7 @@ export default function AdminUsersPage() {
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">🚫</div>
             <div className="text-right">
-              <p className="text-xs text-dark-text/60 font-poppins">AT RISK</p>
+              <p className="text-xs text-slate-600 font-poppins">AT RISK</p>
               <p className="text-2xl font-dm-serif text-[#F4A6A6]">{atRiskUsers}</p>
             </div>
           </div>
@@ -518,7 +518,7 @@ export default function AdminUsersPage() {
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex-1 min-w-[250px]">
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-dark-text/60">🔍</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600">🔍</span>
             <input
               type="text"
               placeholder="Search by Name, Country, Username..."
@@ -553,26 +553,26 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Users Table */}
-      <Card className="p-6">
+      <Card className="p-6 bg-slate-100/60 border-slate-200">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">NAME</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">ROLE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">COUNTRY</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">AGE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">ENTRIES</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">LAST ACTIVE</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">AVG MOOD</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">SENTIMENT</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">STATUS</th>
-                <th className="text-left py-4 px-3 text-xs font-semibold text-dark-text/60 font-poppins uppercase tracking-wider">ACTIONS</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">NAME</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">ROLE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">COUNTRY</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">AGE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">ENTRIES</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">LAST ACTIVE</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">AVG MOOD</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">SENTIMENT</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">STATUS</th>
+                <th className="text-left py-4 px-3 text-xs font-semibold text-slate-600 font-poppins uppercase tracking-wider">ACTIONS</th>
               </tr>
             </thead>
             <tbody>
               {paginatedUsers.map((user) => (
-                <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
+                <tr key={user.id} className="border-b border-gray-200 hover:bg-slate-100/60">
                   <td className="py-4 px-3">
                     <p className="font-poppins text-sm text-dark-text font-medium">{user.fullName}</p>
                   </td>
@@ -610,7 +610,7 @@ export default function AdminUsersPage() {
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.role === "owner" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" :
                           user.role === "admin" ? "bg-[#52B788]/20 text-[#52B788]" :
                             user.role === "counselor" ? "bg-primary-blue/30 text-dark-text/80" :
-                              "bg-gray-100 text-dark-text/60"
+                              "bg-gray-100 text-slate-600"
                         }`}>
                         {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                       </span>
@@ -626,23 +626,23 @@ export default function AdminUsersPage() {
                     <p className="text-sm font-poppins text-dark-text">{user.entries}</p>
                   </td>
                   <td className="py-4 px-3">
-                    <p className="text-sm font-inter text-dark-text/60">{user.lastActive}</p>
+                    <p className="text-sm font-inter text-slate-600">{user.lastActive}</p>
                   </td>
                   <td className="py-4 px-3">
                     <p className="text-sm font-poppins text-dark-text">{user.avgMood}</p>
                   </td>
                   <td className="py-4 px-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.sentiment === "Positive" ? "bg-[#52B788]/20 text-[#52B788]" : user.sentiment === "Neutral" ? "bg-primary-blue/30 text-dark-text/80" : user.sentiment === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : user.sentiment === "Distress" ? "bg-red-100 text-red-600" : "bg-gray-100 text-dark-text/60"}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.sentiment === "Positive" ? "bg-[#52B788]/20 text-[#52B788]" : user.sentiment === "Neutral" ? "bg-primary-blue/30 text-dark-text/80" : user.sentiment === "Negative" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : user.sentiment === "Distress" ? "bg-red-100 text-red-600" : "bg-gray-100 text-slate-600"}`}>
                       {user.sentiment}
                     </span>
                   </td>
                   <td className="py-4 px-3">
                     {!user.isAccountActive ? (
-                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-200 text-gray-500">
+                      <span className="px-2 py-1 rounded-full text-xs font-semibold bg-gray-200 text-slate-600">
                         Deactivated
                       </span>
                     ) : (
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.activityStatus === "Active" ? "bg-[#52B788]/20 text-[#52B788]" : user.activityStatus === "At Risk" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : "bg-gray-100 text-dark-text/60"}`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${user.activityStatus === "Active" ? "bg-[#52B788]/20 text-[#52B788]" : user.activityStatus === "At Risk" ? "bg-[#F4A6A6]/20 text-[#F4A6A6]" : "bg-gray-100 text-slate-600"}`}>
                         {user.activityStatus}
                       </span>
                     )}
@@ -662,7 +662,7 @@ export default function AdminUsersPage() {
                       {(currentUserProfile?.role === "owner" || currentUserProfile?.role === "admin") && user.id !== currentUser?.id && !(currentUserProfile?.role === "admin" && user.role === "owner") && (
                         <button
                           onClick={() => handleToggleActive(user.id, user.fullName, user.isAccountActive)}
-                          className="w-9 h-9 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+                          className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-600 hover:bg-gray-100 transition-colors"
                           title={user.isAccountActive ? "Deactivate User" : "Activate User"}
                         >
                           <PowerIcon className="w-5 h-5" />
@@ -686,8 +686,8 @@ export default function AdminUsersPage() {
               {paginatedUsers.length === 0 && (
                 <tr>
                   <td colSpan={10} className="py-12 text-center">
-                    <p className="text-sm font-poppins text-dark-text/60">No users found matching the current filters.</p>
-                    <p className="text-xs font-inter text-dark-text/40 mt-1">Try adjusting your search or filter criteria.</p>
+                    <p className="text-sm font-poppins text-slate-600">No users found matching the current filters.</p>
+                    <p className="text-xs font-inter text-slate-600 mt-1">Try adjusting your search or filter criteria.</p>
                   </td>
                 </tr>
               )}
@@ -713,7 +713,7 @@ export default function AdminUsersPage() {
         {/* Pagination */}
         {filteredUsers.length > 0 && (
           <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
-            <p className="text-sm text-dark-text/60 font-poppins">Showing {startIndex + 1}-{Math.min(startIndex + PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length} users</p>
+            <p className="text-sm text-slate-600 font-poppins">Showing {startIndex + 1}-{Math.min(startIndex + PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length} users</p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}

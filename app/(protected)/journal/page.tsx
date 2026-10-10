@@ -302,19 +302,19 @@ export default function JournalEntryPage() {
               ← Back to History
             </Button>
           </Link>
-          <div className="flex items-center gap-2 text-xs text-dark-text/70">
+          <div className="flex items-center gap-2 text-xs text-slate-700">
             <span>{autoSaveStatus === "saving" ? "⏳" : autoSaveStatus === "saved" ? "✅" : "🔵"}</span>
             <span>{autoSaveStatus === "saving" ? "Saving..." : autoSaveStatus === "saved" ? "Draft saved" : "Auto-save"}</span>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs text-dark-text/70">
+        <div className="flex items-center gap-2 text-xs text-slate-700">
           <span>🔒</span>
           <span>Private</span>
         </div>
       </div>
 
       {/* Date */}
-      <div className="text-xs text-dark-text/70 mb-4">
+      <div className="text-xs text-slate-700 mb-4">
         {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
       </div>
 
@@ -331,7 +331,7 @@ export default function JournalEntryPage() {
 
       {/* Mood Selector */}
       <div className="mb-6">
-        <p className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-3">How are you feeling?</p>
+        <p className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-3">How are you feeling?</p>
         <div className="flex flex-wrap gap-2">
           {moods.map((mood) => (
             <MoodCard
@@ -352,13 +352,13 @@ export default function JournalEntryPage() {
             💭
           </div>
           <div className="flex-1">
-            <p className="text-xs font-poppins uppercase tracking-wider text-dark-text/60 mb-1">AI Reflection Prompt</p>
+            <p className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-1">AI Reflection Prompt</p>
             <p className="text-sm font-inter text-dark-text leading-relaxed">
               {currentPrompt}
             </p>
           </div>
           <button
-            className="text-xs font-poppins text-dark-text/70 hover:text-dark-text"
+            className="text-xs font-poppins text-slate-700 hover:text-dark-text"
             onClick={() => setCurrentPrompt(prompts[Math.floor(Math.random() * prompts.length)])}
           >
             New prompt →
@@ -372,7 +372,7 @@ export default function JournalEntryPage() {
         <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-100 relative">
           <div className="relative emoji-picker-wrapper">
             <button
-              className="p-1.5 rounded hover:bg-light-gray text-dark-text/70 flex items-center gap-1 text-xs font-poppins"
+              className="p-1.5 rounded hover:bg-light-gray text-slate-700 flex items-center gap-1 text-xs font-poppins"
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
             >
               <span className="text-base">😊</span>
@@ -395,7 +395,7 @@ export default function JournalEntryPage() {
             )}
           </div>
           <button
-            className="p-1.5 rounded hover:bg-light-gray text-dark-text/70 flex items-center gap-1 text-xs font-poppins"
+            className="p-1.5 rounded hover:bg-light-gray text-slate-700 flex items-center gap-1 text-xs font-poppins"
             onClick={() => {
               if ("webkitSpeechRecognition" in window) {
                 const recognition = new (window as any).webkitSpeechRecognition();
@@ -437,13 +437,13 @@ export default function JournalEntryPage() {
 
       {sentimentResult && (
         <Card className="mb-6 border border-primary-blue/20 bg-primary-blue/5 p-4">
-          <p className="text-xs font-poppins font-semibold uppercase tracking-wide text-dark-text/60">
+          <p className="text-xs font-poppins font-semibold uppercase tracking-wide text-slate-600">
             XLM-RoBERTa analysis complete
           </p>
           <p className="mt-1 text-sm font-poppins text-dark-text">
             {sentimentResult.sentiment} · {Math.round(sentimentResult.confidence * 100)}% confidence
           </p>
-          <p className="mt-1 text-xs font-inter text-dark-text/60">
+          <p className="mt-1 text-xs font-inter text-slate-600">
             Positive {sentimentResult.positivePercentage}% · Negative {sentimentResult.negativePercentage}% · Distress {sentimentResult.distressPercentage}%
           </p>
         </Card>
@@ -451,7 +451,7 @@ export default function JournalEntryPage() {
 
       {/* Footer */}
       <div className="flex items-center justify-between">
-        <span className="text-xs font-inter text-dark-text/60">
+        <span className="text-xs font-inter text-slate-600">
           {wordCount} / {maxWords} words
         </span>
         <form onSubmit={saveEntry} className="flex items-center gap-3">

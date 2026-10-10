@@ -14,7 +14,7 @@ export function InsightCard({ title, content, icon }: InsightCardProps) {
         {icon && <div className="w-12 h-12 bg-warning-yellow/30 rounded-xl flex items-center justify-center text-2xl">{icon}</div>}
         <div>
           <h3 className="font-poppins font-semibold text-dark-text mb-2">{title}</h3>
-          <p className="font-inter text-dark-text/70 text-sm mb-4">{content}</p>
+          <p className="font-inter text-slate-700 text-sm mb-4">{content}</p>
           <Link href="/insights" className="text-xs font-poppins font-semibold text-primary-blue hover:text-lavender">
             View Full Report →
           </Link>

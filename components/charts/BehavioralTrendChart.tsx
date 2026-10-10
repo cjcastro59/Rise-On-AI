@@ -33,11 +33,11 @@ function BTSTooltip({ active, payload }: TooltipContentProps) {
 
   return (
     <div className="rounded-xl bg-white px-4 py-2.5 shadow-lg border border-light-gray text-left min-w-[140px]">
-      <p className="text-[10px] font-inter text-dark-text/50 mb-1">{pt.date}</p>
+      <p className="text-xs font-inter text-slate-600 mb-1">{pt.date}</p>
       <p className="text-sm font-poppins font-bold" style={{ color: state.color }}>
         {score.toFixed(0)} / 100
       </p>
-      <p className="text-[10px] font-poppins mt-0.5" style={{ color: state.color }}>
+      <p className="text-xs font-poppins mt-0.5" style={{ color: state.color }}>
         {state.label}
       </p>
     </div>
@@ -75,7 +75,7 @@ export default function BehavioralTrendChart({
         className="flex items-center justify-center rounded-xl bg-light-gray/30"
         style={{ height }}
       >
-        <p className="text-xs text-dark-text/50 font-poppins">
+        <p className="text-xs text-slate-600 font-poppins">
           Loading behavioral trend...
         </p>
       </div>
@@ -89,7 +89,7 @@ export default function BehavioralTrendChart({
         style={{ height }}
       >
         <span className="text-2xl">BT</span>
-        <p className="text-xs text-dark-text/50 font-poppins text-center px-4">
+        <p className="text-xs text-slate-600 font-poppins text-center px-4">
           No behavioral trend data yet.
           <br />
           Save journal entries to track your trend.

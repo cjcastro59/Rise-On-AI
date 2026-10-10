@@ -40,14 +40,14 @@ function WellnessTooltip({ active, payload }: TooltipContentProps) {
   const cfg = WELLNESS_LEVEL_CONFIG[lvl as keyof typeof WELLNESS_LEVEL_CONFIG];
   return (
     <div className="rounded-xl bg-white px-4 py-2.5 shadow-lg border border-light-gray text-left min-w-[140px]">
-      <p className="text-[10px] font-inter text-dark-text/50 mb-1">
+      <p className="text-xs font-inter text-slate-600 mb-1">
         {pt.date}
       </p>
       <p className="text-sm font-poppins font-bold" style={{ color: cfg?.color ?? "#333" }}>
         {score.toFixed(2)} / 10
       </p>
       <span
-        className="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-poppins"
+        className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-poppins"
         style={{ backgroundColor: cfg?.bgColor ?? "#eee", color: cfg?.color ?? "#333" }}
       >
         {cfg?.emoji ?? ""} {lvl}
@@ -95,7 +95,7 @@ export default function WellnessScoreTrendChart({
         className="flex items-center justify-center rounded-xl bg-light-gray/30"
         style={{ height }}
       >
-        <p className="text-xs text-dark-text/50 font-poppins">
+        <p className="text-xs text-slate-600 font-poppins">
           Loading wellness trend…
         </p>
       </div>
@@ -109,7 +109,7 @@ export default function WellnessScoreTrendChart({
         style={{ height }}
       >
         <span className="text-2xl">💚</span>
-        <p className="text-xs text-dark-text/50 font-poppins text-center px-4">
+        <p className="text-xs text-slate-600 font-poppins text-center px-4">
           No wellness history yet.
           <br />
           Save journal entries to build your wellness trend.
