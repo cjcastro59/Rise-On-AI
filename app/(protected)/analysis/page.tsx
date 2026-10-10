@@ -488,6 +488,56 @@ export default function AIAnalysisPage() {
             </div>
           </Card>
 
+          {/* Emotional Wellness Score — uses the real Wellness Score from behavioral_indicators */}
+          <Card className="p-4 sm:p-8 text-center bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
+            <h3 className="text-base font-poppins uppercase tracking-wider text-slate-700 mb-4 sm:mb-8 flex items-center gap-2 justify-center">
+              <span>🧠</span>
+              Wellness Score
+            </h3>
+            {wellnessScore != null ? (
+              <>
+                <div className="relative w-36 h-36 sm:w-52 sm:h-52 mx-auto mb-4 sm:mb-8">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" stroke="#E5E7EB" strokeWidth="10" />
+                    <circle
+                      cx="50" cy="50" r="45"
+                      fill="none"
+                      stroke="url(#wsGradient)"
+                      strokeWidth="12"
+                      strokeDasharray="283"
+                      strokeDashoffset={283 - (wellnessScore / 10) * 283}
+                      strokeLinecap="round"
+                    />
+                    <defs>
+                      <linearGradient id="wsGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#A8DADC" />
+                        <stop offset="100%" stopColor="#CDB4DB" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center flex-col">
+                    <span className="text-3xl sm:text-5xl font-dm-serif text-[#4F4F4F]">{wellnessScore.toFixed(1)}</span>
+                    <span className="text-sm font-inter text-[#A8DADC]">out of 10</span>
+                  </div>
+                </div>
+                {wellnessLevel && (
+                  <p className="text-sm font-poppins font-semibold text-slate-700 mb-1">{wellnessLevel}</p>
+                )}
+                <p className="text-xs font-inter text-slate-600">30-day behavioral wellness score</p>
+                <p className="text-xs font-inter text-slate-600 mt-1">
+                  Algorithm-derived indicator · not a clinical assessment
+                </p>
+              </>
+            ) : (
+              <div className="py-8 text-center space-y-2">
+                <p className="text-sm text-slate-600 font-poppins">Not yet computed</p>
+                <p className="text-xs text-slate-600 font-inter">
+                  Save more journal entries — the score updates automatically.
+                </p>
+              </div>
+            )}
+          </Card>
+
           {/* Key Phrases */}
           {analysis.keyPhrases.length > 0 && (
             <Card className="p-4 sm:p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
@@ -826,55 +876,6 @@ export default function AIAnalysisPage() {
           </AIReportErrorBoundary>
           {/* ── END EXPLAINABILITY PANEL ──────────────────────────────── */}
 
-          {/* Emotional Wellness Score — uses the real Wellness Score from behavioral_indicators */}
-          <Card className="p-4 sm:p-8 text-center bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
-            <h3 className="text-base font-poppins uppercase tracking-wider text-slate-700 mb-4 sm:mb-8 flex items-center gap-2 justify-center">
-              <span>🧠</span>
-              Wellness Score
-            </h3>
-            {wellnessScore != null ? (
-              <>
-                <div className="relative w-36 h-36 sm:w-52 sm:h-52 mx-auto mb-4 sm:mb-8">
-                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="45" fill="none" stroke="#E5E7EB" strokeWidth="10" />
-                    <circle
-                      cx="50" cy="50" r="45"
-                      fill="none"
-                      stroke="url(#wsGradient)"
-                      strokeWidth="12"
-                      strokeDasharray="283"
-                      strokeDashoffset={283 - (wellnessScore / 10) * 283}
-                      strokeLinecap="round"
-                    />
-                    <defs>
-                      <linearGradient id="wsGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#A8DADC" />
-                        <stop offset="100%" stopColor="#CDB4DB" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center flex-col">
-                    <span className="text-3xl sm:text-5xl font-dm-serif text-[#4F4F4F]">{wellnessScore.toFixed(1)}</span>
-                    <span className="text-sm font-inter text-[#A8DADC]">out of 10</span>
-                  </div>
-                </div>
-                {wellnessLevel && (
-                  <p className="text-sm font-poppins font-semibold text-slate-700 mb-1">{wellnessLevel}</p>
-                )}
-                <p className="text-xs font-inter text-slate-600">30-day behavioral wellness score</p>
-                <p className="text-xs font-inter text-slate-600 mt-1">
-                  Algorithm-derived indicator · not a clinical assessment
-                </p>
-              </>
-            ) : (
-              <div className="py-8 text-center space-y-2">
-                <p className="text-sm text-slate-600 font-poppins">Not yet computed</p>
-                <p className="text-xs text-slate-600 font-inter">
-                  Save more journal entries — the score updates automatically.
-                </p>
-              </div>
-            )}
-          </Card>
         </div>
       </div>
 
@@ -896,7 +897,7 @@ export default function AIAnalysisPage() {
           </Button>
         </div>
         <button
-          className="text-[#F4A6A6] font-inter text-sm mt-2 flex items-center gap-2 transition-all duration-200 hover:underline hover:text-[#d85f6f] active:scale-95"
+          className="inline-flex items-center gap-2 border border-rose-200 bg-rose-50/90 px-4 py-2 text-xs font-semibold text-rose-700 rounded-full shadow-sm transition-all duration-200 hover:shadow-md active:scale-95"
           onClick={() => router.push("/support")}
         >
           Feeling distressed?{" "}
