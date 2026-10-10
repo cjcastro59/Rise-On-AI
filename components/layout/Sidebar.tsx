@@ -298,7 +298,7 @@ export default function Sidebar({ userName }: SidebarProps) {
         MobileNav is rendered in layout.tsx OUTSIDE this flex cell so it
         spans the full viewport width on mobile.
       */}
-      <aside className="w-64 bg-[#1E293B] text-white p-6 hidden md:flex md:flex-col shrink-0 sticky top-0 h-screen overflow-y-auto">
+      <aside className="w-64 bg-[#1E293B] text-white p-4 hidden md:flex md:h-screen md:flex-col md:overflow-y-auto shrink-0 sticky top-0">
         <div className="mb-6 flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">

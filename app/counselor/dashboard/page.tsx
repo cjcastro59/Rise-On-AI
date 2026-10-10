@@ -336,7 +336,7 @@ export default function CounselorDashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white/80 px-6 py-5 shadow-sm border border-white/40 backdrop-blur-md">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Dashboard Overview</h1>
           <p className="text-sm text-dark-text/70 font-poppins">{currentDate}</p>
@@ -380,7 +380,7 @@ export default function CounselorDashboardPage() {
       </div>
 
       {/* ── ASSIGNED USERS WELLNESS PANEL ─────────────────────────────────── */}
-      <Card variant="white" className="p-5">
+      <Card variant="white" className="p-5 bg-white/80 border border-white/40 shadow-sm backdrop-blur-md">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-poppins text-dark-text/70 uppercase tracking-wider">
@@ -431,7 +431,7 @@ export default function CounselorDashboardPage() {
         )}
       </Card>
 
-      <Card variant="white" className="p-5">
+      <Card variant="white" className="p-5 bg-white/80 border border-white/40 shadow-sm backdrop-blur-md">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-[#B7E4C7]/30 rounded-lg flex items-center justify-center">💚</div>
@@ -562,7 +562,7 @@ export default function CounselorDashboardPage() {
       {/* Bottom Row — Cases + Messages */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Cases */}
-        <Card variant="white" className="p-5">
+        <Card variant="white" className="p-5 bg-white/80 border border-white/40 shadow-sm backdrop-blur-md">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-error-red/20 rounded-lg flex items-center justify-center">🚨</div>
@@ -583,7 +583,7 @@ export default function CounselorDashboardPage() {
               return (
                 <div
                   key={c.id || i}
-                  className="p-3 bg-error-red/10 rounded-xl border border-error-red/30"
+                  className="p-3 bg-rose-50/80 rounded-xl border border-rose-200 border-l-4 border-l-indigo-500"
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div className="min-w-0">
@@ -596,7 +596,7 @@ export default function CounselorDashboardPage() {
                     </div>
                     <Link
                       href="/counselor/cases"
-                      className="px-3 py-1 bg-error-red/30 text-error-red rounded-full text-xs font-semibold font-poppins shrink-0"
+                      className="px-3 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full text-xs font-semibold font-poppins shrink-0 transition-all duration-200 hover:shadow-md active:scale-95"
                     >
                       View
                     </Link>
@@ -623,7 +623,7 @@ export default function CounselorDashboardPage() {
         </Card>
 
         {/* Recent Messages */}
-        <Card variant="white" className="p-5">
+        <Card variant="white" className="p-5 bg-white/80 border border-white/40 shadow-sm backdrop-blur-md">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-[#CDB4DB]/20 rounded-lg flex items-center justify-center">💬</div>
@@ -641,7 +641,7 @@ export default function CounselorDashboardPage() {
             ) : recentMessages.map((m, i) => (
               <div
                 key={m.id || i}
-                className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex justify-between items-center"
+                className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 border-l-4 border-l-indigo-400 flex justify-between items-center"
               >
                 <div>
                   <p className="text-sm font-semibold font-poppins text-dark-text">New Message</p>

@@ -605,22 +605,25 @@ export default function AdminDashboardPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white/80 px-6 py-5 shadow-sm border border-white/40 backdrop-blur-md">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Dashboard Overview</h1>
           <p className="text-sm text-dark-text/70 font-poppins">
             {currentDate} - {firstUserDate ? `First user registered: ${formatFullDate(new Date(firstUserDate))}` : "No users yet"}
           </p>
+          <span className="mt-2 inline-flex rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-[10px] font-poppins font-semibold uppercase tracking-wide text-purple-700">
+            Admin / Owner Operations
+          </span>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <button 
             onClick={exportReport}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50">
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text transition-all duration-200 hover:bg-gray-50 hover:shadow-md active:scale-95">
             <span>📊</span> Export Report
           </button>
           <button 
             onClick={() => setShowAnnouncementModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-lg text-sm font-poppins text-dark-text font-medium">
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-lg text-sm font-poppins text-dark-text font-medium transition-all duration-200 hover:shadow-md active:scale-95">
             <span>📢</span> New Announcement
           </button>
           <div className="relative">
@@ -675,10 +678,10 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <Card variant="white" className="p-5">
+      <Card variant="white" className="p-5 bg-white/80 border border-white/40 shadow-sm backdrop-blur-md">
         <div className="mb-3 flex items-center justify-between gap-3">
           <p className="text-xs font-poppins text-dark-text/70 uppercase tracking-wider">Announcements</p>
-          <span className="rounded-full bg-primary-blue/10 px-2 py-1 text-[10px] font-semibold text-primary-blue">
+          <span className="rounded-full border border-purple-200 bg-purple-50 px-2 py-1 text-[10px] font-semibold text-purple-700">
             Live
           </span>
         </div>
@@ -687,10 +690,10 @@ export default function AdminDashboardPage() {
             <p className="text-sm font-inter text-dark-text/60">No active announcements.</p>
           ) : (
             announcements.map((announcement) => (
-              <div key={announcement.id} className="rounded-xl bg-light-gray/40 p-3">
+              <div key={announcement.id} className="rounded-xl border border-purple-100 bg-purple-50/50 p-3">
                 <p className="text-sm font-semibold font-poppins text-dark-text">{announcement.title}</p>
                 <p className="mt-1 line-clamp-2 text-xs font-inter text-dark-text/65">{announcement.content}</p>
-                <p className="mt-2 text-[11px] font-inter text-dark-text/40">{formatTime(announcement.created_at)}</p>
+                <p className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-[11px] font-inter text-dark-text/60">{formatTime(announcement.created_at)}</p>
               </div>
             ))
           )}
@@ -706,7 +709,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 rounded-2xl border border-purple-100 bg-purple-50/20 p-3">
         <Card variant="white" className="stat-card border-l-4 border-l-primary-blue">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-primary-blue/20">👥</div>

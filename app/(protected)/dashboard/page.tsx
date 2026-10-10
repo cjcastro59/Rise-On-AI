@@ -223,7 +223,7 @@ export default function DashboardPage() {
   return (
     <>
       {/* Top Header */}
-      <header className="mb-6 flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
+      <header className="mb-6 flex flex-col gap-3 rounded-2xl border border-white/50 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
         <div className="hidden w-24 sm:block" aria-hidden="true" />
         <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 sm:gap-x-6">
           <Link href="/dashboard" className="text-dark-text text-sm font-poppins font-semibold">Home</Link>
@@ -232,7 +232,7 @@ export default function DashboardPage() {
           <Link href="/journal/history" className="text-dark-text/60 text-sm font-poppins font-medium hover:text-primary-blue">History</Link>
         </nav>
         <div className="flex items-center justify-center sm:justify-end">
-          <Link href="/support" className="flex items-center gap-2 rounded-full bg-pink-100 px-3 py-1.5 text-xs font-poppins font-semibold text-pink-600 transition-all hover:bg-pink-200">
+          <Link href="/support" className="flex items-center gap-2 rounded-full bg-pink-100 px-3 py-1.5 text-xs font-poppins font-semibold text-pink-600 transition-all duration-200 hover:bg-pink-200 hover:shadow-md active:scale-95">
             <Image src="/icons/crisis-report.svg" alt="Crisis Support" width={14} height={14} className="object-contain" />
             Crisis Support
           </Link>
@@ -275,7 +275,7 @@ export default function DashboardPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 animate-in fade-in duration-200">
-        <Card className="p-4 sm:p-5 bg-white">
+        <Card className="p-4 sm:p-5 bg-white/80 backdrop-blur-md border border-white/40 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-dark-text/60 text-xs font-poppins mb-1">Streak</p>
@@ -286,7 +286,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </Card>
-        <Card className="p-4 sm:p-5 bg-white">
+        <Card className="p-4 sm:p-5 bg-white/80 backdrop-blur-md border border-white/40 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-dark-text/60 text-xs font-poppins mb-1">Total Entries</p>
@@ -297,7 +297,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </Card>
-        <Card className="p-4 sm:p-5 bg-white">
+        <Card className="p-4 sm:p-5 bg-white/80 backdrop-blur-md border border-white/40 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-dark-text/60 text-xs font-poppins mb-1">Avg. Mood Score</p>
@@ -308,7 +308,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </Card>
-        <Card className="p-4 sm:p-5 bg-white">
+        <Card className="p-4 sm:p-5 bg-white/80 backdrop-blur-md border border-white/40 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-dark-text/60 text-xs font-poppins mb-1">Positivity This Week</p>
@@ -323,10 +323,10 @@ export default function DashboardPage() {
 
       {/* ── Wellness Assessment Banner ─────────────────────────────────────── */}
       <div
-        className="mb-8 rounded-2xl border border-light-gray shadow-sm overflow-hidden"
+        className="mb-8 rounded-2xl border border-white/40 bg-white/80 shadow-sm backdrop-blur-md overflow-hidden"
         style={{ borderLeftWidth: 4, borderLeftStyle: "solid", borderLeftColor: wellnessCfg?.borderColor ?? "#e5e7eb" }}
       >
-        <Card className="px-6 py-4 bg-white transition-all" variant="white">
+        <Card className="px-6 py-4 bg-white/80 backdrop-blur-md transition-all" variant="white">
           {wellnessLoading ? (
             <p className="text-xs text-dark-text/50 py-1">Loading wellness data…</p>
           ) : !wellnessLatest || wellnessLatest.wellness_score === null ? (
@@ -415,7 +415,7 @@ export default function DashboardPage() {
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in duration-300">
         {/* Today's Journal Preview */}
-        <Card className="p-6 bg-white">
+        <Card className="p-6 bg-white/80 backdrop-blur-md border border-white/40 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-poppins font-semibold text-dark-text">Today&apos;s Journal</h3>
             <span className="text-xs font-poppins text-dark-text/60">Tap to open</span>
@@ -432,7 +432,7 @@ export default function DashboardPage() {
                   {todayEntryPreview.title || "Untitled Entry"}
                 </p>
                 {todayEntryPreview.mood && (
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-poppins text-dark-text shadow-sm">
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-poppins font-medium text-emerald-700 shadow-sm">
                     {todayEntryPreview.mood}
                   </span>
                 )}
@@ -451,7 +451,7 @@ export default function DashboardPage() {
         </Card>
 
         {/* Mood Chart */}
-        <Card className="p-6 bg-white">
+        <Card className="p-6 bg-white/80 backdrop-blur-md border border-white/40 shadow-sm">
           <h3 className="font-poppins font-semibold text-dark-text mb-4">Your Mood This Week</h3>
           <WeeklyMoodChart data={weekData} loading={weekMoodLoading} hasData={weekMoodHasData} />
         </Card>
@@ -468,31 +468,31 @@ export default function DashboardPage() {
         />
 
         {/* Quick Actions */}
-        <Card className="p-6 bg-white">
+        <Card className="p-6 bg-white/80 backdrop-blur-md border border-white/40 shadow-sm">
           <h3 className="font-poppins font-semibold text-dark-text mb-4">Quick Actions</h3>
           <div className="space-y-3">
-            <Link href="/journal" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray hover:-translate-y-0.5 hover:shadow-sm transition-all duration-150">
+            <Link href="/journal" className="flex items-center gap-3 p-3 bg-emerald-50/70 rounded-xl border border-emerald-100 hover:bg-emerald-50 hover:-translate-y-0.5 hover:shadow-md active:scale-95 transition-all duration-200">
               <Image src="/icons/new-entry.svg" alt="Write New Entry" width={20} height={20} className="object-contain" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">Write New Entry</p>
                 <p className="text-xs text-dark-text/60 font-inter">Express your thoughts freely</p>
               </div>
             </Link>
-            <Link href="/journal/history" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray hover:-translate-y-0.5 hover:shadow-sm transition-all duration-150">
+            <Link href="/journal/history" className="flex items-center gap-3 p-3 bg-sky-50/70 rounded-xl border border-sky-100 hover:bg-sky-50 hover:-translate-y-0.5 hover:shadow-md active:scale-95 transition-all duration-200">
               <Image src="/icons/journal.svg" alt="View History" width={20} height={20} className="object-contain" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">View History</p>
                 <p className="text-xs text-dark-text/60 font-inter">See your past entries</p>
               </div>
             </Link>
-            <Link href="/insights" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray hover:-translate-y-0.5 hover:shadow-sm transition-all duration-150">
+            <Link href="/insights" className="flex items-center gap-3 p-3 bg-violet-50/70 rounded-xl border border-violet-100 hover:bg-violet-50 hover:-translate-y-0.5 hover:shadow-md active:scale-95 transition-all duration-200">
               <Image src="/icons/mood-insights.svg" alt="View Insights" width={20} height={20} className="object-contain" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">View Insights</p>
                 <p className="text-xs text-dark-text/60 font-inter">Analyze your mood trends</p>
               </div>
             </Link>
-            <Link href="/mood-trends" className="flex items-center gap-3 p-3 bg-light-gray/30 rounded-xl hover:bg-light-gray hover:-translate-y-0.5 hover:shadow-sm transition-all duration-150">
+            <Link href="/mood-trends" className="flex items-center gap-3 p-3 bg-amber-50/70 rounded-xl border border-amber-100 hover:bg-amber-50 hover:-translate-y-0.5 hover:shadow-md active:scale-95 transition-all duration-200">
               <Image src="/icons/trends.svg" alt="Mood Trends" width={20} height={20} className="object-contain" />
               <div className="flex-1">
                 <p className="font-poppins font-medium text-dark-text text-sm">Mood Trends</p>

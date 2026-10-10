@@ -444,7 +444,7 @@ export default function AIAnalysisPage() {
         {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
         <div className="space-y-6">
           {/* Sentiment Breakdown */}
-          <Card className="p-4 sm:p-6 bg-white shadow-sm">
+          <Card className="p-4 sm:p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-1 flex items-center gap-2">
               <span>📊</span>
               Sentiment Breakdown
@@ -473,7 +473,7 @@ export default function AIAnalysisPage() {
           </Card>
 
           {/* Detected Emotions */}
-          <Card className="p-4 sm:p-6 bg-white shadow-sm">
+          <Card className="p-4 sm:p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
               <span>🌈</span>
               Detected Emotions
@@ -490,7 +490,7 @@ export default function AIAnalysisPage() {
 
           {/* Key Phrases */}
           {analysis.keyPhrases.length > 0 && (
-            <Card className="p-4 sm:p-6 bg-white shadow-sm">
+            <Card className="p-4 sm:p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
               <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 mb-4 flex items-center gap-2">
                 <span>🔑</span>
                 Key Phrases Detected
@@ -515,7 +515,7 @@ export default function AIAnalysisPage() {
             style={{ borderLeftColor: aciCfg.borderColor }}
           >
           <AIReportErrorBoundary>
-          <Card className="p-4 sm:p-6 bg-white shadow-sm rounded-l-none border-l-0">
+          <Card className="p-4 sm:p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm rounded-l-none border-l-0">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 flex items-center gap-2">
                 <span>{aciCfg.emoji}</span>
@@ -572,10 +572,10 @@ export default function AIAnalysisPage() {
                 <p className="text-sm font-poppins font-semibold" style={{ color: aciCfg.color }}>
                   {aciResponse.greeting}
                 </p>
-                <p className="text-sm font-inter text-dark-text leading-relaxed">
+                <blockquote className="rounded-xl border-l-4 border-l-[#52B788] bg-emerald-50/70 px-4 py-3 text-sm font-inter text-dark-text leading-relaxed">
                   {aciResponse.message}
-                </p>
-                <div className="p-3 rounded-xl border-l-2"
+                </blockquote>
+                <div className="p-3 rounded-xl border border-emerald-100 border-l-4 border-l-[#52B788] bg-emerald-50/70"
                   style={{ backgroundColor: aciCfg.bgColor + "40", borderLeftColor: aciCfg.borderColor }}>
                   <p className="text-[10px] font-poppins uppercase tracking-wider text-dark-text/60 mb-1">Reflection Prompt</p>
                   <p className="text-sm font-inter text-dark-text/80 leading-relaxed italic">{aciResponse.reflection}</p>
@@ -587,7 +587,7 @@ export default function AIAnalysisPage() {
                       {(aciResponse.suggestions as string[]).map((s, i) => (
                         <div key={i} className="flex items-start gap-3 p-3 bg-light-gray rounded-xl">
                           <span className="text-base shrink-0">{SUGGESTION_ICONS[i % SUGGESTION_ICONS.length]}</span>
-                          <span className="text-sm font-inter text-dark-text">{s}</span>
+                          <span className="text-sm font-inter text-dark-text leading-relaxed">{s}</span>
                         </div>
                       ))}
                     </div>
@@ -604,7 +604,7 @@ export default function AIAnalysisPage() {
 
           {/* ── EXPLAINABILITY PANEL ─────────────────────────────────── */}
           <AIReportErrorBoundary>
-          <Card className="p-4 sm:p-6 bg-white shadow-sm">
+          <Card className="p-4 sm:p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
             {/* Header */}
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-poppins uppercase tracking-wider text-dark-text/70 flex items-center gap-2">
@@ -827,7 +827,7 @@ export default function AIAnalysisPage() {
           {/* ── END EXPLAINABILITY PANEL ──────────────────────────────── */}
 
           {/* Emotional Wellness Score — uses the real Wellness Score from behavioral_indicators */}
-          <Card className="p-4 sm:p-8 text-center bg-white shadow-sm">
+          <Card className="p-4 sm:p-8 text-center bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
             <h3 className="text-base font-poppins uppercase tracking-wider text-dark-text/70 mb-4 sm:mb-8 flex items-center gap-2 justify-center">
               <span>🧠</span>
               Wellness Score
@@ -882,21 +882,21 @@ export default function AIAnalysisPage() {
       <div className="mt-8 flex flex-col items-center gap-4">
         <div className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-3xl">
           <Button
-            className="flex-1 max-w-xs py-4 rounded-full bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] text-[#4F4F4F] font-poppins font-medium text-base transition-opacity hover:opacity-90"
+            className="flex-1 max-w-xs py-4 rounded-full bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] text-[#4F4F4F] font-poppins font-medium text-base transition-all duration-200 hover:shadow-md active:scale-95"
             onClick={() => router.push("/insights")}
           >
             View Mood Trends →
           </Button>
           <Button
             variant="secondary"
-            className="flex-1 max-w-xs py-4 rounded-full border border-[#A8DADC] text-[#4F4F4F] font-poppins font-medium text-base bg-white transition-colors hover:bg-[#F5F5F5]"
+            className="flex-1 max-w-xs py-4 rounded-full border border-[#A8DADC] text-[#4F4F4F] font-poppins font-medium text-base bg-white transition-all duration-200 hover:bg-[#F5F5F5] hover:shadow-md active:scale-95"
             onClick={() => router.push("/journal/history")}
           >
             Save & Return
           </Button>
         </div>
         <button
-          className="text-[#F4A6A6] font-inter text-sm mt-2 flex items-center gap-2 hover:underline"
+          className="text-[#F4A6A6] font-inter text-sm mt-2 flex items-center gap-2 transition-all duration-200 hover:underline hover:text-[#d85f6f] active:scale-95"
           onClick={() => router.push("/support")}
         >
           Feeling distressed?{" "}

@@ -151,7 +151,7 @@ export default function CounselorSidebar() {
           />
 
           {/* ── Desktop sidebar (hidden on mobile) ────────────────────────── */}
-          <aside className="w-64 bg-[#1E293B] text-white p-6 hidden md:flex md:flex-col md:h-full md:min-h-screen">
+          <aside className="w-64 bg-[#1E293B] text-white p-4 hidden md:flex md:h-screen md:flex-col md:overflow-y-auto shrink-0">
             <div className="mb-6 flex items-center justify-between">
                 <div>
                     <div className="flex items-center gap-3">

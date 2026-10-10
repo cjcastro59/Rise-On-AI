@@ -143,7 +143,7 @@ export default function CounselorNotesPage() {
       </div>
 
       {/* Add Note Form */}
-      <Card className="p-6">
+      <Card className="p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
         <h3 className="font-poppins font-semibold text-dark-text mb-3">Add a New Note</h3>
         <form onSubmit={handleAddNote} className="space-y-3">
           <textarea
@@ -160,7 +160,7 @@ export default function CounselorNotesPage() {
       </Card>
 
       {/* Notes List */}
-      <Card className="p-6">
+      <Card className="p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-poppins font-semibold text-dark-text">Your Notes</h3>
           <span className="text-sm text-dark-text/60 font-poppins">{notes.length} notes</span>
@@ -177,7 +177,7 @@ export default function CounselorNotesPage() {
         ) : (
           <div className="space-y-3">
             {notes.map((note) => (
-              <div key={note.id} className="border border-gray-200 rounded-xl p-4">
+              <div key={note.id} className="border border-indigo-100 border-l-4 border-l-indigo-500 bg-indigo-50/30 rounded-xl p-4">
                 {editingNote && editingNote.id === note.id ? (
                   <form onSubmit={saveEdit} className="space-y-3">
                     <textarea
@@ -204,9 +204,9 @@ export default function CounselorNotesPage() {
                   </form>
                 ) : (
                   <>
-                    <p className="text-dark-text mb-3 font-inter whitespace-pre-wrap">{note.content}</p>
+                    <blockquote className="text-dark-text mb-3 font-inter leading-relaxed whitespace-pre-wrap">{note.content}</blockquote>
                     <div className="flex items-center justify-between text-xs text-dark-text/60">
-                      <span>Updated: {formatDate(note.updated_at)}</span>
+                      <span className="rounded-full bg-indigo-50 px-2 py-1 text-indigo-700">Updated: {formatDate(note.updated_at)}</span>
                       <div className="flex gap-2">
                         <button 
                           onClick={() => startEditing(note)}
