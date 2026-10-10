@@ -428,55 +428,55 @@ export default function CounselorCasesPage() {
         </div>
         <Card className="overflow-hidden p-6">
           <div className="overflow-x-auto">
-            <table className="admin-table min-w-[900px] table-fixed">
+            <table className="admin-table min-w-[1180px] table-fixed">
               <thead>
                 <tr>
-                  <th>USER</th>
-                  <th>TRIGGER</th>
-                  <th>MOOD</th>
-                  <th>LAST ENTRY</th>
-                  <th>RESPONSE</th>
-                  <th>STATUS</th>
-                  <th>ACTION</th>
+                  <th className="w-48 px-4 py-3">USER</th>
+                  <th className="w-64 px-4 py-3">TRIGGER</th>
+                  <th className="w-32 min-w-[120px] px-4 py-3">MOOD</th>
+                  <th className="w-36 px-4 py-3">LAST ENTRY</th>
+                  <th className="w-36 px-4 py-3">RESPONSE</th>
+                  <th className="w-32 px-4 py-3">STATUS</th>
+                  <th className="w-48 px-4 py-3">ACTION</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredMediumAlerts.map((alert) => (
                   <tr key={alert.id}>
-                    <td>
+                    <td className="w-48 overflow-hidden px-4 py-3">
                       <p title={getUserDisplayName(alert.user_profiles)} className="inline-block max-w-[200px] truncate text-sm font-semibold text-slate-900 hover:text-indigo-600">{getUserDisplayName(alert.user_profiles)}</p>
                     </td>
-                    <td>
-                      <p title={alert.trigger || "Pending review"} className="inline-block max-w-[200px] truncate text-sm font-inter text-dark-text">{alert.trigger || "Pending review"}</p>
+                    <td className="w-64 max-w-[260px] overflow-hidden px-4 py-3 pr-4">
+                      <p title={alert.trigger || "Pending review"} className="truncate text-xs font-medium text-slate-700">{alert.trigger || "Pending review"}</p>
                     </td>
-                    <td>
-                      <p className="text-sm font-poppins text-dark-text">{entriesByUser[alert.user_id]?.[0]?.mood || "—"}</p>
+                    <td className="w-32 min-w-[120px] px-4 py-3 pl-2">
+                      <p className="truncate text-xs font-semibold text-slate-800">{entriesByUser[alert.user_id]?.[0]?.mood || "—"}</p>
                     </td>
-                    <td>
-                      <p className="text-sm font-inter text-slate-600">
+                    <td className="w-36 overflow-hidden px-4 py-3">
+                      <p className="truncate text-sm font-inter text-slate-600">
                         {entriesByUser[alert.user_id]?.[0]
                           ? new Date(entriesByUser[alert.user_id]?.[0].created_at).toLocaleDateString()
                           : "No entry"}
                       </p>
                     </td>
-                    <td>
+                    <td className="w-36 px-4 py-3">
                       <span className={`badge ${alert.notes?.trim() ? "badge-success" : "badge-info"}`}>{getResponseStatus(alert.notes)}</span>
                     </td>
-                    <td>
+                    <td className="w-32 px-4 py-3">
                       <span className="badge-info">{alert.notes ? "Followed up" : "Pending"}</span>
                     </td>
-                    <td>
-                      <div className="flex min-w-0 flex-wrap items-center gap-2 overflow-hidden p-3">
+                    <td className="w-48 overflow-hidden px-4 py-3">
+                      <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-hidden">
                         <button
                           type="button"
-                          className="btn-sm bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-60"
+                          className="btn-sm whitespace-nowrap bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-60"
                           onClick={() => setSelectedAlert(alert)}
                         >
                           Review
                         </button>
                         <button
                           type="button"
-                          className="btn-sm bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60"
+                          className="btn-sm whitespace-nowrap bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60"
                           disabled={!!actionLoading[`message:${alert.id}`]}
                           onClick={() => runAlertAction(alert.id, "message")}
                         >

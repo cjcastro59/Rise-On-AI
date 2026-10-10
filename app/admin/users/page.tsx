@@ -555,12 +555,12 @@ export default function AdminUsersPage() {
       {/* Users Table */}
       <Card className="p-6 bg-slate-100/60 border-slate-200">
         <div className="overflow-x-auto">
-          <table className="admin-table min-w-[1100px] table-fixed">
+          <table className="admin-table min-w-[1400px] table-fixed">
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-4 px-3">NAME</th>
-                <th className="text-left py-4 px-3">ROLE</th>
-                <th className="text-left py-4 px-3">COUNTRY</th>
+                <th className="w-56 text-left py-4 px-3">ROLE</th>
+                <th className="w-40 text-left py-4 px-3">COUNTRY</th>
                 <th className="text-left py-4 px-3">AGE</th>
                 <th className="text-left py-4 px-3">ENTRIES</th>
                 <th className="text-left py-4 px-3">LAST ACTIVE</th>
@@ -573,10 +573,10 @@ export default function AdminUsersPage() {
             <tbody>
               {paginatedUsers.map((user) => (
                 <tr key={user.id} className="border-b border-gray-200 hover:bg-slate-100/60">
-                  <td className="py-4 px-3">
+                  <td className="min-w-[220px] overflow-hidden px-4 py-3">
                     <p className="font-poppins text-sm font-semibold text-slate-900 hover:text-indigo-600">{user.fullName}</p>
                   </td>
-                  <td className="py-4 px-3">
+                  <td className="w-56 min-w-[220px] overflow-hidden px-4 py-3">
                     {currentUserProfile?.role === "owner" || currentUserProfile?.role === "admin" ? (
                       <>
                         {user.role === "owner" ? (
@@ -584,11 +584,11 @@ export default function AdminUsersPage() {
                             Owner
                           </span>
                         ) : (
-                          <div className="flex items-center gap-2">
+                          <div className="min-w-[180px] flex flex-col items-start gap-1 whitespace-nowrap">
                             <select
                               value={user.role}
                               onChange={(e) => handleRoleChange(user.id, e.target.value, user.fullName)}
-                              className="px-2 py-1 rounded-full text-xs font-semibold border border-gray-200 bg-white"
+                              className="w-full max-w-[180px] rounded-full border border-gray-200 bg-white px-2 py-1 text-xs font-semibold"
                             >
                               <option value="user">User</option>
                               <option value="counselor">Counselor</option>
@@ -597,7 +597,7 @@ export default function AdminUsersPage() {
                             {currentUserProfile?.role === "owner" && (
                               <button
                                 onClick={() => handleTransferOwnership(user.id, user.fullName)}
-                                className="rounded-lg border border-amber-600 bg-amber-500 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-amber-600"
+                                className="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-1 text-[11px] font-semibold leading-tight text-white shadow-sm hover:bg-amber-600"
                                 title="Transfer Ownership"
                               >
                                 Transfer Ownership
@@ -616,8 +616,8 @@ export default function AdminUsersPage() {
                       </span>
                     )}
                   </td>
-                  <td className="py-4 px-3">
-                    <p className="text-sm font-poppins text-dark-text">{user.country}</p>
+                  <td className="w-40 overflow-hidden px-4 py-3">
+                    <p className="truncate whitespace-nowrap text-sm font-poppins text-dark-text" title={user.country}>{user.country}</p>
                   </td>
                   <td className="py-4 px-3">
                     <p className="text-sm font-poppins text-dark-text">{user.age}</p>
