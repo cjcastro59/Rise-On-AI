@@ -1,6 +1,7 @@
 import Sidebar from "@/components/layout/Sidebar";
 import MemberMobileNav from "@/components/layout/MemberMobileNav";
 import ProtectedContentWrapper from "@/components/layout/ProtectedContentWrapper";
+import SessionTimeoutWrapper from "@/components/layout/SessionTimeoutWrapper";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { isMaintenanceModeActive } from "@/lib/maintenance";
@@ -65,6 +66,9 @@ export default async function ProtectedLayout({
         ─────────────────────────────────────────────────────────────────
       */}
       <MemberMobileNav userName={userName} />
+
+      {/* Session timeout — warns at 1 min remaining, auto-signs-out at 0 */}
+      <SessionTimeoutWrapper />
 
       {/* ── Desktop layout wrapper (flex row, ignored on mobile) ── */}
       <div className="md:flex md:min-h-screen">

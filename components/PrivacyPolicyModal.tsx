@@ -12,7 +12,7 @@ interface PrivacyPolicyModalProps {
 
 const RA_10173_POLICY = `PRIVACY NOTICE
 Rise On AI — AI-Assisted Mental Wellness Monitoring System
-Effective Date: ${new Date().toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}
+Effective Date: September 1, 2026
 
 This Privacy Notice is issued in compliance with Republic Act No. 10173, known as the Data Privacy Act of 2012 (DPA), and its Implementing Rules and Regulations (IRR).
 
@@ -318,7 +318,7 @@ export function PrivacyPolicyModal({ onClose }: PrivacyPolicyModalProps) {
                     return <hr key={i} className="my-4 border-light-gray" />;
                   }
                   // Bold section numbers (lines starting with a digit and dot)
-                  if (/^\d+\.\s/.test(line) && line === line.toUpperCase()) {
+                  if (/^\d+\.\s/.test(line)) {
                     return (
                       <h3
                         key={i}

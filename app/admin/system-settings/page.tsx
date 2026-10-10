@@ -92,6 +92,8 @@ const DEFAULT_FEATURES = {
   emailAlerts: true,
   dataAnonymization: true,
   maintenanceMode: false,
+  sessionTimeoutMinutes: 3,
+  sessionWarningMinutes: 1,
 };
 
 type SettingSection = "system" | "notifications" | "privacy" | "language" | "security" | "data" | "account";
@@ -187,6 +189,12 @@ export default function AdminSystemSettingsPage() {
           .eq("key", "display_id_format")
           .single();
 
+        const { data: sessionTimeoutData } = await supabase
+          .from("system_settings")
+          .select("value")
+          .eq("key", "session_timeout")
+          .maybeSingle();
+
         console.log("Loaded RBAC data:", rbacData);
         console.log("Loaded Features data:", featuresData);
         if (rbacData && !rbacError) {
@@ -196,7 +204,24 @@ export default function AdminSystemSettingsPage() {
         }
         if (featuresData && !featuresError) {
           const parsedFeatures = typeof featuresData.value === 'string' ? JSON.parse(featuresData.value) : featuresData.value;
-          setFeatures(parsedFeatures as typeof DEFAULT_FEATURES);
+          // Merge session timeout from its own key if available
+          const sessionParsed = sessionTimeoutData?.value
+            ? (typeof sessionTimeoutData.value === "string" ? JSON.parse(sessionTimeoutData.value) : sessionTimeoutData.value)
+            : null;
+          setFeatures({
+            ...DEFAULT_FEATURES,
+            ...parsedFeatures,
+            ...(sessionParsed?.timeout_minutes != null ? { sessionTimeoutMinutes: Number(sessionParsed.timeout_minutes) } : {}),
+            ...(sessionParsed?.warning_minutes  != null ? { sessionWarningMinutes:  Number(sessionParsed.warning_minutes)  } : {}),
+          } as typeof DEFAULT_FEATURES);
+        } else if (sessionTimeoutData?.value) {
+          const sessionParsed = typeof sessionTimeoutData.value === "string"
+            ? JSON.parse(sessionTimeoutData.value) : sessionTimeoutData.value;
+          setFeatures((prev) => ({
+            ...prev,
+            ...(sessionParsed?.timeout_minutes != null ? { sessionTimeoutMinutes: Number(sessionParsed.timeout_minutes) } : {}),
+            ...(sessionParsed?.warning_minutes  != null ? { sessionWarningMinutes:  Number(sessionParsed.warning_minutes)  } : {}),
+          }));
         }
         if (displayIdData && !displayIdError) {
           const parsedDisplayId = typeof displayIdData.value === "string" ? JSON.parse(displayIdData.value) : displayIdData.value;
@@ -295,13 +320,32 @@ export default function AdminSystemSettingsPage() {
         throw displayIdError;
       }
 
+      // Save session timeout setting
+      const { error: sessionTimeoutError } = await supabase
+        .from("system_settings")
+        .upsert(
+          {
+            key: "session_timeout",
+            value: {
+              timeout_minutes: features.sessionTimeoutMinutes,
+              warning_minutes: features.sessionWarningMinutes,
+            },
+          },
+          { onConflict: "key" }
+        );
+
+      if (sessionTimeoutError) {
+        console.error("Session timeout save error:", sessionTimeoutError);
+        throw sessionTimeoutError;
+      }
+
       // Log to audit logs
       await supabase
         .from("audit_logs")
         .insert({
           admin_id: user?.id,
           action: "Settings Change",
-          details: "Updated system settings, display ID format, and RBAC permissions",
+          details: "Updated system settings, display ID format, RBAC permissions, and session timeout",
         });
 
       alert("System settings saved successfully!");
@@ -956,6 +1000,62 @@ export default function AdminSystemSettingsPage() {
                       />
                       <div className="toggle-switch"></div>
                     </label>
+                  </div>
+                </div>
+
+                {/* ── Session Timeout (owner-only) ────────────────────── */}
+                <div className="border-t border-light-gray pt-5 mt-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-base">⏱️</span>
+                    <div>
+                      <p className="text-sm font-poppins font-semibold text-dark-text">Session Timeout</p>
+                      <p className="text-xs text-slate-600 font-inter">Auto sign-out users after inactivity. A warning appears 1 minute before expiry.</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs font-poppins text-slate-600 block mb-1">
+                        Timeout after inactivity (minutes)
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={60}
+                        value={features.sessionTimeoutMinutes}
+                        onChange={(e) => {
+                          const val = Math.max(1, Math.min(60, Number(e.target.value) || 3));
+                          toggleFeature("sessionTimeoutMinutes" as any, val as any);
+                        }}
+                        className="w-full px-3 py-2 border border-light-gray rounded-lg text-sm font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/30 bg-white"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">Default: 3 minutes · Range: 1–60</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-poppins text-slate-600 block mb-1">
+                        Warning shown before timeout (minutes)
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={Math.max(1, features.sessionTimeoutMinutes - 1)}
+                        value={features.sessionWarningMinutes}
+                        onChange={(e) => {
+                          const max = Math.max(1, features.sessionTimeoutMinutes - 1);
+                          const val = Math.max(1, Math.min(max, Number(e.target.value) || 1));
+                          toggleFeature("sessionWarningMinutes" as any, val as any);
+                        }}
+                        className="w-full px-3 py-2 border border-light-gray rounded-lg text-sm font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/30 bg-white"
+                      />
+                      <p className="text-[10px] text-slate-500 mt-1">Default: 1 minute · Must be less than timeout</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 p-3 bg-primary-blue/5 rounded-xl border border-primary-blue/20">
+                    <p className="text-xs font-inter text-dark-text/70">
+                      <span className="font-semibold">Current policy:</span> Users will see a warning modal after{" "}
+                      <span className="font-semibold text-primary-blue">{features.sessionTimeoutMinutes - features.sessionWarningMinutes} minute{features.sessionTimeoutMinutes - features.sessionWarningMinutes !== 1 ? "s" : ""}</span> of inactivity,
+                      then be automatically signed out{" "}
+                      <span className="font-semibold text-primary-blue">{features.sessionWarningMinutes} minute{features.sessionWarningMinutes !== 1 ? "s" : ""}</span> later.
+                    </p>
                   </div>
                 </div>
               </div>
