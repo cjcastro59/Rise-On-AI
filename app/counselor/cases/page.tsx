@@ -2,6 +2,11 @@
 
 import { Card } from "@/components/ui/card";
 import { Portal } from "@/components/ui/Portal";
+import {
+  ManagementFilterBar,
+  type ManagementRiskFilter,
+  type ManagementStatusFilter,
+} from "@/components/management/ManagementFilterBar";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -53,6 +58,9 @@ export default function CounselorCasesPage() {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [selectedAlert, setSelectedAlert] = useState<DistressLog | null>(null);
+  const [filterSearch, setFilterSearch] = useState("");
+  const [riskFilter, setRiskFilter] = useState<ManagementRiskFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<ManagementStatusFilter>("all");
   const { user: currentUser } = useAuth();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -161,6 +169,37 @@ export default function CounselorCasesPage() {
   const mediumAlerts = logs.filter((l) => ["medium", "warning"].includes((l.severity || "").toLowerCase()));
   const respondedLogs = logs.filter((l) => !!(l.notes && l.notes.trim()));
   const responseRate = logs.length ? Math.round((respondedLogs.length / logs.length) * 100) : 0;
+  const filteredLogs = logs.filter((alert) => {
+    const searchText = [
+      alert.id,
+      alert.user_id,
+      getUserDisplayName(alert.user_profiles),
+      alert.trigger,
+      alert.notes,
+    ].join(" ").toLowerCase();
+    const matchesSearch = !filterSearch.trim() || searchText.includes(filterSearch.trim().toLowerCase());
+
+    const severity = (alert.severity || "").toLowerCase();
+    const riskCategory = severity === "critical"
+      ? "critical"
+      : ["medium", "warning"].includes(severity)
+        ? "moderate"
+        : severity
+          ? "other"
+          : "no-data";
+    const matchesRisk = riskFilter === "all" || riskFilter === riskCategory;
+
+    const responseStatus = getResponseStatus(alert.notes);
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "pending" && responseStatus === "Pending") ||
+      (statusFilter === "responded" && responseStatus !== "Pending") ||
+      (statusFilter === "followed-up" && !!alert.notes?.trim());
+
+    return matchesSearch && matchesRisk && matchesStatus;
+  });
+  const filteredCriticalAlerts = filteredLogs.filter((alert) => (alert.severity || "").toLowerCase() === "critical");
+  const filteredMediumAlerts = filteredLogs.filter((alert) => ["medium", "warning"].includes((alert.severity || "").toLowerCase()));
 
   const renderEntrySnippets = (userId: string) => {
     const entries = entriesByUser[userId] || [];
@@ -176,7 +215,7 @@ export default function CounselorCasesPage() {
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">{entry.mood || "Mood unknown"}</span>
               <span className="text-xs text-slate-600">{new Date(entry.created_at).toLocaleDateString()}</span>
             </div>
-            <p className="text-sm font-inter leading-relaxed text-slate-800 line-clamp-2">{entry.title || entry.content || "No text available."}</p>
+            <p title={entry.title || entry.content || "No text available."} className="inline-block max-w-[200px] truncate text-sm font-inter leading-relaxed text-slate-800">{entry.title || entry.content || "No text available."}</p>
           </div>
         ))}
       </div>
@@ -300,6 +339,15 @@ export default function CounselorCasesPage() {
         </Card>
       </div>
 
+      <ManagementFilterBar
+        search={filterSearch}
+        onSearchChange={setFilterSearch}
+        risk={riskFilter}
+        onRiskChange={setRiskFilter}
+        status={statusFilter}
+        onStatusChange={setStatusFilter}
+      />
+
       {/* Critical Cases */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 mb-2">
@@ -308,8 +356,8 @@ export default function CounselorCasesPage() {
         </div>
         {loading && <p className="text-sm text-slate-600">Loading cases…</p>}
         {!loading && error && <p className="text-sm text-error-red">{error}</p>}
-        {!loading && criticalAlerts.length === 0 && !error && <p className="text-sm text-slate-600">No critical cases at the moment.</p>}
-        {criticalAlerts.map((alert) => (
+        {!loading && filteredCriticalAlerts.length === 0 && !error && <p className="text-sm text-slate-600">No critical cases match the current filters.</p>}
+        {filteredCriticalAlerts.map((alert) => (
           <Card key={alert.id} className="p-5 bg-rose-50 border-l-4 border-l-rose-500 border border-rose-200 text-rose-900 rounded-2xl">
             <div className="flex flex-col gap-4">
               <div className="flex items-start justify-between gap-4">
@@ -317,11 +365,11 @@ export default function CounselorCasesPage() {
                   <div className="w-10 h-10 rounded-full bg-error-red/30 flex items-center justify-center text-2xl">🩸</div>
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-sm font-semibold text-slate-900">{alert.id.slice(0, 8)}</span>
+                      <span title={alert.id} className="inline-block max-w-[200px] truncate font-mono text-sm font-semibold text-slate-900">{alert.id.slice(0, 8)}</span>
                       <span className="badge-error">Active</span>
                     </div>
                     <p className="text-sm font-poppins font-semibold text-dark-text">{alert.trigger || "Detected distress trigger"}</p>
-                    <p className="text-xs text-slate-600 font-inter">User: {getUserDisplayName(alert.user_profiles)}</p>
+                    <p title={getUserDisplayName(alert.user_profiles)} className="max-w-[200px] truncate text-xs text-slate-600 font-inter">User: {getUserDisplayName(alert.user_profiles)}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
@@ -378,9 +426,9 @@ export default function CounselorCasesPage() {
           <span className="w-2 h-2 rounded-full bg-warning-yellow" />
           <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Medium — Monitor Closely</h2>
         </div>
-        <Card className="p-6">
+        <Card className="overflow-hidden p-6">
           <div className="overflow-x-auto">
-            <table className="admin-table w-full">
+            <table className="admin-table min-w-[900px] table-fixed">
               <thead>
                 <tr>
                   <th>USER</th>
@@ -393,13 +441,13 @@ export default function CounselorCasesPage() {
                 </tr>
               </thead>
               <tbody>
-                {mediumAlerts.map((alert) => (
+                {filteredMediumAlerts.map((alert) => (
                   <tr key={alert.id}>
                     <td>
-                      <p className="text-sm font-semibold text-slate-900 hover:text-indigo-600">{getUserDisplayName(alert.user_profiles)}</p>
+                      <p title={getUserDisplayName(alert.user_profiles)} className="inline-block max-w-[200px] truncate text-sm font-semibold text-slate-900 hover:text-indigo-600">{getUserDisplayName(alert.user_profiles)}</p>
                     </td>
                     <td>
-                      <p className="text-sm font-inter text-dark-text">{alert.trigger || "Pending review"}</p>
+                      <p title={alert.trigger || "Pending review"} className="inline-block max-w-[200px] truncate text-sm font-inter text-dark-text">{alert.trigger || "Pending review"}</p>
                     </td>
                     <td>
                       <p className="text-sm font-poppins text-dark-text">{entriesByUser[alert.user_id]?.[0]?.mood || "—"}</p>
@@ -418,7 +466,7 @@ export default function CounselorCasesPage() {
                       <span className="badge-info">{alert.notes ? "Followed up" : "Pending"}</span>
                     </td>
                     <td>
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2 overflow-hidden p-3">
                         <button
                           type="button"
                           className="btn-sm bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-60"
@@ -438,6 +486,11 @@ export default function CounselorCasesPage() {
                     </td>
                   </tr>
                 ))}
+                {filteredMediumAlerts.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-sm text-slate-600">No cases match the current filters.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

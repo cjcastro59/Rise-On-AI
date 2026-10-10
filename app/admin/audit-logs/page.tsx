@@ -302,7 +302,7 @@ export default function AdminAuditLogsPage() {
       {/* Log Table */}
       <Card className="p-6">
         {/* Filters & Search */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="mb-6 grid grid-cols-1 items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 backdrop-blur-md md:grid-cols-4">
           <div className="md:col-span-2">
             <div className="relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600">🔍</span>
@@ -345,7 +345,7 @@ export default function AdminAuditLogsPage() {
               <p className="text-xs text-slate-600 font-inter mt-2">Audit logs will appear here when administrative actions are performed.</p>
             </div>
           ) : (
-            <table className="admin-table">
+            <table className="admin-table min-w-[900px]">
               <thead>
                 <tr>
                   <th>TIMESTAMP</th>

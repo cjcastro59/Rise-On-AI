@@ -365,7 +365,7 @@ export default function AdminJournalMonitorPage() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="admin-table w-full">
+          <table className="admin-table min-w-[900px] table-fixed">
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-4 px-3">ENTRY ID</th>
@@ -403,7 +403,7 @@ export default function AdminJournalMonitorPage() {
                     return (
                       <tr key={entry.id} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="py-4 px-3">
-                          <p className="font-mono text-sm font-semibold text-slate-900">{formatDisplayId(entry.id, "entry", displayIdFormat)}</p>
+                          <p title={entry.id} className="inline-block max-w-[200px] truncate font-mono text-sm font-semibold text-slate-900">{formatDisplayId(entry.id, "entry", displayIdFormat)}</p>
                         </td>
                         <td className="py-4 px-3">
                           <p className="text-sm font-inter text-slate-700">{new Date(entry.created_at).toLocaleString()}</p>

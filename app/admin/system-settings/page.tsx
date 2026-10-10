@@ -729,7 +729,7 @@ export default function AdminSystemSettingsPage() {
                     <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider">Role-Based Access Control</p>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="admin-table">
+                    <table className="admin-table min-w-[900px] table-fixed">
                       <thead>
                         <tr>
                           <th>ROLE</th>
@@ -818,7 +818,7 @@ export default function AdminSystemSettingsPage() {
                   <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider">Role-Based Access Control</p>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="admin-table">
+                  <table className="admin-table min-w-[900px] table-fixed">
                     <thead>
                       <tr>
                         <th>ROLE</th>

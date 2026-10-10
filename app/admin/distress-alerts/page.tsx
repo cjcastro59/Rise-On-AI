@@ -2,6 +2,11 @@
 
 import { Card } from "@/components/ui/card";
 import { Portal } from "@/components/ui/Portal";
+import {
+  ManagementFilterBar,
+  type ManagementRiskFilter,
+  type ManagementStatusFilter,
+} from "@/components/management/ManagementFilterBar";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -79,6 +84,10 @@ export default function AdminDistressAlertsPage() {
   const [conversationsByUser, setConversationsByUser] = useState<Record<string, Conversation>>({});
   const [assignedCounselorByUser, setAssignedCounselorByUser] = useState<Record<string, string | null>>({});
   const [assignmentSelections, setAssignmentSelections] = useState<Record<string, string>>({});
+  const [filterSearch, setFilterSearch] = useState("");
+  const [riskFilter, setRiskFilter] = useState<ManagementRiskFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<ManagementStatusFilter>("all");
+  const [assignmentFilter, setAssignmentFilter] = useState("all");
   const [selectedAlert, setSelectedAlert] = useState<DistressLog | null>(null);
   const [riskByUser, setRiskByUser] = useState<Map<string, UserRiskSnapshot>>(new Map());
   const [loading, setLoading] = useState(false);
@@ -278,6 +287,46 @@ export default function AdminDistressAlertsPage() {
     return counselors.find((counselor) => counselor.id === counselorId) || null;
   };
 
+  const filteredLogs = logs.filter((alert) => {
+    const assignedCounselorId = assignedCounselorByUser[alert.user_id] || conversationsByUser[alert.user_id]?.counselor_id;
+    const assignedCounselor = getAssignedCounselor(alert);
+    const entrySearchText = (entriesByUser[alert.user_id] || [])
+      .map((entry) => `${entry.title || ""} ${entry.content || ""}`)
+      .join(" ");
+    const searchText = [
+      alert.id,
+      alert.user_id,
+      alert.trigger,
+      alert.notes,
+      getProfileName(assignedCounselor),
+      entrySearchText,
+    ].join(" ").toLowerCase();
+    const matchesSearch = !filterSearch.trim() || searchText.includes(filterSearch.trim().toLowerCase());
+
+    const riskLevel = riskByUser.get(alert.user_id)?.risk_level;
+    const matchesRisk =
+      riskFilter === "all" ||
+      (riskFilter === "critical" && (riskLevel === "Critical Risk" || riskLevel === "High Risk")) ||
+      (riskFilter === "moderate" && riskLevel === "Moderate Risk") ||
+      (riskFilter === "no-data" && !riskLevel);
+
+    const responseStatus = getResponseStatus(alert.notes);
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "pending" && responseStatus === "Pending") ||
+      (statusFilter === "responded" && responseStatus !== "Pending") ||
+      (statusFilter === "followed-up" && !!alert.notes?.trim());
+
+    const matchesAssignment =
+      assignmentFilter === "all" ||
+      (assignmentFilter === "unassigned" && !assignedCounselorId) ||
+      assignedCounselorId === assignmentFilter;
+
+    return matchesSearch && matchesRisk && matchesStatus && matchesAssignment;
+  });
+  const filteredCriticalAlerts = filteredLogs.filter((alert) => (alert.severity || "").toLowerCase() === "critical");
+  const filteredMediumAlerts = filteredLogs.filter((alert) => ["medium", "warning"].includes((alert.severity || "").toLowerCase()));
+
   const formatAlertId = (id: string) => formatDisplayId(id, "alert", displayIdFormat);
   const formatUserId = (id: string) => formatDisplayId(id, "user", displayIdFormat);
   const formatEntryId = (id: string) => formatDisplayId(id, "entry", displayIdFormat);
@@ -297,7 +346,7 @@ export default function AdminDistressAlertsPage() {
               <span className="text-xs text-slate-600">{new Date(entry.created_at).toLocaleDateString()}</span>
             </div>
             <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-600">{entry.mood || "Mood unknown"}</p>
-            <p className="text-sm font-inter leading-relaxed text-slate-800 line-clamp-2">{entry.title || entry.content || "No text available."}</p>
+            <p title={entry.title || entry.content || "No text available."} className="inline-block max-w-[200px] truncate text-sm font-inter leading-relaxed text-slate-800">{entry.title || entry.content || "No text available."}</p>
           </div>
         ))}
       </div>
@@ -372,10 +421,10 @@ export default function AdminDistressAlertsPage() {
     const selectedCounselorId = assignmentSelections[alert.id] || assignedCounselorByUser[alert.user_id] || conversationsByUser[alert.user_id]?.counselor_id || "";
 
     return (
-      <div className={compact ? "flex items-center gap-2" : "space-y-2"}>
+      <div className={compact ? "flex min-w-0 flex-wrap items-center gap-2" : "min-w-0 space-y-2"}>
         <select
-          className={`border border-gray-200 bg-white text-xs font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/30 ${
-            compact ? "w-40 rounded-lg px-2 py-1.5" : "w-full rounded-xl px-3 py-2"
+          className={`min-w-0 max-w-full border border-gray-200 bg-white text-xs font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/30 ${
+            compact ? "w-32 rounded-lg px-2 py-1.5" : "w-full rounded-xl px-3 py-2"
           }`}
           value={selectedCounselorId}
           onChange={(event) =>
@@ -487,6 +536,18 @@ export default function AdminDistressAlertsPage() {
         </Card>
       </div>
 
+      <ManagementFilterBar
+        search={filterSearch}
+        onSearchChange={setFilterSearch}
+        risk={riskFilter}
+        onRiskChange={setRiskFilter}
+        status={statusFilter}
+        onStatusChange={setStatusFilter}
+        assignment={assignmentFilter}
+        onAssignmentChange={setAssignmentFilter}
+        counselors={counselors.map((counselor) => ({ id: counselor.id, name: getProfileName(counselor) }))}
+      />
+
       {/* Critical Alerts */}
       <div className="space-y-4">
         <div className="flex items-center gap-2 mb-2">
@@ -495,8 +556,8 @@ export default function AdminDistressAlertsPage() {
         </div>
         {loading && <p className="text-sm text-slate-600">Loading alerts...</p>}
         {!loading && error && <p className="text-sm text-error-red">{error}</p>}
-        {!loading && criticalAlerts.length === 0 && !error && <p className="text-sm text-slate-600">No critical alerts at the moment.</p>}
-        {criticalAlerts.map((alert) => (
+        {!loading && filteredCriticalAlerts.length === 0 && !error && <p className="text-sm text-slate-600">No critical alerts match the current filters.</p>}
+        {filteredCriticalAlerts.map((alert) => (
           <Card key={alert.id} className="p-5 bg-rose-50 border-l-4 border-l-rose-500 border border-rose-200 text-rose-900 rounded-2xl">
             <div className="flex flex-col gap-4">
               <div className="flex items-start justify-between gap-4">
@@ -510,7 +571,7 @@ export default function AdminDistressAlertsPage() {
                     <p className="text-sm font-poppins font-semibold text-dark-text">{alert.trigger || "Detected distress trigger"}</p>
                   </div>
                 </div>
-                <div className="flex min-w-[230px] flex-col gap-2">
+                <div className="flex min-w-0 w-full max-w-[260px] flex-col gap-2">
                   <button
                     type="button"
                     className="btn-sm bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-60"
@@ -525,7 +586,7 @@ export default function AdminDistressAlertsPage() {
               <div className="grid gap-3 md:grid-cols-5">
                 <div>
                   <p className="text-xs text-slate-600 uppercase tracking-wide">User ID</p>
-                  <p className="mt-1 font-mono text-sm text-dark-text">{formatUserId(alert.user_id)}</p>
+                  <p title={alert.user_id} className="mt-1 inline-block max-w-[200px] truncate font-mono text-sm font-semibold text-slate-900">{formatUserId(alert.user_id)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-600 uppercase tracking-wide">Last alert</p>
@@ -565,9 +626,9 @@ export default function AdminDistressAlertsPage() {
           <span className="w-2 h-2 rounded-full bg-warning-yellow" />
           <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Medium - Monitor Closely</h2>
         </div>
-        <Card className="p-6">
+        <Card className="overflow-hidden p-6">
           <div className="overflow-x-auto">
-            <table className="admin-table w-full">
+            <table className="admin-table min-w-[1200px] table-fixed">
               <thead>
                 <tr>
                   <th>ALERT ID</th>
@@ -583,16 +644,16 @@ export default function AdminDistressAlertsPage() {
                 </tr>
               </thead>
               <tbody>
-                {mediumAlerts.map((alert) => (
+                {filteredMediumAlerts.map((alert) => (
                   <tr key={alert.id}>
-                    <td>
-                      <p className="font-mono text-sm font-semibold text-slate-900">{formatAlertId(alert.id)}</p>
+                    <td className="w-32 overflow-hidden p-3">
+                      <p title={alert.id} className="inline-block max-w-[200px] truncate align-bottom font-mono text-sm font-semibold text-slate-900">{formatAlertId(alert.id)}</p>
                     </td>
-                    <td>
-                      <p className="font-mono text-sm font-semibold text-slate-900">{formatUserId(alert.user_id)}</p>
+                    <td className="w-32 overflow-hidden p-3">
+                      <p title={alert.user_id} className="inline-block max-w-[200px] truncate align-bottom font-mono text-sm font-semibold text-slate-900">{formatUserId(alert.user_id)}</p>
                     </td>
-                    <td>
-                      <p className="text-sm font-inter text-dark-text">{alert.trigger || "Pending review"}</p>
+                    <td className="w-48 overflow-hidden p-3">
+                      <p title={alert.trigger || "Pending review"} className="inline-block max-w-[200px] truncate align-bottom text-sm font-inter text-dark-text">{alert.trigger || "Pending review"}</p>
                     </td>
                     <td>
                       <p className="text-sm font-poppins text-dark-text">{entriesByUser[alert.user_id]?.[0]?.mood || "-"}</p>
@@ -603,7 +664,7 @@ export default function AdminDistressAlertsPage() {
                     <td>
                       {entriesByUser[alert.user_id]?.[0] ? (
                         <div>
-                          <p className="font-mono text-xs font-semibold text-slate-900">{formatEntryId(entriesByUser[alert.user_id][0].id)}</p>
+                          <p title={entriesByUser[alert.user_id][0].id} className="inline-block max-w-[200px] truncate font-mono text-xs font-semibold text-slate-900">{formatEntryId(entriesByUser[alert.user_id][0].id)}</p>
                           <p className="text-xs font-inter text-slate-600">
                             {new Date(entriesByUser[alert.user_id][0].created_at).toLocaleDateString()}
                           </p>
@@ -621,8 +682,8 @@ export default function AdminDistressAlertsPage() {
                     <td>
                       <span className="badge-info">{alert.notes ? "Followed up" : "Pending"}</span>
                     </td>
-                    <td>
-                      <div className="flex flex-wrap items-center gap-2">
+                    <td className="max-w-[260px] overflow-hidden p-3">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
                         <button
                           type="button"
                           className="btn-sm bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-60"
@@ -635,6 +696,11 @@ export default function AdminDistressAlertsPage() {
                     </td>
                   </tr>
                 ))}
+                {filteredMediumAlerts.length === 0 && (
+                  <tr>
+                    <td colSpan={10} className="py-8 text-center text-sm text-slate-600">No alerts match the current filters.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -678,7 +744,7 @@ export default function AdminDistressAlertsPage() {
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">User ID</p>
-                  <p className="mt-1 font-poppins text-dark-text">{formatUserId(selectedAlert.user_id)}</p>
+                  <p title={selectedAlert.user_id} className="mt-1 inline-block max-w-[200px] truncate font-mono text-sm font-semibold text-slate-900">{formatUserId(selectedAlert.user_id)}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Created</p>

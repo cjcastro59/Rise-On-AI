@@ -99,7 +99,7 @@ body {
   }
 
   .admin-table th {
-    @apply text-left py-4 px-3 pb-2 text-xs font-bold text-slate-700 font-poppins uppercase tracking-wider border-b border-slate-200;
+    @apply text-left px-3 pt-3 pb-2 text-xs font-bold text-slate-700 font-poppins uppercase tracking-wider border-b border-slate-200;
   }
 
   .admin-table tr {
@@ -107,6 +107,6 @@ body {
   }
 
   .admin-table td {
-    @apply py-4 px-3;
+    @apply py-3 px-3;
   }
 }

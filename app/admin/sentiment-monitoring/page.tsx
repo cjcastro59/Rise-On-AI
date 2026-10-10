@@ -518,7 +518,7 @@ export default function AdminSentimentMonitoringPage() {
           <div className="text-xs text-[#F4A6A6] font-poppins">{lowConfidenceQueue.length} entries</div>
         </div>
         <div className="overflow-x-auto">
-          <table className="admin-table w-full">
+          <table className="admin-table min-w-[1000px] table-fixed">
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-4 px-3">ENTRY ID</th>
@@ -547,7 +547,7 @@ export default function AdminSentimentMonitoringPage() {
                     onClick={() => setSelectedEntry(entry.id === selectedEntry ? null : entry.id)}
                   >
                     <td className="py-4 px-3">
-                      <p className="font-poppins text-sm font-semibold text-slate-900">{entry.id}</p>
+                      <p title={entry.id} className="inline-block max-w-[200px] truncate font-poppins text-sm font-semibold text-slate-900">{entry.id}</p>
                     </td>
                     <td className="py-4 px-3">
                       <p className="text-sm font-poppins font-semibold text-slate-900 hover:text-indigo-600">{entry.userId}</p>

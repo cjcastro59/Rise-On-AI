@@ -279,7 +279,7 @@ export default function CounselorAssignedUsersPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 backdrop-blur-md">
         <div className="flex-1 min-w-[250px]">
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600">🔍</span>
@@ -307,7 +307,7 @@ export default function CounselorAssignedUsersPage() {
       {/* Users Table */}
       <Card className="p-6">
         <div className="overflow-x-auto">
-          <table className="admin-table w-full">
+          <table className="admin-table min-w-[1050px] table-fixed">
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-4 px-3">NAME</th>
