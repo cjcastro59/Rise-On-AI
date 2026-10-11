@@ -2,11 +2,9 @@ import { type AnalysisResult, type Sentiment, analyzeEntry } from "@/lib/sentime
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Config
-// SENTIMENT_MODEL_API_URL  = https://rise-on-ai-sentiment.onrender.com/predict
-// HUGGINGFACE_API_KEY      = hf_xxxx (optional HF fallback)
+// SENTIMENT_MODEL_API_URL  = http://13.214.212.171/predict  (FastAPI on AWS Lightsail)
 // ─────────────────────────────────────────────────────────────────────────────
 const MODEL_API_URL = process.env.SENTIMENT_MODEL_API_URL ?? "";
-const HF_API_TOKEN  = process.env.HUGGINGFACE_API_KEY    ?? "";
 
 export interface XLMroBERTaPrediction {
   sentiment:           Sentiment;
@@ -84,61 +82,34 @@ function parseOutput(output: unknown): XLMroBERTaPrediction | null {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Call the inference server (Render or HF Inference API)
+// Call the inference server (AWS Lightsail FastAPI)
 // ─────────────────────────────────────────────────────────────────────────────
 async function callModelAPI(text: string): Promise<XLMroBERTaPrediction | null> {
   if (!MODEL_API_URL || !text) return null;
 
-  const isRenderServer = MODEL_API_URL.includes("render.com") || MODEL_API_URL.includes("onrender.com");
-  const maxAttempts    = isRenderServer ? 3 : 4;
+  const maxAttempts = 3;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       const res = await fetch(MODEL_API_URL, {
         method:  "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(HF_API_TOKEN && !isRenderServer
-            ? { Authorization: `Bearer ${HF_API_TOKEN}` }
-            : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           inputs:  text,
           options: { wait_for_model: true, use_cache: false },
         }),
       });
 
-      // Handle HF 503 cold start
-      if (res.status === 503 && attempt < maxAttempts) {
-        const waitMs = 3000 * attempt;
-        console.warn(`[XLM-R] 503 attempt ${attempt}, waiting ${waitMs}ms...`);
-        await new Promise(r => setTimeout(r, waitMs));
-        continue;
-      }
-
       if (!res.ok) {
-        console.error(`[XLM-R] HTTP ${res.status} from model API`);
-        return null;
-      }
-
-      const output = await res.json();
-
-      // HF loading response: {"error": "...", "estimated_time": N}
-      if (
-        !Array.isArray(output) &&
-        typeof output === "object" &&
-        "error" in output &&
-        "estimated_time" in output
-      ) {
+        console.error(`[XLM-R] HTTP ${res.status} from inference server`);
         if (attempt < maxAttempts) {
-          const wait = Math.min(((output as { estimated_time: number }).estimated_time ?? 20) * 1000, 10000);
-          console.warn(`[XLM-R] Model loading, waiting ${Math.round(wait / 1000)}s...`);
-          await new Promise(r => setTimeout(r, wait));
+          await new Promise(r => setTimeout(r, 2000 * attempt));
           continue;
         }
         return null;
       }
 
+      const output = await res.json();
       const parsed = parseOutput(output);
       if (parsed) {
         console.log(`[XLM-R] ✓ ${parsed.sentiment} pos=${parsed.positivePercentage}% neg=${parsed.negativePercentage}% dst=${parsed.distressPercentage}%`);
@@ -172,15 +143,15 @@ export async function analyzeWithXLMRoBERTa(
     return { ...fb, sentiment: fb.sentiment as Sentiment, confidence: 0.35, raw: null, model: "keyword-fallback" };
   }
 
-  // 1. Call inference server (Render) or HF API
+  // 1. Call inference server
   const result = await callModelAPI(preprocessed);
   if (result) {
     const total = result.positivePercentage + result.negativePercentage + result.distressPercentage;
-    const top   = Math.max(result.positivePercentage, result.negativePercentage, result.distressPercentage);
+    const top = Math.max(result.positivePercentage, result.negativePercentage, result.distressPercentage);
     return {
       ...result,
       confidence: total > 0 ? top / total : result.confidence,
-      model:      "xlm-roberta-finetuned",
+      model: "xlm-roberta-finetuned",
     };
   }
 
@@ -188,14 +159,14 @@ export async function analyzeWithXLMRoBERTa(
   console.warn("[XLM-R] Model unreachable — keyword fallback.");
   const fb = analyzeEntry(text, mood);
   return {
-    sentiment:          fb.sentiment as Sentiment,
+    sentiment: fb.sentiment as Sentiment,
     positivePercentage: fb.positivePercentage,
     negativePercentage: fb.negativePercentage,
     distressPercentage: fb.distressPercentage,
-    confidence:         0.35,
-    sentimentScore:     fb.sentimentScore,
-    raw:                null,
-    model:              "keyword-fallback",
+    confidence: 0.35,
+    sentimentScore: fb.sentimentScore,
+    raw: null,
+    model: "keyword-fallback",
   };
 }
 

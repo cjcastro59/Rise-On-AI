@@ -213,11 +213,11 @@ function sanitiseInput(raw: WellnessScoreInput): SanitisedInput {
   if (streak !== raw.consecutiveNegativeCount) { clamped = true; console.warn(`[wellness] consecutiveNegativeCount invalid (${raw.consecutiveNegativeCount}) → sanitised to ${streak}`); }
 
   return {
-    behavioralTrendScore:     bts,
+    behavioralTrendScore: bts,
     journalingFrequencyScore: jfs,
-    moodConsistencyScore:     mcs,
+    moodConsistencyScore: mcs,
     consecutiveNegativeCount: streak,
-    inputClamped:             clamped,
+    inputClamped: clamped,
   };
 }
 
@@ -240,15 +240,15 @@ export function computeWellnessScore(
   const s = sanitiseInput(input);
 
   // 2. Normalise each indicator to [0, 1] sub-score.
-  const trendSubScore       = clamp01((s.behavioralTrendScore + 100) / 200);
-  const frequencySubScore   = clamp01(s.journalingFrequencyScore / 100);
+  const trendSubScore = clamp01((s.behavioralTrendScore + 100) / 200);
+  const frequencySubScore = clamp01(s.journalingFrequencyScore / 100);
   const consistencySubScore = clamp01(s.moodConsistencyScore / 100);
-  const streakPenalty       = clamp01(s.consecutiveNegativeCount / CN_CAP) * STREAK_PENALTY_WEIGHT;
+  const streakPenalty = clamp01(s.consecutiveNegativeCount / CN_CAP) * STREAK_PENALTY_WEIGHT;
 
   // 3. Apply the documented baseline floor and post-hoc streak penalty.
   const weightedRaw =
-    trendSubScore       * WEIGHT_TREND       +
-    frequencySubScore   * WEIGHT_FREQUENCY   +
+    trendSubScore * WEIGHT_TREND       +
+    frequencySubScore * WEIGHT_FREQUENCY   +
     consistencySubScore * WEIGHT_CONSISTENCY +
     BASELINE_FLOOR;
   const rawScore = clamp01(weightedRaw - streakPenalty);
@@ -261,17 +261,17 @@ export function computeWellnessScore(
     score,
     level,
     details: {
-      trendSubScore:       round2(trendSubScore),
+      trendSubScore: round2(trendSubScore),
       frequencySubScore:   round2(frequencySubScore),
       consistencySubScore: round2(consistencySubScore),
-      weightedRaw:         round2(weightedRaw),
-      streakPenalty:       round2(streakPenalty),
-      rawScore:            round2(rawScore),
-      inputClamped:        s.inputClamped,
+      weightedRaw: round2(weightedRaw),
+      streakPenalty: round2(streakPenalty),
+      rawScore: round2(rawScore),
+      inputClamped: s.inputClamped,
       sanitisedInput: {
-        behavioralTrendScore:     s.behavioralTrendScore,
+        behavioralTrendScore: s.behavioralTrendScore,
         journalingFrequencyScore: s.journalingFrequencyScore,
-        moodConsistencyScore:     s.moodConsistencyScore,
+        moodConsistencyScore: s.moodConsistencyScore,
         consecutiveNegativeCount: s.consecutiveNegativeCount,
       },
     },

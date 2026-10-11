@@ -257,67 +257,67 @@ export function classifyDistressRiskLevel(points: number): DistressRiskLevel {
 
 function evalCondition1(s: SanitisedDRIInput): DistressRiskConditionResult {
   let points = 0;
-  if      (s.latestSentiment === "distress")  points = 3;
+  if (s.latestSentiment === "distress")  points = 3;
   else if (s.latestSentiment === "negative")  points = 1;
   return {
-    conditionId:   "C1_SENTIMENT",
-    label:         "Latest Sentiment Classification",
+    conditionId: "C1_SENTIMENT",
+    label: "Latest Sentiment Classification",
     points,
-    triggered:     points > 0,
+    triggered: points > 0,
     observedValue: s.latestSentiment,
   };
 }
 
 function evalCondition2(s: SanitisedDRIInput): DistressRiskConditionResult {
   let points = 0;
-  if      (s.consecutiveNegativeCount >= 7) points = 3;
+  if (s.consecutiveNegativeCount >= 7) points = 3;
   else if (s.consecutiveNegativeCount >= 5) points = 2;
   else if (s.consecutiveNegativeCount >= 3) points = 1;
   return {
-    conditionId:   "C2_STREAK",
-    label:         "Consecutive Negative/Distress Entries",
+    conditionId: "C2_STREAK",
+    label: "Consecutive Negative/Distress Entries",
     points,
-    triggered:     points > 0,
+    triggered: points > 0,
     observedValue: `${s.consecutiveNegativeCount} consecutive entries`,
   };
 }
 
 function evalCondition3(s: SanitisedDRIInput): DistressRiskConditionResult {
   let points = 0;
-  if      (s.wellnessScore < 2.0) points = 3;
+  if (s.wellnessScore < 2.0) points = 3;
   else if (s.wellnessScore < 4.0) points = 2;
   else if (s.wellnessScore < 6.0) points = 1;
   return {
-    conditionId:   "C3_WELLNESS",
-    label:         "Wellness Score Level",
+    conditionId: "C3_WELLNESS",
+    label: "Wellness Score Level",
     points,
-    triggered:     points > 0,
+    triggered: points > 0,
     observedValue: `${s.wellnessScore.toFixed(2)} / 10`,
   };
 }
 
 function evalCondition4(s: SanitisedDRIInput): DistressRiskConditionResult {
   let points = 0;
-  if      (s.behavioralTrendScore <= -50) points = 2;
+  if (s.behavioralTrendScore <= -50) points = 2;
   else if (s.behavioralTrendScore <= -20) points = 1;
   return {
-    conditionId:   "C4_TREND",
-    label:         "Behavioral Trend Score (Declining Trajectory)",
+    conditionId:"C4_TREND",
+    label: "Behavioral Trend Score (Declining Trajectory)",
     points,
-    triggered:     points > 0,
+    triggered: points > 0,
     observedValue: `BTS = ${s.behavioralTrendScore}`,
   };
 }
 
 function evalCondition5(s: SanitisedDRIInput): DistressRiskConditionResult {
   let points = 0;
-  if      (s.distressRatio >= 0.5)  points = 2;
+  if (s.distressRatio >= 0.5)  points = 2;
   else if (s.distressRatio >= 0.25) points = 1;
   return {
-    conditionId:   "C5_DISTRESS_FREQ",
-    label:         "Distress Entry Frequency in Window",
+    conditionId: "C5_DISTRESS_FREQ",
+    label: "Distress Entry Frequency in Window",
     points,
-    triggered:     points > 0,
+    triggered:points > 0,
     observedValue: `${s.distressEntriesWindow}/${s.totalEntriesWindow} entries (${Math.round(s.distressRatio * 100)}%)`,
   };
 }
