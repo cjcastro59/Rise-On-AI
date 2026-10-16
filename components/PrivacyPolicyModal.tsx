@@ -29,7 +29,7 @@ We collect the following categories of personal data:
 a) Account Information
    • Full name, username, email address
    • Password (stored in hashed form only — we never store your plain-text password)
-   • Sex, country, language preference
+   • Sex, language preference
    • Wellness goals selected during registration
 
 b) Sensitive Personal Information

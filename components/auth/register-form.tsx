@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { COUNTRIES } from "@/lib/constants";
 import ReCAPTCHA from "react-google-recaptcha";
 import { PrivacyPolicyModal } from "@/components/PrivacyPolicyModal";
 
@@ -29,7 +28,6 @@ interface FormData {
   confirmPassword: string;
   goals: string[];
   language: string;
-  country: string;
   sex: string;
 }
 
@@ -48,7 +46,6 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
     confirmPassword: "",
     goals: [],
     language: "English",
-    country: "",
     sex: "",
   });
   const [privacyPolicyAccepted, setPrivacyPolicyAccepted] = useState(false);
@@ -190,7 +187,6 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
           last_name: formData.lastName,
           goals: formData.goals,
           language: formData.language,
-          country: formData.country,
           sex: formData.sex,
           two_factor_enabled: false,
           two_factor_secret: null,
@@ -382,22 +378,6 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
               </div>
             ))}
           </div>
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-lg font-poppins font-semibold text-dark-text mb-3">Country</h3>
-        <div className="space-y-3">
-          <select
-            value={formData.country}
-            onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
-            className="w-full px-3 py-2 rounded-xl border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
-          >
-            <option value="">Select your country</option>
-            {COUNTRIES.map((country) => (
-              <option key={country} value={country}>{country}</option>
-            ))}
-          </select>
         </div>
       </div>
 
