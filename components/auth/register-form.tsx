@@ -152,9 +152,11 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: formData.email,
         options: {
-          // shouldCreateUser: true creates the auth user on OTP send;
-          // the actual profile row is created after verification succeeds.
           shouldCreateUser: true,
+          // Setting data: {} ensures Supabase sends a 6-digit OTP code
+          // instead of a magic link. The OTP template must be enabled in
+          // the Supabase dashboard under Authentication → Email Templates.
+          data: {},
         },
       });
 
