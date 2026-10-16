@@ -90,6 +90,36 @@ export default function RegisterPage() {
               </Button>
             </Link>
           </div>
+
+          {/* Mobile step indicator — visible only on mobile */}
+          <div className="flex items-center gap-2 mb-6 md:hidden">
+            {[
+              { n: 1, label: "Account" },
+              { n: 2, label: "Preferences" },
+              { n: 3, label: "Verify Email" },
+              { n: 4, label: "Done" },
+            ].map(({ n, label }, i, arr) => (
+              <div key={n} className="flex items-center gap-2 flex-1">
+                <div className="flex flex-col items-center gap-1 flex-1">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+                    step === n
+                      ? "bg-gradient-to-r from-primary-blue to-lavender text-white shadow-md"
+                      : step > n
+                      ? "bg-success-green text-white"
+                      : "bg-light-gray text-dark-text/40"
+                  }`}>
+                    {step > n ? "✓" : n}
+                  </div>
+                  <span className={`text-[9px] font-poppins text-center leading-tight ${
+                    step === n ? "text-dark-text font-semibold" : step > n ? "text-dark-text/70" : "text-dark-text/30"
+                  }`}>{label}</span>
+                </div>
+                {i < arr.length - 1 && (
+                  <div className={`h-px flex-1 mb-4 transition-colors duration-300 ${step > n ? "bg-success-green" : "bg-light-gray"}`} />
+                )}
+              </div>
+            ))}
+          </div>
           
           <div className="mb-8">
             <h2 className="text-3xl font-dm-serif text-dark-text mb-1">Create your account</h2>

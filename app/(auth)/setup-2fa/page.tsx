@@ -204,49 +204,59 @@ export default function Setup2FAPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-header-bg to-lavender/20 p-4">
       <div className="max-w-md w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <Card className="p-8">
+        <Card className="p-8 shadow-xl border border-light-gray/60">
           {step === 1 && (
             <div className="space-y-6">
               <div className="text-center">
-                <h2 className="text-2xl font-dm-serif text-dark-text mb-2">
+                {/* Shield icon */}
+                <div className="w-14 h-14 bg-primary-blue/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4EAAB3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-dm-serif text-dark-text mb-1">
                   Secure Your Account
                 </h2>
-                <p className="text-sm font-inter text-dark-text/70">
-                  Set up Two-Factor Authentication with an authenticator app
+                <p className="text-sm font-inter text-dark-text/60">
+                  Add an extra layer of protection with two-factor authentication.
                 </p>
               </div>
+
+              <button
+                type="button"
+                onClick={() => { setStep(2); initializeAuthenticator(); }}
+                className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-light-gray hover:border-primary-blue/40 hover:bg-primary-blue/5 transition-all text-left group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-primary-blue/10 flex items-center justify-center shrink-0 group-hover:bg-primary-blue/20 transition-colors">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4EAAB3" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+                    <line x1="12" y1="18" x2="12.01" y2="18"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-poppins font-semibold text-dark-text">Authenticator App</p>
+                  <p className="text-xs font-inter text-dark-text/50 mt-0.5">Use Google Authenticator or Authy</p>
+                </div>
+                <svg className="ml-auto w-4 h-4 text-dark-text/30 group-hover:text-primary-blue transition-colors" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
 
               <div className="space-y-3">
-                <Button
-                  variant="ghost"
-                  onClick={() => { setStep(2); initializeAuthenticator(); }}
-                  className="w-full justify-start text-left h-auto py-4 border border-light-gray"
-                >
-                  <div className="space-y-1">
-                    <div className="font-semibold font-poppins text-dark-text">
-                      Authenticator App
-                    </div>
-                    <div className="text-xs font-inter text-dark-text/60">
-                      Use Google Authenticator
-                    </div>
-                  </div>
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                <Button
-                  variant="ghost"
+                <button
+                  type="button"
                   onClick={skip2FA}
                   disabled={loading}
-                  className="w-full text-dark-text/50 hover:text-dark-text/70 border border-dashed border-light-gray"
+                  className="w-full py-2.5 text-sm font-poppins text-dark-text/50 hover:text-dark-text/70 border border-dashed border-light-gray rounded-xl transition-all hover:border-dark-text/20 disabled:opacity-50"
                 >
                   {loading ? "Redirecting…" : "Skip for now"}
-                </Button>
-                <p className="text-[11px] text-center text-warning-yellow font-inter px-2">
-                  ⚠️ Skipping 2FA leaves your account less secure. You can enable it later in Settings.
-                </p>
+                </button>
+                <div className="flex items-start gap-2 px-1">
+                  <svg className="w-4 h-4 text-dark-text/40 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <p className="text-xs font-inter text-dark-text/50">
+                    Skipping 2FA leaves your account less secure. You can enable it later in Settings.
+                  </p>
+                </div>
               </div>
             </div>
           )}
