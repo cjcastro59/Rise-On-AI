@@ -36,6 +36,7 @@ export default function Sidebar({ userName }: SidebarProps) {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [supportUnreadCount, setSupportUnreadCount] = useState(0);
   const [supportToast, setSupportToast] = useState<string | null>(null);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
   const { user } = useAuth();
   const supabase = useMemo(() => createClient() as any, []);
@@ -249,21 +250,28 @@ export default function Sidebar({ userName }: SidebarProps) {
     icon: string,
     active: boolean,
     badge?: number,
-    iconClass = ""
+    iconClass = "",
+    collapsed = false
   ) => (
     <Link
       href={href}
       prefetch={false}
+      title={collapsed ? label : undefined}
       className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${
+        collapsed ? "justify-center" : ""
+      } ${
         active ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
       }`}
     >
-      <Image src={icon} alt={label} width={18} height={18} className={`object-contain ${iconClass}`} />
-      <span className="flex-1">{label}</span>
-      {!!badge && badge > 0 && (
+      <Image src={icon} alt={label} width={18} height={18} className={`object-contain shrink-0 ${iconClass}`} />
+      {!collapsed && <span className="flex-1">{label}</span>}
+      {!collapsed && !!badge && badge > 0 && (
         <span className="rounded-full bg-[#F4A6A6] px-1.5 py-0.5 text-[10px] font-bold text-[#1E293B]">
           {badge}
         </span>
+      )}
+      {collapsed && !!badge && badge > 0 && (
+        <span className="absolute top-0 right-0 w-2 h-2 bg-[#F4A6A6] rounded-full" />
       )}
     </Link>
   );
@@ -298,81 +306,104 @@ export default function Sidebar({ userName }: SidebarProps) {
         MobileNav is rendered in layout.tsx OUTSIDE this flex cell so it
         spans the full viewport width on mobile.
       */}
-      <aside className="w-64 bg-[#1E293B] text-white p-4 hidden md:flex md:h-screen md:flex-col md:overflow-y-auto shrink-0 sticky top-0">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <Image
-                src="/logo/Without Text.png"
-                alt="Rise On Logo"
-                width={36}
-                height={36}
-                className="rounded-lg object-contain"
-              />
-              <h2 className="text-lg font-poppins font-semibold">Rise On</h2>
+      <aside
+        className={`bg-[#1E293B] text-white hidden md:flex md:h-screen md:flex-col md:overflow-y-auto shrink-0 sticky top-0 transition-all duration-300 ${
+          isCollapsed ? "w-16 p-2" : "w-64 p-4"
+        }`}
+      >
+        {/* Header: logo + collapse toggle */}
+        <div className={`mb-6 flex items-center ${isCollapsed ? "justify-center" : "justify-between"}`}>
+          {!isCollapsed && (
+            <div>
+              <div className="flex items-center gap-3">
+                <Image
+                  src="/logo/Without Text.png"
+                  alt="Rise On Logo"
+                  width={36}
+                  height={36}
+                  className="rounded-lg object-contain"
+                />
+                <h2 className="text-lg font-poppins font-semibold">Rise On</h2>
+              </div>
+              <p className="text-xs text-white/50 font-poppins mt-1">Member Panel</p>
             </div>
-            <p className="text-xs text-white/50 font-poppins mt-1">Member Panel</p>
-          </div>
-          {user && <NotificationBell userId={user.id} className="text-white hover:text-white" />}
-        </div>
-
-        <div className="mb-6">
-          <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">Main</p>
-          <div className="space-y-1">
-            {desktopNavLink("/dashboard", "Dashboard", "/icons/dashboard.svg", isActive("dashboard"))}
-            {desktopNavLink("/journal", "New Entry", "/icons/new-entry.svg", isActive("journal"))}
-            {desktopNavLink("/journal/history", "My Journal", "/icons/journal.svg", isActive("history"))}
-            {desktopNavLink("/insights", "Mood Insights", "/icons/mood-insights.svg", isActive("insights"))}
-            {desktopNavLink("/mood-trends", "Mood Trends", "/icons/trends.svg", isActive("mood-trends"))}
-            {desktopNavLink("/analysis", "AI Reports", "/icons/ai-reports.svg", isActive("analysis"))}
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">Support</p>
-          <div className="space-y-1">
-            {desktopNavLink(
-              "/support",
-              "Support Center",
-              "/icons/crisis-support.svg",
-              isActive("support"),
-              supportUnreadCount
-            )}
+          )}
+          {isCollapsed && (
+            <Image
+              src="/logo/Without Text.png"
+              alt="Rise On Logo"
+              width={32}
+              height={32}
+              className="rounded-lg object-contain"
+            />
+          )}
+          <div className={`flex items-center gap-1 ${isCollapsed ? "flex-col mt-2" : ""}`}>
+            {!isCollapsed && user && <NotificationBell userId={user.id} className="text-white hover:text-white" />}
+            <button
+              onClick={() => setIsCollapsed((c) => !c)}
+              className="p-1 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all"
+              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {isCollapsed
+                  ? <><polyline points="9 18 15 12 9 6" /></>
+                  : <><polyline points="15 18 9 12 15 6" /></>
+                }
+              </svg>
+            </button>
           </div>
         </div>
 
+        {/* Notification bell when collapsed (below logo) */}
+        {isCollapsed && user && (
+          <div className="flex justify-center mb-3">
+            <NotificationBell userId={user.id} className="text-white hover:text-white" />
+          </div>
+        )}
+
+        {/* Nav sections */}
         <div className="mb-6">
-          <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">System</p>
+          {!isCollapsed && <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">Main</p>}
           <div className="space-y-1">
-            {desktopNavLink(
-              "/settings",
-              "Settings",
-              "/icons/settings.svg",
-              isActive("settings"),
-              undefined,
-              "filter invert brightness-200"
-            )}
+            {desktopNavLink("/dashboard",       "Dashboard",    "/icons/dashboard.svg",    isActive("dashboard"),  undefined, "", isCollapsed)}
+            {desktopNavLink("/journal",         "New Entry",    "/icons/new-entry.svg",    isActive("journal"),    undefined, "", isCollapsed)}
+            {desktopNavLink("/journal/history", "My Journal",   "/icons/journal.svg",      isActive("history"),    undefined, "", isCollapsed)}
+            {desktopNavLink("/insights",        "Mood Insights","/icons/mood-insights.svg",isActive("insights"),   undefined, "", isCollapsed)}
+            {desktopNavLink("/mood-trends",     "Mood Trends",  "/icons/trends.svg",       isActive("mood-trends"),undefined, "", isCollapsed)}
+            {desktopNavLink("/analysis",        "AI Reports",   "/icons/ai-reports.svg",   isActive("analysis"),  undefined, "", isCollapsed)}
+          </div>
+        </div>
+
+        <div className="mb-6">
+          {!isCollapsed && <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">Support</p>}
+          <div className="space-y-1">
+            {desktopNavLink("/support", "Support Center", "/icons/crisis-support.svg", isActive("support"), supportUnreadCount, "", isCollapsed)}
+          </div>
+        </div>
+
+        <div className="mb-6">
+          {!isCollapsed && <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">System</p>}
+          <div className="space-y-1">
+            {desktopNavLink("/settings", "Settings", "/icons/settings.svg", isActive("settings"), undefined, "filter invert brightness-200", isCollapsed)}
           </div>
         </div>
 
         <div className="mt-auto">
-          <ProfileCard href="/profile" avatarUrl={avatarUrl} name={userName} role={roleLabel} />
-          <Link
-            href="/support"
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#F4A6A6]/15 text-[#F4A6A6] text-sm font-poppins font-semibold border border-[#F4A6A6]/20 hover:bg-[#F4A6A6]/25 transition-all duration-200"
-          >
-            <Image src="/icons/crisis-report.svg" alt="Get Help Now" width={16} height={16} className="object-contain" />
-            <span className="flex-1">Get Help Now</span>
-            {supportUnreadCount > 0 && (
-              <span className="rounded-full bg-[#F4A6A6] px-1.5 py-0.5 text-[10px] font-bold text-[#1E293B]">
-                {supportUnreadCount}
-              </span>
-            )}
-          </Link>
+          {!isCollapsed && <ProfileCard href="/profile" avatarUrl={avatarUrl} name={userName} role={roleLabel} />}
+          {isCollapsed && (
+            <Link href="/profile" className="flex justify-center mb-2">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
+                {userName.charAt(0).toUpperCase()}
+              </div>
+            </Link>
+          )}
           <form action="/api/auth/signout" method="post">
-            <Button variant="secondary" className="w-full flex items-center justify-center gap-2 mt-2 py-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
+            <Button
+              variant="secondary"
+              className={`w-full flex items-center justify-center gap-2 mt-2 py-2 bg-white/10 text-white border-white/20 hover:bg-white/20 ${isCollapsed ? "px-0" : ""}`}
+            >
               <Image src="/icons/logout.svg" alt="Log Out" width={18} height={18} className="object-contain" />
-              Log Out
+              {!isCollapsed && "Log Out"}
             </Button>
           </form>
         </div>

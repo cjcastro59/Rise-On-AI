@@ -88,7 +88,19 @@ export default function BehavioralTrendChart({
         className="flex flex-col items-center justify-center gap-2 rounded-xl bg-light-gray/30"
         style={{ height }}
       >
-        <span className="text-2xl">BT</span>
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#A8DADC"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+        </svg>
         <p className="text-xs text-slate-600 font-poppins text-center px-4">
           No behavioral trend data yet.
           <br />

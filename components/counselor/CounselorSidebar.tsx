@@ -25,6 +25,7 @@ export default function CounselorSidebar() {
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [distressAlertCount, setDistressAlertCount] = useState(0);
     const [isMounted, setIsMounted] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
     const supabase = useMemo(() => createClient(), []);
 
     useEffect(() => {
@@ -151,95 +152,105 @@ export default function CounselorSidebar() {
           />
 
           {/* ── Desktop sidebar (hidden on mobile) ────────────────────────── */}
-          <aside className="w-64 bg-[#1E293B] text-white p-4 hidden md:flex md:h-screen md:flex-col md:overflow-y-auto shrink-0">
-            <div className="mb-6 flex items-center justify-between">
-                <div>
+          <aside className={`bg-[#1E293B] text-white hidden md:flex md:h-screen md:flex-col md:overflow-y-auto shrink-0 transition-all duration-300 ${isCollapsed ? "w-16 p-2" : "w-64 p-4"}`}>
+            <div className={`mb-6 flex items-center ${isCollapsed ? "justify-center flex-col gap-2" : "justify-between"}`}>
+                {!isCollapsed && (
+                  <div>
                     <div className="flex items-center gap-3">
-                        <Image
-                            src="/logo/Without Text.png"
-                            alt="Rise On AI Logo"
-                            width={36}
-                            height={36}
-                            className="rounded-lg"
-                        />
+                        <Image src="/logo/Without Text.png" alt="Rise On AI Logo" width={36} height={36} className="rounded-lg" />
                         <h2 className="text-lg font-poppins font-semibold">Rise On</h2>
                     </div>
                     <p className="text-xs text-white/50 font-poppins mt-1">Counselor Panel</p>
+                  </div>
+                )}
+                {isCollapsed && (
+                  <Image src="/logo/Without Text.png" alt="Rise On AI Logo" width={28} height={28} className="rounded-lg" />
+                )}
+                <div className="flex items-center gap-1">
+                  {!isCollapsed && userProfile && <NotificationBell userId={userProfile.id} className="text-white hover:text-white" />}
+                  <button
+                    onClick={() => setIsCollapsed((c) => !c)}
+                    className="p-1 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all"
+                    aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      {isCollapsed ? <polyline points="9 18 15 12 9 6" /> : <polyline points="15 18 9 12 15 6" />}
+                    </svg>
+                  </button>
                 </div>
-                {userProfile && <NotificationBell userId={userProfile.id} className="text-white hover:text-white" />}
             </div>
+
+            {isCollapsed && userProfile && (
+              <div className="flex justify-center mb-3">
+                <NotificationBell userId={userProfile.id} className="text-white hover:text-white" />
+              </div>
+            )}
 
             {/* MAIN Section */}
             <div className="mb-6">
-                <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">Main</p>
+                {!isCollapsed && <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">Main</p>}
                 <div className="space-y-1">
-                    <Link
-                      href="/counselor/dashboard"
-                      className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${pathname === "/counselor/dashboard" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"}`}
-                    >
-                      <Image src="/icons/dashboard.svg" alt="Dashboard" width={18} height={18} className="object-contain" /> Dashboard
-                    </Link>
-                    <Link
-                      href="/counselor/cases"
-                      className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${pathname === "/counselor/cases" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"}`}
-                    >
-                      <Image src="/icons/crisis-report.svg" alt="Cases" width={18} height={18} className="object-contain" /> Cases
-                    </Link>
-                    <Link
-                      href="/counselor/assigned-users"
-                      className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${pathname === "/counselor/assigned-users" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"}`}
-                    >
-                      <Image src="/icons/account.svg" alt="Assigned Users" width={18} height={18} className="object-contain" /> Assigned Users
-                    </Link>
+                    {[
+                      { href: "/counselor/dashboard",     label: "Dashboard",      icon: "/icons/dashboard.svg",     badge: 0 },
+                      { href: "/counselor/cases",          label: "Cases",          icon: "/icons/crisis-report.svg", badge: distressAlertCount },
+                      { href: "/counselor/assigned-users", label: "Assigned Users", icon: "/icons/account.svg",       badge: 0 },
+                    ].map(({ href, label, icon, badge }) => (
+                      <Link key={href} href={href} title={isCollapsed ? label : undefined}
+                        className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${isCollapsed ? "justify-center" : ""} ${pathname === href ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"}`}>
+                        <Image src={icon} alt={label} width={18} height={18} className="object-contain shrink-0" />
+                        {!isCollapsed && label}
+                        {!isCollapsed && badge > 0 && (
+                          <span className="ml-auto bg-[#F4A6A6] text-[#1E293B] text-xs px-1.5 py-0.5 rounded-full font-bold">{badge}</span>
+                        )}
+                      </Link>
+                    ))}
                   </div>
             </div>
 
             {/* SUPPORT Section */}
             <div className="mb-6">
-                <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">Support</p>
+                {!isCollapsed && <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">Support</p>}
                 <div className="space-y-1">
-                    <Link
-                        href="/counselor/messages"
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${pathname === "/counselor/messages" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-                            }`}
-                    >
-                        <Image src="/icons/crisis-support.svg" alt="Messages" width={20} height={20} className="object-contain" /> Messages
-                    </Link>
-                    <Link
-                        href="/counselor/notes"
-                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${pathname === "/counselor/notes" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-                            }`}
-                    >
-                        <Image src="/icons/journal.svg" alt="Notes" width={20} height={20} className="object-contain" /> Notes
-                    </Link>
+                    {[
+                      { href: "/counselor/messages", label: "Messages", icon: "/icons/crisis-support.svg" },
+                      { href: "/counselor/notes",    label: "Notes",    icon: "/icons/journal.svg" },
+                    ].map(({ href, label, icon }) => (
+                      <Link key={href} href={href} title={isCollapsed ? label : undefined}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-poppins transition-all ${isCollapsed ? "justify-center px-0" : ""} ${pathname === href ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"}`}>
+                        <Image src={icon} alt={label} width={20} height={20} className="object-contain shrink-0" />
+                        {!isCollapsed && label}
+                      </Link>
+                    ))}
                 </div>
             </div>
 
             {/* SYSTEM Section */}
             <div className="mb-6">
-                <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">System</p>
+                {!isCollapsed && <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">System</p>}
                 <div className="space-y-1">
-                    <Link
-                        href="/counselor/settings"
-                        className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${pathname === "/counselor/settings" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-                            }`}
-                    >
-                        <Image src="/icons/settings.svg" alt="Settings" width={18} height={18} className="object-contain filter invert brightness-200" /> Settings
+                    <Link href="/counselor/settings" title={isCollapsed ? "Settings" : undefined}
+                        className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${isCollapsed ? "justify-center" : ""} ${pathname === "/counselor/settings" ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"}`}>
+                        <Image src="/icons/settings.svg" alt="Settings" width={18} height={18} className="object-contain shrink-0 filter invert brightness-200" />
+                        {!isCollapsed && "Settings"}
                     </Link>
                 </div>
             </div>
 
             <div className="mt-auto">
-                <ProfileCard
-                    href="/counselor/profile"
-                    avatarUrl={userProfile?.avatar_url}
-                    name={getDisplayName()}
-                    role={roleLabel}
-                />
+                {!isCollapsed && (
+                  <ProfileCard href="/counselor/profile" avatarUrl={userProfile?.avatar_url} name={getDisplayName()} role={roleLabel} />
+                )}
+                {isCollapsed && (
+                  <Link href="/counselor/profile" className="flex justify-center mb-2" title={getDisplayName()}>
+                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
+                      {getDisplayName().charAt(0).toUpperCase()}
+                    </div>
+                  </Link>
+                )}
                 <form action="/api/auth/signout" method="post">
-                    <Button variant="secondary" className="w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
+                    <Button variant="secondary" className={`w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20 ${isCollapsed ? "px-0" : ""}`}>
                         <Image src="/icons/logout.svg" alt="Log Out" width={20} height={20} className="object-contain" />
-                        Log Out
+                        {!isCollapsed && "Log Out"}
                     </Button>
                 </form>
             </div>

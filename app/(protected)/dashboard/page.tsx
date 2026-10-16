@@ -222,23 +222,6 @@ export default function DashboardPage() {
 
   return (
     <>
-      {/* Top Header */}
-      <header className="mb-6 flex flex-col gap-3 rounded-2xl border border-white/50 bg-white/80 px-4 py-3 shadow-sm backdrop-blur-md sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
-        <div className="hidden w-24 sm:block" aria-hidden="true" />
-        <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 sm:gap-x-6">
-          <Link href="/dashboard" className="text-dark-text text-sm font-poppins font-semibold">Home</Link>
-          <Link href="/journal" className="text-slate-600 text-sm font-poppins font-medium hover:text-primary-blue">Journal</Link>
-          <Link href="/insights" className="text-slate-600 text-sm font-poppins font-medium hover:text-primary-blue">Insights</Link>
-          <Link href="/journal/history" className="text-slate-600 text-sm font-poppins font-medium hover:text-primary-blue">History</Link>
-        </nav>
-        <div className="flex items-center justify-center sm:justify-end">
-          <Link href="/support" className="flex items-center gap-2 rounded-full bg-pink-100 px-3 py-1.5 text-xs font-poppins font-semibold text-pink-600 transition-all duration-200 hover:bg-pink-200 hover:shadow-md active:scale-95">
-            <Image src="/icons/crisis-report.svg" alt="Crisis Support" width={14} height={14} className="object-contain" />
-            Crisis Support
-          </Link>
-        </div>
-      </header>
-
       {/* Welcome Section */}
       <PageHeader
         title={`${getGreeting()}, ${userName.split(" ")[0]}!`}

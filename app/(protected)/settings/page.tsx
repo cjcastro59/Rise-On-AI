@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { buildCsvExport, buildJsonExport, downloadTextFile, type ExportSection } from "@/lib/export-data";
 import { validatePasswordStrength } from "@/lib/password";
 
-type SettingSection = "notifications" | "privacy" | "language" | "security" | "data" | "account";
+type SettingSection = "notifications" | "privacy" | "language" | "security" | "data";
 
 const flash = (setter: (m: string) => void, msg: string, ms = 3500) => {
   setter(msg);
@@ -803,18 +803,6 @@ export default function SettingsPage() {
           </div>
         );
 
-      case "account":
-        return (
-          <div className="space-y-4">
-            <div className="mb-6">
-              <h3 className="text-lg font-dm-serif text-dark-text mb-2">Account</h3>
-            </div>
-            <p className="text-sm text-slate-600 font-poppins">
-              Manage your account details here. Go to Profile to edit personal info.
-            </p>
-          </div>
-        );
-
       default:
         return null;
     }
@@ -834,7 +822,6 @@ export default function SettingsPage() {
           <option value="language">🌐 Language</option>
           <option value="security">🛡️ Security</option>
           <option value="data">📦 Data &amp; Export</option>
-          <option value="account">👤 Account</option>
         </select>
       </div>
 
@@ -901,18 +888,6 @@ export default function SettingsPage() {
           >
             <span className="flex items-center gap-2">
               <Image src="/icons/data-export.svg" alt="Data & Export" width={16} height={16} className="w-4 h-4 object-contain" /> Data & Export
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveSection("account")}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              activeSection === "account"
-                ? "bg-primary-blue/10 text-primary-blue"
-                : "text-dark-text hover:bg-light-gray/50"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Image src="/icons/account.svg" alt="Account" width={16} height={16} className="w-4 h-4 object-contain" /> Account
             </span>
           </button>
         </Card>

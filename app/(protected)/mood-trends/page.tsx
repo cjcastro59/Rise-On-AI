@@ -147,13 +147,13 @@ export default function MoodTrendsPage() {
     refetch,
   } = useMoodVisualization();
 
-  // Charts 2 & 3 use useMoodTrend directly — range driven by moodRange state
+  // use useMoodTrend directly — range driven by moodRange state
   const {
-    data:    moodData,
+    data: moodData,
     loading: moodLoading,
     hasData: moodHasData,
     avgScore: moodAvg,
-    ticks:   moodTicks,
+    ticks: moodTicks,
   } = useMoodTrend(moodRange);
 
   // ── Derived summary values ─────────────────────────────────────────────────

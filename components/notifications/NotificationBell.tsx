@@ -24,7 +24,6 @@ export default function NotificationBell({ userId, className = "" }: Notificatio
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const [dropdownTop, setDropdownTop] = useState<number | null>(null);
-  const [useFixed, setUseFixed] = useState(false);
 
   const refreshNotifications = useCallback(() => {
     if (!userId) return;
@@ -115,14 +114,7 @@ export default function NotificationBell({ userId, className = "" }: Notificatio
           setIsOpen(willOpen);
           if (willOpen && buttonRef.current) {
             const rect = buttonRef.current.getBoundingClientRect();
-            // Use fixed positioning on narrow viewports so dropdown fits viewport
-            if (window.innerWidth < 640) {
-              setUseFixed(true);
-              setDropdownTop(Math.round(rect.bottom + 8));
-            } else {
-              setUseFixed(false);
-              setDropdownTop(null);
-            }
+            setDropdownTop(Math.round(rect.bottom + 8));
           }
         }}
         className="relative p-2 rounded-xl text-dark-text/80 hover:text-dark-text hover:bg-light-gray/70 transition-all focus:outline-none focus:ring-2 focus:ring-primary-blue/30"
@@ -152,13 +144,20 @@ export default function NotificationBell({ userId, className = "" }: Notificatio
       {isOpen && (
         <div
           ref={dropdownRef}
-          className={
-            `rounded-2xl bg-white shadow-2xl border border-light-gray z-[9999] overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150 text-dark-text ` +
-            (useFixed
-              ? "fixed left-2 right-2"
-              : "absolute right-0 sm:w-96 sm:mt-2")
+          className="fixed z-[9999] w-[min(24rem,calc(100vw-1rem))] rounded-2xl bg-white shadow-2xl border border-light-gray overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150 text-dark-text"
+          style={
+            dropdownTop
+              ? {
+                  top: dropdownTop,
+                  right: (() => {
+                    if (!buttonRef.current) return 8;
+                    const rect = buttonRef.current.getBoundingClientRect();
+                    const rightEdge = window.innerWidth - rect.right;
+                    return Math.max(8, rightEdge);
+                  })(),
+                }
+              : { top: 64, right: 8 }
           }
-          style={useFixed && dropdownTop ? { top: dropdownTop } : undefined}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-light-gray bg-[#F8FAFC]">

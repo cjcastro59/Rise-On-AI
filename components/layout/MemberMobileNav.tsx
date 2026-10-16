@@ -170,18 +170,6 @@ export default function MemberMobileNav({ userName }: MemberMobileNavProps) {
       bottomItems={
         <>
           <ProfileCard href="/profile" avatarUrl={avatarUrl} name={userName} role={roleLabel} />
-          <Link
-            href="/support"
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#F4A6A6]/15 text-[#F4A6A6] text-sm font-poppins font-semibold border border-[#F4A6A6]/20 hover:bg-[#F4A6A6]/25 transition-all"
-          >
-            <Image src="/icons/crisis-report.svg" alt="Get Help Now" width={16} height={16} className="object-contain" />
-            <span className="flex-1">Get Help Now</span>
-            {supportUnreadCount > 0 && (
-              <span className="rounded-full bg-[#F4A6A6] px-1.5 py-0.5 text-[10px] font-bold text-[#1E293B]">
-                {supportUnreadCount}
-              </span>
-            )}
-          </Link>
           <form action="/api/auth/signout" method="post">
             <Button
               variant="secondary"
