@@ -15,9 +15,6 @@ export default function RegisterPage() {
         {/* Left Section — hidden on mobile to show form first */}
         <div className="hidden md:block md:w-1/2 p-12 bg-gradient-to-br from-header-bg to-lavender/30">
           <div className="h-full flex flex-col justify-center">
-            <div className="inline-flex items-center gap-2 bg-white/70 rounded-full px-3 py-1 text-xs font-poppins text-dark-text/70 mb-6 animate-in fade-in slide-in-from-left-4 duration-500 delay-100">
-              Step {step} of 3
-            </div>
             <h1 className="text-3xl font-dm-serif text-dark-text mb-2 animate-in fade-in slide-in-from-left-4 duration-500 delay-150">Begin your journey to <span className="text-lavender italic">self-clarity</span>.</h1>
             <p className="text-xs font-inter text-dark-text/70 mb-4 flex items-center gap-2 animate-in fade-in duration-500 delay-200">
               <Image src="/icons/lock.svg" alt="Security lock" width={24} height={24} className="w-6 h-6 flex-shrink-0 object-contain" />
@@ -57,12 +54,26 @@ export default function RegisterPage() {
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
                   step === 3 
                     ? "bg-gradient-to-r from-primary-blue to-lavender text-white scale-110 shadow-md" 
-                    : "bg-light-gray text-dark-text"
+                    : step > 3
+                      ? "bg-success-green text-white"
+                      : "bg-light-gray text-dark-text"
                 }`}>
                   {step > 3 ? "✓" : "3"}
                 </div>
                 <span className={`text-sm font-poppins transition-colors duration-200 ${
-                  step === 3 ? "text-dark-text font-semibold" : "text-dark-text/60"
+                  step === 3 ? "text-dark-text font-semibold" : step > 3 ? "text-dark-text" : "text-dark-text/60"
+                }`}>Verify Email</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                  step === 4 
+                    ? "bg-gradient-to-r from-primary-blue to-lavender text-white scale-110 shadow-md" 
+                    : "bg-light-gray text-dark-text"
+                }`}>
+                  {step > 4 ? "✓" : "4"}
+                </div>
+                <span className={`text-sm font-poppins transition-colors duration-200 ${
+                  step === 4 ? "text-dark-text font-semibold" : "text-dark-text/60"
                 }`}>You&apos;re Ready!</span>
               </div>
             </div>

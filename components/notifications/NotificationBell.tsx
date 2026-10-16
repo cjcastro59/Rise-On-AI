@@ -145,19 +145,19 @@ export default function NotificationBell({ userId, className = "" }: Notificatio
         <div
           ref={dropdownRef}
           className="fixed z-[9999] w-[min(24rem,calc(100vw-1rem))] rounded-2xl bg-white shadow-2xl border border-light-gray overflow-hidden animate-in fade-in-50 zoom-in-95 duration-150 text-dark-text"
-          style={
-            dropdownTop
-              ? {
-                  top: dropdownTop,
-                  right: (() => {
-                    if (!buttonRef.current) return 8;
-                    const rect = buttonRef.current.getBoundingClientRect();
-                    const rightEdge = window.innerWidth - rect.right;
-                    return Math.max(8, rightEdge);
-                  })(),
-                }
-              : { top: 64, right: 8 }
-          }
+          style={(() => {
+            if (!dropdownTop || !buttonRef.current) return { top: 64, left: 8 };
+            const rect = buttonRef.current.getBoundingClientRect();
+            const dropdownWidth = Math.min(384, window.innerWidth - 16);
+            // Prefer aligning to the right edge of the button, but clamp so it
+            // never goes off the right side of the viewport
+            let left = rect.right - dropdownWidth;
+            if (left < 8) left = 8;
+            if (left + dropdownWidth > window.innerWidth - 8) {
+              left = window.innerWidth - dropdownWidth - 8;
+            }
+            return { top: dropdownTop, left };
+          })()}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-light-gray bg-[#F8FAFC]">

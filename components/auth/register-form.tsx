@@ -58,7 +58,11 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
   const supabase = createClient();
   const recaptchaKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
-  // Keep track of whether we've completed the captcha on step 1
+  // OTP state
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
   const [captchaCompletedOnStep1, setCaptchaCompletedOnStep1] = useState(false);
 
   // Reset captcha when going back to step 1
@@ -71,6 +75,13 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       }
     }
   }, [step]);
+
+  // Resend cooldown countdown
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const updateStep = (newStep: number) => {
     setStepLocal(newStep);
@@ -88,7 +99,8 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
   ];
 
   const isPasswordValid = PASSWORD_REGEX.test(formData.password);
-  const doPasswordsMatch = formData.password === formData.confirmPassword && formData.confirmPassword.length > 0;
+  const doPasswordsMatch =
+    formData.password === formData.confirmPassword && formData.confirmPassword.length > 0;
 
   const validateStep1 = () => {
     if (!formData.firstName || !formData.lastName || !formData.username || !formData.email) {
@@ -107,7 +119,6 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       setError("Please accept the Privacy Policy to proceed.");
       return false;
     }
-    // Check if captcha is enabled and completed
     if (recaptchaKey && !recaptchaToken) {
       setError("Please complete the reCAPTCHA first.");
       return false;
@@ -129,95 +140,119 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
     return true;
   };
 
-  const handleRegister = async () => {
+  // Step 3 — send OTP to email, then show OTP input
+  const handleSendOtp = async () => {
     setLoading(true);
     setError("");
 
     try {
-      // Execute reCAPTCHA
-      if (!recaptchaToken) {
-        if (recaptchaRef.current) {
-          const token = await recaptchaRef.current.executeAsync();
-          setRecaptchaToken(token);
-        }
-      }
+      // Store form data in sessionStorage so it survives the OTP verification
+      sessionStorage.setItem("pendingProfileData", JSON.stringify(formData));
 
-      if (!recaptchaToken) {
-        setError("Please complete the reCAPTCHA");
-        setLoading(false);
-        return;
-      }
-
-      // S8 (Phase 8): Use sessionStorage instead of localStorage — data is
-      // cleared when the tab closes, never persisted cross-tab/cross-device.
-      // Reduces the window in which PII is accessible to other scripts on the page.
-      sessionStorage.setItem('pendingProfileData', JSON.stringify(formData));
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { error: otpError } = await supabase.auth.signInWithOtp({
         email: formData.email,
-        password: formData.password,
         options: {
-          data: {},
-          captchaToken: recaptchaToken,
-        }
+          // shouldCreateUser: true creates the auth user on OTP send;
+          // the actual profile row is created after verification succeeds.
+          shouldCreateUser: true,
+        },
       });
 
-      // S7 (Phase 8): removed console.log('Auth signUp response:', ...) — exposed auth tokens and error details
-
-      if (authError) {
-        sessionStorage.removeItem('pendingProfileData');
-        if (authError.message.toLowerCase().includes("rate limit") || authError.message.toLowerCase().includes("too many")) {
-          setError("Too many sign-up attempts. Please wait a few minutes and try again.");
+      if (otpError) {
+        sessionStorage.removeItem("pendingProfileData");
+        if (
+          otpError.message.toLowerCase().includes("rate limit") ||
+          otpError.message.toLowerCase().includes("too many")
+        ) {
+          setError("Too many attempts. Please wait a few minutes and try again.");
         } else {
-          setError(authError.message);
+          setError(otpError.message);
         }
         return;
       }
 
-      if (authData.user) {
-        // S7 (Phase 8): removed console.log('User created! Now upserting complete profile...')
+      setOtpSent(true);
+      setResendCooldown(60);
+    } catch {
+      console.error("[register] Unexpected error sending OTP.");
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        const profileData: Record<string, unknown> = {
-          id: authData.user.id,
-          username: formData.username,
-          email: formData.email,
-          role: 'user',
-          full_name: `${formData.firstName} ${formData.lastName}`,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          goals: formData.goals,
-          language: formData.language,
-          sex: formData.sex,
-          two_factor_enabled: false,
-          two_factor_secret: null,
-        };
+  // Verify the OTP code entered by the user, then create the profile
+  const handleVerifyOtp = async () => {
+    if (!otpCode || otpCode.length !== 6) {
+      setError("Please enter the 6-digit code sent to your email.");
+      return;
+    }
 
-        // S7 (Phase 8): removed console.log('Full profile data:', profileData) — exposed PII
+    setLoading(true);
+    setError("");
 
-        const { error: upsertError } = await supabase
-          .from('user_profiles')
-          .upsert(profileData, { onConflict: 'id' })
-          .select();
+    try {
+      const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
+        email: formData.email,
+        token: otpCode,
+        type: "email",
+      });
 
-        if (upsertError) {
-          console.error('[register] Profile upsert failed.');
-          setError(`Profile setup failed: ${upsertError.message}`);
-          sessionStorage.removeItem('pendingProfileData');
-          return;
+      if (verifyError) {
+        if (
+          verifyError.message.toLowerCase().includes("expired") ||
+          verifyError.message.toLowerCase().includes("invalid")
+        ) {
+          setError("Invalid or expired code. Please request a new one.");
+        } else {
+          setError(verifyError.message);
         }
-
-        sessionStorage.removeItem('pendingProfileData');
-        // S7 (Phase 8): removed console.log('Profile setup complete!') and 'Session exists but no user?'
-
-        router.push('/setup-2fa');
-        router.refresh();
-      } else {
-        // Email confirmation enabled — user must confirm before profile is applied
-        setError('Please check your email to confirm your account before continuing.');
-        updateStep(1);
+        return;
       }
-    } catch (err) {
-      console.error('[register] Unexpected error during registration.');
+
+      const userId = verifyData?.user?.id;
+      if (!userId) {
+        setError("Verification succeeded but no user session was found. Please try again.");
+        return;
+      }
+
+      // Build and upsert the full profile row now that the email is confirmed
+      const profileData: Record<string, unknown> = {
+        id: userId,
+        username: formData.username,
+        email: formData.email,
+        role: "user",
+        full_name: `${formData.firstName} ${formData.lastName}`,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        goals: formData.goals,
+        language: formData.language,
+        sex: formData.sex,
+        two_factor_enabled: false,
+        two_factor_secret: null,
+      };
+
+      const { error: upsertError } = await supabase
+        .from("user_profiles")
+        .upsert(profileData, { onConflict: "id" })
+        .select();
+
+      if (upsertError) {
+        console.error("[register] Profile upsert failed.");
+        setError(`Profile setup failed: ${upsertError.message}`);
+        return;
+      }
+
+      sessionStorage.removeItem("pendingProfileData");
+
+      // Show "You're Ready!" step before redirecting
+      updateStep(4);
+      setTimeout(() => {
+        router.push("/setup-2fa");
+        router.refresh();
+      }, 1800);
+    } catch {
+      console.error("[register] Unexpected error during OTP verification.");
       setError("An unexpected error occurred.");
     } finally {
       setLoading(false);
@@ -225,14 +260,16 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
   };
 
   const toggleGoal = (goal: string) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       if (prev.goals.includes(goal)) {
-        return { ...prev, goals: prev.goals.filter(g => g !== goal) };
+        return { ...prev, goals: prev.goals.filter((g) => g !== goal) };
       } else {
         return { ...prev, goals: [...prev.goals, goal] };
       }
     });
   };
+
+  // ── Step renderers ────────────────────────────────────────────────────────
 
   const renderStep1 = () => (
     <div className="space-y-4">
@@ -241,7 +278,7 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
           <Input
             type="text"
             value={formData.firstName}
-            onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+            onChange={(e) => setFormData((prev) => ({ ...prev, firstName: e.target.value }))}
             required
             placeholder="First Name"
           />
@@ -250,7 +287,7 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
           <Input
             type="text"
             value={formData.lastName}
-            onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+            onChange={(e) => setFormData((prev) => ({ ...prev, lastName: e.target.value }))}
             required
             placeholder="Last Name"
           />
@@ -261,7 +298,7 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
         <Input
           type="text"
           value={formData.username}
-          onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+          onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
           required
           placeholder="Username"
         />
@@ -271,7 +308,7 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
         <Input
           type="email"
           value={formData.email}
-          onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+          onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
           required
           placeholder="Email Address"
         />
@@ -281,7 +318,7 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
         <Input
           type="password"
           value={formData.password}
-          onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+          onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
           required
           placeholder="Password"
         />
@@ -296,13 +333,15 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
         <Input
           type="password"
           value={formData.confirmPassword}
-          onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+          onChange={(e) => setFormData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
           required
           placeholder="Confirm Password"
         />
         {formData.confirmPassword.length > 0 && (
           <div className="flex items-center gap-2 text-xs font-inter">
-            <span className={`text-lg ${doPasswordsMatch ? "text-success-green" : "text-error-red"}`}>
+            <span
+              className={`text-lg ${doPasswordsMatch ? "text-success-green" : "text-error-red"}`}
+            >
               {doPasswordsMatch ? "✓" : "✗"}
             </span>
             <span className={`${doPasswordsMatch ? "text-dark-text" : "text-error-red"}`}>
@@ -327,10 +366,10 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
             onClick={() => setShowPrivacyPolicy(true)}
           >
             Privacy Policy
-          </button>. My mental health data is encrypted and never shared without consent.
+          </button>
+          . My mental health data is encrypted and never shared without consent.
         </p>
       </div>
-
     </div>
   );
 
@@ -350,10 +389,11 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
             <div
               key={goal}
               onClick={() => toggleGoal(goal)}
-              className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${formData.goals.includes(goal)
-                ? "border-primary-blue bg-primary-blue/10"
-                : "border-light-gray hover:border-primary-blue/50"
-                }`}
+              className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                formData.goals.includes(goal)
+                  ? "border-primary-blue bg-primary-blue/10"
+                  : "border-light-gray hover:border-primary-blue/50"
+              }`}
             >
               <p className="text-sm font-poppins text-dark-text">{goal}</p>
             </div>
@@ -362,56 +402,162 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       </div>
 
       <div>
-        <h3 className="text-lg font-poppins font-semibold text-dark-text mb-3">Language Preference</h3>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            {["English", "Taglish"].map((lang) => (
-              <div
-                key={lang}
-                onClick={() => setFormData(prev => ({ ...prev, language: lang }))}
-                className={`p-4 rounded-xl border-2 cursor-pointer transition-all text-center ${formData.language === lang
+        <h3 className="text-lg font-poppins font-semibold text-dark-text mb-3">
+          Language Preference
+        </h3>
+        <div className="grid grid-cols-2 gap-3">
+          {["English", "Taglish"].map((lang) => (
+            <div
+              key={lang}
+              onClick={() => setFormData((prev) => ({ ...prev, language: lang }))}
+              className={`p-4 rounded-xl border-2 cursor-pointer transition-all text-center ${
+                formData.language === lang
                   ? "border-primary-blue bg-primary-blue/10"
                   : "border-light-gray hover:border-primary-blue/50"
-                  }`}
-              >
-                <p className="text-sm font-poppins text-dark-text">{lang}</p>
-              </div>
-            ))}
-          </div>
+              }`}
+            >
+              <p className="text-sm font-poppins text-dark-text">{lang}</p>
+            </div>
+          ))}
         </div>
       </div>
 
       <div>
         <h3 className="text-lg font-poppins font-semibold text-dark-text mb-3">Sex</h3>
-        <div className="space-y-3">
-          <select
-            value={formData.sex}
-            onChange={(e) => setFormData(prev => ({ ...prev, sex: e.target.value }))}
-            required
-            className="w-full px-3 py-2 rounded-xl border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
-          >
-            <option value="">Select Sex</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
-        </div>
+        <select
+          value={formData.sex}
+          onChange={(e) => setFormData((prev) => ({ ...prev, sex: e.target.value }))}
+          required
+          className="w-full px-3 py-2 rounded-xl border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
+        >
+          <option value="">Select Sex</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
       </div>
     </div>
   );
 
+  // Step 3 — verify email via OTP
   const renderStep3 = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        {/* Envelope icon */}
+        <div className="w-16 h-16 bg-primary-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#4EAAB3"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="2" y="4" width="20" height="16" rx="2" />
+            <polyline points="2,4 12,13 22,4" />
+          </svg>
+        </div>
+        <h3 className="text-xl font-dm-serif text-dark-text mb-1">Verify your email</h3>
+        <p className="text-sm font-inter text-dark-text/70">
+          We&apos;ll send a 6-digit code to{" "}
+          <span className="font-semibold text-dark-text">{formData.email}</span>
+        </p>
+      </div>
+
+      {!otpSent ? (
+        // Before OTP is sent — just show the send button (triggered by Next button)
+        <div className="p-4 bg-light-gray/30 rounded-xl text-center">
+          <p className="text-xs font-inter text-dark-text/60">
+            Click &quot;Send Code&quot; to receive the verification email.
+          </p>
+        </div>
+      ) : (
+        // After OTP is sent — show the code input
+        <div className="space-y-4">
+          <div className="p-3 bg-success-green/10 border border-success-green/30 rounded-xl text-center">
+            <p className="text-xs font-inter text-success-green font-medium">
+              Code sent! Check your inbox (and spam folder).
+            </p>
+          </div>
+
+          <div>
+            <label className="text-xs font-poppins text-slate-600 mb-1 block">
+              Enter 6-digit verification code
+            </label>
+            <Input
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+              placeholder="000000"
+              className="text-center text-xl tracking-[0.4em] font-mono"
+            />
+          </div>
+
+          <div className="text-center">
+            <button
+              type="button"
+              disabled={resendCooldown > 0 || loading}
+              onClick={handleSendOtp}
+              className="text-xs font-poppins text-primary-blue hover:underline disabled:text-slate-400 disabled:no-underline transition-colors"
+            >
+              {resendCooldown > 0
+                ? `Resend code in ${resendCooldown}s`
+                : "Didn't receive it? Resend code"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // Step 4 — success screen (previously step 3)
+  const renderStep4 = () => (
     <div className="text-center py-8 space-y-6">
       <div className="w-20 h-20 bg-gradient-to-r from-success-green to-teal rounded-full flex items-center justify-center mx-auto">
-        <span className="text-white text-4xl">🎉</span>
+        <svg
+          width="36"
+          height="36"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="white"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
       </div>
       <div>
-        <h3 className="text-2xl font-dm-serif text-dark-text mb-2">You&apos;re Ready!</h3>
+        <h3 className="text-2xl font-dm-serif text-dark-text mb-2">Email Verified!</h3>
         <p className="text-sm font-inter text-dark-text/70">
-          Welcome to Rise On AI! Your wellness journey starts now.
+          Your account is confirmed. Setting up your profile…
         </p>
       </div>
     </div>
   );
+
+  // ── Derived flags for button row ──────────────────────────────────────────
+  // On step 3 the "Next" action differs depending on whether OTP has been sent
+  const step3ButtonLabel = loading
+    ? otpSent
+      ? "Verifying…"
+      : "Sending…"
+    : otpSent
+    ? "Verify & Continue"
+    : "Send Code";
+
+  const handleStep3Action = () => {
+    if (!otpSent) {
+      handleSendOtp();
+    } else {
+      handleVerifyOtp();
+    }
+  };
 
   return (
     <>
@@ -419,9 +565,13 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
         {step === 3 && renderStep3()}
+        {step === 4 && renderStep4()}
 
-        {/* reCAPTCHA v2 - always mounted! */}
-        <div className="flex justify-center" style={{ display: (step === 1 || step === 3) ? 'flex' : 'none' }}>
+        {/* reCAPTCHA v2 — only visible on step 1 */}
+        <div
+          className="flex justify-center"
+          style={{ display: step === 1 ? "flex" : "none" }}
+        >
           {recaptchaKey && (
             <ReCAPTCHA
               ref={recaptchaRef}
@@ -447,45 +597,64 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
           </div>
         )}
 
-        <div className="flex gap-3 pt-2">
-          {step > 1 && (
-            <Button
-              type="button"
-              variant="secondary"
-              className="flex-1"
-              onClick={() => updateStep(step - 1)}
-            >
-              Back
-            </Button>
-          )}
-          {step < 3 && (
-            <Button
-              type="button"
-              className="flex-1"
-              onClick={() => {
-                if (step === 1 && validateStep1()) {
-                  updateStep(2);
-                } else if (step === 2 && validateStep2()) {
-                  updateStep(3);
-                }
-              }}
-            >
-              {step === 2 ? "Continue" : "Next"}
-            </Button>
-          )}
-          {step === 3 && (
-            <Button
-              type="button"
-              className="flex-1"
-              disabled={loading}
-              onClick={handleRegister}
-            >
-              {loading ? "Creating account..." : "Complete Setup"}
-            </Button>
-          )}
-        </div>
+        {/* Navigation buttons */}
+        {step < 4 && (
+          <div className="flex gap-3 pt-2">
+            {/* Back — not allowed on step 3 once OTP was sent (avoid resending confusion) */}
+            {step > 1 && !(step === 3 && otpSent) && (
+              <Button
+                type="button"
+                variant="secondary"
+                className="flex-1"
+                onClick={() => {
+                  setError("");
+                  updateStep(step - 1);
+                }}
+              >
+                Back
+              </Button>
+            )}
+
+            {step === 1 && (
+              <Button
+                type="button"
+                className="flex-1"
+                onClick={() => {
+                  if (validateStep1()) updateStep(2);
+                }}
+              >
+                Next
+              </Button>
+            )}
+
+            {step === 2 && (
+              <Button
+                type="button"
+                className="flex-1"
+                onClick={() => {
+                  if (validateStep2()) updateStep(3);
+                }}
+              >
+                Continue
+              </Button>
+            )}
+
+            {step === 3 && (
+              <Button
+                type="button"
+                className="flex-1"
+                disabled={loading || (otpSent && otpCode.length < 6)}
+                onClick={handleStep3Action}
+              >
+                {step3ButtonLabel}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
-      {showPrivacyPolicy && <PrivacyPolicyModal onClose={() => setShowPrivacyPolicy(false)} />}
+      {showPrivacyPolicy && (
+        <PrivacyPolicyModal onClose={() => setShowPrivacyPolicy(false)} />
+      )}
     </>
   );
 }
