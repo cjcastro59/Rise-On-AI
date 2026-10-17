@@ -516,7 +516,6 @@ export default function AdminSupportPage() {
 
       if (error) throw error;
 
-      // Update the conversation in the list
       setConversations((prev) => 
         prev.map((c) => 
           c.id === selectedConversation.id 
@@ -525,7 +524,6 @@ export default function AdminSupportPage() {
         )
       );
 
-      // Update the selected conversation
       setSelectedConversation((prev) => 
         prev ? { ...prev, status: "closed" } : null
       );
@@ -534,6 +532,23 @@ export default function AdminSupportPage() {
       console.error("Error closing conversation:", error);
     } finally {
       setClosingConversation(false);
+    }
+  };
+
+  const deleteConversation = async (conversationId: string) => {
+    if (!window.confirm("Delete this conversation and all its messages? This cannot be undone.")) return;
+    try {
+      // Delete messages first (FK constraint)
+      await supabase.from("messages").delete().eq("conversation_id", conversationId);
+      const { error } = await supabase.from("conversations").delete().eq("id", conversationId);
+      if (error) throw error;
+      setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+      if (selectedConversation?.id === conversationId) {
+        setSelectedConversation(null);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
     }
   };
 
@@ -604,40 +619,53 @@ export default function AdminSupportPage() {
                 </div>
               ) : (
                 conversations.map((convo) => (
-                  <button
-                    key={convo.id}
-                    onClick={() => selectConversation(convo)}
-                    className={`w-full p-4 text-left border-b border-gray-100 hover:bg-gradient-to-r from-primary-blue/5 to-lavender/10 transition-all ${
-                      selectedConversation?.id === convo.id 
-                        ? "bg-gradient-to-r from-primary-blue/10 to-lavender/15 border-l-4 border-primary-blue" 
-                        : ""
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-semibold text-sm text-slate-900 hover:text-indigo-600">
-                        {(() => {
-                          const getFirstName = (name: string | undefined | null) => {
-                            if (!name) return "Unknown User";
-                            return name.split(' ')[0];
-                          };
-                          return getFirstName(convo.user?.full_name) || getFirstName(convo.user?.username) || "Unknown User";
-                        })()}
+                  <div key={convo.id} className="relative group border-b border-gray-100">
+                    <button
+                      onClick={() => selectConversation(convo)}
+                      className={`w-full p-4 text-left hover:bg-gradient-to-r from-primary-blue/5 to-lavender/10 transition-all ${
+                        selectedConversation?.id === convo.id 
+                          ? "bg-gradient-to-r from-primary-blue/10 to-lavender/15 border-l-4 border-primary-blue" 
+                          : ""
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1 pr-6">
+                        <p className="font-semibold text-sm text-slate-900 hover:text-indigo-600">
+                          {(() => {
+                            const getFirstName = (name: string | undefined | null) => {
+                              if (!name) return "Unknown User";
+                              return name.split(' ')[0];
+                            };
+                            return getFirstName(convo.user?.full_name) || getFirstName(convo.user?.username) || "Unknown User";
+                          })()}
+                        </p>
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                          convo.status === "open" 
+                            ? "border border-emerald-200 bg-emerald-100 text-emerald-800"
+                            : "border border-slate-200 bg-slate-100 text-slate-800"
+                        }`}>
+                          {convo.status}
+                        </span>
+                      </div>
+                      <p className="rounded-lg border border-slate-100 bg-slate-50/80 p-3 text-sm leading-relaxed text-slate-800">
+                        {conversationPreviews[convo.id]?.content || "No messages yet."}
                       </p>
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        convo.status === "open" 
-                          ? "border border-emerald-200 bg-emerald-100 text-emerald-800"
-                          : "border border-slate-200 bg-slate-100 text-slate-800"
-                      }`}>
-                        {convo.status}
-                      </span>
-                    </div>
-                    <p className="rounded-lg border border-slate-100 bg-slate-50/80 p-3 text-sm leading-relaxed text-slate-800">
-                      {conversationPreviews[convo.id]?.content || "No messages yet."}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-600">
-                      {new Date(conversationPreviews[convo.id]?.created_at || convo.created_at).toLocaleString()}
-                    </p>
-                  </button>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {new Date(conversationPreviews[convo.id]?.created_at || convo.created_at).toLocaleString()}
+                      </p>
+                    </button>
+                    {/* Delete button — visible on hover */}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); deleteConversation(convo.id); }}
+                      className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500"
+                      title="Delete conversation"
+                      aria-label="Delete conversation"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                      </svg>
+                    </button>
+                  </div>
                 ))
               )}
             </div>

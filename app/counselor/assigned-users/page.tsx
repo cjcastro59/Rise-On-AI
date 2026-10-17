@@ -170,7 +170,6 @@ export default function CounselorAssignedUsersPage() {
       id: user.id,
       fullName,
       role: user.role || "user",
-      country: user.country || "Unknown",
       age: user.age || "N/A",
       sex: user.sex || "N/A",
       entries: entryCount,
@@ -187,7 +186,6 @@ export default function CounselorAssignedUsersPage() {
   const filteredUsers = processedUsers.filter(user => {
     const matchesSearch = 
       user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.country && user.country.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (user.rawUser.username && user.rawUser.username.toLowerCase().includes(searchTerm.toLowerCase()));
     
     let matchesStatus = true;
@@ -285,7 +283,7 @@ export default function CounselorAssignedUsersPage() {
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600">🔍</span>
             <input
               type="text"
-              placeholder="Search by Name, Country, Username..."
+              placeholder="Search by Name, Username..."
               className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-sm font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/50"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -311,7 +309,6 @@ export default function CounselorAssignedUsersPage() {
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-4 px-3">NAME</th>
-                <th className="text-left py-4 px-3">COUNTRY</th>
                 <th className="text-left py-4 px-3">AGE</th>
                 <th className="text-left py-4 px-3">ENTRIES</th>
                 <th className="text-left py-4 px-3">LAST ACTIVE</th>
@@ -326,9 +323,6 @@ export default function CounselorAssignedUsersPage() {
                 <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-4 px-3">
                     <p className="font-poppins text-sm font-semibold text-slate-900 hover:text-indigo-600">{user.fullName}</p>
-                  </td>
-                  <td className="py-4 px-3">
-                    <p className="text-sm font-poppins text-dark-text">{user.country}</p>
                   </td>
                   <td className="py-4 px-3">
                     <p className="text-sm font-poppins text-dark-text">{user.age}</p>

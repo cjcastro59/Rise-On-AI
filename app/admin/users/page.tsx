@@ -361,7 +361,6 @@ export default function AdminUsersPage() {
       id: user.id,
       fullName,
       role: user.role || "user",
-      country: user.country || "Unknown",
       age: user.age || "N/A",
       sex: user.sex || "N/A",
       entries: entryCount,
@@ -378,7 +377,6 @@ export default function AdminUsersPage() {
   const filteredUsers = processedUsers.filter(user => {
     const matchesSearch =
       user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.country && user.country.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (user.rawUser.username && user.rawUser.username.toLowerCase().includes(searchTerm.toLowerCase()));
 
     let matchesStatus = true;
@@ -521,7 +519,7 @@ export default function AdminUsersPage() {
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600">🔍</span>
             <input
               type="text"
-              placeholder="Search by Name, Country, Username..."
+              placeholder="Search by Name, Username..."
               className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-sm font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/50"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -560,7 +558,6 @@ export default function AdminUsersPage() {
               <tr className="border-b border-gray-200">
                 <th className="text-left py-4 px-3">NAME</th>
                 <th className="w-56 text-left py-4 px-3">ROLE</th>
-                <th className="w-40 text-left py-4 px-3">COUNTRY</th>
                 <th className="text-left py-4 px-3">AGE</th>
                 <th className="text-left py-4 px-3">ENTRIES</th>
                 <th className="text-left py-4 px-3">LAST ACTIVE</th>
@@ -615,9 +612,6 @@ export default function AdminUsersPage() {
                         {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                       </span>
                     )}
-                  </td>
-                  <td className="w-40 overflow-hidden px-4 py-3">
-                    <p className="truncate whitespace-nowrap text-sm font-poppins text-dark-text" title={user.country}>{user.country}</p>
                   </td>
                   <td className="py-4 px-3">
                     <p className="text-sm font-poppins text-dark-text">{user.age}</p>

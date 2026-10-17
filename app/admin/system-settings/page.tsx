@@ -96,7 +96,7 @@ const DEFAULT_FEATURES = {
   sessionWarningMinutes: 1,
 };
 
-type SettingSection = "system" | "notifications" | "privacy" | "language" | "security" | "data" | "account";
+type SettingSection = "system" | "notifications" | "privacy" | "language" | "security" | "data";
 
 const DEFAULT_NOTIFICATION_SETTINGS = {
   emailAlerts: true,
@@ -1328,23 +1328,6 @@ export default function AdminSystemSettingsPage() {
           </div>
         );
 
-      case "account":
-        return (
-          <div className="space-y-4">
-            <div className="mb-6">
-              <h3 className="text-lg font-dm-serif text-dark-text">Account</h3>
-            </div>
-            <p className="text-sm text-slate-600 font-poppins">
-              Manage your account details here. Go to Profile to edit personal info.
-            </p>
-            <Link href="/admin/profile">
-              <Button variant="ghost" className="text-primary-blue hover:text-primary-blue/80 hover:bg-primary-blue/10">
-                Go to Profile
-              </Button>
-            </Link>
-          </div>
-        );
-
       default:
         return null;
     }
@@ -1451,18 +1434,6 @@ export default function AdminSystemSettingsPage() {
             >
               <span className="flex items-center gap-2">
                 <Image src="/icons/data-export.svg" alt="Data & Export" width={16} height={16} className="w-4 h-4 object-contain" /> Data & Export
-              </span>
-            </button>
-            <button
-              onClick={() => setActiveSection("account")}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-                activeSection === "account"
-                  ? "bg-primary-blue/10 text-primary-blue"
-                  : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
-              }`}
-            >
-              <span className="flex items-center gap-2">
-                <Image src="/icons/account.svg" alt="Account" width={16} height={16} className="w-4 h-4 object-contain" /> Account
               </span>
             </button>
           </Card>

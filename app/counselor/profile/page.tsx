@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { COUNTRIES } from "@/lib/constants";
 
 interface Profile {
   first_name: string | null;
@@ -18,7 +17,6 @@ interface Profile {
   avatar_url: string | null;
   age: number | null;
   sex: string | null;
-  country: string | null;
   is_online: boolean;
   created_at: string;
 }
@@ -37,7 +35,6 @@ export default function CounselorProfilePage() {
     avatar_url: null,
     age: null,
     sex: null,
-    country: null,
     is_online: false,
     created_at: new Date().toISOString(),
   });
@@ -255,7 +252,7 @@ export default function CounselorProfilePage() {
                 {profile.first_name || "Counselor"} {profile.last_name || ""}
               </h1>
               <p className="text-sm text-slate-600 font-poppins">
-                @{profile.username || "counselor"} • {profile.country || "Not set"}
+                @{profile.username || "counselor"}
               </p>
               <div className="flex gap-4 mt-2">
                 <span className="px-3 py-1 bg-primary-blue/20 rounded-full text-xs font-poppins text-primary-blue">
@@ -363,26 +360,6 @@ export default function CounselorProfilePage() {
                   </div>
                 )}
               </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-poppins text-slate-600">Country</label>
-              {isEditing ? (
-                <select
-                  value={profile.country || ""}
-                  onChange={(e) => setProfile({ ...profile, country: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
-                >
-                  <option value="">Select a country</option>
-                  {COUNTRIES.map((country) => (
-                    <option key={country} value={country}>{country}</option>
-                  ))}
-                </select>
-              ) : (
-                <div className="px-3 py-2 bg-light-gray/50 rounded-lg text-sm font-inter text-dark-text">
-                  {profile.country || "Not set"}
-                </div>
-              )}
             </div>
 
             <div className="space-y-1">

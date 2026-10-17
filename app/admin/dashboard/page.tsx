@@ -98,6 +98,7 @@ export default function AdminDashboardPage() {
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const [announcementTitle, setAnnouncementTitle] = useState("");
   const [announcementContent, setAnnouncementContent] = useState("");
+  const [announcementsExpanded, setAnnouncementsExpanded] = useState(true);
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient() as any, []);
   const staffConversationIdsRef = useRef<Set<string>>(new Set());
@@ -511,9 +512,9 @@ export default function AdminDashboardPage() {
 
       // Users section
       csvContent += "=== Users ===\n";
-      csvContent += "ID,Email,Username,Full Name,Role,Country,Age,Created At\n";
+      csvContent += "ID,Email,Username,Full Name,Role,Age,Created At\n";
       (usersRes.data || []).forEach((user: any) => {
-        csvContent += `${user.id},"${user.email}","${user.username || ""}","${user.full_name || ""}",${user.role},"${user.country || ""}",${user.age || ""},"${user.created_at}"\n`;
+        csvContent += `${user.id},"${user.email}","${user.username || ""}","${user.full_name || ""}",${user.role},${user.age || ""},"${user.created_at}"\n`;
       });
 
       // Entries section
@@ -679,25 +680,40 @@ export default function AdminDashboardPage() {
       </div>
 
       <Card variant="white" className="p-5 bg-white/80 border border-white/40 shadow-sm backdrop-blur-md">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="text-xs font-poppins text-slate-700 uppercase tracking-wider">Announcements</p>
-          <span className="rounded-full border border-purple-200 bg-purple-50 px-2 py-1 text-xs font-semibold text-purple-700">
-            Live
-          </span>
-        </div>
-        <div className="space-y-3">
-          {announcements.length === 0 ? (
-            <p className="text-sm font-inter text-slate-600">No active announcements.</p>
-          ) : (
-            announcements.map((announcement) => (
-              <div key={announcement.id} className="rounded-xl border border-amber-200 bg-amber-50/50 p-3">
-                <p className="text-sm font-semibold font-poppins text-dark-text">{announcement.title}</p>
-                <p className="mt-1 line-clamp-2 text-xs font-inter text-slate-700">{announcement.content}</p>
-                <p className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-xs font-inter text-slate-600">{formatTime(announcement.created_at)}</p>
-              </div>
-            ))
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => setAnnouncementsExpanded((v) => !v)}
+          className="w-full flex items-center justify-between gap-3 mb-0"
+        >
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-poppins text-slate-700 uppercase tracking-wider">Announcements</p>
+            <span className="rounded-full border border-purple-200 bg-purple-50 px-2 py-1 text-xs font-semibold text-purple-700">
+              Live
+            </span>
+          </div>
+          <svg
+            width="16" height="16" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            className={`text-slate-400 transition-transform duration-200 ${announcementsExpanded ? "rotate-180" : ""}`}
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        {announcementsExpanded && (
+          <div className="mt-3 space-y-3 max-h-48 overflow-y-auto pr-1">
+            {announcements.length === 0 ? (
+              <p className="text-sm font-inter text-slate-600">No active announcements.</p>
+            ) : (
+              announcements.map((announcement) => (
+                <div key={announcement.id} className="rounded-xl border border-amber-200 bg-amber-50/50 p-3">
+                  <p className="text-sm font-semibold font-poppins text-dark-text">{announcement.title}</p>
+                  <p className="mt-1 text-xs font-inter text-slate-700">{announcement.content}</p>
+                  <p className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-xs font-inter text-slate-600">{formatTime(announcement.created_at)}</p>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </Card>
       </div>
 
