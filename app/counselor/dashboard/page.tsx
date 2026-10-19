@@ -106,6 +106,8 @@ export default function CounselorDashboardPage() {
   const [wellnessMap, setWellnessMap] = useState<Map<string, UserWellnessSnapshot>>(new Map());
   const [riskMap, setRiskMap] = useState<Map<string, UserRiskSnapshot>>(new Map());
   const [aggregateWellnessTrend, setAggregateWellnessTrend] = useState<AggregateWellnessPoint[]>([]);
+  const [announcements, setAnnouncements] = useState<{ id: string; title: string; content: string; created_at: string }[]>([]);
+  const [announcementsExpanded, setAnnouncementsExpanded] = useState(true);
   const [wellnessLoading, setWellnessLoading]  = useState(true);
   const [currentDate, setCurrentDate] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -264,7 +266,9 @@ export default function CounselorDashboardPage() {
         const grouped = new Map<string, { sum: number; count: number }>();
         for (const row of (wellnessRows ?? [])) {
           const score = Number(row.wellness_score);
-          const date = typeof row.window_end_date === "string" ? row.window_end_date : "";
+          // Normalize to date-only key (strip time) so same-day entries group correctly
+          const rawDate = typeof row.window_end_date === "string" ? row.window_end_date : "";
+          const date = rawDate.slice(0, 10); // "YYYY-MM-DD"
           if (!date || !Number.isFinite(score)) continue;
 
           const existing = grouped.get(date) ?? { sum: 0, count: 0 };
@@ -301,6 +305,23 @@ export default function CounselorDashboardPage() {
     };
 
     loadData();
+
+    // Fetch announcements separately so they always show,
+    // even when the counselor has no assigned users yet.
+    const loadAnnouncements = async () => {
+      try {
+        const { data: announcementRows } = await supabase
+          .from("announcements")
+          .select("id, title, content, created_at")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(5);
+        setAnnouncements(announcementRows || []);
+      } catch {
+        // Silently ignore — announcements are supplementary
+      }
+    };
+    loadAnnouncements();
   }, [supabase, isMounted]);
 
   const formatTime = (value?: string) => {
@@ -348,9 +369,49 @@ export default function CounselorDashboardPage() {
         </div>
       </div>
 
+      {/* Announcements from Admin */}
+      {announcements.length > 0 && (
+        <Card variant="white" className="p-4 bg-amber-50/60 border border-amber-200/60 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setAnnouncementsExpanded((v) => !v)}
+            className="w-full flex items-center justify-between gap-3"
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base">📢</span>
+              <p className="text-xs font-poppins text-amber-800 uppercase tracking-wider font-semibold">
+                Announcements
+              </p>
+              <span className="rounded-full border border-amber-300 bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                {announcements.length}
+              </span>
+            </div>
+            <svg
+              width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              className={`text-amber-600 transition-transform duration-200 ${announcementsExpanded ? "rotate-180" : ""}`}
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          {announcementsExpanded && (
+            <div className="mt-3 space-y-2 max-h-48 overflow-y-auto pr-1">
+              {announcements.map((a) => (
+                <div key={a.id} className="rounded-xl border border-amber-200 bg-white/70 p-3">
+                  <p className="text-sm font-semibold font-poppins text-dark-text">{a.title}</p>
+                  <p className="mt-0.5 text-xs font-inter text-slate-700">{a.content}</p>
+                  <p className="mt-1.5 text-[10px] font-inter text-slate-500">
+                    {new Date(a.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card variant="white" className="stat-card border-l-4 border-l-primary-blue">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">        <Card variant="white" className="stat-card border-l-4 border-l-primary-blue">
           <div className="flex items-start gap-3 mb-3">
             <div className="stat-card-icon bg-primary-blue/20">👥</div>
             <div className="text-right">
@@ -414,13 +475,23 @@ export default function CounselorDashboardPage() {
           <div className="h-44">
             <div className="flex h-36 items-end gap-2 border-b border-gray-100">
               {aggregateWellnessTrend.map((point) => {
-                const height = Math.max(6, Math.round((point.score / aggregateTrendMax) * 100));
+                const height = Math.max(8, Math.round((point.score / aggregateTrendMax) * 100));
+                const lvl = classifyWellnessLevel(point.score);
+                const cfg = WELLNESS_LEVEL_CONFIG[lvl];
                 return (
-                  <div key={point.date} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2">
+                  <div key={point.date} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1">
+                    <span className="text-[9px] font-poppins text-slate-600 leading-none">
+                      {point.score.toFixed(1)}
+                    </span>
                     <div
-                      className="w-full max-w-10 rounded-t-md bg-success-green"
-                      style={{ height: `${height}%` }}
-                      title={`${point.score}/10 average from ${point.count} user${point.count === 1 ? "" : "s"}`}
+                      className="w-full rounded-t-md transition-all duration-300"
+                      style={{
+                        height: `${height}%`,
+                        minHeight: "8px",
+                        backgroundColor: cfg.bgColor,
+                        border: `1px solid ${cfg.color}30`,
+                      }}
+                      title={`${point.score}/10 avg from ${point.count} user${point.count === 1 ? "" : "s"} on ${point.date}`}
                     />
                   </div>
                 );

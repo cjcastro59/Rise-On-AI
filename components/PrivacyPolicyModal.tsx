@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Portal } from "@/components/ui/Portal";
 import { useRBAC } from "@/hooks/useRBAC";
+import { Toast, useToast } from "@/components/ui/Toast";
 
 interface PrivacyPolicyModalProps {
   onClose: () => void;
@@ -175,6 +176,7 @@ This Privacy Notice is governed by and construed in accordance with the laws of 
 export function PrivacyPolicyModal({ onClose }: PrivacyPolicyModalProps) {
   const { hasPermission } = useRBAC();
   const supabase = useMemo(() => createClient(), []);
+  const { toast, showToast, closeToast } = useToast();
   const [privacyPolicy,  setPrivacyPolicy]  = useState("");
   const [isEditing,      setIsEditing]      = useState(false);
   const [editablePolicy, setEditablePolicy] = useState("");
@@ -220,14 +222,14 @@ export function PrivacyPolicyModal({ onClose }: PrivacyPolicyModalProps) {
 
       if (error) {
         console.error("[privacy] Failed to save policy:", error.message);
-        alert("Failed to save privacy policy. Please try again.");
+        showToast("Failed to save privacy policy. Please try again.", "error");
       } else {
         setPrivacyPolicy(editablePolicy);
         setIsEditing(false);
-        alert("Privacy policy saved successfully.");
+        showToast("Privacy policy saved successfully.", "success");
       }
     } catch {
-      alert("Failed to save privacy policy. Please try again.");
+      showToast("Failed to save privacy policy. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -235,6 +237,7 @@ export function PrivacyPolicyModal({ onClose }: PrivacyPolicyModalProps) {
 
   return (
     <Portal>
+      <Toast {...toast} onClose={closeToast} />
       <div className="fixed inset-0 z-[9999] flex items-center justify-center">
         {/* Backdrop */}
         <div

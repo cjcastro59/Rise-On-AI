@@ -17,11 +17,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import ProfileCard from "@/components/layout/ProfileCard";
 import MobileNav from "@/components/layout/MobileNav";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 
 type UserProfileSummary = { avatar_url: string | null; role: string | null };
 type SenderSummary = {
@@ -42,6 +44,8 @@ export default function MemberMobileNav({ userName }: MemberMobileNavProps) {
   const [supportUnreadCount, setSupportUnreadCount] = useState(0);
   const { user } = useAuth();
   const supabase = useMemo(() => createClient() as any, []);
+  const router = useRouter();
+  const { openConfirmation } = useConfirmation();
   const supportConversationIdsRef = useRef<Set<string>>(new Set());
 
   /* ── load avatar + role ─────────────────────────────────────────────────── */
@@ -126,6 +130,19 @@ export default function MemberMobileNav({ userName }: MemberMobileNavProps) {
     ? (userRole.toLowerCase() === "user" ? "Member" : userRole.charAt(0).toUpperCase() + userRole.slice(1))
     : "Member";
 
+  const handleLogout = async () => {
+    const confirmed = await openConfirmation({
+      title: "Sign Out",
+      message: "Are you sure you want to sign out?",
+      confirmText: "Sign Out",
+      cancelText: "Stay",
+      isDangerous: false,
+    });
+    if (!confirmed) return;
+    await fetch("/api/auth/signout", { method: "POST" });
+    router.replace("/login");
+  };
+
   return (
     <MobileNav
       panelLabel="Member Panel"
@@ -170,15 +187,14 @@ export default function MemberMobileNav({ userName }: MemberMobileNavProps) {
       bottomItems={
         <>
           <ProfileCard href="/profile" avatarUrl={avatarUrl} name={userName} role={roleLabel} />
-          <form action="/api/auth/signout" method="post">
-            <Button
-              variant="secondary"
-              className="w-full flex items-center justify-center gap-2 py-2 bg-white/10 text-white border-white/20 hover:bg-white/20"
-            >
-              <Image src="/icons/logout.svg" alt="Log Out" width={18} height={18} className="object-contain" />
-              Log Out
-            </Button>
-          </form>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all text-sm font-poppins font-semibold"
+          >
+            <Image src="/icons/logout.svg" alt="Log Out" width={18} height={18} className="object-contain" />
+            Log Out
+          </button>
         </>
       }
     />

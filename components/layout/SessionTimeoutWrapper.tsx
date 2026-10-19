@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import SessionTimeoutModal from "@/components/layout/SessionTimeoutModal";
@@ -31,7 +30,6 @@ function parseTimeoutSetting(value: unknown): { timeoutMs: number; warningMs: nu
 export default function SessionTimeoutWrapper() {
   const [timeoutMs, setTimeoutMs] = useState<number | null>(null);
   const [warningMs, setWarningMs] = useState<number>(DEFAULT_WARNING_MINUTES * 60 * 1000);
-  const router  = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
   const applyValue = useCallback((value: unknown) => {
@@ -90,7 +88,9 @@ export default function SessionTimeoutWrapper() {
   const { phase, secondsLeft, stayLoggedIn, signOut } = useSessionTimeout({
     timeoutMs:  timeoutMs ?? DEFAULT_TIMEOUT_MINUTES * 60 * 1000,
     warningMs,
-    onSignOut: () => router.replace("/login"),
+    // No onSignOut callback here — the redirect is handled by the modal
+    // "Go to Login" button, so the user always sees the "Session Expired"
+    // screen before being sent to /login.
   });
 
   // Don't render until setting is loaded for the first time

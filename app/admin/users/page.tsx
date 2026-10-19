@@ -9,6 +9,7 @@ import { ViewUserModal } from "@/components/admin/ViewUserModal";
 import { EyeIcon } from "@/components/ui/icons/EyeIcon";
 import { PowerIcon } from "@/components/ui/icons/PowerIcon";
 import { TrashIcon } from "@/components/ui/icons/TrashIcon";
+import { Toast, useToast } from "@/components/ui/Toast";
 
 const PAGE_SIZE = 10;
 
@@ -50,6 +51,7 @@ export default function AdminUsersPage() {
   const [currentUserProfile, setCurrentUserProfile] = useState<any>(null);
   const { user: currentUser } = useAuth();
   const { openConfirmation } = useConfirmation();
+  const { toast, showToast, closeToast } = useToast();
   const supabase = useMemo(() => createClient(), []);
 
   // View user modal state
@@ -119,7 +121,6 @@ export default function AdminUsersPage() {
       first_name: "Jane",
       last_name: "Doe",
       full_name: "Jane Doe",
-      country: "Philippines",
       role: "user",
       age: 20,
       sex: "Female",
@@ -132,7 +133,6 @@ export default function AdminUsersPage() {
       first_name: "John",
       last_name: "Smith",
       full_name: "John Smith",
-      country: "Philippines",
       role: "counselor",
       age: 30,
       sex: "Male",
@@ -163,7 +163,7 @@ export default function AdminUsersPage() {
 
       if (error) {
         console.error("Error updating role:", error);
-        alert(`Failed to update role: ${error.message}`);
+        showToast(`Failed to update role: ${error.message}`, "error");
       } else {
         // Refresh user list
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
@@ -200,7 +200,7 @@ export default function AdminUsersPage() {
 
       if (error) {
         console.error("Error transferring ownership:", error);
-        alert(`Failed to transfer ownership: ${error.message}`);
+        showToast(`Failed to transfer ownership: ${error.message}`, "error");
       } else {
         // Refresh user list
         const { data: refreshedUsers } = await supabase
@@ -249,7 +249,7 @@ export default function AdminUsersPage() {
 
       if (error) {
         console.error("Error updating user status:", error);
-        alert("Failed to update user status. Please try again.");
+        showToast("Failed to update user status. Please try again.", "error");
       } else {
         // Refresh user list
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, is_active: !currentStatus } : u));
@@ -289,7 +289,7 @@ export default function AdminUsersPage() {
 
       if (error) {
         console.error("Error deleting user:", error);
-        alert("Failed to delete user. Please try again.");
+        showToast("Failed to delete user. Please try again.", "error");
       } else {
         // Refresh user list
         setUsers(prev => prev.filter(u => u.id !== userId));
@@ -417,6 +417,7 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
+      <Toast {...toast} onClose={closeToast} />
       {/* View User Modal */}
       <ViewUserModal
         isOpen={viewModal.isOpen}

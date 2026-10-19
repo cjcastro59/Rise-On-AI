@@ -146,9 +146,6 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
     setError("");
 
     try {
-      // Store form data in sessionStorage so it survives the OTP verification
-      sessionStorage.setItem("pendingProfileData", JSON.stringify(formData));
-
       const { error: otpError } = await supabase.auth.signInWithOtp({
         email: formData.email,
         options: {
@@ -161,7 +158,6 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       });
 
       if (otpError) {
-        sessionStorage.removeItem("pendingProfileData");
         if (
           otpError.message.toLowerCase().includes("rate limit") ||
           otpError.message.toLowerCase().includes("too many")
@@ -244,8 +240,6 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
         setError(`Profile setup failed: ${upsertError.message}`);
         return;
       }
-
-      sessionStorage.removeItem("pendingProfileData");
 
       // Show "You're Ready!" step before redirecting
       updateStep(4);

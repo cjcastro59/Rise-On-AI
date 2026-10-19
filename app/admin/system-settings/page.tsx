@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { generateSecret, generate, verify as verifyTOTP, generateURI, createGuardrails } from "otplib";
 import { QRCodeSVG } from "qrcode.react";
+import { Toast, useToast } from "@/components/ui/Toast";
 import { buildCsvExport, buildJsonExport, downloadTextFile, type ExportSection } from "@/lib/export-data";
 import { validatePasswordStrength } from "@/lib/password";
 import { normalizeDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-ids";
@@ -112,6 +113,7 @@ export default function AdminSystemSettingsPage() {
   const { user } = useAuth();
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { toast, showToast, closeToast } = useToast();
   const [permissions, setPermissions] = useState<RolePermissions>(DEFAULT_PERMISSIONS);
   const [features, setFeatures] = useState(DEFAULT_FEATURES);
   const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
@@ -348,10 +350,10 @@ export default function AdminSystemSettingsPage() {
           details: "Updated system settings, display ID format, RBAC permissions, and session timeout",
         });
 
-      alert("System settings saved successfully!");
+      showToast("System settings saved successfully!", "success");
     } catch (error) {
       console.error("Error saving settings:", error);
-      alert("Failed to save system settings.");
+      showToast("Failed to save system settings.", "error");
     }
   };
 
@@ -1346,6 +1348,7 @@ export default function AdminSystemSettingsPage() {
 
   return (
     <div className="space-y-6">
+      <Toast {...toast} onClose={closeToast} />
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>

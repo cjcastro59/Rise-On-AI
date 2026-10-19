@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Toast, useToast } from "@/components/ui/Toast";
 
 interface Profile {
   first_name: string | null;
@@ -46,6 +47,7 @@ export default function CounselorProfilePage() {
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast, showToast, closeToast } = useToast();
 
   const fetchProfileAndStats = useCallback(async () => {
     if (!currentUser) return;
@@ -92,7 +94,7 @@ export default function CounselorProfilePage() {
   const saveProfile = async () => {
     if (!currentUser) {
       console.error("No user found");
-      alert("Please log in to save profile");
+      showToast("Please log in to save your profile.", "error");
       return;
     }
     
@@ -112,10 +114,10 @@ export default function CounselorProfilePage() {
       await fetchProfileAndStats();
       
       setIsEditing(false);
-      alert("Profile saved successfully!");
+      showToast("Profile saved successfully!", "success");
     } catch (error) {
       console.error("Error saving profile:", error);
-      alert("Failed to save profile.");
+      showToast("Failed to save profile. Please try again.", "error");
     } finally {
       setSaving(false);
     }
@@ -167,9 +169,9 @@ export default function CounselorProfilePage() {
         .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
         .eq("id", currentUser?.id);
         
-      alert("Avatar uploaded successfully!");
+      showToast("Avatar uploaded successfully!", "success");
     } catch (error) {
-      alert("Error uploading avatar!");
+      showToast("Error uploading avatar. Please try again.", "error");
       console.error(error);
     } finally {
       setUploading(false);
@@ -206,6 +208,7 @@ export default function CounselorProfilePage() {
 
   return (
     <div className="space-y-6">
+      <Toast {...toast} onClose={closeToast} />
       {/* Profile Header */}
       <div className="bg-white rounded-2xl p-6 border border-light-gray shadow-sm">
         <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">

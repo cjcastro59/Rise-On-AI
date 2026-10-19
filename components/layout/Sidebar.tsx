@@ -4,11 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import ProfileCard from "@/components/layout/ProfileCard";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 import {
   addNotification,
   checkDailyReminderAndNotify,
@@ -38,8 +39,10 @@ export default function Sidebar({ userName }: SidebarProps) {
   const [supportToast, setSupportToast] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { user } = useAuth();
   const supabase = useMemo(() => createClient() as any, []);
+  const { openConfirmation } = useConfirmation();
   const supportConversationIdsRef = useRef<Set<string>>(new Set());
   const supportToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -244,6 +247,19 @@ export default function Sidebar({ userName }: SidebarProps) {
     ? (userRole.toLowerCase() === "user" ? "Member" : userRole.charAt(0).toUpperCase() + userRole.slice(1))
     : "Member";
 
+  const handleLogout = async () => {
+    const confirmed = await openConfirmation({
+      title: "Sign Out",
+      message: "Are you sure you want to sign out?",
+      confirmText: "Sign Out",
+      cancelText: "Stay",
+      isDangerous: false,
+    });
+    if (!confirmed) return;
+    await fetch("/api/auth/signout", { method: "POST" });
+    router.replace("/login");
+  };
+
   const desktopNavLink = (
     href: string,
     label: string,
@@ -397,15 +413,14 @@ export default function Sidebar({ userName }: SidebarProps) {
               </div>
             </Link>
           )}
-          <form action="/api/auth/signout" method="post">
-            <Button
-              variant="secondary"
-              className={`w-full flex items-center justify-center gap-2 mt-2 py-2 bg-white/10 text-white border-white/20 hover:bg-white/20 ${isCollapsed ? "px-0" : ""}`}
-            >
-              <Image src="/icons/logout.svg" alt="Log Out" width={18} height={18} className="object-contain" />
-              {!isCollapsed && "Log Out"}
-            </Button>
-          </form>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className={`w-full flex items-center justify-center gap-2 mt-2 py-2 rounded-xl bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all text-sm font-poppins ${isCollapsed ? "px-0" : ""}`}
+          >
+            <Image src="/icons/logout.svg" alt="Log Out" width={18} height={18} className="object-contain" />
+            {!isCollapsed && "Log Out"}
+          </button>
         </div>
       </aside>
     </>

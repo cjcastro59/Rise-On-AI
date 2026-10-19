@@ -2,7 +2,8 @@ import { type AnalysisResult, type Sentiment, analyzeEntry } from "@/lib/sentime
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Config
-// SENTIMENT_MODEL_API_URL  = http://13.214.212.171/predict  (FastAPI on AWS Lightsail)
+// SENTIMENT_MODEL_API_URL = AWS Lightsail FastAPI inference server
+// Set this env var in .env.local → http://<your-ip>/predict
 // ─────────────────────────────────────────────────────────────────────────────
 const MODEL_API_URL = process.env.SENTIMENT_MODEL_API_URL ?? "";
 
@@ -69,7 +70,7 @@ function buildFromLabelScores(
 }
 
 function parseOutput(output: unknown): XLMroBERTaPrediction | null {
-  // Flat array: [{label, score}, ...]  ← our Render server returns this
+  // Flat array: [{label, score}, ...]
   if (Array.isArray(output) && output.length > 0 && !Array.isArray(output[0]))
     return buildFromLabelScores(output as Array<{ label: string; score: number }>);
   // Nested: [[{label, score}, ...]]

@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 import ProfileCard from "@/components/layout/ProfileCard";
 import MobileNav from "@/components/layout/MobileNav";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 
 interface UserProfile {
     id: string;
@@ -27,6 +28,8 @@ export default function CounselorSidebar() {
     const [isMounted, setIsMounted] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const supabase = useMemo(() => createClient(), []);
+    const router = useRouter();
+    const { openConfirmation } = useConfirmation();
 
     useEffect(() => {
         setIsMounted(true);
@@ -81,6 +84,19 @@ export default function CounselorSidebar() {
     const roleLabel = userProfile?.role
         ? userProfile.role.charAt(0).toUpperCase() + userProfile.role.slice(1)
         : "User";
+
+    const handleLogout = async () => {
+        const confirmed = await openConfirmation({
+            title: "Sign Out",
+            message: "Are you sure you want to sign out?",
+            confirmText: "Sign Out",
+            cancelText: "Stay",
+            isDangerous: false,
+        });
+        if (!confirmed) return;
+        await fetch("/api/auth/signout", { method: "POST" });
+        router.replace("/login");
+    };
 
     // Don't render until mounted to prevent hydration mismatch
     if (!isMounted) {
@@ -141,12 +157,14 @@ export default function CounselorSidebar() {
                   name={getDisplayName()}
                   role={roleLabel}
                 />
-                <form action="/api/auth/signout" method="post">
-                  <Button variant="secondary" size="sm" className="w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20">
-                    <Image src="/icons/logout.svg" alt="Log Out" width={16} height={16} className="object-contain" />
-                    Log Out
-                  </Button>
-                </form>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all text-sm font-poppins font-semibold"
+                >
+                  <Image src="/icons/logout.svg" alt="Log Out" width={16} height={16} className="object-contain" />
+                  Log Out
+                </button>
               </>
             }
           />
@@ -247,12 +265,14 @@ export default function CounselorSidebar() {
                     </div>
                   </Link>
                 )}
-                <form action="/api/auth/signout" method="post">
-                    <Button variant="secondary" className={`w-full flex items-center justify-center gap-2 bg-white/10 text-white border-white/20 hover:bg-white/20 ${isCollapsed ? "px-0" : ""}`}>
-                        <Image src="/icons/logout.svg" alt="Log Out" width={20} height={20} className="object-contain" />
-                        {!isCollapsed && "Log Out"}
-                    </Button>
-                </form>
+                <button
+                    type="button"
+                    onClick={handleLogout}
+                    className={`w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all text-sm font-poppins font-semibold ${isCollapsed ? "px-0" : ""}`}
+                >
+                    <Image src="/icons/logout.svg" alt="Log Out" width={20} height={20} className="object-contain" />
+                    {!isCollapsed && "Log Out"}
+                </button>
             </div>
         </aside>
     </>

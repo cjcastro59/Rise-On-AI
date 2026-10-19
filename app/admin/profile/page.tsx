@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Toast, useToast } from "@/components/ui/Toast";
 
 interface Profile {
   first_name: string | null;
@@ -36,6 +37,7 @@ interface Profile {
 export default function AdminProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { toast, showToast, closeToast } = useToast();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [profile, setProfile] = useState<Profile>({
@@ -98,7 +100,7 @@ export default function AdminProfilePage() {
   const saveProfile = async () => {
     if (!currentUser) {
       console.error("No user found");
-      alert("Please log in to save profile");
+      showToast("Please log in to save your profile.", "error");
       return;
     }
     
@@ -120,10 +122,10 @@ export default function AdminProfilePage() {
       await fetchProfile();
       
       setIsEditing(false);
-      alert("Profile saved successfully!");
+      showToast("Profile saved successfully!", "success");
     } catch (error) {
       console.error("Error saving profile:", error);
-      alert("Failed to save profile.");
+      showToast("Failed to save profile. Please try again.", "error");
     } finally {
       setSaving(false);
     }
@@ -189,9 +191,9 @@ export default function AdminProfilePage() {
       
       if (updateError) throw updateError;
       
-      alert("Avatar uploaded successfully!");
+      showToast("Avatar uploaded successfully!", "success");
     } catch (error) {
-      alert("Error uploading avatar!");
+      showToast("Error uploading avatar. Please try again.", "error");
       console.error(error);
     } finally {
       setUploading(false);
@@ -223,6 +225,7 @@ export default function AdminProfilePage() {
 
   return (
     <div className="space-y-6">
+      <Toast {...toast} onClose={closeToast} />
       {/* Profile Header */}
       <div className="bg-white rounded-2xl p-6 border border-light-gray shadow-sm">
         <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">

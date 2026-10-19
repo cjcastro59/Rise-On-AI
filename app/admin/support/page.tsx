@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/types/database";
 import { useAuth } from "@/hooks/useAuth";
+import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
+import { Toast, useToast } from "@/components/ui/Toast";
 
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
   user?: Database["public"]["Tables"]["user_profiles"]["Row"];
@@ -52,6 +54,8 @@ export default function AdminSupportPage() {
   const conversationsChannelRef = useRef<any>(null);
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient() as any, []);
+  const { openConfirmation } = useConfirmation();
+  const { toast, showToast, closeToast } = useToast();
 
   const isClinicalCounselorConversation = (conversation: Conversation) => {
     return (
@@ -536,13 +540,25 @@ export default function AdminSupportPage() {
   };
 
   const deleteConversation = async (conversationId: string) => {
-    if (!window.confirm("Delete this conversation and all its messages? This cannot be undone.")) return;
+    const confirmed = await openConfirmation({
+      title: "Delete Conversation",
+      message: "Delete this conversation and all its messages? This cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      isDangerous: true,
+    });
+    if (!confirmed) return;
     try {
       // Delete messages first (FK constraint)
       await supabase.from("messages").delete().eq("conversation_id", conversationId);
       const { error } = await supabase.from("conversations").delete().eq("id", conversationId);
       if (error) throw error;
       setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+      setConversationPreviews((prev) => {
+        const next = { ...prev };
+        delete next[conversationId];
+        return next;
+      });
       if (selectedConversation?.id === conversationId) {
         setSelectedConversation(null);
         setMessages([]);
@@ -596,6 +612,7 @@ export default function AdminSupportPage() {
 
   return (
     <div className="space-y-6">
+      <Toast {...toast} onClose={closeToast} />
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text">Support Chat</h1>

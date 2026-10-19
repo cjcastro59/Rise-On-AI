@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDisplayId, loadDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-ids";
+import { Toast, useToast } from "@/components/ui/Toast";
 
 interface DauPoint {
   date: string;
@@ -99,6 +100,7 @@ export default function AdminDashboardPage() {
   const [announcementTitle, setAnnouncementTitle] = useState("");
   const [announcementContent, setAnnouncementContent] = useState("");
   const [announcementsExpanded, setAnnouncementsExpanded] = useState(true);
+  const { toast, showToast, closeToast } = useToast();
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient() as any, []);
   const staffConversationIdsRef = useRef<Set<string>>(new Set());
@@ -130,7 +132,7 @@ export default function AdminDashboardPage() {
       .select("id,title,content,is_active,created_by,created_at")
       .eq("is_active", true)
       .order("created_at", { ascending: false })
-      .limit(3);
+      .limit(5);
 
     if (!error) {
       setAnnouncements((data || []) as AnnouncementRow[]);
@@ -461,7 +463,7 @@ export default function AdminDashboardPage() {
         const announcement = payload.new as AnnouncementRow;
         if (!announcement.is_active) return;
 
-        setAnnouncements((prev) => [announcement, ...prev.filter((item) => item.id !== announcement.id)].slice(0, 3));
+        setAnnouncements((prev) => [announcement, ...prev.filter((item) => item.id !== announcement.id)].slice(0, 5));
         pushNotification({
           id: `announcement:${announcement.id}`,
           type: "announcement",
@@ -543,14 +545,14 @@ export default function AdminDashboardPage() {
       });
     } catch (error) {
       console.error("Error exporting report:", error);
-      alert("Failed to export report");
+      showToast("Failed to export report. Please try again.", "error");
     }
   };
 
   // Create announcement
   const handleCreateAnnouncement = async () => {
     if (!announcementTitle || !announcementContent) {
-      alert("Please fill in all fields");
+      showToast("Please fill in both title and content.", "error");
       return;
     }
 
@@ -569,7 +571,7 @@ export default function AdminDashboardPage() {
       if (error) throw error;
       if (announcement) {
         setAnnouncements((prev) =>
-          [announcement as AnnouncementRow, ...prev.filter((item) => item.id !== announcement.id)].slice(0, 3)
+          [announcement as AnnouncementRow, ...prev.filter((item) => item.id !== announcement.id)].slice(0, 5)
         );
       }
 
@@ -580,13 +582,13 @@ export default function AdminDashboardPage() {
         details: `Created announcement: ${announcementTitle}`
       });
 
-      alert("Announcement created successfully!");
+      showToast("Announcement created successfully!", "success");
       setShowAnnouncementModal(false);
       setAnnouncementTitle("");
       setAnnouncementContent("");
     } catch (error) {
       console.error("Error creating announcement:", error);
-      alert("Failed to create announcement");
+      showToast("Failed to create announcement. Please try again.", "error");
     }
   };
 
@@ -604,7 +606,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      <Toast {...toast} onClose={closeToast} />
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white/80 px-6 py-5 shadow-sm border border-white/40 backdrop-blur-md">
         <div>

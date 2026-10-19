@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { createDistressAlertForJournalEntry } from "@/lib/distress-alerts";
 import Link from "next/link";
+import { Toast, useToast } from "@/components/ui/Toast";
 
 const moods = [
   { emoji: "😊", label: "Happy" },
@@ -61,6 +62,7 @@ export default function JournalEditorPage() {
   const supabase = useMemo(() => createClient() as any, []);
   const entryId = params.id as string;
   const editorRef = useRef<HTMLDivElement>(null);
+  const { toast, showToast, closeToast } = useToast();
 
   useEffect(() => {
     setCurrentPrompt(prompts[Math.floor(Math.random() * prompts.length)]);
@@ -232,6 +234,7 @@ export default function JournalEditorPage() {
 
   return (
     <>
+      <Toast {...toast} onClose={closeToast} />
       {/* Header */}
       <div className="flex flex-col gap-3 mb-6">
         <div className="flex items-center justify-between gap-2">
@@ -386,7 +389,7 @@ export default function JournalEditorPage() {
                 };
                 recognition.start();
               } else {
-                alert("Voice input not supported in this browser.");
+                showToast("Voice input is not supported in this browser.", "error");
               }
             }}
           >
