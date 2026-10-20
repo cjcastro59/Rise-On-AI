@@ -179,10 +179,20 @@ async function resolveRecipient(
 ) {
   if (channel === "counselor") {
     if (!profile.assigned_counselor_id) {
-      return {
-        error: "No counselor is assigned to your account yet.",
-        status: 409 as const,
-      };
+      const { data: counselors, error: counselorsError } = await adminClient
+        .from("user_profiles")
+        .select(SUPPORT_PROFILE_SELECT)
+        .eq("role", "counselor")
+        .eq("is_active", true)
+        .order("is_online", { ascending: false })
+        .order("created_at", { ascending: true })
+        .limit(1);
+
+      if (counselorsError) {
+        return { error: counselorsError.message, status: 500 as const };
+      }
+
+      return { recipient: (counselors?.[0] as SupportProfile | undefined) || null };
     }
 
     const { data: counselor, error: counselorError } = await adminClient
@@ -239,15 +249,7 @@ export async function GET() {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
-  const activeConversation = result.conversations.find(
-    (conversation) => conversation.status === "open"
-  );
-  const conversations = result.conversations.filter(
-    (conversation) =>
-      conversation.status !== "open" || conversation.id === activeConversation?.id
-  );
-
-  return NextResponse.json({ ok: true, ...result, conversations });
+  return NextResponse.json({ ok: true, ...result });
 }
 
 export async function POST(request: NextRequest) {
@@ -272,13 +274,17 @@ export async function POST(request: NextRequest) {
   }
 
   const activeConversation = existingResult.conversations.find(
-    (conversation) => conversation.status === "open"
+    (conversation) =>
+      conversation.status === "open" && conversation.channel === channel
   );
+
   if (activeConversation) {
     const duplicateConversationIds = existingResult.conversations
       .filter(
         (conversation) =>
-          conversation.status === "open" && conversation.id !== activeConversation.id
+          conversation.status === "open" &&
+          conversation.channel === channel &&
+          conversation.id !== activeConversation.id
       )
       .map((conversation) => conversation.id);
 
@@ -307,6 +313,72 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  const latestClosedConversation = existingResult.conversations.find(
+    (conversation) =>
+      conversation.status === "closed" && conversation.channel === channel
+  );
+
+  if (latestClosedConversation) {
+    const { data: reopenedConversation, error: reopenError } = await auth.adminClient
+      .from("conversations")
+      .update({ status: "open" })
+      .eq("id", latestClosedConversation.id)
+      .eq("user_id", auth.user.id)
+      .eq("status", "closed")
+      .select("id,user_id,counselor_id,status,created_at,updated_at")
+      .maybeSingle();
+
+    if (reopenError) {
+      return NextResponse.json({ error: reopenError.message }, { status: 500 });
+    }
+
+    if (reopenedConversation) {
+      const recipient = reopenedConversation.counselor_id
+        ? existingResult.recipients[reopenedConversation.counselor_id] || null
+        : null;
+
+      return NextResponse.json({
+        ok: true,
+        conversation: {
+          ...reopenedConversation,
+          channel,
+          unreadCount: existingResult.unreadCounts[reopenedConversation.id] || 0,
+        },
+        recipient,
+      });
+    }
+
+    const refreshedResult = await loadUserConversations(
+      auth.adminClient,
+      auth.user.id,
+      auth.profile
+    );
+
+    if ("error" in refreshedResult) {
+      return NextResponse.json(
+        { error: refreshedResult.error },
+        { status: refreshedResult.status }
+      );
+    }
+
+    const concurrentlyOpenedConversation = refreshedResult.conversations.find(
+      (conversation) =>
+        conversation.status === "open" && conversation.channel === channel
+    );
+
+    if (concurrentlyOpenedConversation) {
+      const recipient = concurrentlyOpenedConversation.counselor_id
+        ? refreshedResult.recipients[concurrentlyOpenedConversation.counselor_id] || null
+        : null;
+
+      return NextResponse.json({
+        ok: true,
+        conversation: concurrentlyOpenedConversation,
+        recipient,
+      });
+    }
+  }
+
   const recipientResult = await resolveRecipient(
     auth.adminClient,
     auth.profile,
@@ -325,7 +397,7 @@ export async function POST(request: NextRequest) {
     .from("conversations")
     .insert({
       user_id: auth.user.id,
-      counselor_id: recipient.id,
+      counselor_id: recipient?.id ?? null,
       status: "open",
     })
     .select("id,user_id,counselor_id,status,created_at,updated_at")

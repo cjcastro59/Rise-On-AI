@@ -80,15 +80,6 @@ const getConversationChannel = (
   return recipientRole === "counselor" ? "counselor" : "admin";
 };
 
-const filterParticipantMessages = (
-  messages: Message[],
-  conversation: SupportConversation | null
-) => {
-  if (!conversation) return [];
-  const participantIds = new Set([conversation.user_id, conversation.counselor_id].filter(Boolean));
-  return messages.filter((message) => participantIds.has(message.sender_id));
-};
-
 export default function SupportPage() {
   const [conversations, setConversations] = useState<SupportConversation[]>([]);
   const [recipients, setRecipients] = useState<Record<string, SupportProfile>>({});
@@ -195,7 +186,7 @@ export default function SupportPage() {
       return;
     }
 
-    setMessages(filterParticipantMessages((data || []) as Message[], conversation));
+    setMessages((data || []) as Message[]);
     void markConversationRead(conversation.id);
   }, [markConversationRead, supabase]);
 
@@ -225,10 +216,20 @@ export default function SupportPage() {
         throw new Error(result.error || "Failed to delete conversation.");
       }
 
-      setConversations((prev) => prev.filter((item) => item.id !== conversationId));
-      setSelectedConversation(null);
-      selectedConversationRef.current = null;
-      setMessages([]);
+      const remainingConversations = conversations.filter(
+        (item) => item.id !== conversationId
+      );
+      const nextConversation = remainingConversations[0] || null;
+      setConversations(remainingConversations);
+      setSelectedConversation(nextConversation);
+      selectedConversationRef.current = nextConversation;
+      if (nextConversation) {
+        setActiveChannel(
+          getConversationChannel(nextConversation, currentUserProfile, recipients)
+        );
+      } else {
+        setMessages([]);
+      }
       displayToast("Conversation deleted.", "Support conversation");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete conversation.");
@@ -386,8 +387,6 @@ export default function SupportPage() {
         const signedInUserId = currentUserIdRef.current;
 
         if (!conversation || !signedInUserId || incoming.sender_id === signedInUserId) return;
-        if (![conversation.user_id, conversation.counselor_id].includes(incoming.sender_id)) return;
-
         const sender =
           senderProfiles[incoming.sender_id] ||
           (conversation.counselor_id ? recipients[conversation.counselor_id] : null);

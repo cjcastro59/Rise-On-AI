@@ -89,7 +89,8 @@ export default function AdminSupportPage() {
       const adminConversations = ((data || []) as Conversation[]).filter(
         (conversation) =>
           !isClinicalCounselorConversation(conversation) &&
-          (conversation.counselor?.role === "admin" ||
+          (!conversation.counselor_id ||
+            conversation.counselor?.role === "admin" ||
             conversation.counselor?.role === "owner")
       );
       setConversations(adminConversations);
@@ -175,7 +176,8 @@ export default function AdminSupportPage() {
           const isAdminChannel =
             newConversationWithUser &&
             !isClinicalCounselorConversation(newConversationWithUser) &&
-            (newConversationWithUser.counselor?.role === "admin" ||
+            (!newConversationWithUser.counselor_id ||
+              newConversationWithUser.counselor?.role === "admin" ||
               newConversationWithUser.counselor?.role === "owner");
 
           if (isAdminChannel) {
@@ -212,7 +214,8 @@ export default function AdminSupportPage() {
           const isAdminChannel =
             updatedConversationWithUser &&
             !isClinicalCounselorConversation(updatedConversationWithUser) &&
-            (updatedConversationWithUser.counselor?.role === "admin" ||
+            (!updatedConversationWithUser.counselor_id ||
+              updatedConversationWithUser.counselor?.role === "admin" ||
               updatedConversationWithUser.counselor?.role === "owner");
 
           if (isAdminChannel) {
@@ -560,15 +563,19 @@ export default function AdminSupportPage() {
       if (!response.ok) {
         throw new Error(result.error || "Failed to delete conversation.");
       }
-      setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+      const remainingConversations = conversations.filter(
+        (conversation) => conversation.id !== conversationId
+      );
+      setConversations(remainingConversations);
       setConversationPreviews((prev) => {
         const next = { ...prev };
         delete next[conversationId];
         return next;
       });
       if (selectedConversation?.id === conversationId) {
-        setSelectedConversation(null);
-        setMessages([]);
+        const nextConversation = remainingConversations[0] || null;
+        setSelectedConversation(nextConversation);
+        if (!nextConversation) setMessages([]);
       }
       showToast("Conversation deleted.", "success");
     } catch (error) {
