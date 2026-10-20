@@ -239,7 +239,15 @@ export async function GET() {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
-  return NextResponse.json({ ok: true, ...result });
+  const activeConversation = result.conversations.find(
+    (conversation) => conversation.status === "open"
+  );
+  const conversations = result.conversations.filter(
+    (conversation) =>
+      conversation.status !== "open" || conversation.id === activeConversation?.id
+  );
+
+  return NextResponse.json({ ok: true, ...result, conversations });
 }
 
 export async function POST(request: NextRequest) {
@@ -250,6 +258,55 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json().catch(() => ({}));
   const channel = body?.channel === "admin" ? "admin" : "counselor";
+  const existingResult = await loadUserConversations(
+    auth.adminClient,
+    auth.user.id,
+    auth.profile
+  );
+
+  if ("error" in existingResult) {
+    return NextResponse.json(
+      { error: existingResult.error },
+      { status: existingResult.status }
+    );
+  }
+
+  const activeConversation = existingResult.conversations.find(
+    (conversation) => conversation.status === "open"
+  );
+  if (activeConversation) {
+    const duplicateConversationIds = existingResult.conversations
+      .filter(
+        (conversation) =>
+          conversation.status === "open" && conversation.id !== activeConversation.id
+      )
+      .map((conversation) => conversation.id);
+
+    if (duplicateConversationIds.length > 0) {
+      const { error: closeDuplicatesError } = await auth.adminClient
+        .from("conversations")
+        .update({ status: "closed" })
+        .eq("user_id", auth.user.id)
+        .in("id", duplicateConversationIds);
+
+      if (closeDuplicatesError) {
+        return NextResponse.json(
+          { error: closeDuplicatesError.message },
+          { status: 500 }
+        );
+      }
+    }
+
+    const recipient = activeConversation.counselor_id
+      ? existingResult.recipients[activeConversation.counselor_id] || null
+      : null;
+    return NextResponse.json({
+      ok: true,
+      conversation: activeConversation,
+      recipient,
+    });
+  }
+
   const recipientResult = await resolveRecipient(
     auth.adminClient,
     auth.profile,
@@ -264,41 +321,21 @@ export async function POST(request: NextRequest) {
   }
 
   const recipient = recipientResult.recipient;
-  const { data: existingConversations, error: existingError } =
-    await auth.adminClient
-      .from("conversations")
-      .select("id,user_id,counselor_id,status,created_at,updated_at")
-      .eq("user_id", auth.user.id)
-      .eq("counselor_id", recipient.id)
-      .eq("status", "open")
-      .order("updated_at", { ascending: false })
-      .limit(1);
+  const { data: conversation, error: insertError } = await auth.adminClient
+    .from("conversations")
+    .insert({
+      user_id: auth.user.id,
+      counselor_id: recipient.id,
+      status: "open",
+    })
+    .select("id,user_id,counselor_id,status,created_at,updated_at")
+    .maybeSingle();
 
-  if (existingError) {
-    return NextResponse.json({ error: existingError.message }, { status: 500 });
-  }
-
-  let conversation = existingConversations?.[0] as Conversation | undefined;
-  if (!conversation) {
-    const { data: insertedConversation, error: insertError } =
-      await auth.adminClient
-        .from("conversations")
-        .insert({
-          user_id: auth.user.id,
-          counselor_id: recipient.id,
-          status: "open",
-        })
-        .select("id,user_id,counselor_id,status,created_at,updated_at")
-        .maybeSingle();
-
-    if (insertError || !insertedConversation) {
-      return NextResponse.json(
-        { error: insertError?.message || "Failed to start support conversation." },
-        { status: insertError ? 500 : 404 }
-      );
-    }
-
-    conversation = insertedConversation as Conversation;
+  if (insertError || !conversation) {
+    return NextResponse.json(
+      { error: insertError?.message || "Failed to start support conversation." },
+      { status: insertError ? 500 : 404 }
+    );
   }
 
   return NextResponse.json({
@@ -358,6 +395,63 @@ export async function PATCH(request: NextRequest) {
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(request: NextRequest) {
+  const auth = await getAuthenticatedClients();
+  if ("error" in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  const body = await request.json().catch(() => ({}));
+  const conversationId =
+    typeof body?.conversationId === "string" ? body.conversationId : "";
+
+  if (!conversationId) {
+    return NextResponse.json(
+      { error: "conversationId is required." },
+      { status: 400 }
+    );
+  }
+
+  const { data: conversation, error: conversationError } = await auth.adminClient
+    .from("conversations")
+    .select("id,user_id,counselor_id")
+    .eq("id", conversationId)
+    .maybeSingle();
+
+  if (conversationError || !conversation) {
+    return NextResponse.json(
+      { error: conversationError?.message || "Conversation was not found." },
+      { status: conversationError ? 500 : 404 }
+    );
+  }
+
+  const isParticipant =
+    conversation.user_id === auth.user.id ||
+    conversation.counselor_id === auth.user.id;
+  const isSupportAdministrator =
+    auth.profile.role === "admin" || auth.profile.role === "owner";
+
+  if (!isParticipant && !isSupportAdministrator) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
+
+  const { data: deletedConversation, error: deleteError } = await auth.adminClient
+    .from("conversations")
+    .delete()
+    .eq("id", conversationId)
+    .select("id")
+    .maybeSingle();
+
+  if (deleteError || !deletedConversation) {
+    return NextResponse.json(
+      { error: deleteError?.message || "Conversation could not be deleted." },
+      { status: deleteError ? 500 : 404 }
+    );
   }
 
   return NextResponse.json({ ok: true });

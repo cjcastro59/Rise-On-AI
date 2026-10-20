@@ -101,9 +101,11 @@ export default function SupportPage() {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [deletingConversation, setDeletingConversation] = useState(false);
   const [startingChannel, setStartingChannel] = useState<SupportChannel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [toastTitle, setToastTitle] = useState("New support message");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const selectedConversationRef = useRef<SupportConversation | null>(null);
   const conversationsRef = useRef<SupportConversation[]>([]);
@@ -112,8 +114,9 @@ export default function SupportPage() {
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const supabase = useMemo(() => createClient() as any, []);
 
-  const displayToast = useCallback((message: string) => {
+  const displayToast = useCallback((message: string, title = "New support message") => {
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToastTitle(title);
     setToast(message);
     toastTimerRef.current = setTimeout(() => setToast(null), 5000);
   }, []);
@@ -196,6 +199,44 @@ export default function SupportPage() {
     void markConversationRead(conversation.id);
   }, [markConversationRead, supabase]);
 
+  const deleteConversation = async () => {
+    if (!selectedConversation || deletingConversation) return;
+
+    const conversationId = selectedConversation.id;
+    const confirmed = await openConfirmation({
+      title: "Delete Conversation",
+      message: "Are you sure you want to delete this conversation? This cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      isDangerous: true,
+    });
+    if (!confirmed) return;
+
+    try {
+      setDeletingConversation(true);
+      setError(null);
+      const response = await fetch("/api/support/conversations", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to delete conversation.");
+      }
+
+      setConversations((prev) => prev.filter((item) => item.id !== conversationId));
+      setSelectedConversation(null);
+      selectedConversationRef.current = null;
+      setMessages([]);
+      displayToast("Conversation deleted.", "Support conversation");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete conversation.");
+    } finally {
+      setDeletingConversation(false);
+    }
+  };
+
   const openChannel = useCallback(async (channel: SupportChannel) => {
     try {
       setStartingChannel(channel);
@@ -212,14 +253,16 @@ export default function SupportPage() {
       }
 
       const conversation = result.conversation as SupportConversation;
-      const recipient = result.recipient as SupportProfile;
+      const recipient = result.recipient as SupportProfile | null;
 
-      setRecipients((prev) => ({ ...prev, [recipient.id]: recipient }));
+      if (recipient) {
+        setRecipients((prev) => ({ ...prev, [recipient.id]: recipient }));
+      }
       setConversations((prev) => {
         const withoutCurrent = prev.filter((item) => item.id !== conversation.id);
         return [conversation, ...withoutCurrent];
       });
-      setActiveChannel(channel);
+      setActiveChannel(conversation.channel || channel);
       setSelectedConversation(conversation);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to open channel.");
@@ -422,7 +465,7 @@ export default function SupportPage() {
               !
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold font-poppins text-dark-text">New support message</p>
+              <p className="text-sm font-semibold font-poppins text-dark-text">{toastTitle}</p>
               <p className="mt-1 text-xs font-inter text-slate-700">{toast}</p>
             </div>
             <button
@@ -521,7 +564,7 @@ export default function SupportPage() {
                     type="button"
                     size="sm"
                     variant={activeChannel === channel ? "primary" : "secondary"}
-                    disabled={startingChannel === channel}
+                    disabled={startingChannel !== null}
                     onClick={() => openChannel(channel)}
                   >
                     {startingChannel === channel ? "Opening..." : channelCopy[channel].cta}
@@ -554,6 +597,7 @@ export default function SupportPage() {
                         <button
                           type="button"
                           onClick={() => openChannel(channel)}
+                          disabled={startingChannel !== null}
                           className="w-full rounded-xl border border-dashed border-gray-200 p-3 text-left text-xs font-poppins text-dark-text/55 hover:border-primary-blue/30 hover:text-dark-text"
                         >
                           Start this channel
@@ -622,31 +666,13 @@ export default function SupportPage() {
                       }`}>
                       {selectedConversation.status === "open" ? "Open" : "Closed"}
                       </span>
-                      {/* Member can delete their own conversation */}
                       <button
                         type="button"
-                        onClick={async () => {
-                          const confirmed = await openConfirmation({
-                            title: "Delete Conversation",
-                            message: "Delete this conversation and all its messages? This cannot be undone.",
-                            confirmText: "Delete",
-                            cancelText: "Cancel",
-                            isDangerous: true,
-                          });
-                          if (!confirmed) return;
-                          const { error } = await supabase
-                            .from("conversations")
-                            .delete()
-                            .eq("id", selectedConversation.id);
-                          if (!error) {
-                            setConversations(prev => prev.filter(c => c.id !== selectedConversation.id));
-                            setSelectedConversation(null);
-                            setMessages([]);
-                          }
-                        }}
-                        className="rounded-lg border border-soft-red/30 px-3 py-1 text-xs font-poppins text-soft-red hover:bg-soft-red/10 transition"
+                        onClick={deleteConversation}
+                        disabled={deletingConversation}
+                        className="rounded-lg border border-soft-red/30 px-3 py-1 text-xs font-poppins text-soft-red hover:bg-soft-red/10 transition disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        Delete
+                        {deletingConversation ? "Deleting..." : "Delete"}
                       </button>
                     </div>
                   </div>

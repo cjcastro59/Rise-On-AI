@@ -46,6 +46,7 @@ export default function AdminSupportPage() {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [closingConversation, setClosingConversation] = useState(false);
+  const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
   const [activeCategory, setActiveCategory] = useState<AdminSupportCategory>("questions");
@@ -542,17 +543,23 @@ export default function AdminSupportPage() {
   const deleteConversation = async (conversationId: string) => {
     const confirmed = await openConfirmation({
       title: "Delete Conversation",
-      message: "Delete this conversation and all its messages? This cannot be undone.",
+      message: "Are you sure you want to delete this conversation? This cannot be undone.",
       confirmText: "Delete",
       cancelText: "Cancel",
       isDangerous: true,
     });
     if (!confirmed) return;
     try {
-      // Delete messages first (FK constraint)
-      await supabase.from("messages").delete().eq("conversation_id", conversationId);
-      const { error } = await supabase.from("conversations").delete().eq("id", conversationId);
-      if (error) throw error;
+      setDeletingConversationId(conversationId);
+      const response = await fetch("/api/support/conversations", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to delete conversation.");
+      }
       setConversations((prev) => prev.filter((c) => c.id !== conversationId));
       setConversationPreviews((prev) => {
         const next = { ...prev };
@@ -563,8 +570,12 @@ export default function AdminSupportPage() {
         setSelectedConversation(null);
         setMessages([]);
       }
+      showToast("Conversation deleted.", "success");
     } catch (error) {
       console.error("Error deleting conversation:", error);
+      showToast(error instanceof Error ? error.message : "Failed to delete conversation.", "error");
+    } finally {
+      setDeletingConversationId(null);
     }
   };
 
@@ -674,7 +685,8 @@ export default function AdminSupportPage() {
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); deleteConversation(convo.id); }}
-                      className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500"
+                      disabled={deletingConversationId === convo.id}
+                      className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 disabled:cursor-not-allowed disabled:opacity-60"
                       title="Delete conversation"
                       aria-label="Delete conversation"
                     >

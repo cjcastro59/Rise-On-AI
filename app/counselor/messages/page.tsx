@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/types/database";
 import { useAuth } from "@/hooks/useAuth";
+import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
+import { Toast, useToast } from "@/components/ui/Toast";
 
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
   user?: Database["public"]["Tables"]["user_profiles"]["Row"];
@@ -28,6 +30,7 @@ export default function CounselorMessagesPage() {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [closingConversation, setClosingConversation] = useState(false);
+  const [deletingConversation, setDeletingConversation] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -35,6 +38,8 @@ export default function CounselorMessagesPage() {
   const conversationsChannelRef = useRef<any>(null);
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient() as any, []);
+  const { openConfirmation } = useConfirmation();
+  const { toast, showToast, closeToast } = useToast();
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -532,6 +537,43 @@ export default function CounselorMessagesPage() {
     }
   };
 
+  const deleteConversation = async () => {
+    if (!selectedConversation || deletingConversation) return;
+
+    const conversationId = selectedConversation.id;
+    const confirmed = await openConfirmation({
+      title: "Delete Conversation",
+      message: "Are you sure you want to delete this conversation? This cannot be undone.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      isDangerous: true,
+    });
+    if (!confirmed) return;
+
+    try {
+      setDeletingConversation(true);
+      const response = await fetch("/api/support/conversations", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to delete conversation.");
+      }
+
+      setConversations((prev) => prev.filter((conversation) => conversation.id !== conversationId));
+      setSelectedConversation(null);
+      setMessages([]);
+      showToast("Conversation deleted.", "success");
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      showToast(error instanceof Error ? error.message : "Failed to delete conversation.", "error");
+    } finally {
+      setDeletingConversation(false);
+    }
+  };
+
   const getFirstName = (name: string | undefined | null) => {
     if (!name) return "Unknown User";
     return name.split(' ')[0];
@@ -539,6 +581,7 @@ export default function CounselorMessagesPage() {
 
   return (
     <div className="space-y-6">
+      <Toast {...toast} onClose={closeToast} />
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text">Messages</h1>
@@ -608,15 +651,24 @@ export default function CounselorMessagesPage() {
                         </span>
                       </p>
                     </div>
-                    {selectedConversation.status === "open" && currentUserProfile && (['owner', 'admin', 'counselor'].includes(currentUserProfile.role || '')) && (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedConversation.status === "open" && currentUserProfile && (['owner', 'admin', 'counselor'].includes(currentUserProfile.role || '')) && (
+                        <Button
+                          onClick={closeConversation}
+                          disabled={closingConversation}
+                          className="bg-rose-600 text-white hover:bg-rose-700"
+                        >
+                          {closingConversation ? "Closing..." : "Close Conversation"}
+                        </Button>
+                      )}
                       <Button
-                        onClick={closeConversation}
-                        disabled={closingConversation}
-                        className="bg-rose-600 text-white hover:bg-rose-700"
+                        onClick={deleteConversation}
+                        disabled={deletingConversation}
+                        className="bg-red-800 text-white hover:bg-red-900 disabled:opacity-60"
                       >
-                        {closingConversation ? "Closing..." : "Close Conversation"}
+                        {deletingConversation ? "Deleting..." : "Delete Conversation"}
                       </Button>
-                    )}
+                    </div>
                   </div>
                 </div>
                 

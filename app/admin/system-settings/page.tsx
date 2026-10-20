@@ -22,21 +22,6 @@ const flash = (setter: (message: string) => void, message: string, ms = 3500) =>
   setTimeout(() => setter(""), ms);
 };
 
-const readLocalPreference = <T,>(userId: string, key: string, fallback: T): T => {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const value = window.localStorage.getItem(`rise-on-ai:${userId}:${key}`);
-    return value ? ({ ...fallback, ...JSON.parse(value) } as T) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const writeLocalPreference = (userId: string, key: string, value: unknown) => {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(`rise-on-ai:${userId}:${key}`, JSON.stringify(value));
-};
-
 // Define permission types
 type PermissionValue = "full" | "limited" | "anonymous" | "aggregated" | "none";
 
@@ -152,14 +137,12 @@ export default function AdminSystemSettingsPage() {
       if (data) {
         setTwoFactorEnabled(data.two_factor_enabled);
         setLanguage(data.language || "English");
-        const localNotification = readLocalPreference(user.id, "admin-notification-settings", DEFAULT_NOTIFICATION_SETTINGS);
-        const localPrivacy = readLocalPreference(user.id, "admin-privacy-settings", DEFAULT_PRIVACY_SETTINGS);
         setPrivacySettings({
-          ...localPrivacy,
+          ...DEFAULT_PRIVACY_SETTINGS,
           ...(data.privacy_settings as Partial<typeof DEFAULT_PRIVACY_SETTINGS> | null),
         });
         setNotificationSettings({
-          ...localNotification,
+          ...DEFAULT_NOTIFICATION_SETTINGS,
           ...(data.notification_settings as Partial<typeof DEFAULT_NOTIFICATION_SETTINGS> | null),
         });
       }
@@ -468,15 +451,16 @@ export default function AdminSystemSettingsPage() {
     if (!user) return;
     try {
       setLoadingPersonal(true);
-      const { error } = await supabase.from("user_profiles").update({
+      const { data, error } = await supabase.from("user_profiles").update({
         notification_settings: notificationSettings,
         updated_at: new Date().toISOString(),
-      }).eq("id", user.id);
+      }).eq("id", user.id).select("id").single();
       if (error) throw error;
-      writeLocalPreference(user.id, "admin-notification-settings", notificationSettings);
+      if (!data) throw new Error("Settings were not saved. Please try again.");
+      setError("");
       flash(setSuccess, "Notification settings saved.");
-    } catch (err: any) {
-      flash(setError, err.message || "Failed to save notification settings.");
+    } catch (err) {
+      flash(setError, err instanceof Error ? err.message : "Failed to save notification settings.");
     } finally {
       setLoadingPersonal(false);
     }
@@ -486,15 +470,16 @@ export default function AdminSystemSettingsPage() {
     if (!user) return;
     try {
       setLoadingPersonal(true);
-      const { error } = await supabase.from("user_profiles").update({
+      const { data, error } = await supabase.from("user_profiles").update({
         privacy_settings: privacySettings,
         updated_at: new Date().toISOString(),
-      }).eq("id", user.id);
+      }).eq("id", user.id).select("id").single();
       if (error) throw error;
-      writeLocalPreference(user.id, "admin-privacy-settings", privacySettings);
+      if (!data) throw new Error("Settings were not saved. Please try again.");
+      setError("");
       flash(setSuccess, "Privacy settings saved.");
-    } catch (err: any) {
-      flash(setError, err.message || "Failed to save privacy settings.");
+    } catch (err) {
+      flash(setError, err instanceof Error ? err.message : "Failed to save privacy settings.");
     } finally {
       setLoadingPersonal(false);
     }
@@ -504,14 +489,18 @@ export default function AdminSystemSettingsPage() {
     if (!user) return;
     try {
       setLoadingPersonal(true);
-      const { error: updateError } = await supabase
+      const { data, error: updateError } = await supabase
         .from("user_profiles")
         .update({ language, updated_at: new Date().toISOString() })
-        .eq("id", user.id);
+        .eq("id", user.id)
+        .select("id")
+        .single();
       if (updateError) throw updateError;
+      if (!data) throw new Error("Settings were not saved. Please try again.");
+      setError("");
       flash(setSuccess, "Language preference saved.");
-    } catch (err: any) {
-      flash(setError, err.message || "Failed to save language preference.");
+    } catch (err) {
+      flash(setError, err instanceof Error ? err.message : "Failed to save language preference.");
     } finally {
       setLoadingPersonal(false);
     }
@@ -1351,12 +1340,12 @@ export default function AdminSystemSettingsPage() {
       <Toast {...toast} onClose={closeToast} />
       {/* Flash banners for personal settings sections (notifications, privacy, language) */}
       {error && (
-        <div className="text-error-red text-sm bg-error-red/10 px-4 py-3 rounded-xl font-poppins border border-error-red/20 animate-in fade-in duration-150">
+        <div role="alert" className="rounded-xl border border-red-800 bg-red-100 px-4 py-3 text-sm font-semibold text-red-950 shadow-sm animate-in fade-in duration-150">
           {error}
         </div>
       )}
       {success && (
-        <div className="text-success-green text-sm bg-success-green/10 px-4 py-3 rounded-xl font-poppins border border-success-green/20 animate-in fade-in duration-150">
+        <div role="status" aria-live="polite" className="rounded-xl border border-emerald-800 bg-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-950 shadow-sm animate-in fade-in duration-150">
           {success}
         </div>
       )}

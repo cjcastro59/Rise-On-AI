@@ -21,21 +21,6 @@ const flash = (setter: (m: string) => void, msg: string, ms = 3500) => {
   setTimeout(() => setter(""), ms);
 };
 
-const readLocalPreference = <T,>(userId: string, key: string, fallback: T): T => {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const value = window.localStorage.getItem(`rise-on-ai:${userId}:${key}`);
-    return value ? ({ ...fallback, ...JSON.parse(value) } as T) : fallback;
-  } catch {
-    return fallback;
-  }
-};
-
-const writeLocalPreference = (userId: string, key: string, value: unknown) => {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(`rise-on-ai:${userId}:${key}`, JSON.stringify(value));
-};
-
 export default function CounselorSettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingSection>("counselor");
   const [notificationSettings, setNotificationSettings] = useState({
@@ -84,34 +69,27 @@ export default function CounselorSettingsPage() {
         .select("two_factor_enabled, is_online, language, privacy_settings, notification_settings, shift")
         .eq("id", user.id)
         .maybeSingle();
-      if (err) return;
+      if (err) throw err;
       if (data) {
-        const storedNotificationSettings = readLocalPreference(
-          user.id,
-          "counselor-notification-settings",
-          notificationSettings,
-        );
-        const storedPrivacySettings = readLocalPreference(
-          user.id,
-          "counselor-privacy-settings",
-          privacySettings,
-        );
         setTwoFactorEnabled(Boolean(data.two_factor_enabled));
         setIsOnline(Boolean(data.is_online));
         if (data.shift === "night") setShift("night");
         else setShift("day");
         setNotificationSettings({
-          ...storedNotificationSettings,
+          emailAlerts: true,
+          newCaseAlerts: true,
+          messageAlerts: true,
           ...(data.notification_settings as Partial<typeof notificationSettings> | null),
         });
         setPrivacySettings({
-          ...storedPrivacySettings,
+          shareAnonymousData: true,
+          profileVisibility: "private",
           ...(data.privacy_settings as Partial<typeof privacySettings> | null),
         });
         setLanguage(data.language || "English");
       }
-    } catch {
-      /* ignore */
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load settings.");
     }
   }, [supabase, user]);
 
@@ -139,15 +117,16 @@ export default function CounselorSettingsPage() {
     if (!user) return;
     try {
       setSaving(true);
-      const { error } = await supabase.from("user_profiles").update({
+      const { data, error } = await supabase.from("user_profiles").update({
         notification_settings: notificationSettings,
         updated_at: new Date().toISOString(),
-      }).eq("id", user.id);
+      }).eq("id", user.id).select("id").single();
       if (error) throw error;
-      writeLocalPreference(user.id, "counselor-notification-settings", notificationSettings);
+      if (!data) throw new Error("Settings were not saved. Please try again.");
+      setError("");
       flash(setSuccess, "✅ Notification settings saved!");
-    } catch (e: any) {
-      flash(setError, "❌ " + (e.message || "Failed to save"));
+    } catch (e) {
+      flash(setError, "❌ " + (e instanceof Error ? e.message : "Failed to save"));
     } finally {
       setSaving(false);
     }
@@ -157,14 +136,16 @@ export default function CounselorSettingsPage() {
     if (!user) return;
     try {
       setSaving(true);
-      const { error } = await supabase.from("user_profiles").update({
+      const { data, error } = await supabase.from("user_profiles").update({
         shift: shift || "day",
         updated_at: new Date().toISOString(),
-      }).eq("id", user.id);
+      }).eq("id", user.id).select("id").single();
       if (error) throw error;
+      if (!data) throw new Error("Settings were not saved. Please try again.");
+      setError("");
       flash(setSuccess, "✅ Shift preference saved!");
-    } catch (e: any) {
-      flash(setError, "❌ " + (e.message || "Failed to save shift"));
+    } catch (e) {
+      flash(setError, "❌ " + (e instanceof Error ? e.message : "Failed to save shift"));
     } finally {
       setSaving(false);
     }
@@ -174,15 +155,16 @@ export default function CounselorSettingsPage() {
     if (!user) return;
     try {
       setSaving(true);
-      const { error } = await supabase.from("user_profiles").update({
+      const { data, error } = await supabase.from("user_profiles").update({
         privacy_settings: privacySettings,
         updated_at: new Date().toISOString(),
-      }).eq("id", user.id);
+      }).eq("id", user.id).select("id").single();
       if (error) throw error;
-      writeLocalPreference(user.id, "counselor-privacy-settings", privacySettings);
+      if (!data) throw new Error("Settings were not saved. Please try again.");
+      setError("");
       flash(setSuccess, "✅ Privacy settings saved!");
-    } catch (e: any) {
-      flash(setError, "❌ " + (e.message || "Failed to save"));
+    } catch (e) {
+      flash(setError, "❌ " + (e instanceof Error ? e.message : "Failed to save"));
     } finally {
       setSaving(false);
     }
@@ -192,14 +174,16 @@ export default function CounselorSettingsPage() {
     if (!user) return;
     try {
       setSaving(true);
-      const { error } = await supabase.from("user_profiles").update({
+      const { data, error } = await supabase.from("user_profiles").update({
         language,
         updated_at: new Date().toISOString(),
-      }).eq("id", user.id);
+      }).eq("id", user.id).select("id").single();
       if (error) throw error;
+      if (!data) throw new Error("Settings were not saved. Please try again.");
+      setError("");
       flash(setSuccess, "✅ Language preference saved!");
-    } catch (e: any) {
-      flash(setError, "❌ " + (e.message || "Failed to save"));
+    } catch (e) {
+      flash(setError, "❌ " + (e instanceof Error ? e.message : "Failed to save"));
     } finally {
       setSaving(false);
     }
@@ -870,12 +854,12 @@ export default function CounselorSettingsPage() {
     <div className="space-y-4">
       {/* Global flash banners — visible regardless of active section */}
       {error && (
-        <div className="text-error-red text-sm bg-error-red/10 px-4 py-3 rounded-xl font-poppins border border-error-red/20 animate-in fade-in duration-150">
+        <div role="alert" className="rounded-xl border border-red-800 bg-red-100 px-4 py-3 text-sm font-semibold text-red-950 shadow-sm animate-in fade-in duration-150">
           {error}
         </div>
       )}
       {success && (
-        <div className="text-success-green text-sm bg-success-green/10 px-4 py-3 rounded-xl font-poppins border border-success-green/20 animate-in fade-in duration-150">
+        <div role="status" aria-live="polite" className="rounded-xl border border-emerald-800 bg-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-950 shadow-sm animate-in fade-in duration-150">
           {success}
         </div>
       )}
