@@ -697,6 +697,14 @@ export default function SupportPage() {
                         {messages.map((message) => {
                           const isMine = message.sender_id === currentUserId;
                           const sender = senderProfiles[message.sender_id];
+                          const senderLabel =
+                            sender?.role === "admin" || sender?.role === "owner"
+                              ? "Admin Support"
+                              : sender?.role === "counselor"
+                              ? `Counselor ${getDisplayName(sender)}`
+                              : selectedChannel === "admin"
+                              ? "Admin Support"
+                              : "Counselor";
                           return (
                             <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
                               <div className={`max-w-[82%] rounded-2xl px-4 py-2 shadow-sm ${
@@ -706,7 +714,7 @@ export default function SupportPage() {
                               }`}>
                                 {!isMine && (
                                   <p className="mb-1 text-xs font-semibold font-poppins opacity-75">
-                                    {getRoleLabel(sender?.role)} {getDisplayName(sender)}
+                                    {senderLabel}
                                   </p>
                                 )}
                                 <p className="whitespace-pre-wrap text-sm font-inter">{message.content}</p>

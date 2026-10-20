@@ -682,6 +682,8 @@ export default function CounselorMessagesPage() {
                       const isCurrentUser = currentUserId && msg.sender_id === currentUserId;
                       const senderProfile = senderProfiles[msg.sender_id];
                       const senderName = getFirstName(senderProfile?.full_name) || getFirstName(senderProfile?.username) || "Unknown";
+                      const isAdminSender =
+                        senderProfile?.role === "admin" || senderProfile?.role === "owner";
                       const showAvatar = !isCurrentUser && (index === 0 || messages[index - 1].sender_id !== msg.sender_id);
 
                       console.log("Counselor: Message:", msg, "Sender profile:", senderProfile, "Sender name:", senderName);
@@ -713,6 +715,11 @@ export default function CounselorMessagesPage() {
                             </>
                           )}
                           <div className="flex flex-col gap-1 max-w-[80%]">
+                            {!isCurrentUser && isAdminSender && (
+                              <p className="ml-1 mb-1 text-xs font-bold text-slate-600">
+                                Admin Support
+                              </p>
+                            )}
                             <div 
                               className={`rounded-2xl px-4 py-2 shadow-sm ${
                                 isCurrentUser
