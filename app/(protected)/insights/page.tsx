@@ -1323,7 +1323,7 @@ export default function MoodInsightsPage() {
       </div>
 
       {/* ── Quick nav to dedicated Mood Trends visualization page ────── */}
-      <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-light-gray">
+      <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-gray-200 shadow-sm">
         <div>
           <p className="text-sm font-poppins font-semibold text-dark-text">
             📊 Mood Trend Visualization
@@ -1334,7 +1334,7 @@ export default function MoodInsightsPage() {
         </div>
         <Link
           href="/mood-trends"
-          className="shrink-0 px-4 py-2 bg-[#A8DADC] hover:bg-[#4EAAB3] text-white text-xs font-poppins font-semibold rounded-full transition-colors"
+          className="shrink-0 px-4 py-2 bg-primary-blue hover:bg-primary-blue/90 text-white text-xs font-poppins font-semibold rounded-full transition-colors"
         >
           View All Charts →
         </Link>

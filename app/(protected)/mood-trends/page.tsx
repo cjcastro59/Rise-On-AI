@@ -401,7 +401,7 @@ export default function MoodTrendsPage() {
         <div className="flex gap-3 shrink-0">
           <Link
             href="/insights"
-            className="text-xs font-poppins text-[#4EAAB3] hover:underline px-3 py-1.5 bg-[#A8DADC]/10 rounded-full"
+            className="text-xs font-poppins text-white hover:opacity-90 px-3 py-1.5 bg-primary-blue rounded-full transition-colors font-semibold"
           >
             Full Insights →
           </Link>

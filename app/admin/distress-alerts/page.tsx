@@ -467,8 +467,8 @@ export default function AdminDistressAlertsPage() {
           <h1 className="text-2xl font-dm-serif text-error-red mb-1">Distress Alert Monitoring</h1>
           <p className="text-sm text-slate-600 font-poppins">Real-time emotional crisis detection  Anonymized IDs  Requires immediate review</p>
         </div>
-        <div className="flex gap-3">
-          <span className="badge-error animate-pulse">{activeAlertCount} Active Alerts</span>
+        <div className="flex items-center gap-3">
+          <span className="badge-error animate-pulse flex items-center">{activeAlertCount} Active Alert{activeAlertCount === 1 ? "" : "s"}</span>
           <button className="btn-secondary flex items-center gap-2" onClick={() => setRefreshToken((value) => value + 1)} disabled={loading}>
             Refresh
           </button>
@@ -476,7 +476,7 @@ export default function AdminDistressAlertsPage() {
       </div>
 
       {/* Alert Banner */}
-      <div className="admin-alert-banner bg-error-red/10 border-l-error-red">
+      <div className="admin-alert-banner bg-white border-l-error-red shadow-sm">
         <p className="text-sm font-poppins text-dark-text">
           Ethical Protocol: Distress flags use anonymized IDs only. Guidance counselors must follow institutional protocols before any outreach. All actions are logged.
         </p>

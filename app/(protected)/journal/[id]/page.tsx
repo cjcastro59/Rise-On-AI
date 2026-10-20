@@ -303,7 +303,7 @@ export default function JournalEditorPage() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Give this entry a title... (optional)"
-          className="w-full text-xl font-dm-serif text-dark-text bg-transparent border-0 focus:ring-0 placeholder-dark-text/40"
+          className="w-full text-xl font-dm-serif text-dark-text bg-white border border-light-gray rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-blue/30 placeholder-dark-text/40"
         />
       </div>
 

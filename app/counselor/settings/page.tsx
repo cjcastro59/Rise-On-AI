@@ -735,8 +735,6 @@ export default function CounselorSettingsPage() {
               >
                 <option value="English">English</option>
                 <option value="Filipino">Filipino</option>
-                <option value="Taglish">Taglish</option>
-                <option value="Cebuano">Cebuano</option>
               </select>
             </div>
             <div className="flex justify-end mt-6">
@@ -869,10 +867,22 @@ export default function CounselorSettingsPage() {
   };
 
   return (
+    <div className="space-y-4">
+      {/* Global flash banners — visible regardless of active section */}
+      {error && (
+        <div className="text-error-red text-sm bg-error-red/10 px-4 py-3 rounded-xl font-poppins border border-error-red/20 animate-in fade-in duration-150">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="text-success-green text-sm bg-success-green/10 px-4 py-3 rounded-xl font-poppins border border-success-green/20 animate-in fade-in duration-150">
+          {success}
+        </div>
+      )}
     <div className="flex gap-6">
       {/* Sidebar */}
       <div className="w-64 flex-shrink-0 hidden md:block">
-        <Card variant="white" className="p-4 space-y-2">
+        <Card variant="white" className="p-4 space-y-2 overflow-hidden">
           <h2 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4">Settings</h2>
           <button
             onClick={() => setActiveSection("counselor")}
@@ -1077,6 +1087,7 @@ export default function CounselorSettingsPage() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

@@ -407,10 +407,10 @@ export default function AIAnalysisPage() {
 
       {/* Model identity banner */}
       <div className="flex flex-wrap items-center gap-2 mb-3 px-1">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#A8DADC]/15 border border-[#A8DADC]/30 rounded-full text-xs font-poppins text-slate-600">
-          🤖 Analyzed by <span className="font-semibold text-dark-text/80">XLM-RoBERTa</span> — multilingual NLP sentiment classifier
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-200 rounded-full text-xs font-poppins text-slate-700 shadow-sm">
+          🤖 Analyzed by <span className="font-semibold text-dark-text">XLM-RoBERTa</span> — multilingual NLP sentiment classifier
         </span>
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F5F5F5] border border-gray-200 rounded-full text-xs font-poppins text-slate-600">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-200 rounded-full text-xs font-poppins text-slate-700 shadow-sm">
           3 classes: Positive · Negative · Distress
         </span>
       </div>
@@ -418,12 +418,12 @@ export default function AIAnalysisPage() {
       {/* Progress Steps — horizontal scroll on mobile */}
       <div className="overflow-x-auto pb-1 mb-6">
         <div className="flex items-center gap-2 min-w-max sm:flex-wrap sm:min-w-0">
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-[#A8DADC]/40 rounded-full">
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-200 rounded-full shadow-sm">
             <span className="text-sm">📝</span>
             <span className="text-xs font-poppins text-dark-text">Wrote Entry</span>
           </div>
           <span className="text-xs text-slate-600">→</span>
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-[#A8DADC]/40 rounded-full">
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-200 rounded-full shadow-sm">
             <span className="text-sm">🧠</span>
             <span className="text-xs font-poppins text-dark-text">AI Analyzed</span>
           </div>

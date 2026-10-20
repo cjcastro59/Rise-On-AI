@@ -32,7 +32,7 @@ export default async function AdminLayout({
       <SessionTimeoutWrapper />
       <AdminSidebar />
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto pt-[calc(52px+1rem)] md:pt-8">
           {children}
         </main>
       </div>

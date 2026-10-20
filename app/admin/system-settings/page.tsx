@@ -1349,6 +1349,17 @@ export default function AdminSystemSettingsPage() {
   return (
     <div className="space-y-6">
       <Toast {...toast} onClose={closeToast} />
+      {/* Flash banners for personal settings sections (notifications, privacy, language) */}
+      {error && (
+        <div className="text-error-red text-sm bg-error-red/10 px-4 py-3 rounded-xl font-poppins border border-error-red/20 animate-in fade-in duration-150">
+          {error}
+        </div>
+      )}
+      {success && (
+        <div className="text-success-green text-sm bg-success-green/10 px-4 py-3 rounded-xl font-poppins border border-success-green/20 animate-in fade-in duration-150">
+          {success}
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
@@ -1365,7 +1376,7 @@ export default function AdminSystemSettingsPage() {
       <div className="flex gap-6">
         {/* Settings Sidebar */}
         <div className="w-64 flex-shrink-0 hidden md:block">
-          <Card variant="white" className="p-4 space-y-2 bg-white border border-gray-100">
+          <Card variant="white" className="p-4 space-y-2 bg-white border border-gray-100 overflow-hidden">
             <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-4">Settings</p>
             <button
               onClick={() => setActiveSection("system")}

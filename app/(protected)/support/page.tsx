@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/types/database";
+import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 
 type BaseConversation = Database["public"]["Tables"]["conversations"]["Row"];
 type Message = Database["public"]["Tables"]["messages"]["Row"];
@@ -107,6 +108,7 @@ export default function SupportPage() {
   const selectedConversationRef = useRef<SupportConversation | null>(null);
   const conversationsRef = useRef<SupportConversation[]>([]);
   const currentUserIdRef = useRef<string | null>(null);
+  const { openConfirmation } = useConfirmation();
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const supabase = useMemo(() => createClient() as any, []);
 
@@ -575,7 +577,9 @@ export default function SupportPage() {
                             >
                               <div className="flex items-center justify-between gap-2">
                                 <p className="truncate text-sm font-semibold font-poppins text-dark-text">
-                                  {getDisplayName(recipient)}
+                                  {recipient
+                                    ? `${getRoleLabel(recipient.role)} ${getDisplayName(recipient)}`
+                                    : channelCopy[channel].title}
                                 </p>
                                 {unread > 0 && (
                                   <span className="rounded-full bg-soft-red px-2 py-0.5 text-xs font-bold text-white">
@@ -606,7 +610,9 @@ export default function SupportPage() {
                           {channelCopy[selectedChannel].title}
                         </p>
                         <h2 className="mt-1 text-lg font-dm-serif text-dark-text">
-                          {getDisplayName(selectedRecipient)}
+                          {selectedRecipient
+                            ? `${getRoleLabel(selectedRecipient.role)} ${getDisplayName(selectedRecipient)}`
+                            : channelCopy[selectedChannel].title}
                         </h2>
                       </div>
                       <span className={`rounded-full px-3 py-1 text-xs font-semibold font-poppins ${
@@ -620,7 +626,14 @@ export default function SupportPage() {
                       <button
                         type="button"
                         onClick={async () => {
-                          if (!confirm("Delete this conversation? This cannot be undone.")) return;
+                          const confirmed = await openConfirmation({
+                            title: "Delete Conversation",
+                            message: "Delete this conversation and all its messages? This cannot be undone.",
+                            confirmText: "Delete",
+                            cancelText: "Cancel",
+                            isDangerous: true,
+                          });
+                          if (!confirmed) return;
                           const { error } = await supabase
                             .from("conversations")
                             .delete()

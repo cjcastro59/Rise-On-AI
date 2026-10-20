@@ -208,12 +208,14 @@ export default function CounselorDashboardPage() {
             .in("id", assignedUserIds)
             .order("created_at", { ascending: false })
             .limit(20),
+          // Fetch recent 5 for display — count is handled separately below
           supabase
             .from("distress_logs")
             .select("id, user_id, severity, trigger, created_at")
             .in("user_id", assignedUserIds)
             .order("created_at", { ascending: false })
             .limit(5),
+          // Fetch recent 5 for display — count is handled separately below
           supabase
             .from("conversations")
             .select("id, user_id, updated_at")
@@ -242,10 +244,26 @@ export default function CounselorDashboardPage() {
         if (wellnessError) throw wellnessError;
         if (riskError) throw riskError;
 
+        // Get accurate counts (not capped by limit)
+        const [
+          { count: totalCasesCount },
+          { count: totalMessagesCount },
+        ] = await Promise.all([
+          supabase
+            .from("distress_logs")
+            .select("id", { count: "exact", head: true })
+            .in("user_id", assignedUserIds),
+          supabase
+            .from("conversations")
+            .select("id", { count: "exact", head: true })
+            .eq("counselor_id", counselorId)
+            .eq("status", "open"),
+        ]);
+
         setStats({
           assignedUsers:   assignedUserIds.length,
-          activeCases:     casesData?.length   || 0,
-          pendingMessages: messagesData?.length || 0,
+          activeCases:     totalCasesCount ?? casesData?.length   ?? 0,
+          pendingMessages: totalMessagesCount ?? messagesData?.length ?? 0,
           newUsersToday:   newUsersCount || 0,
         });
         setRecentCases(casesData    || []);
@@ -378,7 +396,6 @@ export default function CounselorDashboardPage() {
             className="w-full flex items-center justify-between gap-3"
           >
             <div className="flex items-center gap-2">
-              <span className="text-base">📢</span>
               <p className="text-xs font-poppins text-amber-800 uppercase tracking-wider font-semibold">
                 Announcements
               </p>

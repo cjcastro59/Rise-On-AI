@@ -463,7 +463,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Alert Banner */}
-      <div className="p-4 bg-gradient-to-r from-primary-blue/20 to-lavender/20 rounded-xl border-l-4 border-l-lavender">
+      <div className="p-4 bg-white rounded-xl border-l-4 border-l-lavender shadow-sm">
         <p className="text-sm font-poppins text-dark-text flex items-center gap-2">
           <span>🔒</span> Only Admins and Owners can change user roles.
         </p>
@@ -514,7 +514,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Filters */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 backdrop-blur-md">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex-1 min-w-[250px]">
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600">🔍</span>
@@ -552,7 +552,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Users Table */}
-      <Card className="p-6 bg-slate-100/60 border-slate-200">
+      <Card className="p-6 bg-white border-gray-200">
         <div className="overflow-x-auto">
           <table className="admin-table min-w-[1400px] table-fixed">
             <thead>
@@ -707,37 +707,40 @@ export default function AdminUsersPage() {
 
         {/* Pagination */}
         {filteredUsers.length > 0 && (
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 pt-4 border-t border-gray-200">
             <p className="text-sm text-slate-600 font-poppins">Showing {startIndex + 1}-{Math.min(startIndex + PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length} users</p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 flex-wrap justify-center">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed text-dark-text"
+                className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed text-dark-text text-sm"
               >
                 ←
               </button>
-
-              {/* Page Numbers */}
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm font-poppins transition-colors ${currentPage === page
-                        ? "bg-gradient-to-r from-primary-blue to-lavender text-white"
-                        : "text-dark-text hover:bg-gray-100"
-                      }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-              </div>
-
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
+                .reduce<(number | "...")[]>((acc, page, idx, arr) => {
+                  if (idx > 0 && (page as number) - (arr[idx - 1] as number) > 1) acc.push("...");
+                  acc.push(page);
+                  return acc;
+                }, [])
+                .map((item, idx) =>
+                  item === "..." ? (
+                    <span key={`ellipsis-${idx}`} className="w-9 h-9 flex items-center justify-center text-slate-400 text-sm">…</span>
+                  ) : (
+                    <button
+                      key={item}
+                      onClick={() => setCurrentPage(item as number)}
+                      className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-poppins transition-colors ${currentPage === item ? "bg-gradient-to-r from-primary-blue to-lavender text-white" : "text-dark-text hover:bg-gray-100"}`}
+                    >
+                      {item}
+                    </button>
+                  )
+                )}
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed text-dark-text"
+                className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed text-dark-text text-sm"
               >
                 →
               </button>

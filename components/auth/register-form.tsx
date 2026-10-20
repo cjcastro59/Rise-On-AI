@@ -402,7 +402,7 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
           Language Preference
         </h3>
         <div className="grid grid-cols-2 gap-3">
-          {["English", "Taglish"].map((lang) => (
+          {["English", "Filipino"].map((lang) => (
             <div
               key={lang}
               onClick={() => setFormData((prev) => ({ ...prev, language: lang }))}

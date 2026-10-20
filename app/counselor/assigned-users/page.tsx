@@ -384,38 +384,44 @@ export default function CounselorAssignedUsersPage() {
 
         {/* Pagination */}
         {filteredUsers.length > 0 && (
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 pt-4 border-t border-gray-200">
             <p className="text-sm text-slate-600 font-poppins">Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length} users</p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 flex-wrap justify-center">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
-                className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed text-dark-text"
+                className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed text-dark-text text-sm"
               >
                 ←
               </button>
-              
-              {/* Page Numbers */}
-              <div className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-10 h-10 flex items-center justify-center rounded-lg text-sm font-poppins transition-colors ${
-                      currentPage === page
-                        ? "bg-gradient-to-r from-primary-blue to-lavender text-white"
-                        : "text-dark-text hover:bg-gray-100"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-              </div>
-              
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
+                .reduce<(number | "...")[]>((acc, page, idx, arr) => {
+                  if (idx > 0 && (page as number) - (arr[idx - 1] as number) > 1) acc.push("...");
+                  acc.push(page);
+                  return acc;
+                }, [])
+                .map((item, idx) =>
+                  item === "..." ? (
+                    <span key={`ellipsis-${idx}`} className="w-9 h-9 flex items-center justify-center text-slate-400 text-sm">…</span>
+                  ) : (
+                    <button
+                      key={item}
+                      onClick={() => setCurrentPage(item as number)}
+                      className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-poppins transition-colors ${
+                        currentPage === item
+                          ? "bg-gradient-to-r from-primary-blue to-lavender text-white"
+                          : "text-dark-text hover:bg-gray-100"
+                      }`}
+                    >
+                      {item}
+                    </button>
+                  )
+                )}
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages || totalPages === 0}
-                className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed text-dark-text"
+                className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed text-dark-text text-sm"
               >
                 →
               </button>
