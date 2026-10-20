@@ -342,6 +342,32 @@ export default function CounselorDashboardPage() {
     loadAnnouncements();
   }, [supabase, isMounted]);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel("counselor-announcements")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "announcements" },
+        (payload: {
+          eventType: string;
+          old: { id: string };
+          new: { id: string; is_active: boolean };
+        }) => {
+          if (payload.eventType !== "DELETE" && payload.new.is_active) return;
+          const announcementId =
+            payload.eventType === "DELETE" ? payload.old.id : payload.new.id;
+          setAnnouncements((prev) =>
+            prev.filter((announcement) => announcement.id !== announcementId)
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [supabase]);
+
   const formatTime = (value?: string) => {
     if (!value) return "just now";
     const d = new Date(value);

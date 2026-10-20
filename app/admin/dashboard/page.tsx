@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDisplayId, loadDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-ids";
 import { Toast, useToast } from "@/components/ui/Toast";
+import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 
 interface DauPoint {
   date: string;
@@ -100,7 +101,9 @@ export default function AdminDashboardPage() {
   const [announcementTitle, setAnnouncementTitle] = useState("");
   const [announcementContent, setAnnouncementContent] = useState("");
   const [announcementsExpanded, setAnnouncementsExpanded] = useState(true);
+  const [deletingAnnouncementId, setDeletingAnnouncementId] = useState<string | null>(null);
   const { toast, showToast, closeToast } = useToast();
+  const { openConfirmation } = useConfirmation();
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient() as any, []);
   const staffConversationIdsRef = useRef<Set<string>>(new Set());
@@ -474,6 +477,24 @@ export default function AdminDashboardPage() {
       }
     );
 
+    channel.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "announcements" },
+      (payload: any) => {
+        const announcement = (
+          payload.eventType === "DELETE" ? payload.old : payload.new
+        ) as AnnouncementRow;
+        if (payload.eventType !== "DELETE" && announcement.is_active) return;
+
+        setAnnouncements((prev) =>
+          prev.filter((item) => item.id !== announcement.id)
+        );
+        setNotifications((prev) =>
+          prev.filter((item) => item.id !== `announcement:${announcement.id}`)
+        );
+      }
+    );
+
     channel.subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -589,6 +610,49 @@ export default function AdminDashboardPage() {
     } catch (error) {
       console.error("Error creating announcement:", error);
       showToast("Failed to create announcement. Please try again.", "error");
+    }
+  };
+
+  const handleDeleteAnnouncement = async (announcement: AnnouncementRow) => {
+    if (deletingAnnouncementId) return;
+
+    const confirmed = await openConfirmation({
+      title: "Delete Announcement",
+      message: `Delete "${announcement.title}" for all users? It will no longer appear in announcement lists or notifications.`,
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      isDangerous: true,
+    });
+    if (!confirmed) return;
+
+    setDeletingAnnouncementId(announcement.id);
+    try {
+      const { data, error } = await supabase
+        .from("announcements")
+        .delete()
+        .eq("id", announcement.id)
+        .select("id")
+        .maybeSingle();
+
+      if (error || !data) {
+        throw new Error(
+          error?.message || "Announcement could not be deleted. It may already be deleted."
+        );
+      }
+
+      setAnnouncements((prev) => prev.filter((item) => item.id !== announcement.id));
+      setNotifications((prev) =>
+        prev.filter((item) => item.id !== `announcement:${announcement.id}`)
+      );
+      showToast("Announcement deleted for all users.", "success");
+    } catch (error) {
+      console.error("Error deleting announcement:", error);
+      showToast(
+        error instanceof Error ? error.message : "Announcement could not be deleted.",
+        "error"
+      );
+    } finally {
+      setDeletingAnnouncementId(null);
     }
   };
 
@@ -708,9 +772,22 @@ export default function AdminDashboardPage() {
             ) : (
               announcements.map((announcement) => (
                 <div key={announcement.id} className="rounded-xl border border-amber-200 bg-amber-50/50 p-3">
-                  <p className="text-sm font-semibold font-poppins text-dark-text">{announcement.title}</p>
-                  <p className="mt-1 text-xs font-inter text-slate-700">{announcement.content}</p>
-                  <p className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-xs font-inter text-slate-600">{formatTime(announcement.created_at)}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold font-poppins text-dark-text">{announcement.title}</p>
+                      <p className="mt-1 text-xs font-inter text-slate-700">{announcement.content}</p>
+                      <p className="mt-2 inline-flex rounded-full bg-white px-2 py-1 text-xs font-inter text-slate-600">{formatTime(announcement.created_at)}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteAnnouncement(announcement)}
+                      disabled={deletingAnnouncementId !== null}
+                      className="shrink-0 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:cursor-not-allowed disabled:opacity-60"
+                      aria-label={`Delete announcement: ${announcement.title}`}
+                    >
+                      {deletingAnnouncementId === announcement.id ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
                 </div>
               ))
             )}

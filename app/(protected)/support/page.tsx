@@ -43,7 +43,7 @@ const channelCopy: Record<SupportChannel, { title: string; subtitle: string; cta
     cta: "Open Counselor Chat",
   },
   admin: {
-    title: "Admin Support / Feedback",
+    title: "Feedback / Platform Support",
     subtitle: "Send questions, bug reports, suggestions, or platform feedback.",
     cta: "Open Admin Feedback",
   },
@@ -520,7 +520,7 @@ export default function SupportPage() {
                       <p className="text-sm font-semibold font-poppins text-dark-text">{name}</p>
                       <p className="text-xs font-inter text-slate-600">{description}</p>
                     </div>
-                    <span className="text-sm font-semibold font-poppins text-primary-blue">{phone}</span>
+                    <span className="text-sm font-semibold font-poppins text-indigo-700 dark:text-indigo-400 hover:underline">{phone}</span>
                   </div>
                 </a>
               ))}
@@ -538,7 +538,7 @@ export default function SupportPage() {
                 "1 thing you can taste",
               ].map((step, index) => (
                 <div key={step} className="flex items-center gap-3 rounded-xl bg-white/80 p-3">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-blue/15 text-sm font-bold text-primary-blue">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-800">
                     {5 - index}
                   </span>
                   <p className="text-sm font-poppins text-dark-text">{step}</p>
@@ -621,7 +621,9 @@ export default function SupportPage() {
                             >
                               <div className="flex items-center justify-between gap-2">
                                 <p className="truncate text-sm font-semibold font-poppins text-dark-text">
-                                  {recipient
+                                  {channel === "admin"
+                                    ? channelCopy.admin.title
+                                    : recipient
                                     ? `${getRoleLabel(recipient.role)} ${getDisplayName(recipient)}`
                                     : channelCopy[channel].title}
                                 </p>
@@ -654,7 +656,9 @@ export default function SupportPage() {
                           {channelCopy[selectedChannel].title}
                         </p>
                         <h2 className="mt-1 text-lg font-dm-serif text-dark-text">
-                          {selectedRecipient
+                          {selectedChannel === "admin"
+                            ? channelCopy.admin.title
+                            : selectedRecipient
                             ? `${getRoleLabel(selectedRecipient.role)} ${getDisplayName(selectedRecipient)}`
                             : channelCopy[selectedChannel].title}
                         </h2>

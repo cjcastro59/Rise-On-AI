@@ -43,6 +43,7 @@ export interface Database {
           two_factor_method: string | null;
           two_factor_skipped: boolean | null;
           assigned_counselor_id: string | null;
+          shift: string | null;
         };
         Insert: {
           id: string;
@@ -77,6 +78,7 @@ export interface Database {
           two_factor_method?: string | null;
           two_factor_skipped?: boolean | null;
           assigned_counselor_id?: string | null;
+          shift?: string | null;
         };
         Update: {
           id?: string;
@@ -111,6 +113,7 @@ export interface Database {
           two_factor_method?: string | null;
           two_factor_skipped?: boolean | null;
           assigned_counselor_id?: string | null;
+          shift?: string | null;
         };
       };
       conversations: {

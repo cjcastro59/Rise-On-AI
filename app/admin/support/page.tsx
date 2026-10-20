@@ -778,7 +778,7 @@ export default function AdminSupportPage() {
                                       className="rounded-full object-cover"
                                     />
                                   ) : (
-                                    <span className="text-sm font-bold text-primary-blue">
+                                    <span className="text-sm font-bold text-indigo-800">
                                       {senderName.charAt(0).toUpperCase()}
                                     </span>
                                   )}

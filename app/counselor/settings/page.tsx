@@ -136,15 +136,18 @@ export default function CounselorSettingsPage() {
     if (!user) return;
     try {
       setSaving(true);
+      setError("");
+      const shiftValue = shift === "night" ? "night" : "day";
       const { data, error } = await supabase.from("user_profiles").update({
-        shift: shift || "day",
+        shift: shiftValue,
         updated_at: new Date().toISOString(),
       }).eq("id", user.id).select("id").single();
       if (error) throw error;
       if (!data) throw new Error("Settings were not saved. Please try again.");
-      setError("");
+      setSuccess("");
       flash(setSuccess, "✅ Shift preference saved!");
     } catch (e) {
+      setSuccess("");
       flash(setError, "❌ " + (e instanceof Error ? e.message : "Failed to save shift"));
     } finally {
       setSaving(false);

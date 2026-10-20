@@ -51,6 +51,9 @@ function WellnessSparkline({
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("Friend");
+  const [announcements, setAnnouncements] = useState<
+    { id: string; title: string; content: string; created_at: string }[]
+  >([]);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [todayMood, setTodayMood] = useState<string | null>(null);
   const [todayEntryPreview, setTodayEntryPreview] = useState<any | null>(null);
@@ -70,6 +73,51 @@ export default function DashboardPage() {
   } = useWellnessAssessment(30, 7);   // last 7 compute dates for sparkline
   const router = useRouter();
   const supabase = useMemo(() => createClient() as any, []);
+
+  const loadAnnouncements = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("announcements")
+      .select("id,title,content,created_at")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    if (error) {
+      console.error("Failed to load announcements:", error);
+      return;
+    }
+    setAnnouncements(data || []);
+  }, [supabase]);
+
+  useEffect(() => {
+    void loadAnnouncements();
+  }, [loadAnnouncements]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("member-announcements")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "announcements" },
+        (payload: {
+          eventType: string;
+          old: { id: string };
+          new: { id: string; is_active: boolean };
+        }) => {
+          if (payload.eventType !== "DELETE" && payload.new.is_active) return;
+          const announcementId =
+            payload.eventType === "DELETE" ? payload.old.id : payload.new.id;
+          setAnnouncements((prev) =>
+            prev.filter((announcement) => announcement.id !== announcementId)
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [supabase]);
 
   const moodOptions = useMemo(() =>
     MOOD_OPTIONS.map((m) => ({ label: m.label, icon: m.emoji, score: m.score * 2 }))
@@ -233,6 +281,35 @@ export default function DashboardPage() {
           </>
         }
       />
+      {announcements.length > 0 && (
+        <Card className="mb-6 border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
+          <h2 className="mb-3 text-sm font-semibold font-poppins text-slate-800">
+            Announcements
+          </h2>
+          <div className="space-y-3">
+            {announcements.map((announcement) => (
+              <article key={announcement.id} className="rounded-xl border border-amber-200 bg-white p-3">
+                <h3 className="text-sm font-semibold font-poppins text-slate-900">
+                  {announcement.title}
+                </h3>
+                <p className="mt-1 whitespace-pre-wrap text-sm font-inter text-slate-700">
+                  {announcement.content}
+                </p>
+                <time
+                  dateTime={announcement.created_at}
+                  className="mt-2 block text-xs font-inter text-slate-600"
+                >
+                  {new Date(announcement.created_at).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </time>
+              </article>
+            ))}
+          </div>
+        </Card>
+      )}
       <div className="mb-8">
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {(showAllMoods ? moodOptions : moodOptions.slice(0, 8)).map((mood) => (

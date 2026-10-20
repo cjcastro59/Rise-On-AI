@@ -164,7 +164,7 @@ export default function NotificationBell({ userId, className = "" }: Notificatio
             <div className="flex items-center gap-2">
               <span className="font-poppins font-semibold text-sm">Notifications</span>
               {unreadCount > 0 && (
-                <span className="bg-primary-blue/15 text-primary-blue text-xs font-semibold px-2 py-0.5 rounded-full font-poppins">
+                <span className="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2 py-0.5 rounded-full font-poppins">
                   {unreadCount} new
                 </span>
               )}
@@ -173,7 +173,7 @@ export default function NotificationBell({ userId, className = "" }: Notificatio
               <button
                 type="button"
                 onClick={handleMarkAllRead}
-                className="text-xs font-poppins text-primary-blue hover:underline font-medium"
+                className="text-xs font-poppins text-indigo-700 dark:text-indigo-400 hover:underline font-semibold"
               >
                 Mark all read
               </button>

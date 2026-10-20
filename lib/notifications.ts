@@ -15,6 +15,7 @@ export type AppNotification = {
   timestamp: string; // ISO string
   isRead: boolean;
   href?: string;
+  sourceId?: string;
 };
 
 // Check if browser notifications are supported
@@ -120,6 +121,17 @@ export function addNotification(
     tag: newNotification.id,
   });
 
+  return updated;
+}
+
+export function removeAnnouncementNotification(userId: string, announcementId: string) {
+  const existing = loadUserNotifications(userId);
+  const updated = existing.filter(
+    (notification) =>
+      notification.type !== "announcement" ||
+      notification.sourceId !== announcementId
+  );
+  saveUserNotifications(userId, updated);
   return updated;
 }
 

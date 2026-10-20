@@ -675,7 +675,7 @@ export default function AdminSystemSettingsPage() {
         );
       } else {
         return (
-          <span className="text-sm font-poppins text-primary-blue">
+          <span className="text-xs font-semibold font-poppins text-slate-800">
             {value === "full" ? "✅" :
              value === "none" ? "❌" :
              value === "anonymous" ? "Anonymous (U-XXXX)" :
@@ -1043,9 +1043,9 @@ export default function AdminSystemSettingsPage() {
                   <div className="mt-3 p-3 bg-primary-blue/5 rounded-xl border border-primary-blue/20">
                     <p className="text-xs font-inter text-dark-text/70">
                       <span className="font-semibold">Current policy:</span> Users will see a warning modal after{" "}
-                      <span className="font-semibold text-primary-blue">{features.sessionTimeoutMinutes - features.sessionWarningMinutes} minute{features.sessionTimeoutMinutes - features.sessionWarningMinutes !== 1 ? "s" : ""}</span> of inactivity,
+                      <span className="font-semibold text-indigo-800">{features.sessionTimeoutMinutes - features.sessionWarningMinutes} minute{features.sessionTimeoutMinutes - features.sessionWarningMinutes !== 1 ? "s" : ""}</span> of inactivity,
                       then be automatically signed out{" "}
-                      <span className="font-semibold text-primary-blue">{features.sessionWarningMinutes} minute{features.sessionWarningMinutes !== 1 ? "s" : ""}</span> later.
+                      <span className="font-semibold text-indigo-800">{features.sessionWarningMinutes} minute{features.sessionWarningMinutes !== 1 ? "s" : ""}</span> later.
                     </p>
                   </div>
                 </div>
@@ -1371,7 +1371,7 @@ export default function AdminSystemSettingsPage() {
               onClick={() => setActiveSection("system")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
                 activeSection === "system"
-                  ? "bg-primary-blue/10 text-primary-blue"
+                  ? "bg-indigo-100 text-indigo-800 font-semibold"
                   : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
               }`}
             >
@@ -1383,7 +1383,7 @@ export default function AdminSystemSettingsPage() {
               onClick={() => setActiveSection("notifications")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
                 activeSection === "notifications"
-                  ? "bg-primary-blue/10 text-primary-blue"
+                  ? "bg-indigo-100 text-indigo-800 font-semibold"
                   : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
               }`}
             >
@@ -1395,7 +1395,7 @@ export default function AdminSystemSettingsPage() {
               onClick={() => setActiveSection("privacy")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
                 activeSection === "privacy"
-                  ? "bg-primary-blue/10 text-primary-blue"
+                  ? "bg-indigo-100 text-indigo-800 font-semibold"
                   : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
               }`}
             >
@@ -1407,7 +1407,7 @@ export default function AdminSystemSettingsPage() {
               onClick={() => setActiveSection("language")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
                 activeSection === "language"
-                  ? "bg-primary-blue/10 text-primary-blue"
+                  ? "bg-indigo-100 text-indigo-800 font-semibold"
                   : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
               }`}
             >
@@ -1419,7 +1419,7 @@ export default function AdminSystemSettingsPage() {
               onClick={() => setActiveSection("security")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
                 activeSection === "security"
-                  ? "bg-primary-blue/10 text-primary-blue"
+                  ? "bg-indigo-100 text-indigo-800 font-semibold"
                   : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
               }`}
             >
@@ -1431,7 +1431,7 @@ export default function AdminSystemSettingsPage() {
               onClick={() => setActiveSection("data")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
                 activeSection === "data"
-                  ? "bg-primary-blue/10 text-primary-blue"
+                  ? "bg-indigo-100 text-indigo-800 font-semibold"
                   : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
               }`}
             >
