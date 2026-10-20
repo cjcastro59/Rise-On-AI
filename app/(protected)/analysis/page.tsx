@@ -517,7 +517,7 @@ export default function AIAnalysisPage() {
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center flex-col">
                     <span className="text-3xl sm:text-5xl font-dm-serif text-[#4F4F4F]">{wellnessScore.toFixed(1)}</span>
-                    <span className="text-sm font-inter text-[#A8DADC]">out of 10</span>
+                    <span className="text-slate-600 font-semibold text-xs tracking-wide uppercase">out of 10</span>
                   </div>
                 </div>
                 {wellnessLevel && (
