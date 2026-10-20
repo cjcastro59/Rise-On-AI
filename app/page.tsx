@@ -14,7 +14,7 @@ export default async function LandingPage() {
       .from("user_profiles")
       .select("role")
       .eq("id", user.id)
-      .single();
+      .single() as { data: { role: string } | null };
 
     const role = profile?.role;
     if (role === "counselor") redirect("/counselor/dashboard");

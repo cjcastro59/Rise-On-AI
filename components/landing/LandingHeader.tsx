@@ -24,7 +24,7 @@ export default function LandingHeader() {
         .from("user_profiles")
         .select("role")
         .eq("id", user.id)
-        .single();
+        .single() as { data: { role: string } | null };
 
       const role = profile?.role;
       if (role === "counselor") router.replace("/counselor/dashboard");
