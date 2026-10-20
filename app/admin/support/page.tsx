@@ -58,11 +58,10 @@ export default function AdminSupportPage() {
   const { openConfirmation } = useConfirmation();
   const { toast, showToast, closeToast } = useToast();
 
-  const isClinicalCounselorConversation = (conversation: Conversation) => {
+  const isAdminManageableConversation = (conversation: Conversation) => {
     return (
-      !!conversation.counselor_id &&
-      conversation.user?.role === "user" &&
-      conversation.user.assigned_counselor_id === conversation.counselor_id
+      !conversation.counselor_id ||
+      ["counselor", "admin", "owner"].includes(conversation.counselor?.role || "")
     );
   };
 
@@ -87,11 +86,7 @@ export default function AdminSupportPage() {
         `)
         .order("created_at", { ascending: false });
       const adminConversations = ((data || []) as Conversation[]).filter(
-        (conversation) =>
-          !isClinicalCounselorConversation(conversation) &&
-          (!conversation.counselor_id ||
-            conversation.counselor?.role === "admin" ||
-            conversation.counselor?.role === "owner")
+        isAdminManageableConversation
       );
       setConversations(adminConversations);
 
@@ -175,10 +170,7 @@ export default function AdminSupportPage() {
 
           const isAdminChannel =
             newConversationWithUser &&
-            !isClinicalCounselorConversation(newConversationWithUser) &&
-            (!newConversationWithUser.counselor_id ||
-              newConversationWithUser.counselor?.role === "admin" ||
-              newConversationWithUser.counselor?.role === "owner");
+            isAdminManageableConversation(newConversationWithUser);
 
           if (isAdminChannel) {
             console.log("[ADMIN SUPPORT] Adding new conversation to state:", newConversationWithUser);
@@ -213,10 +205,7 @@ export default function AdminSupportPage() {
 
           const isAdminChannel =
             updatedConversationWithUser &&
-            !isClinicalCounselorConversation(updatedConversationWithUser) &&
-            (!updatedConversationWithUser.counselor_id ||
-              updatedConversationWithUser.counselor?.role === "admin" ||
-              updatedConversationWithUser.counselor?.role === "owner");
+            isAdminManageableConversation(updatedConversationWithUser);
 
           if (isAdminChannel) {
             console.log("[ADMIN SUPPORT] Updating conversation in state:", updatedConversationWithUser);

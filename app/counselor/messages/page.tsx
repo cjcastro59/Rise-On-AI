@@ -16,12 +16,6 @@ type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
 type Message = Database["public"]["Tables"]["messages"]["Row"];
 type UserProfile = Database["public"]["Tables"]["user_profiles"]["Row"];
 
-const filterParticipantMessages = (messages: Message[], conversation: Conversation | null) => {
-  if (!conversation) return [];
-  const participantIds = new Set([conversation.user_id, conversation.counselor_id].filter(Boolean));
-  return messages.filter((message) => participantIds.has(message.sender_id));
-};
-
 export default function CounselorMessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -34,6 +28,7 @@ export default function CounselorMessagesPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const selectedConversationRef = useRef<Conversation | null>(null);
   const channelRef = useRef<any>(null);
   const conversationsChannelRef = useRef<any>(null);
   const { user: currentUser } = useAuth();
@@ -280,6 +275,10 @@ export default function CounselorMessagesPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    selectedConversationRef.current = selectedConversation;
+  }, [selectedConversation]);
+
   const loadConversations = async (userId = currentUserId) => {
     if (!userId) return;
     try {
@@ -320,7 +319,7 @@ export default function CounselorMessagesPage() {
         .select("*")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
-      setMessages(filterParticipantMessages(data || [], conversation));
+      setMessages(data || []);
     } catch (error) {
       console.error("Error loading messages:", error);
     }
@@ -350,7 +349,7 @@ export default function CounselorMessagesPage() {
       async (payload: any) => {
         console.log("[Counselor Messages] New real-time message received:", payload);
         const newMessage = payload.new as Message;
-        if (!selectedConversation || ![selectedConversation.user_id, selectedConversation.counselor_id].includes(newMessage.sender_id)) {
+        if (selectedConversationRef.current?.id !== conversationId) {
           return;
         }
         
@@ -434,6 +433,7 @@ export default function CounselorMessagesPage() {
 
   const selectConversation = (conversation: Conversation) => {
     if (!currentUserId || conversation.counselor_id !== currentUserId) return;
+    selectedConversationRef.current = conversation;
     setSelectedConversation(conversation);
     loadMessages(conversation.id, conversation);
     subscribeToMessages(conversation.id);
