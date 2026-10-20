@@ -37,7 +37,7 @@ const ChartSkeleton = () => (
   </div>
 );
 
-const MoodDistributionChart   = dynamic(
+const MoodDistributionChart = dynamic(
   () => import("@/components/charts/MoodDistributionChart"),
   { ssr: false, loading: () => <ChartSkeleton /> }
 );
@@ -45,11 +45,11 @@ const WellnessScoreTrendChart = dynamic(
   () => import("@/components/charts/WellnessScoreTrendChart"),
   { ssr: false, loading: () => <ChartSkeleton /> }
 );
-const BehavioralTrendChart    = dynamic(
+const BehavioralTrendChart = dynamic(
   () => import("@/components/charts/BehavioralTrendChart"),
   { ssr: false, loading: () => <ChartSkeleton /> }
 );
-const DistressRiskChart       = dynamic(
+const DistressRiskChart = dynamic(
   () => import("@/components/charts/DistressRiskChart"),
   { ssr: false, loading: () => <ChartSkeleton /> }
 );
@@ -67,11 +67,10 @@ function RangePill({
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-full text-xs font-poppins transition-all ${
-        active
+      className={`px-3 py-1.5 rounded-full text-xs font-poppins transition-all ${active
           ? "bg-[#A8DADC] text-white shadow-md"
           : "bg-gray-100 text-slate-600 hover:bg-[#F5F5F5]"
-      }`}
+        }`}
     >
       {label}
     </button>
@@ -134,7 +133,7 @@ export default function MoodTrendsPage() {
   // Mood trend range for charts 2 & 3 (shared range selector)
   const [moodRange, setMoodRange] = useState<MoodTrendRange>("Month");
 
-  // All 6 visualization datasets from the hook
+  // All 6 visualization datasets from the hook — pass moodRange so charts refresh with the filter
   const {
     distribution,
     distributionLoading,
@@ -145,7 +144,7 @@ export default function MoodTrendsPage() {
     distressRisk,
     distressRiskLoading,
     refetch,
-  } = useMoodVisualization();
+  } = useMoodVisualization(moodRange);
 
   // use useMoodTrend directly — range driven by moodRange state
   const {
@@ -157,16 +156,16 @@ export default function MoodTrendsPage() {
   } = useMoodTrend(moodRange);
 
   // ── Derived summary values ─────────────────────────────────────────────────
-  const latestWellness   = wellnessTrend.length ? wellnessTrend[wellnessTrend.length - 1] : null;
-  const latestBTS        = behavioralTrend.length ? behavioralTrend[behavioralTrend.length - 1] : null;
-  const latestRisk       = distressRisk.length ? distressRisk[distressRisk.length - 1] : null;
-  const wellnessCfg      = latestWellness?.wellnessLevel
+  const latestWellness = wellnessTrend.length ? wellnessTrend[wellnessTrend.length - 1] : null;
+  const latestBTS = behavioralTrend.length ? behavioralTrend[behavioralTrend.length - 1] : null;
+  const latestRisk = distressRisk.length ? distressRisk[distressRisk.length - 1] : null;
+  const wellnessCfg = latestWellness?.wellnessLevel
     ? WELLNESS_LEVEL_CONFIG[latestWellness.wellnessLevel as WellnessLevel]
     : null;
-  const riskCfg          = latestRisk?.riskLevel
+  const riskCfg = latestRisk?.riskLevel
     ? DISTRESS_RISK_CONFIG[latestRisk.riskLevel as DistressRiskLevel]
     : null;
-  const btsDir           = latestBTS
+  const btsDir = latestBTS
     ? latestBTS.bts >= 10 ? "↑ Improving" : latestBTS.bts <= -10 ? "↓ Declining" : "→ Stable"
     : null;
 
@@ -309,7 +308,7 @@ export default function MoodTrendsPage() {
           />
           {/* Level scale legend */}
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3">
-            {(["Healthy","Stable","Moderate Concern","At Risk","High Risk"] as WellnessLevel[]).map((lvl) => {
+            {(["Healthy", "Stable", "Moderate Concern", "At Risk", "High Risk"] as WellnessLevel[]).map((lvl) => {
               const c = WELLNESS_LEVEL_CONFIG[lvl];
               return (
                 <div key={lvl} className="flex items-center gap-1">
@@ -333,7 +332,7 @@ export default function MoodTrendsPage() {
                   className="text-xs font-poppins px-2 py-0.5 rounded-full"
                   style={{
                     backgroundColor: latestBTS.bts >= 10 ? "#B7E4C7" : latestBTS.bts <= -10 ? "#F4A6A6" : "#E5E7EB",
-                    color:           latestBTS.bts >= 10 ? "#2D6A4F" : latestBTS.bts <= -10 ? "#7B1C1C" : "#6B7280",
+                    color: latestBTS.bts >= 10 ? "#2D6A4F" : latestBTS.bts <= -10 ? "#7B1C1C" : "#6B7280",
                   }}
                 >
                   {btsDir} ({latestBTS.bts > 0 ? "+" : ""}{latestBTS.bts})

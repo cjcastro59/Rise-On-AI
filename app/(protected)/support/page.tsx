@@ -612,19 +612,18 @@ export default function SupportPage() {
                               key={conversation.id}
                               type="button"
                               onClick={() => selectConversation(conversation)}
-                              className={`w-full rounded-xl border p-3 text-left transition ${
-                                selectedConversation?.id === conversation.id
+                              className={`w-full rounded-xl border p-3 text-left transition ${selectedConversation?.id === conversation.id
                                   ? "border-primary-blue/40 bg-primary-blue/10"
                                   : "border-gray-100 bg-gray-50 hover:border-primary-blue/20"
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center justify-between gap-2">
                                 <p className="truncate text-sm font-semibold font-poppins text-dark-text">
                                   {channel === "admin"
                                     ? channelCopy.admin.title
                                     : recipient
-                                    ? `${getRoleLabel(recipient.role)} ${getDisplayName(recipient)}`
-                                    : channelCopy[channel].title}
+                                      ? `${getRoleLabel(recipient.role)} ${getDisplayName(recipient)}`
+                                      : channelCopy[channel].title}
                                 </p>
                                 {unread > 0 && (
                                   <span className="rounded-full bg-soft-red px-2 py-0.5 text-xs font-bold text-white">
@@ -658,16 +657,15 @@ export default function SupportPage() {
                           {selectedChannel === "admin"
                             ? channelCopy.admin.title
                             : selectedRecipient
-                            ? `${getRoleLabel(selectedRecipient.role)} ${getDisplayName(selectedRecipient)}`
-                            : channelCopy[selectedChannel].title}
+                              ? `${getRoleLabel(selectedRecipient.role)} ${getDisplayName(selectedRecipient)}`
+                              : channelCopy[selectedChannel].title}
                         </h2>
                       </div>
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold font-poppins ${
-                        selectedConversation.status === "open"
+                      <span className={`rounded-full px-3 py-1 text-xs font-semibold font-poppins ${selectedConversation.status === "open"
                           ? "bg-success-green/15 text-success-green"
                           : "bg-gray-100 text-slate-600"
-                      }`}>
-                      {selectedConversation.status === "open" ? "Open" : "Closed"}
+                        }`}>
+                        {selectedConversation.status === "open" ? "Open" : "Closed"}
                       </span>
                       <button
                         type="button"
@@ -698,20 +696,17 @@ export default function SupportPage() {
                           const isMine = message.sender_id === currentUserId;
                           const sender = senderProfiles[message.sender_id];
                           const senderLabel =
-                            sender?.role === "admin" || sender?.role === "owner"
-                              ? "Admin Support"
-                              : sender?.role === "counselor"
-                              ? `Counselor ${getDisplayName(sender)}`
+                            sender
+                              ? `${getRoleLabel(sender?.role)} ${getDisplayName(sender)}`
                               : selectedChannel === "admin"
-                              ? "Admin Support"
-                              : "Counselor";
+                                ? "Admin Support"
+                                : "Counselor";
                           return (
                             <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                              <div className={`max-w-[82%] rounded-2xl px-4 py-2 shadow-sm ${
-                                isMine
+                              <div className={`max-w-[82%] rounded-2xl px-4 py-2 shadow-sm ${isMine
                                   ? "rounded-tr-none bg-gradient-to-r from-primary-blue to-lavender text-white"
                                   : "rounded-tl-none bg-gray-100 text-dark-text"
-                              }`}>
+                                }`}>
                                 {!isMine && (
                                   <p className="mb-1 text-xs font-semibold font-poppins opacity-75">
                                     {senderLabel}

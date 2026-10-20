@@ -54,6 +54,7 @@ export default function DashboardPage() {
   const [announcements, setAnnouncements] = useState<
     { id: string; title: string; content: string; created_at: string }[]
   >([]);
+  const [announcementsExpanded, setAnnouncementsExpanded] = useState(true);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [todayMood, setTodayMood] = useState<string | null>(null);
   const [todayEntryPreview, setTodayEntryPreview] = useState<any | null>(null);
@@ -283,31 +284,49 @@ export default function DashboardPage() {
       />
       {announcements.length > 0 && (
         <Card className="mb-6 border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
-          <h2 className="mb-3 text-sm font-semibold font-poppins text-slate-800">
-            Announcements
-          </h2>
-          <div className="space-y-3">
-            {announcements.map((announcement) => (
-              <article key={announcement.id} className="rounded-xl border border-amber-200 bg-white p-3">
-                <h3 className="text-sm font-semibold font-poppins text-slate-900">
-                  {announcement.title}
-                </h3>
-                <p className="mt-1 whitespace-pre-wrap text-sm font-inter text-slate-700">
-                  {announcement.content}
-                </p>
-                <time
-                  dateTime={announcement.created_at}
-                  className="mt-2 block text-xs font-inter text-slate-600"
-                >
-                  {new Date(announcement.created_at).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </time>
-              </article>
-            ))}
-          </div>
+          <button
+            type="button"
+            onClick={() => setAnnouncementsExpanded((v) => !v)}
+            className="flex w-full items-center justify-between"
+          >
+            <h2 className="text-sm font-semibold font-poppins text-slate-800">
+              Announcements
+              <span className="ml-2 text-xs font-normal text-slate-600">({announcements.length})</span>
+            </h2>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className={`h-4 w-4 text-slate-600 transition-transform duration-200 ${announcementsExpanded ? "rotate-180" : ""}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {announcementsExpanded && (
+            <div className="mt-3 space-y-2 max-h-48 overflow-y-auto pr-1">
+              {announcements.map((announcement) => (
+                <article key={announcement.id} className="rounded-xl border border-amber-200 bg-white p-3">
+                  <h3 className="text-sm font-semibold font-poppins text-slate-900">
+                    {announcement.title}
+                  </h3>
+                  <p className="mt-1 whitespace-pre-wrap text-sm font-inter text-slate-700">
+                    {announcement.content}
+                  </p>
+                  <time
+                    dateTime={announcement.created_at}
+                    className="mt-2 block text-xs font-inter text-slate-600"
+                  >
+                    {new Date(announcement.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </time>
+                </article>
+              ))}
+            </div>
+          )}
         </Card>
       )}
       <div className="mb-8">

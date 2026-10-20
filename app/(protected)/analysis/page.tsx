@@ -444,7 +444,7 @@ export default function AIAnalysisPage() {
         {/* ── LEFT COLUMN ─────────────────────────────────────────────── */}
         <div className="space-y-6">
           {/* Sentiment Breakdown */}
-          <Card className="p-4 sm:p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
+          <Card className="p-4 sm:p-6 bg-white rounded-2xl border border-gray-200 shadow-sm">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-slate-700 mb-1 flex items-center gap-2">
               <span>📊</span>
               Sentiment Breakdown
@@ -473,7 +473,7 @@ export default function AIAnalysisPage() {
           </Card>
 
           {/* Detected Emotions */}
-          <Card className="p-4 sm:p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
+          <Card className="p-4 sm:p-6 bg-white rounded-2xl border border-gray-200 shadow-sm">
             <h3 className="text-sm font-poppins uppercase tracking-wider text-slate-700 mb-4 flex items-center gap-2">
               <span>🌈</span>
               Detected Emotions
@@ -489,7 +489,7 @@ export default function AIAnalysisPage() {
           </Card>
 
           {/* Emotional Wellness Score — uses the real Wellness Score from behavioral_indicators */}
-          <Card className="p-4 sm:p-8 text-center bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
+          <Card className="p-4 sm:p-8 text-center bg-white rounded-2xl border border-gray-200 shadow-sm">
             <h3 className="text-base font-poppins uppercase tracking-wider text-slate-700 mb-4 sm:mb-8 flex items-center gap-2 justify-center">
               <span>🧠</span>
               Wellness Score
@@ -540,7 +540,7 @@ export default function AIAnalysisPage() {
 
           {/* Key Phrases */}
           {analysis.keyPhrases.length > 0 && (
-            <Card className="p-4 sm:p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
+            <Card className="p-4 sm:p-6 bg-white rounded-2xl border border-gray-200 shadow-sm">
               <h3 className="text-sm font-poppins uppercase tracking-wider text-slate-700 mb-4 flex items-center gap-2">
                 <span>🔑</span>
                 Key Phrases Detected
@@ -565,7 +565,7 @@ export default function AIAnalysisPage() {
             style={{ borderLeftColor: aciCfg.borderColor }}
           >
           <AIReportErrorBoundary>
-          <Card className="p-4 sm:p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm rounded-l-none border-l-0">
+          <Card className="p-4 sm:p-6 bg-white rounded-2xl border border-gray-200 shadow-sm rounded-l-none border-l-0">
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-poppins uppercase tracking-wider text-slate-700 flex items-center gap-2">
                 <span>{aciCfg.emoji}</span>
@@ -654,7 +654,7 @@ export default function AIAnalysisPage() {
 
           {/* ── EXPLAINABILITY PANEL ─────────────────────────────────── */}
           <AIReportErrorBoundary>
-          <Card className="p-4 sm:p-6 bg-white/80 backdrop-blur-md rounded-2xl border border-white/40 shadow-sm">
+          <Card className="p-4 sm:p-6 bg-white rounded-2xl border border-gray-200 shadow-sm">
             {/* Header */}
             <div className="flex items-center justify-between mb-1">
               <h3 className="text-sm font-poppins uppercase tracking-wider text-slate-700 flex items-center gap-2">

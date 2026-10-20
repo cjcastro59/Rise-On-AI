@@ -668,19 +668,24 @@ export default function SettingsPage() {
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text mb-2">Language &amp; Region</h3>
               <p className="text-sm text-slate-600 font-poppins">
-                Choose your preferred language for the app.
+                Choose your preferred journaling language. This is used by the AI to better understand your entries written in English or Filipino.
               </p>
             </div>
-            <div className="p-4 bg-light-gray/30 rounded-xl">
-              <label className="text-xs font-poppins text-slate-600">Language</label>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="mt-1 w-full px-3 py-2 rounded-lg border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
-              >
-                <option value="English">English</option>
-                <option value="Filipino">Filipino</option>
-              </select>
+            <div className="p-4 bg-light-gray/30 rounded-xl space-y-3">
+              <div>
+                <label className="text-xs font-poppins text-slate-600">Journaling Language</label>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="mt-1 w-full px-3 py-2 rounded-lg border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
+                >
+                  <option value="English">English</option>
+                  <option value="Filipino">Filipino</option>
+                </select>
+              </div>
+              <p className="text-xs text-slate-500 font-inter">
+                Note: This setting does not change the app interface language. It helps the AI sentiment analysis recognize which language your journal entries are written in.
+              </p>
             </div>
             <div className="flex justify-end mt-6">
               <Button onClick={saveLanguageSettings} disabled={saving}>{saving ? "Saving..." : "Save Language Preference"}</Button>
@@ -771,14 +776,14 @@ export default function SettingsPage() {
             {success && (
               <div className="text-success-green text-xs bg-success-green/10 p-3 rounded-lg font-poppins">{success}</div>
             )}
-            <div className="flex flex-col gap-3">
-              <Button variant="secondary" onClick={() => downloadSettingsData("json")} disabled={saving}>
+            <div className="flex flex-col gap-3 overflow-hidden">
+              <Button variant="secondary" onClick={() => downloadSettingsData("json")} disabled={saving} className="hover:scale-100">
                 {saving ? "Preparing..." : "📥 Download All My Data"}
               </Button>
-              <Button variant="secondary" onClick={() => downloadSettingsData("csv")} disabled={saving}>
+              <Button variant="secondary" onClick={() => downloadSettingsData("csv")} disabled={saving} className="hover:scale-100">
                 {saving ? "Preparing..." : "Download CSV"}
               </Button>
-              <Button variant="ghost" className="text-soft-red" onClick={() => setShowDeleteConfirm(true)}>
+              <Button variant="ghost" className="text-soft-red hover:scale-100" onClick={() => setShowDeleteConfirm(true)}>
                 🗑️ Delete My Account
               </Button>
             </div>
@@ -823,79 +828,74 @@ export default function SettingsPage() {
       </div>
 
       <div className="flex gap-6">
-      {/* Desktop Sidebar */}
-      <div className="w-64 flex-shrink-0 hidden md:block">
-        <Card className="p-4 space-y-2 bg-white overflow-hidden">
-          <h2 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4">Settings</h2>
-          <button
-            onClick={() => setActiveSection("notifications")}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              activeSection === "notifications"
+        {/* Desktop Sidebar */}
+        <div className="w-64 flex-shrink-0 hidden md:block">
+          <Card className="p-4 space-y-2 bg-white overflow-hidden">
+            <h2 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4">Settings</h2>
+            <button
+              onClick={() => setActiveSection("notifications")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "notifications"
                 ? "bg-primary-blue/10 text-primary-blue"
                 : "text-dark-text hover:bg-light-gray/50"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Image src="/icons/notifications.svg" alt="Notifications" width={16} height={16} className="w-4 h-4 object-contain" /> Notifications
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveSection("privacy")}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              activeSection === "privacy"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/notifications.svg" alt="Notifications" width={16} height={16} className="w-4 h-4 object-contain" /> Notifications
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveSection("privacy")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "privacy"
                 ? "bg-primary-blue/10 text-primary-blue"
                 : "text-dark-text hover:bg-light-gray/50"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Image src="/icons/privacy.svg" alt="Privacy" width={16} height={16} className="w-4 h-4 object-contain" /> Privacy
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveSection("language")}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              activeSection === "language"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/privacy.svg" alt="Privacy" width={16} height={16} className="w-4 h-4 object-contain" /> Privacy
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveSection("language")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "language"
                 ? "bg-primary-blue/10 text-primary-blue"
                 : "text-dark-text hover:bg-light-gray/50"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Image src="/icons/language.svg" alt="Language" width={16} height={16} className="w-4 h-4 object-contain" /> Language
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveSection("security")}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              activeSection === "security"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/language.svg" alt="Language" width={16} height={16} className="w-4 h-4 object-contain" /> Language
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveSection("security")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "security"
                 ? "bg-primary-blue/10 text-primary-blue"
                 : "text-dark-text hover:bg-light-gray/50"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Image src="/icons/security.svg" alt="Security" width={16} height={16} className="w-4 h-4 object-contain" /> Security
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveSection("data")}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              activeSection === "data"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/security.svg" alt="Security" width={16} height={16} className="w-4 h-4 object-contain" /> Security
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveSection("data")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "data"
                 ? "bg-primary-blue/10 text-primary-blue"
                 : "text-dark-text hover:bg-light-gray/50"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Image src="/icons/data-export.svg" alt="Data & Export" width={16} height={16} className="w-4 h-4 object-contain" /> Data & Export
-            </span>
-          </button>
-        </Card>
-      </div>
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/data-export.svg" alt="Data & Export" width={16} height={16} className="w-4 h-4 object-contain" /> Data & Export
+              </span>
+            </button>
+          </Card>
+        </div>
 
-      {/* Main Content */}
-      <div className="flex-1">
-        <Card className="p-6 bg-white">
-          {renderSettingsContent()}
-        </Card>
-      </div>
+        {/* Main Content */}
+        <div className="flex-1">
+          <Card className="p-6 bg-white">
+            {renderSettingsContent()}
+          </Card>
+        </div>
       </div>
 
       {/* Change Password Modal */}

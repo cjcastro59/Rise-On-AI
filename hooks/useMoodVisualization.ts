@@ -25,7 +25,7 @@ export interface MoodDistributionData {
   positive: number;
   negative: number;
   distress: number;
-  total:    number;
+  total: number;
   /** Pre-computed percentages (0–100, rounded) */
   positivePercent: number;
   negativePercent: number;
@@ -34,7 +34,7 @@ export interface MoodDistributionData {
 
 /** One point on the Wellness Score trend line */
 export interface WellnessTrendPoint {
-  date:          string;   // "YYYY-MM-DD"
+  date: string;   // "YYYY-MM-DD"
   wellnessScore: number;   // 0.00–10.00
   wellnessLevel: string;   // "Healthy" | "Stable" | ...
 }
@@ -42,42 +42,42 @@ export interface WellnessTrendPoint {
 /** One point on the Behavioral Trend Score line */
 export interface BehavioralTrendPoint {
   date: string;  // "YYYY-MM-DD"
-  bts:  number;  // 0-100 concern score
+  bts: number;  // 0-100 concern score
 }
 
 /** One point on the Distress Risk bar chart */
 export interface DistressRiskPoint {
-  date:       string;  // "YYYY-MM-DD"
-  riskLevel:  string;  // "Low Risk" | "Moderate Risk" | "High Risk" | "Critical Risk"
-  severity:   number;  // 1=Low, 2=Moderate, 3=High, 4=Critical (for Y-axis)
+  date: string;  // "YYYY-MM-DD"
+  riskLevel: string;  // "Low Risk" | "Moderate Risk" | "High Risk" | "Critical Risk"
+  severity: number;  // 1=Low, 2=Moderate, 3=High, 4=Critical (for Y-axis)
   totalPoints: number; // raw DRI points (for tooltip)
 }
 
 export interface UseMoodVisualizationResult {
   // 1. Mood Distribution
-  distribution:       MoodDistributionData | null;
+  distribution: MoodDistributionData | null;
   distributionLoading: boolean;
 
   // 2 + 3. Mood Trend (week / month / 3-months / all-time via useMoodTrend)
-  moodTrendData:      MoodTrendPoint[];
-  moodTrendLoading:   boolean;
-  moodTrendHasData:   boolean;
-  moodTrendAvg:       number | null;
-  moodTrendTicks:     string[] | undefined;
-  moodTrendRange:     MoodTrendRange;
-  setMoodTrendRange:  (r: MoodTrendRange) => void;
+  moodTrendData: MoodTrendPoint[];
+  moodTrendLoading: boolean;
+  moodTrendHasData: boolean;
+  moodTrendAvg: number | null;
+  moodTrendTicks: string[] | undefined;
+  moodTrendRange: MoodTrendRange;
+  setMoodTrendRange: (r: MoodTrendRange) => void;
 
   // 4. Wellness Score Trend
-  wellnessTrend:      WellnessTrendPoint[];
+  wellnessTrend: WellnessTrendPoint[];
   wellnessTrendLoading: boolean;
 
   // 5. Behavioral Trend
-  behavioralTrend:      BehavioralTrendPoint[];
+  behavioralTrend: BehavioralTrendPoint[];
   behavioralTrendLoading: boolean;
 
   // 6. Distress Risk History
-  distressRisk:         DistressRiskPoint[];
-  distressRiskLoading:  boolean;
+  distressRisk: DistressRiskPoint[];
+  distressRiskLoading: boolean;
 
   /** Re-fetch all data */
   refetch: () => void;
@@ -86,9 +86,9 @@ export interface UseMoodVisualizationResult {
 // ── Risk level → severity integer ────────────────────────────────────────────
 
 const RISK_SEVERITY: Record<string, number> = {
-  "Low Risk":      1,
+  "Low Risk": 1,
   "Moderate Risk": 2,
-  "High Risk":     3,
+  "High Risk": 3,
   "Critical Risk": 4,
 };
 
@@ -108,43 +108,61 @@ const asDateKey = (value: unknown) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function useMoodVisualization(): UseMoodVisualizationResult {
+export function useMoodVisualization(range?: MoodTrendRange): UseMoodVisualizationResult {
   const { user } = useAuth();
-  const supabase  = useMemo(() => createClient() as any, []);
+  const supabase = useMemo(() => createClient() as any, []);
 
   // ── Mood Trend (re-exports useMoodTrend) ──────────────────────────────────
   const [moodTrendRange, setMoodTrendRange] = useState<MoodTrendRange>("Month");
   const {
-    data:     moodTrendData,
-    loading:  moodTrendLoading,
-    hasData:  moodTrendHasData,
+    data: moodTrendData,
+    loading: moodTrendLoading,
+    hasData: moodTrendHasData,
     avgScore: moodTrendAvg,
-    ticks:    moodTrendTicks,
-    refetch:  refetchMoodTrend,
+    ticks: moodTrendTicks,
+    refetch: refetchMoodTrend,
   } = useMoodTrend(moodTrendRange);
 
+  // ── Compute date cutoff from range ────────────────────────────────────────
+  const dateCutoff = useMemo((): string | null => {
+    if (!range || range === "All Time") return null;
+    const now = new Date();
+    const cutoff = new Date();
+    if (range === "Week") cutoff.setDate(now.getDate() - 7);
+    else if (range === "Month") cutoff.setMonth(now.getMonth() - 1);
+    else if (range === "3 Months") cutoff.setMonth(now.getMonth() - 3);
+    return cutoff.toISOString().slice(0, 10); // "YYYY-MM-DD"
+  }, [range]);
+
   // ── Dataset state ─────────────────────────────────────────────────────────
-  const [distribution,          setDistribution]          = useState<MoodDistributionData | null>(null);
-  const [distributionLoading,   setDistributionLoading]   = useState(true);
-  const [wellnessTrend,         setWellnessTrend]         = useState<WellnessTrendPoint[]>([]);
-  const [wellnessTrendLoading,  setWellnessTrendLoading]  = useState(true);
-  const [behavioralTrend,       setBehavioralTrend]       = useState<BehavioralTrendPoint[]>([]);
-  const [behavioralTrendLoading,setBehavioralTrendLoading]= useState(true);
-  const [distressRisk,          setDistressRisk]          = useState<DistressRiskPoint[]>([]);
-  const [distressRiskLoading,   setDistressRiskLoading]   = useState(true);
+  const [distribution, setDistribution] = useState<MoodDistributionData | null>(null);
+  const [distributionLoading, setDistributionLoading] = useState(true);
+  const [wellnessTrend, setWellnessTrend] = useState<WellnessTrendPoint[]>([]);
+  const [wellnessTrendLoading, setWellnessTrendLoading] = useState(true);
+  const [behavioralTrend, setBehavioralTrend] = useState<BehavioralTrendPoint[]>([]);
+  const [behavioralTrendLoading, setBehavioralTrendLoading] = useState(true);
+  const [distressRisk, setDistressRisk] = useState<DistressRiskPoint[]>([]);
+  const [distressRiskLoading, setDistressRiskLoading] = useState(true);
 
   // ── 1. Mood Distribution ──────────────────────────────────────────────────
   // Counts from journal_entries.sentiment (stored XLM-R classification).
   // Only uses entries where sentiment IS NOT NULL (i.e. AI has run).
+  // Filtered by date range when a range is specified.
   const fetchDistribution = useCallback(async () => {
     if (!user) { setDistributionLoading(false); return; }
     setDistributionLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("journal_entries")
         .select("sentiment")
         .eq("user_id", user.id)
         .not("sentiment", "is", null);
+
+      if (dateCutoff) {
+        query = query.gte("created_at", dateCutoff);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error("[useMoodVisualization] distribution:", error);
@@ -156,7 +174,7 @@ export function useMoodVisualization(): UseMoodVisualizationResult {
       const positive = rows.filter(r => r.sentiment === "positive").length;
       const negative = rows.filter(r => r.sentiment === "negative").length;
       const distress = rows.filter(r => r.sentiment === "distress").length;
-      const total    = positive + negative + distress;
+      const total = positive + negative + distress;
 
       setDistribution(total === 0 ? null : {
         positive, negative, distress, total,
@@ -167,23 +185,33 @@ export function useMoodVisualization(): UseMoodVisualizationResult {
     } finally {
       setDistributionLoading(false);
     }
-  }, [user, supabase]);
+  }, [user, supabase, dateCutoff]);
 
   // ── 4. Wellness Score Trend ───────────────────────────────────────────────
   // Reads behavioral_indicators.wellness_score ordered by window_end_date.
   // Excludes rows where wellness_score IS NULL.
+  // When range is "All Time" or no range, removes the lookback_days filter.
   const fetchWellnessTrend = useCallback(async () => {
     if (!user) { setWellnessTrendLoading(false); return; }
     setWellnessTrendLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("behavioral_indicators")
         .select("window_end_date, wellness_score, wellness_level")
-        .eq("user_id",      user.id)
-        .eq("lookback_days", 30)
+        .eq("user_id", user.id)
         .not("wellness_score", "is", null)
-        .order("window_end_date", { ascending: true })
-        .limit(90);
+        .order("window_end_date", { ascending: true });
+
+      // Only filter by lookback_days when not overriding with a range
+      if (!range || range === "All Time") {
+        query = query.limit(365);
+      } else {
+        query = query.eq("lookback_days", 30);
+        if (dateCutoff) query = query.gte("window_end_date", dateCutoff);
+        query = query.limit(90);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error("[useMoodVisualization] wellness trend:", error);
@@ -208,7 +236,7 @@ export function useMoodVisualization(): UseMoodVisualizationResult {
     } finally {
       setWellnessTrendLoading(false);
     }
-  }, [user, supabase]);
+  }, [user, supabase, range, dateCutoff]);
 
   // ── 5. Behavioral Trend Score ─────────────────────────────────────────────
   // Reads behavioral_indicators.behavioral_trend_score over time.
@@ -216,13 +244,21 @@ export function useMoodVisualization(): UseMoodVisualizationResult {
     if (!user) { setBehavioralTrendLoading(false); return; }
     setBehavioralTrendLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("behavioral_indicators")
         .select("window_end_date, behavioral_trend_score")
-        .eq("user_id",      user.id)
-        .eq("lookback_days", 30)
-        .order("window_end_date", { ascending: true })
-        .limit(90);
+        .eq("user_id", user.id)
+        .order("window_end_date", { ascending: true });
+
+      if (!range || range === "All Time") {
+        query = query.limit(365);
+      } else {
+        query = query.eq("lookback_days", 30);
+        if (dateCutoff) query = query.gte("window_end_date", dateCutoff);
+        query = query.limit(90);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error("[useMoodVisualization] behavioral trend:", error);
@@ -242,7 +278,7 @@ export function useMoodVisualization(): UseMoodVisualizationResult {
     } finally {
       setBehavioralTrendLoading(false);
     }
-  }, [user, supabase]);
+  }, [user, supabase, range, dateCutoff]);
 
   // ── 6. Distress Risk History ──────────────────────────────────────────────
   // Reads distress_risk_assessments.risk_level over assessed_date.
@@ -250,13 +286,21 @@ export function useMoodVisualization(): UseMoodVisualizationResult {
     if (!user) { setDistressRiskLoading(false); return; }
     setDistressRiskLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("distress_risk_assessments")
         .select("assessed_date, risk_level, total_points")
-        .eq("user_id",      user.id)
-        .eq("lookback_days", 30)
-        .order("assessed_date", { ascending: true })
-        .limit(90);
+        .eq("user_id", user.id)
+        .order("assessed_date", { ascending: true });
+
+      if (!range || range === "All Time") {
+        query = query.limit(365);
+      } else {
+        query = query.eq("lookback_days", 30);
+        if (dateCutoff) query = query.gte("assessed_date", dateCutoff);
+        query = query.limit(90);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error("[useMoodVisualization] distress risk:", error);
@@ -283,7 +327,7 @@ export function useMoodVisualization(): UseMoodVisualizationResult {
     } finally {
       setDistressRiskLoading(false);
     }
-  }, [user, supabase]);
+  }, [user, supabase, range, dateCutoff]);
 
   // ── Unified refetch ───────────────────────────────────────────────────────
   const refetch = useCallback(() => {

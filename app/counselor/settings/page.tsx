@@ -299,34 +299,34 @@ export default function CounselorSettingsPage() {
       const assignedClientIds = assignedUsers.map((client: any) => client.id).filter(Boolean);
       const [assignedJournalEntries, assignedDistressLogs, assignedWellnessRows] = assignedClientIds.length
         ? await Promise.all([
-            fetchRows(
-              "assigned client journal entries",
-              supabase
-                .from("journal_entries")
-                .select("id,user_id,mood,sentiment,sentiment_score,created_at")
-                .in("user_id", assignedClientIds)
-                .order("created_at", { ascending: false })
-                .limit(5000),
-            ),
-            fetchRows(
-              "assigned client distress logs",
-              supabase
-                .from("distress_logs")
-                .select("*")
-                .in("user_id", assignedClientIds)
-                .order("created_at", { ascending: false })
-                .limit(2000),
-            ),
-            fetchRows(
-              "assigned client wellness rows",
-              supabase
-                .from("behavioral_indicators")
-                .select("user_id, window_end_date, lookback_days, wellness_score, wellness_level, behavioral_trend_score")
-                .in("user_id", assignedClientIds)
-                .order("window_end_date", { ascending: false })
-                .limit(5000),
-            ),
-          ])
+          fetchRows(
+            "assigned client journal entries",
+            supabase
+              .from("journal_entries")
+              .select("id,user_id,mood,sentiment,sentiment_score,created_at")
+              .in("user_id", assignedClientIds)
+              .order("created_at", { ascending: false })
+              .limit(5000),
+          ),
+          fetchRows(
+            "assigned client distress logs",
+            supabase
+              .from("distress_logs")
+              .select("*")
+              .in("user_id", assignedClientIds)
+              .order("created_at", { ascending: false })
+              .limit(2000),
+          ),
+          fetchRows(
+            "assigned client wellness rows",
+            supabase
+              .from("behavioral_indicators")
+              .select("user_id, window_end_date, lookback_days, wellness_score, wellness_level, behavioral_trend_score")
+              .in("user_id", assignedClientIds)
+              .order("window_end_date", { ascending: false })
+              .limit(5000),
+          ),
+        ])
         : [[], [], []];
 
       const sections: ExportSection[] = [
@@ -547,11 +547,10 @@ export default function CounselorSettingsPage() {
                   <button
                     type="button"
                     onClick={() => setShift("day")}
-                    className={`p-3 rounded-xl border-2 text-center transition-all ${
-                      shift === "day"
+                    className={`p-3 rounded-xl border-2 text-center transition-all ${shift === "day"
                         ? "border-primary-blue bg-primary-blue/10"
                         : "border-light-gray hover:border-primary-blue/40"
-                    }`}
+                      }`}
                   >
                     <span className="text-xl">☀️</span>
                     <p className="text-sm font-poppins text-dark-text mt-1">Day Shift</p>
@@ -560,11 +559,10 @@ export default function CounselorSettingsPage() {
                   <button
                     type="button"
                     onClick={() => setShift("night")}
-                    className={`p-3 rounded-xl border-2 text-center transition-all ${
-                      shift === "night"
+                    className={`p-3 rounded-xl border-2 text-center transition-all ${shift === "night"
                         ? "border-lavender bg-lavender/10"
                         : "border-light-gray hover:border-lavender/40"
-                    }`}
+                      }`}
                   >
                     <span className="text-xl">🌙</span>
                     <p className="text-sm font-poppins text-dark-text mt-1">Night Shift</p>
@@ -710,19 +708,24 @@ export default function CounselorSettingsPage() {
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Language &amp; Region</h3>
               <p className="text-sm text-slate-600 font-poppins">
-                Choose your preferred language for the app.
+                Choose your preferred journaling language. This is used by the AI to better understand entries written in English or Filipino.
               </p>
             </div>
-            <div className="p-4 bg-light-gray/30 rounded-xl">
-              <label className="text-xs font-poppins text-slate-600">Language</label>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="mt-1 w-full px-3 py-2 rounded-lg border border-light-gray bg-white text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
-              >
-                <option value="English">English</option>
-                <option value="Filipino">Filipino</option>
-              </select>
+            <div className="p-4 bg-light-gray/30 rounded-xl space-y-3">
+              <div>
+                <label className="text-xs font-poppins text-slate-600">Journaling Language</label>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="mt-1 w-full px-3 py-2 rounded-lg border border-light-gray bg-white text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
+                >
+                  <option value="English">English</option>
+                  <option value="Filipino">Filipino</option>
+                </select>
+              </div>
+              <p className="text-xs text-slate-500 font-inter">
+                Note: This setting does not change the app interface language. It helps the AI sentiment analysis recognize which language journal entries are written in.
+              </p>
             </div>
             <div className="flex justify-end mt-6">
               <Button onClick={saveLanguageSettings} disabled={saving} className="bg-primary-blue text-white hover:bg-primary-blue/80">
@@ -866,215 +869,208 @@ export default function CounselorSettingsPage() {
           {success}
         </div>
       )}
-    <div className="flex gap-6">
-      {/* Sidebar */}
-      <div className="w-64 flex-shrink-0 hidden md:block">
-        <Card variant="white" className="p-4 space-y-2 overflow-hidden">
-          <h2 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4">Settings</h2>
-          <button
-            onClick={() => setActiveSection("counselor")}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              activeSection === "counselor"
-                ? "bg-primary-blue/20 text-primary-blue"
-                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Image src="/icons/account.svg" alt="Counselor" width={16} height={16} className="w-4 h-4 object-contain" /> Counselor
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveSection("notifications")}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              activeSection === "notifications"
-                ? "bg-primary-blue/20 text-primary-blue"
-                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Image src="/icons/notifications.svg" alt="Notifications" width={16} height={16} className="w-4 h-4 object-contain" /> Notifications
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveSection("privacy")}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              activeSection === "privacy"
-                ? "bg-primary-blue/20 text-primary-blue"
-                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Image src="/icons/privacy.svg" alt="Privacy" width={16} height={16} className="w-4 h-4 object-contain" /> Privacy
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveSection("language")}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              activeSection === "language"
-                ? "bg-primary-blue/20 text-primary-blue"
-                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Image src="/icons/language.svg" alt="Language" width={16} height={16} className="w-4 h-4 object-contain" /> Language
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveSection("security")}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              activeSection === "security"
-                ? "bg-primary-blue/20 text-primary-blue"
-                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Image src="/icons/security.svg" alt="Security" width={16} height={16} className="w-4 h-4 object-contain" /> Security
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveSection("data")}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              activeSection === "data"
-                ? "bg-primary-blue/20 text-primary-blue"
-                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Image src="/icons/data-export.svg" alt="Data & Export" width={16} height={16} className="w-4 h-4 object-contain" /> Data & Export
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveSection("account")}
-            className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-              activeSection === "account"
-                ? "bg-primary-blue/20 text-primary-blue"
-                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Image src="/icons/account.svg" alt="Account" width={16} height={16} className="w-4 h-4 object-contain" /> Account
-            </span>
-          </button>
-        </Card>
-      </div>
+      <div className="flex gap-6">
+        {/* Sidebar */}
+        <div className="w-64 flex-shrink-0 hidden md:block">
+          <Card variant="white" className="p-4 space-y-2 overflow-hidden">
+            <h2 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4">Settings</h2>
+            <button
+              onClick={() => setActiveSection("counselor")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "counselor"
+                  ? "bg-primary-blue/20 text-primary-blue"
+                  : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/account.svg" alt="Counselor" width={16} height={16} className="w-4 h-4 object-contain" /> Counselor
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveSection("notifications")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "notifications"
+                  ? "bg-primary-blue/20 text-primary-blue"
+                  : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/notifications.svg" alt="Notifications" width={16} height={16} className="w-4 h-4 object-contain" /> Notifications
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveSection("privacy")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "privacy"
+                  ? "bg-primary-blue/20 text-primary-blue"
+                  : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/privacy.svg" alt="Privacy" width={16} height={16} className="w-4 h-4 object-contain" /> Privacy
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveSection("language")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "language"
+                  ? "bg-primary-blue/20 text-primary-blue"
+                  : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/language.svg" alt="Language" width={16} height={16} className="w-4 h-4 object-contain" /> Language
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveSection("security")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "security"
+                  ? "bg-primary-blue/20 text-primary-blue"
+                  : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/security.svg" alt="Security" width={16} height={16} className="w-4 h-4 object-contain" /> Security
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveSection("data")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "data"
+                  ? "bg-primary-blue/20 text-primary-blue"
+                  : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/data-export.svg" alt="Data & Export" width={16} height={16} className="w-4 h-4 object-contain" /> Data & Export
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveSection("account")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "account"
+                  ? "bg-primary-blue/20 text-primary-blue"
+                  : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/account.svg" alt="Account" width={16} height={16} className="w-4 h-4 object-contain" /> Account
+              </span>
+            </button>
+          </Card>
+        </div>
 
-      {/* Main Content */}
-      <div className="flex-1">
-        <Card variant="white" className="p-6">
-          {renderSettingsContent()}
-        </Card>
-      </div>
+        {/* Main Content */}
+        <div className="flex-1">
+          <Card variant="white" className="p-6">
+            {renderSettingsContent()}
+          </Card>
+        </div>
 
-      {showChangePw && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark-text/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-            <div className="flex items-start justify-between mb-5">
-              <div>
-                <h3 className="text-xl font-dm-serif text-dark-text">Change Password</h3>
-                <p className="text-xs text-slate-600 font-poppins mt-1">Update your login credentials</p>
+        {showChangePw && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark-text/40 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+              <div className="flex items-start justify-between mb-5">
+                <div>
+                  <h3 className="text-xl font-dm-serif text-dark-text">Change Password</h3>
+                  <p className="text-xs text-slate-600 font-poppins mt-1">Update your login credentials</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setShowChangePw(false); setPwCurrent(""); setPwNew(""); setPwConfirm(""); }}
+                  className="text-slate-600 hover:text-dark-text text-2xl leading-none"
+                >
+                  x
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => { setShowChangePw(false); setPwCurrent(""); setPwNew(""); setPwConfirm(""); }}
-                className="text-slate-600 hover:text-dark-text text-2xl leading-none"
-              >
-                x
-              </button>
-            </div>
-            {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-lg font-poppins mb-3">{error}</div>}
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-poppins text-slate-700 mb-1 block">Current Password</label>
-                <Input type="password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} placeholder="Enter current password" />
+              {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-lg font-poppins mb-3">{error}</div>}
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-poppins text-slate-700 mb-1 block">Current Password</label>
+                  <Input type="password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} placeholder="Enter current password" />
+                </div>
+                <div>
+                  <label className="text-xs font-poppins text-slate-700 mb-1 block">New Password</label>
+                  <Input type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} placeholder="Enter new password" />
+                  <p className="mt-1 text-xs text-slate-600 font-inter">
+                    Use at least 8 characters with uppercase, lowercase, number, and special character.
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-poppins text-slate-700 mb-1 block">Confirm New Password</label>
+                  <Input type="password" value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)} placeholder="Repeat new password" />
+                </div>
               </div>
-              <div>
-                <label className="text-xs font-poppins text-slate-700 mb-1 block">New Password</label>
-                <Input type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} placeholder="Enter new password" />
-                <p className="mt-1 text-xs text-slate-600 font-inter">
-                  Use at least 8 characters with uppercase, lowercase, number, and special character.
-                </p>
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => { setShowChangePw(false); setPwCurrent(""); setPwNew(""); setPwConfirm(""); }}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleChangePassword}
+                  disabled={pwLoading}
+                  className="flex-1 px-4 py-2.5 bg-primary-blue text-white rounded-lg text-sm font-poppins hover:bg-primary-blue/90 disabled:opacity-60"
+                >
+                  {pwLoading ? "Updating..." : "Update Password"}
+                </button>
               </div>
-              <div>
-                <label className="text-xs font-poppins text-slate-700 mb-1 block">Confirm New Password</label>
-                <Input type="password" value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)} placeholder="Repeat new password" />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button
-                type="button"
-                onClick={() => { setShowChangePw(false); setPwCurrent(""); setPwNew(""); setPwConfirm(""); }}
-                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleChangePassword}
-                disabled={pwLoading}
-                className="flex-1 px-4 py-2.5 bg-primary-blue text-white rounded-lg text-sm font-poppins hover:bg-primary-blue/90 disabled:opacity-60"
-              >
-                {pwLoading ? "Updating..." : "Update Password"}
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark-text/40 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border-l-4 border-l-red-500">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-xl font-dm-serif text-dark-text">Delete My Account</h3>
-                <p className="text-xs text-slate-700 font-poppins mt-1 leading-relaxed">
-                  This deactivates your counselor profile and unassigns your clients.
-                </p>
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark-text/40 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border-l-4 border-l-red-500">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-dm-serif text-dark-text">Delete My Account</h3>
+                  <p className="text-xs text-slate-700 font-poppins mt-1 leading-relaxed">
+                    This deactivates your counselor profile and unassigns your clients.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
+                  className="text-slate-600 hover:text-dark-text text-2xl leading-none"
+                >
+                  x
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
-                className="text-slate-600 hover:text-dark-text text-2xl leading-none"
-              >
-                x
-              </button>
-            </div>
-            {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-lg font-poppins mb-3">{error}</div>}
-            <div className="space-y-3">
-              <div className="p-3 bg-red-50 rounded-xl border border-red-100">
-                <p className="text-xs font-poppins text-dark-text font-semibold mb-1">
-                  Type exactly below to confirm:
-                </p>
-                <p className="text-sm font-mono text-red-600 font-bold tracking-wide">DELETE MY ACCOUNT</p>
+              {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-lg font-poppins mb-3">{error}</div>}
+              <div className="space-y-3">
+                <div className="p-3 bg-red-50 rounded-xl border border-red-100">
+                  <p className="text-xs font-poppins text-dark-text font-semibold mb-1">
+                    Type exactly below to confirm:
+                  </p>
+                  <p className="text-sm font-mono text-red-600 font-bold tracking-wide">DELETE MY ACCOUNT</p>
+                </div>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type confirmation phrase here"
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-500"
+                />
               </div>
-              <input
-                type="text"
-                value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
-                placeholder="Type confirmation phrase here"
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-500"
-              />
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button
-                type="button"
-                onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
-                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteAccount}
-                disabled={deleteLoading}
-                className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-lg text-sm font-poppins hover:bg-red-600 disabled:opacity-60"
-              >
-                {deleteLoading ? "Deleting..." : "Delete Account"}
-              </button>
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={deleteLoading}
+                  className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-lg text-sm font-poppins hover:bg-red-600 disabled:opacity-60"
+                >
+                  {deleteLoading ? "Deleting..." : "Delete Account"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
     </div>
   );
 }

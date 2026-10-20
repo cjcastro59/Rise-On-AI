@@ -127,7 +127,7 @@ export default function ProfilePage() {
 
   const fetchProfileAndStats = useCallback(async () => {
     if (!user) return;
-    
+
     try {
       // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
@@ -135,7 +135,7 @@ export default function ProfilePage() {
         .select("*")
         .eq("id", user.id)
         .single();
-        
+
       if (profileError) {
         console.error("Error fetching profile:", profileError);
       } else if (profileData) {
@@ -149,7 +149,7 @@ export default function ProfilePage() {
         .select("created_at, mood")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
-        
+
       if (entriesError) {
         console.error("Error fetching entries:", entriesError);
       } else {
@@ -168,19 +168,19 @@ export default function ProfilePage() {
       flash("error", "Please log in to save profile");
       return;
     }
-    
+
     try {
       setSaving(true);
-      
+
       console.log("Saving profile with data:", {
         id: user.id,
         ...profile,
         updated_at: new Date().toISOString(),
       });
-      
+
       // Let's use update instead of upsert to be safe, and handle insert if needed
       let error;
-      
+
       // First try to update
       const { error: updateError } = await supabase
         .from("user_profiles")
@@ -189,9 +189,9 @@ export default function ProfilePage() {
           updated_at: new Date().toISOString(),
         })
         .eq("id", user.id);
-        
+
       error = updateError;
-      
+
       // If update failed because no row exists, try insert
       if (updateError && updateError.code === "PGRST116") {
         console.log("No existing profile, inserting new one");
@@ -206,16 +206,16 @@ export default function ProfilePage() {
           });
         error = insertError;
       }
-      
+
       if (error) {
         console.error("Error saving profile:", error);
         flash("error", `Failed to save profile: ${error.message}`);
         return;
       }
-      
+
       // Refetch profile to get fresh data
       await fetchProfileAndStats();
-      
+
       setIsEditing(false);
       flash("success", "✅ Profile saved successfully!");
     } catch (error) {
@@ -238,7 +238,7 @@ export default function ProfilePage() {
     const newGoals = currentGoals.includes(goal)
       ? currentGoals.filter(g => g !== goal)
       : [...currentGoals, goal];
-      
+
     setProfile({
       ...profile,
       goals: newGoals,
@@ -248,7 +248,7 @@ export default function ProfilePage() {
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true);
-      
+
       if (!event.target.files || event.target.files.length === 0) {
         throw new Error("You must select an image to upload.");
       }
@@ -276,20 +276,20 @@ export default function ProfilePage() {
         .getPublicUrl(filePath);
 
       const avatarUrl = data.publicUrl;
-      
+
       // Update the profile with the new avatar URL
       setProfile({ ...profile, avatar_url: avatarUrl });
-      
+
       // Save immediately to database
       const { error: updateError } = await supabase
         .from("user_profiles")
         .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
         .eq("id", user?.id);
-        
+
       if (updateError) {
         throw updateError;
       }
-      
+
       flash("success", "✅ Avatar uploaded successfully!");
     } catch (error) {
       flash("error", `Error uploading avatar: ${(error as Error).message}`);
@@ -331,12 +331,12 @@ export default function ProfilePage() {
     <div className="space-y-6">
       {/* Flash messages */}
       {flashSuccess && (
-        <div className="text-success-green text-sm bg-success-green/10 px-4 py-3 rounded-xl font-poppins border border-success-green/20 animate-in fade-in duration-150">
+        <div className="text-green-800 text-sm bg-green-100 px-4 py-3 rounded-xl font-poppins border border-green-400 shadow-md animate-in fade-in duration-150">
           {flashSuccess}
         </div>
       )}
       {flashError && (
-        <div className="text-error-red text-sm bg-error-red/10 px-4 py-3 rounded-xl font-poppins border border-error-red/20 animate-in fade-in duration-150">
+        <div className="text-red-800 text-sm bg-red-100 px-4 py-3 rounded-xl font-poppins border border-red-400 shadow-md animate-in fade-in duration-150">
           {flashError}
         </div>
       )}
@@ -628,8 +628,14 @@ export default function ProfilePage() {
                   <option value="">Select a baseline</option>
                   <option value="Happy">Happy</option>
                   <option value="Calm">Calm</option>
+                  <option value="Hopeful">Hopeful</option>
+                  <option value="Neutral">Neutral</option>
+                  <option value="Tired">Tired</option>
+                  <option value="Stressed">Stressed</option>
                   <option value="Anxious">Anxious</option>
                   <option value="Sad">Sad</option>
+                  <option value="Overwhelmed">Overwhelmed</option>
+                  <option value="Irritable">Irritable</option>
                 </select>
               ) : (
                 <div className="px-3 py-2 bg-light-gray/50 rounded-lg text-sm font-inter text-dark-text">
@@ -653,7 +659,7 @@ export default function ProfilePage() {
               )}
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-poppins text-slate-600">Language</label>
+              <label className="text-xs font-poppins text-slate-600">Journaling Language</label>
               {isEditing ? (
                 <select
                   value={profile.language || ""}
@@ -718,18 +724,16 @@ export default function ProfilePage() {
             ].map((goal) => (
               <div
                 key={goal}
-                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${
-                  (profile.goals || []).includes(goal)
-                    ? "bg-primary-blue/10 border border-primary-blue/30"
-                    : "bg-light-gray/50 opacity-60"
-                }`}
+                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${(profile.goals || []).includes(goal)
+                  ? "bg-primary-blue/10 border border-primary-blue/30"
+                  : "bg-light-gray/50 opacity-60"
+                  }`}
                 onClick={() => isEditing && toggleGoal(goal)}
               >
-                <div className={`w-5 h-5 rounded flex items-center justify-center ${
-                  (profile.goals || []).includes(goal)
-                    ? "bg-primary-blue text-white"
-                    : "bg-light-gray"
-                }`}>
+                <div className={`w-5 h-5 rounded flex items-center justify-center ${(profile.goals || []).includes(goal)
+                  ? "bg-primary-blue text-white"
+                  : "bg-light-gray"
+                  }`}>
                   {(profile.goals || []).includes(goal) && "✓"}
                 </div>
                 <span className="text-sm font-inter text-dark-text">{goal}</span>

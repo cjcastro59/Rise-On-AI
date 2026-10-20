@@ -154,14 +154,14 @@ export default function AdminSystemSettingsPage() {
   useEffect(() => {
     const loadSettings = async () => {
       if (!isOwner) return;
-      
+
       try {
         const { data: rbacData, error: rbacError } = await supabase
           .from("system_settings")
           .select("value")
           .eq("key", "rbac_permissions")
           .single();
-        
+
         const { data: featuresData, error: featuresError } = await supabase
           .from("system_settings")
           .select("value")
@@ -197,7 +197,7 @@ export default function AdminSystemSettingsPage() {
             ...DEFAULT_FEATURES,
             ...parsedFeatures,
             ...(sessionParsed?.timeout_minutes != null ? { sessionTimeoutMinutes: Number(sessionParsed.timeout_minutes) } : {}),
-            ...(sessionParsed?.warning_minutes  != null ? { sessionWarningMinutes:  Number(sessionParsed.warning_minutes)  } : {}),
+            ...(sessionParsed?.warning_minutes != null ? { sessionWarningMinutes: Number(sessionParsed.warning_minutes) } : {}),
           } as typeof DEFAULT_FEATURES);
         } else if (sessionTimeoutData?.value) {
           const sessionParsed = typeof sessionTimeoutData.value === "string"
@@ -205,7 +205,7 @@ export default function AdminSystemSettingsPage() {
           setFeatures((prev) => ({
             ...prev,
             ...(sessionParsed?.timeout_minutes != null ? { sessionTimeoutMinutes: Number(sessionParsed.timeout_minutes) } : {}),
-            ...(sessionParsed?.warning_minutes  != null ? { sessionWarningMinutes:  Number(sessionParsed.warning_minutes)  } : {}),
+            ...(sessionParsed?.warning_minutes != null ? { sessionWarningMinutes: Number(sessionParsed.warning_minutes) } : {}),
           }));
         }
         if (displayIdData && !displayIdError) {
@@ -257,7 +257,7 @@ export default function AdminSystemSettingsPage() {
     try {
       console.log("Saving permissions:", permissions);
       console.log("Saving features:", features);
-      
+
       // Save RBAC permissions
       const { error: rbacError } = await supabase
         .from("system_settings")
@@ -268,7 +268,7 @@ export default function AdminSystemSettingsPage() {
           },
           { onConflict: "key" }
         );
-      
+
       if (rbacError) {
         console.error("RBAC save error:", rbacError);
         throw rbacError;
@@ -284,7 +284,7 @@ export default function AdminSystemSettingsPage() {
           },
           { onConflict: "key" }
         );
-      
+
       if (featuresError) {
         console.error("Features save error:", featuresError);
         throw featuresError;
@@ -677,9 +677,9 @@ export default function AdminSystemSettingsPage() {
         return (
           <span className="text-xs font-semibold font-poppins text-slate-800">
             {value === "full" ? "✅" :
-             value === "none" ? "❌" :
-             value === "anonymous" ? "Anonymous (U-XXXX)" :
-             value === "aggregated" ? "Aggregated" : "Limited"}
+              value === "none" ? "❌" :
+                value === "anonymous" ? "Anonymous (U-XXXX)" :
+                  value === "aggregated" ? "Aggregated" : "Limited"}
           </span>
         );
       }
@@ -780,12 +780,11 @@ export default function AdminSystemSettingsPage() {
                         {Object.keys(permissions).map((role) => (
                           <tr key={role}>
                             <td>
-                              <span className={`badge ${
-                                role === "owner" ? "badge-warning" :
-                                role === "admin" ? "badge-success" :
-                                role === "counselor" ? "badge-info" :
-                                ""
-                              }`}>
+                              <span className={`badge ${role === "owner" ? "badge-warning" :
+                                  role === "admin" ? "badge-success" :
+                                    role === "counselor" ? "badge-info" :
+                                      ""
+                                }`}>
                                 {role.charAt(0).toUpperCase() + role.slice(1)}
                               </span>
                             </td>
@@ -869,12 +868,11 @@ export default function AdminSystemSettingsPage() {
                       {Object.keys(permissions).map((role) => (
                         <tr key={role}>
                           <td>
-                            <span className={`badge ${
-                              role === "owner" ? "badge-warning" :
-                              role === "admin" ? "badge-success" :
-                              role === "counselor" ? "badge-info" :
-                              ""
-                            }`}>
+                            <span className={`badge ${role === "owner" ? "badge-warning" :
+                                role === "admin" ? "badge-success" :
+                                  role === "counselor" ? "badge-info" :
+                                    ""
+                              }`}>
                               {role.charAt(0).toUpperCase() + role.slice(1)}
                             </span>
                           </td>
@@ -1183,19 +1181,24 @@ export default function AdminSystemSettingsPage() {
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Language & Region</h3>
               <p className="text-sm text-slate-600 font-poppins">
-                Choose your preferred language for the app.
+                Choose your preferred journaling language. This is used by the AI to better understand entries written in English or Filipino.
               </p>
             </div>
-            <div className="p-4 bg-light-gray/50 rounded-xl">
-              <label className="text-xs font-poppins text-slate-600">Language</label>
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="mt-1 w-full px-3 py-2 rounded-lg border border-light-gray bg-white focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
-              >
-                <option value="English">English</option>
-                <option value="Filipino">Filipino</option>
-              </select>
+            <div className="p-4 bg-light-gray/50 rounded-xl space-y-3">
+              <div>
+                <label className="text-xs font-poppins text-slate-600">Journaling Language</label>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="mt-1 w-full px-3 py-2 rounded-lg border border-light-gray bg-white focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
+                >
+                  <option value="English">English</option>
+                  <option value="Filipino">Filipino</option>
+                </select>
+              </div>
+              <p className="text-xs text-slate-500 font-inter">
+                Note: This setting does not change the app interface language. It helps the AI sentiment analysis recognize which language journal entries are written in.
+              </p>
             </div>
             <div className="flex justify-end mt-6">
               <Button onClick={saveLanguageSettings} disabled={loadingPersonal} className="bg-primary-blue text-white hover:bg-primary-blue/80">
@@ -1369,11 +1372,10 @@ export default function AdminSystemSettingsPage() {
             <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-4">Settings</p>
             <button
               onClick={() => setActiveSection("system")}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-                activeSection === "system"
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "system"
                   ? "bg-indigo-100 text-indigo-800 font-semibold"
                   : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
-              }`}
+                }`}
             >
               <span className="flex items-center gap-2">
                 <Image src="/icons/settings.svg" alt="System" width={16} height={16} className="w-4 h-4 object-contain" /> System
@@ -1381,11 +1383,10 @@ export default function AdminSystemSettingsPage() {
             </button>
             <button
               onClick={() => setActiveSection("notifications")}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-                activeSection === "notifications"
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "notifications"
                   ? "bg-indigo-100 text-indigo-800 font-semibold"
                   : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
-              }`}
+                }`}
             >
               <span className="flex items-center gap-2">
                 <Image src="/icons/notifications.svg" alt="Notifications" width={16} height={16} className="w-4 h-4 object-contain" /> Notifications
@@ -1393,11 +1394,10 @@ export default function AdminSystemSettingsPage() {
             </button>
             <button
               onClick={() => setActiveSection("privacy")}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-                activeSection === "privacy"
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "privacy"
                   ? "bg-indigo-100 text-indigo-800 font-semibold"
                   : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
-              }`}
+                }`}
             >
               <span className="flex items-center gap-2">
                 <Image src="/icons/privacy.svg" alt="Privacy" width={16} height={16} className="w-4 h-4 object-contain" /> Privacy
@@ -1405,11 +1405,10 @@ export default function AdminSystemSettingsPage() {
             </button>
             <button
               onClick={() => setActiveSection("language")}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-                activeSection === "language"
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "language"
                   ? "bg-indigo-100 text-indigo-800 font-semibold"
                   : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
-              }`}
+                }`}
             >
               <span className="flex items-center gap-2">
                 <Image src="/icons/language.svg" alt="Language" width={16} height={16} className="w-4 h-4 object-contain" /> Language
@@ -1417,11 +1416,10 @@ export default function AdminSystemSettingsPage() {
             </button>
             <button
               onClick={() => setActiveSection("security")}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-                activeSection === "security"
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "security"
                   ? "bg-indigo-100 text-indigo-800 font-semibold"
                   : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
-              }`}
+                }`}
             >
               <span className="flex items-center gap-2">
                 <Image src="/icons/security.svg" alt="Security" width={16} height={16} className="w-4 h-4 object-contain" /> Security
@@ -1429,11 +1427,10 @@ export default function AdminSystemSettingsPage() {
             </button>
             <button
               onClick={() => setActiveSection("data")}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${
-                activeSection === "data"
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "data"
                   ? "bg-indigo-100 text-indigo-800 font-semibold"
                   : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
-              }`}
+                }`}
             >
               <span className="flex items-center gap-2">
                 <Image src="/icons/data-export.svg" alt="Data & Export" width={16} height={16} className="w-4 h-4 object-contain" /> Data & Export
