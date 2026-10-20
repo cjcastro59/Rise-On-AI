@@ -29,9 +29,9 @@ export function Toast({
   if (!open) return null;
 
   const styles: Record<ToastType, string> = {
-    success: "bg-success-green/10 border-success-green/30 text-success-green",
-    error:   "bg-red-50 border-red-200 text-red-700",
-    info:    "bg-primary-blue/10 border-primary-blue/20 text-primary-blue",
+    success: "bg-green-600 border-green-700 text-white",
+    error: "bg-red-600 border-red-700 text-white",
+    info: "bg-primary-blue border-primary-blue/80 text-white",
   };
 
   const icons: Record<ToastType, React.ReactNode> = {
@@ -58,9 +58,9 @@ export function Toast({
 
   return (
     <Portal>
-      <div className="fixed top-4 right-4 z-[9999] pointer-events-none">
+      <div className="fixed bottom-4 right-4 z-[9999] pointer-events-none">
         <div
-          className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg text-sm font-poppins font-medium animate-in slide-in-from-top-2 fade-in duration-200 max-w-sm ${styles[type]}`}
+          className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg text-sm font-poppins font-medium animate-in slide-in-from-bottom-2 fade-in duration-200 max-w-sm ${styles[type]}`}
         >
           <span className="shrink-0">{icons[type]}</span>
           <span className="flex-1">{message}</span>

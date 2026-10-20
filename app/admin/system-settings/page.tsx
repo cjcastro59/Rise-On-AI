@@ -458,9 +458,9 @@ export default function AdminSystemSettingsPage() {
       if (error) throw error;
       if (!data) throw new Error("Settings were not saved. Please try again.");
       setError("");
-      flash(setSuccess, "Notification settings saved.");
+      showToast("Notification settings saved.", "success");
     } catch (err) {
-      flash(setError, err instanceof Error ? err.message : "Failed to save notification settings.");
+      showToast(err instanceof Error ? err.message : "Failed to save notification settings.", "error");
     } finally {
       setLoadingPersonal(false);
     }
@@ -477,9 +477,9 @@ export default function AdminSystemSettingsPage() {
       if (error) throw error;
       if (!data) throw new Error("Settings were not saved. Please try again.");
       setError("");
-      flash(setSuccess, "Privacy settings saved.");
+      showToast("Privacy settings saved.", "success");
     } catch (err) {
-      flash(setError, err instanceof Error ? err.message : "Failed to save privacy settings.");
+      showToast(err instanceof Error ? err.message : "Failed to save privacy settings.", "error");
     } finally {
       setLoadingPersonal(false);
     }
@@ -498,9 +498,9 @@ export default function AdminSystemSettingsPage() {
       if (updateError) throw updateError;
       if (!data) throw new Error("Settings were not saved. Please try again.");
       setError("");
-      flash(setSuccess, "Language preference saved.");
+      showToast("Language preference saved.", "success");
     } catch (err) {
-      flash(setError, err instanceof Error ? err.message : "Failed to save language preference.");
+      showToast(err instanceof Error ? err.message : "Failed to save language preference.", "error");
     } finally {
       setLoadingPersonal(false);
     }
@@ -509,16 +509,16 @@ export default function AdminSystemSettingsPage() {
   const handleChangePassword = async () => {
     if (!user) return;
     if (!pwCurrent || !pwNew || !pwConfirm) {
-      flash(setError, "Please fill in all password fields.");
+      showToast("Please fill in all password fields.", "error");
       return;
     }
     const passwordValidationError = validatePasswordStrength(pwNew);
     if (passwordValidationError) {
-      flash(setError, passwordValidationError);
+      showToast(passwordValidationError, "error");
       return;
     }
     if (pwNew !== pwConfirm) {
-      flash(setError, "New passwords do not match.");
+      showToast("New passwords do not match.", "error");
       return;
     }
 
@@ -541,9 +541,9 @@ export default function AdminSystemSettingsPage() {
       setPwCurrent("");
       setPwNew("");
       setPwConfirm("");
-      flash(setSuccess, "Password changed successfully.");
+      showToast("Password changed successfully.", "success");
     } catch (err: any) {
-      flash(setError, err.message || "Failed to change password.");
+      showToast(err.message || "Failed to change password.", "error");
     } finally {
       setPwLoading(false);
     }
@@ -614,9 +614,9 @@ export default function AdminSystemSettingsPage() {
         content,
         format === "csv" ? "text/csv" : "application/json",
       );
-      flash(setSuccess, "Data export downloaded.");
+      showToast("Data export downloaded.", "success");
     } catch (err: any) {
-      flash(setError, err.message || "Failed to export data.");
+      showToast(err.message || "Failed to export data.", "error");
     } finally {
       setLoadingPersonal(false);
     }
@@ -625,12 +625,12 @@ export default function AdminSystemSettingsPage() {
   const handleDeleteAccount = async () => {
     if (!user) return;
     if (deleteConfirmText.trim().toLowerCase() !== "delete my account") {
-      flash(setError, 'Type "DELETE MY ACCOUNT" exactly to confirm.');
+      showToast('Type "DELETE MY ACCOUNT" exactly to confirm.', "error");
       return;
     }
 
     if (isOwner) {
-      flash(setError, "Owner accounts must be transferred or removed by another owner before deletion.");
+      showToast("Owner accounts must be transferred or removed by another owner before deletion.", "error");
       return;
     }
 
@@ -653,7 +653,7 @@ export default function AdminSystemSettingsPage() {
       await supabase.auth.signOut();
       window.location.href = "/";
     } catch (err: any) {
-      flash(setError, err.message || "Failed to delete account.");
+      showToast(err.message || "Failed to delete account.", "error");
       setDeleteLoading(false);
     }
   };
@@ -781,9 +781,9 @@ export default function AdminSystemSettingsPage() {
                           <tr key={role}>
                             <td>
                               <span className={`badge ${role === "owner" ? "badge-warning" :
-                                  role === "admin" ? "badge-success" :
-                                    role === "counselor" ? "badge-info" :
-                                      ""
+                                role === "admin" ? "badge-success" :
+                                  role === "counselor" ? "badge-info" :
+                                    ""
                                 }`}>
                                 {role.charAt(0).toUpperCase() + role.slice(1)}
                               </span>
@@ -869,9 +869,9 @@ export default function AdminSystemSettingsPage() {
                         <tr key={role}>
                           <td>
                             <span className={`badge ${role === "owner" ? "badge-warning" :
-                                role === "admin" ? "badge-success" :
-                                  role === "counselor" ? "badge-info" :
-                                    ""
+                              role === "admin" ? "badge-success" :
+                                role === "counselor" ? "badge-info" :
+                                  ""
                               }`}>
                               {role.charAt(0).toUpperCase() + role.slice(1)}
                             </span>
@@ -1292,14 +1292,12 @@ export default function AdminSystemSettingsPage() {
                 Download or delete your data.
               </p>
             </div>
-            {error && <div className="text-red-500 text-xs bg-red-50 p-3 rounded-lg font-poppins">{error}</div>}
-            {success && <div className="text-green-500 text-xs bg-green-50 p-3 rounded-lg font-poppins">{success}</div>}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 overflow-hidden">
               <Button
                 variant="secondary"
                 onClick={() => downloadAdminData("json")}
                 disabled={loadingPersonal}
-                className="bg-gray-100 text-dark-text hover:bg-gray-200 border-gray-200"
+                className="bg-gray-100 text-dark-text hover:bg-gray-200 border-gray-200 hover:scale-100"
               >
                 {loadingPersonal ? "Preparing..." : "Download JSON"}
               </Button>
@@ -1307,14 +1305,14 @@ export default function AdminSystemSettingsPage() {
                 variant="secondary"
                 onClick={() => downloadAdminData("csv")}
                 disabled={loadingPersonal}
-                className="bg-gray-100 text-dark-text hover:bg-gray-200 border-gray-200"
+                className="bg-gray-100 text-dark-text hover:bg-gray-200 border-gray-200 hover:scale-100"
               >
                 {loadingPersonal ? "Preparing..." : "Download CSV"}
               </Button>
               <Button
                 variant="ghost"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="text-red-500 hover:text-red-400 hover:bg-red-50"
+                className="text-red-500 hover:text-red-400 hover:bg-red-50 hover:scale-100"
               >
                 Delete My Account
               </Button>
@@ -1341,17 +1339,6 @@ export default function AdminSystemSettingsPage() {
   return (
     <div className="space-y-6">
       <Toast {...toast} onClose={closeToast} />
-      {/* Flash banners for personal settings sections (notifications, privacy, language) */}
-      {error && (
-        <div role="alert" className="rounded-xl border border-red-800 bg-red-100 px-4 py-3 text-sm font-semibold text-red-950 shadow-sm animate-in fade-in duration-150">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div role="status" aria-live="polite" className="rounded-xl border border-emerald-800 bg-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-950 shadow-sm animate-in fade-in duration-150">
-          {success}
-        </div>
-      )}
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
@@ -1373,8 +1360,8 @@ export default function AdminSystemSettingsPage() {
             <button
               onClick={() => setActiveSection("system")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "system"
-                  ? "bg-indigo-100 text-indigo-800 font-semibold"
-                  : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
+                ? "bg-indigo-100 text-indigo-800 font-semibold"
+                : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -1384,8 +1371,8 @@ export default function AdminSystemSettingsPage() {
             <button
               onClick={() => setActiveSection("notifications")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "notifications"
-                  ? "bg-indigo-100 text-indigo-800 font-semibold"
-                  : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
+                ? "bg-indigo-100 text-indigo-800 font-semibold"
+                : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -1395,8 +1382,8 @@ export default function AdminSystemSettingsPage() {
             <button
               onClick={() => setActiveSection("privacy")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "privacy"
-                  ? "bg-indigo-100 text-indigo-800 font-semibold"
-                  : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
+                ? "bg-indigo-100 text-indigo-800 font-semibold"
+                : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -1406,8 +1393,8 @@ export default function AdminSystemSettingsPage() {
             <button
               onClick={() => setActiveSection("language")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "language"
-                  ? "bg-indigo-100 text-indigo-800 font-semibold"
-                  : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
+                ? "bg-indigo-100 text-indigo-800 font-semibold"
+                : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -1417,8 +1404,8 @@ export default function AdminSystemSettingsPage() {
             <button
               onClick={() => setActiveSection("security")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "security"
-                  ? "bg-indigo-100 text-indigo-800 font-semibold"
-                  : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
+                ? "bg-indigo-100 text-indigo-800 font-semibold"
+                : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -1428,8 +1415,8 @@ export default function AdminSystemSettingsPage() {
             <button
               onClick={() => setActiveSection("data")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "data"
-                  ? "bg-indigo-100 text-indigo-800 font-semibold"
-                  : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
+                ? "bg-indigo-100 text-indigo-800 font-semibold"
+                : "text-slate-700 hover:text-dark-text hover:bg-gray-100"
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -1463,7 +1450,6 @@ export default function AdminSystemSettingsPage() {
                 x
               </button>
             </div>
-            {error && <div className="text-red-500 text-xs bg-red-50 p-3 rounded-lg font-poppins mb-3">{error}</div>}
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-poppins text-slate-700 mb-1 block">Current Password</label>
@@ -1520,7 +1506,6 @@ export default function AdminSystemSettingsPage() {
                 x
               </button>
             </div>
-            {error && <div className="text-red-500 text-xs bg-red-50 p-3 rounded-lg font-poppins mb-3">{error}</div>}
             <div className="space-y-3">
               <div className="p-3 bg-red-50 rounded-xl border border-red-100">
                 <p className="text-xs font-poppins text-dark-text font-semibold mb-1">

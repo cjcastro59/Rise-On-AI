@@ -3,8 +3,14 @@ import { Button } from "@/components/ui/button";
 import LandingHeader from "@/components/landing/LandingHeader";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { isMaintenanceModeActive } from "@/lib/maintenance";
 
 export default async function LandingPage() {
+  // Redirect to maintenance page if active (non-logged-in visitors)
+  if (await isMaintenanceModeActive()) {
+    redirect("/maintenance");
+  }
+
   // Redirect logged-in users straight to their dashboard
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();

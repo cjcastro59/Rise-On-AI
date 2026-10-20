@@ -88,7 +88,7 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
   return (
     <Portal>
       <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-        <div 
+        <div
           className="absolute inset-0 bg-black/60"
           onClick={onClose}
         ></div>
@@ -120,8 +120,8 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
                     Full Name
                   </p>
                   <p className="text-sm font-poppins text-dark-text">
-                    {user.first_name && user.last_name 
-                      ? `${user.first_name} ${user.last_name}` 
+                    {user.first_name && user.last_name
+                      ? `${user.first_name} ${user.last_name}`
                       : user.first_name || user.last_name || user.username || "Unknown"}
                   </p>
                 </div>
@@ -163,14 +163,6 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
                   </p>
                   <p className="text-sm font-poppins text-dark-text">
                     {user.sex || "-"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
-                    Country
-                  </p>
-                  <p className="text-sm font-poppins text-dark-text">
-                    {user.country || "-"}
                   </p>
                 </div>
                 <div>
