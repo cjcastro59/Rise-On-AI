@@ -1,12 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 export default function LandingHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const router = useRouter();
+
+  // Client-side session check — catches cases where the server-side check
+  // was bypassed (e.g. CDN cache on Vercel). If a session exists, redirect
+  // immediately to the correct dashboard without showing the landing page.
+  useEffect(() => {
+    const checkSession = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      const role = profile?.role;
+      if (role === "counselor") router.replace("/counselor/dashboard");
+      else if (role === "admin" || role === "owner" || role === "researcher") router.replace("/admin/dashboard");
+      else router.replace("/dashboard");
+    };
+
+    checkSession();
+  }, [router]);
 
   return (
     <header className="bg-header-bg border-b border-light-gray/50 sticky top-0 z-50 backdrop-blur-md">
@@ -26,12 +53,6 @@ export default function LandingHeader() {
 
         {/* Desktop Centered Nav */}
         <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
-          <Link
-            href="#features"
-            className="text-dark-text hover:text-primary-blue text-sm font-poppins font-medium transition-colors"
-          >
-            Features
-          </Link>
           <Link
             href="#how-it-works"
             className="text-dark-text hover:text-primary-blue text-sm font-poppins font-medium transition-colors"
@@ -90,13 +111,6 @@ export default function LandingHeader() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-light-gray bg-white px-6 py-5 shadow-lg animate-in slide-in-from-top-2 duration-200">
           <nav className="flex flex-col gap-4">
-            <Link
-              href="#features"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-dark-text font-poppins font-medium text-base py-2 border-b border-light-gray/60 hover:text-primary-blue transition-colors"
-            >
-              Features
-            </Link>
             <Link
               href="#how-it-works"
               onClick={() => setMobileMenuOpen(false)}
