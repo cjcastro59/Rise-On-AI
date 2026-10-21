@@ -702,22 +702,24 @@ export default function AdminSupportPage() {
                         </span>
                       </p>
                     </div>
-                    {selectedConversation.status === "open" && currentUserProfile && (['owner', 'admin', 'counselor'].includes(currentUserProfile.role || '')) && (
+                    <div className="flex flex-wrap gap-2">
+                      {selectedConversation.status === "open" && currentUserProfile && (['owner', 'admin', 'counselor'].includes(currentUserProfile.role || '')) && (
+                        <Button
+                          onClick={closeConversation}
+                          disabled={closingConversation}
+                          className="bg-rose-600 text-white hover:bg-rose-700"
+                        >
+                          {closingConversation ? "Closing..." : "Close Conversation"}
+                        </Button>
+                      )}
                       <Button
-                        onClick={closeConversation}
-                        disabled={closingConversation}
-                        className="bg-rose-600 text-white hover:bg-rose-700"
+                        onClick={() => deleteConversation(selectedConversation.id)}
+                        disabled={deletingConversationId === selectedConversation.id}
+                        className="bg-red-800 text-white hover:bg-red-900 disabled:opacity-60"
                       >
-                        {closingConversation ? "Closing..." : "Close Conversation"}
+                        {deletingConversationId === selectedConversation.id ? "Deleting..." : "Delete Conversation"}
                       </Button>
-                    )}
-                    <Button
-                      onClick={() => deleteConversation(selectedConversation.id)}
-                      disabled={deletingConversationId === selectedConversation.id}
-                      className="bg-red-800 text-white hover:bg-red-900 disabled:opacity-60"
-                    >
-                      {deletingConversationId === selectedConversation.id ? "Deleting..." : "Delete Conversation"}
-                    </Button>
+                    </div>
                   </div>
                 </div>
 

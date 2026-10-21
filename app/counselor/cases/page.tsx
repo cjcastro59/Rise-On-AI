@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Toast, useToast } from "@/components/ui/Toast";
 
 type UserProfile = {
   id: string;
@@ -55,7 +56,6 @@ export default function CounselorCasesPage() {
   const [entriesByUser, setEntriesByUser] = useState<Record<string, JournalEntry[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [selectedAlert, setSelectedAlert] = useState<DistressLog | null>(null);
   const [filterSearch, setFilterSearch] = useState("");
@@ -64,6 +64,7 @@ export default function CounselorCasesPage() {
   const { user: currentUser } = useAuth();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const { toast, showToast, closeToast } = useToast();
 
   useEffect(() => {
     if (!currentUser) return;
@@ -226,7 +227,6 @@ export default function CounselorCasesPage() {
     const actionKey = `${action}:${alertId}`;
     setActionLoading((prev) => ({ ...prev, [actionKey]: true }));
     setError(null);
-    setActionMessage(null);
 
     try {
       const endpointAction = action === "message" ? "assign" : "review";
@@ -244,9 +244,9 @@ export default function CounselorCasesPage() {
           prev.map((log) =>
             log.id === alertId
               ? {
-                  ...log,
-                  notes: result.log.notes,
-                }
+                ...log,
+                notes: result.log.notes,
+              }
               : log
           )
         );
@@ -261,10 +261,10 @@ export default function CounselorCasesPage() {
         return true;
       }
 
-      setActionMessage(result.message || "Case marked as reviewed.");
+      showToast(result.message || "Case marked as reviewed.", "success");
       return true;
     } catch (err: any) {
-      setError(err.message || "Case action failed.");
+      showToast(err.message || "Case action failed.", "error");
       return false;
     } finally {
       setActionLoading((prev) => {
@@ -277,6 +277,7 @@ export default function CounselorCasesPage() {
 
   return (
     <div className="space-y-6">
+      <Toast {...toast} onClose={closeToast} />
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
@@ -284,12 +285,6 @@ export default function CounselorCasesPage() {
           <p className="text-sm text-slate-600 font-poppins">Manage and review distress cases</p>
         </div>
       </div>
-
-      {actionMessage && (
-        <div className="rounded-xl border border-success-green/30 bg-success-green/10 px-4 py-3 text-sm font-poppins text-dark-text">
-          {actionMessage}
-        </div>
-      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -431,13 +426,13 @@ export default function CounselorCasesPage() {
             <table className="admin-table min-w-[1180px] table-fixed">
               <thead>
                 <tr>
-                  <th className="w-48 px-4 py-3">USER</th>
-                  <th className="w-64 px-4 py-3">TRIGGER</th>
-                  <th className="w-32 min-w-[120px] px-4 py-3">MOOD</th>
-                  <th className="w-36 px-4 py-3">LAST ENTRY</th>
-                  <th className="w-36 px-4 py-3">RESPONSE</th>
-                  <th className="w-32 px-4 py-3">STATUS</th>
-                  <th className="w-48 px-4 py-3">ACTION</th>
+                  <th>USER</th>
+                  <th>TRIGGER</th>
+                  <th>MOOD</th>
+                  <th>LAST ENTRY</th>
+                  <th>RESPONSE</th>
+                  <th>STATUS</th>
+                  <th>ACTION</th>
                 </tr>
               </thead>
               <tbody>
