@@ -314,7 +314,7 @@ export default function AdminSupportPage() {
 
     // Create new channel
     const channel = supabase.channel(`admin-support:${conversationId}`);
-    
+
     // Add message insert handler
     channel.on(
       "postgres_changes",
@@ -330,7 +330,7 @@ export default function AdminSupportPage() {
         if (!selectedConversation) {
           return;
         }
-        
+
         // Fetch sender profile if we don't have it
         if (!senderProfiles[newMessage.sender_id]) {
           try {
@@ -339,7 +339,7 @@ export default function AdminSupportPage() {
               .select("*")
               .eq("id", newMessage.sender_id)
               .single();
-            
+
             if (profile) {
               console.log("[ADMIN SUPPORT] Fetched sender profile:", profile);
               setSenderProfiles((prev) => ({
@@ -351,7 +351,7 @@ export default function AdminSupportPage() {
             console.error("[ADMIN SUPPORT] Error fetching sender profile for new message:", error);
           }
         }
-        
+
         setMessages((prev) => {
           if (prev.some(msg => msg.id === newMessage.id)) {
             console.log("[ADMIN SUPPORT] Message already exists, skipping...");
@@ -369,7 +369,7 @@ export default function AdminSupportPage() {
         }));
       }
     );
-    
+
     // Add conversation update handler for the selected conversation
     channel.on(
       "postgres_changes",
@@ -391,7 +391,7 @@ export default function AdminSupportPage() {
           `)
           .eq("id", payload.new.id)
           .single();
-        
+
         if (updatedConversationWithUser) {
           console.log("[ADMIN SUPPORT] Updating selected conversation in state:", updatedConversationWithUser);
           setSelectedConversation(updatedConversationWithUser);
@@ -411,7 +411,7 @@ export default function AdminSupportPage() {
         console.error("[ADMIN SUPPORT] Error subscribing to real-time support channel!");
       }
     });
-    
+
     // Store channel in ref
     channelRef.current = channel;
     console.log("[ADMIN SUPPORT] Messages channel stored in ref:", channelRef.current);
@@ -435,7 +435,7 @@ export default function AdminSupportPage() {
     if (!newMessage.trim() || !selectedConversation || !currentUserId || !canParticipate) return;
 
     const messageContent = newMessage.trim();
-    
+
     // Optimistically add message to UI
     const optimisticMessage: Message = {
       id: crypto.randomUUID(),
@@ -453,7 +453,7 @@ export default function AdminSupportPage() {
     try {
       setLoading(true);
       console.log("Admin: Inserting message into Supabase...");
-      
+
       const { data: insertedMessage, error } = await supabase
         .from("messages")
         .insert({
@@ -473,21 +473,21 @@ export default function AdminSupportPage() {
           created_at: insertedMessage.created_at,
         },
       }));
-      
+
       // Update conversation's updated_at timestamp
       await supabase
         .from("conversations")
         .update({ updated_at: new Date().toISOString() })
         .eq("id", selectedConversation.id);
-      
+
       // Replace optimistic message with real one
       console.log("Admin: Replacing optimistic message with real one:", insertedMessage);
-      setMessages((prev) => 
-        prev.map(msg => 
+      setMessages((prev) =>
+        prev.map(msg =>
           msg.id === optimisticMessage.id ? insertedMessage : msg
         )
       );
-      
+
     } catch (error) {
       console.error("Admin: Error sending message:", error);
       // Remove optimistic message if there was an error
@@ -513,15 +513,15 @@ export default function AdminSupportPage() {
 
       if (error) throw error;
 
-      setConversations((prev) => 
-        prev.map((c) => 
-          c.id === selectedConversation.id 
-            ? { ...c, status: "closed" } 
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === selectedConversation.id
+            ? { ...c, status: "closed" }
             : c
         )
       );
 
-      setSelectedConversation((prev) => 
+      setSelectedConversation((prev) =>
         prev ? { ...prev, status: "closed" } : null
       );
 
@@ -643,17 +643,16 @@ export default function AdminSupportPage() {
                 </div>
               ) : (
                 conversations.map((convo) => (
-                  <div key={convo.id} className="relative group border-b border-gray-100">
+                  <div key={convo.id} className="border-b border-gray-100">
                     <button
                       onClick={() => selectConversation(convo)}
-                      className={`w-full p-4 text-left hover:bg-gradient-to-r from-primary-blue/5 to-lavender/10 transition-all ${
-                        selectedConversation?.id === convo.id 
-                          ? "bg-gradient-to-r from-primary-blue/10 to-lavender/15 border-l-4 border-primary-blue" 
-                          : ""
-                      }`}
+                      className={`w-full p-4 text-left hover:bg-gradient-to-r from-primary-blue/5 to-lavender/10 transition-all ${selectedConversation?.id === convo.id
+                        ? "bg-gradient-to-r from-primary-blue/10 to-lavender/15 border-l-4 border-primary-blue"
+                        : ""
+                        }`}
                     >
-                      <div className="flex items-center justify-between mb-1 pr-6">
-                        <p className="font-semibold text-sm text-slate-900 hover:text-indigo-600">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="font-semibold text-sm text-dark-text">
                           {(() => {
                             const getFirstName = (name: string | undefined | null) => {
                               if (!name) return "Unknown User";
@@ -662,33 +661,16 @@ export default function AdminSupportPage() {
                             return getFirstName(convo.user?.full_name) || getFirstName(convo.user?.username) || "Unknown User";
                           })()}
                         </p>
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          convo.status === "open" 
-                            ? "border border-emerald-200 bg-emerald-100 text-emerald-800"
-                            : "border border-slate-200 bg-slate-100 text-slate-800"
-                        }`}>
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${convo.status === "open"
+                          ? "bg-gradient-to-r from-success-green/20 to-teal-200 text-success-green"
+                          : "bg-gradient-to-r from-gray-200 to-gray-300 text-slate-600"
+                          }`}>
                           {convo.status}
                         </span>
                       </div>
-                      <p className="rounded-lg border border-slate-100 bg-slate-50/80 p-3 text-sm leading-relaxed text-slate-800">
-                        {conversationPreviews[convo.id]?.content || "No messages yet."}
-                      </p>
-                      <p className="mt-1 text-xs text-slate-600">
+                      <p className="text-xs text-slate-600">
                         {new Date(conversationPreviews[convo.id]?.created_at || convo.created_at).toLocaleString()}
                       </p>
-                    </button>
-                    {/* Delete button — visible on hover */}
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); deleteConversation(convo.id); }}
-                      disabled={deletingConversationId === convo.id}
-                      className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-500 disabled:cursor-not-allowed disabled:opacity-60"
-                      title="Delete conversation"
-                      aria-label="Delete conversation"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-                      </svg>
                     </button>
                   </div>
                 ))
@@ -729,9 +711,16 @@ export default function AdminSupportPage() {
                         {closingConversation ? "Closing..." : "Close Conversation"}
                       </Button>
                     )}
+                    <Button
+                      onClick={() => deleteConversation(selectedConversation.id)}
+                      disabled={deletingConversationId === selectedConversation.id}
+                      className="bg-red-800 text-white hover:bg-red-900 disabled:opacity-60"
+                    >
+                      {deletingConversationId === selectedConversation.id ? "Deleting..." : "Delete Conversation"}
+                    </Button>
                   </div>
                 </div>
-                
+
                 <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-2 min-h-0">
                   {messages.length === 0 ? (
                     <div className="text-center text-sm text-slate-600 py-8">
@@ -757,7 +746,7 @@ export default function AdminSupportPage() {
                       console.log("Admin: Message:", msg, "Sender profile:", senderProfile, "Sender name:", senderName);
 
                       return (
-                        <div 
+                        <div
                           key={msg.id}
                           className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} items-start gap-2 mb-1`}
                         >
@@ -790,12 +779,11 @@ export default function AdminSupportPage() {
                                 {roleLabel} {senderName}
                               </p>
                             )}
-                            <div 
-                              className={`rounded-2xl px-4 py-2 shadow-sm ${
-                                isCurrentUser
-                                  ? "bg-gradient-to-r from-primary-blue to-lavender text-white rounded-tr-none"
-                                  : "bg-gray-100 text-dark-text rounded-tl-none"
-                              }`}
+                            <div
+                              className={`rounded-2xl px-4 py-2 shadow-sm ${isCurrentUser
+                                ? "bg-gradient-to-r from-primary-blue to-lavender text-white rounded-tr-none"
+                                : "bg-slate-50/80 text-slate-800 rounded-tl-none border border-slate-100"
+                                }`}
                             >
                               <p className="text-sm">{msg.content}</p>
                               <p className={`text-xs mt-1 opacity-70 ${isCurrentUser ? "text-right" : "text-left"}`}>
@@ -812,7 +800,7 @@ export default function AdminSupportPage() {
                   )}
                   <div ref={messagesEndRef} />
                 </div>
-                
+
                 {selectedConversation.status !== "closed" ? (
                   <form onSubmit={sendMessage} className="flex gap-2">
                     <Input
@@ -823,8 +811,8 @@ export default function AdminSupportPage() {
                       disabled={loading}
                       className="flex-1 border-2 border-primary-blue/10 bg-white focus:border-primary-blue/30 focus:ring-2 focus:ring-primary-blue/20"
                     />
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       disabled={loading || !newMessage.trim()}
                       className="bg-gradient-to-r from-primary-blue to-lavender hover:from-primary-blue/90 hover:to-lavender/90"
                     >

@@ -9,17 +9,12 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { generateSecret, generate, verify as verifyTOTP, generateURI, createGuardrails } from "otplib";
 import { QRCodeSVG } from "qrcode.react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { buildCsvExport, buildJsonExport, downloadTextFile, type ExportSection } from "@/lib/export-data";
 import { validatePasswordStrength } from "@/lib/password";
+import { Toast, useToast } from "@/components/ui/Toast";
 
-type SettingSection = "counselor" | "notifications" | "privacy" | "language" | "security" | "data" | "account";
-
-const flash = (setter: (m: string) => void, msg: string, ms = 3500) => {
-  setter(msg);
-  setTimeout(() => setter(""), ms);
-};
+type SettingSection = "counselor" | "notifications" | "privacy" | "language" | "security" | "data";
 
 export default function CounselorSettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingSection>("counselor");
@@ -42,10 +37,9 @@ export default function CounselorSettingsPage() {
   const [verificationCode, setVerificationCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const { user } = useAuth();
   const supabase = useMemo(() => createClient(), []);
+  const { toast, showToast, closeToast } = useToast();
   const router = useRouter();
   const signOut = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
@@ -89,7 +83,7 @@ export default function CounselorSettingsPage() {
         setLanguage(data.language || "English");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load settings.");
+      console.error("Failed to load settings:", err);
     }
   }, [supabase, user]);
 
@@ -123,10 +117,9 @@ export default function CounselorSettingsPage() {
       }).eq("id", user.id).select("id").single();
       if (error) throw error;
       if (!data) throw new Error("Settings were not saved. Please try again.");
-      setError("");
-      flash(setSuccess, "✅ Notification settings saved!");
+      showToast("Notification settings saved.", "success");
     } catch (e) {
-      flash(setError, "❌ " + (e instanceof Error ? e.message : "Failed to save"));
+      showToast(e instanceof Error ? e.message : "Failed to save notification settings.", "error");
     } finally {
       setSaving(false);
     }
@@ -136,7 +129,6 @@ export default function CounselorSettingsPage() {
     if (!user) return;
     try {
       setSaving(true);
-      setError("");
       const shiftValue = shift === "night" ? "night" : "day";
       const { data, error } = await supabase.from("user_profiles").update({
         shift: shiftValue,
@@ -144,11 +136,9 @@ export default function CounselorSettingsPage() {
       }).eq("id", user.id).select("id").single();
       if (error) throw error;
       if (!data) throw new Error("Settings were not saved. Please try again.");
-      setSuccess("");
-      flash(setSuccess, "✅ Shift preference saved!");
+      showToast("Shift preference saved.", "success");
     } catch (e) {
-      setSuccess("");
-      flash(setError, "❌ " + (e instanceof Error ? e.message : "Failed to save shift"));
+      showToast(e instanceof Error ? e.message : "Failed to save shift.", "error");
     } finally {
       setSaving(false);
     }
@@ -164,10 +154,9 @@ export default function CounselorSettingsPage() {
       }).eq("id", user.id).select("id").single();
       if (error) throw error;
       if (!data) throw new Error("Settings were not saved. Please try again.");
-      setError("");
-      flash(setSuccess, "✅ Privacy settings saved!");
+      showToast("Privacy settings saved.", "success");
     } catch (e) {
-      flash(setError, "❌ " + (e instanceof Error ? e.message : "Failed to save"));
+      showToast(e instanceof Error ? e.message : "Failed to save privacy settings.", "error");
     } finally {
       setSaving(false);
     }
@@ -183,10 +172,9 @@ export default function CounselorSettingsPage() {
       }).eq("id", user.id).select("id").single();
       if (error) throw error;
       if (!data) throw new Error("Settings were not saved. Please try again.");
-      setError("");
-      flash(setSuccess, "✅ Language preference saved!");
+      showToast("Language preference saved.", "success");
     } catch (e) {
-      flash(setError, "❌ " + (e instanceof Error ? e.message : "Failed to save"));
+      showToast(e instanceof Error ? e.message : "Failed to save language preference.", "error");
     } finally {
       setSaving(false);
     }
@@ -194,10 +182,10 @@ export default function CounselorSettingsPage() {
 
   const handleChangePassword = async () => {
     if (!user) return;
-    if (!pwCurrent || !pwNew || !pwConfirm) { flash(setError, "Please fill in all password fields"); return; }
+    if (!pwCurrent || !pwNew || !pwConfirm) { showToast("Please fill in all password fields.", "error"); return; }
     const passwordValidationError = validatePasswordStrength(pwNew);
-    if (passwordValidationError) { flash(setError, passwordValidationError); return; }
-    if (pwNew !== pwConfirm) { flash(setError, "New passwords don't match"); return; }
+    if (passwordValidationError) { showToast(passwordValidationError, "error"); return; }
+    if (pwNew !== pwConfirm) { showToast("New passwords don't match.", "error"); return; }
     try {
       setPwLoading(true);
       const response = await fetch("/api/auth/change-password", {
@@ -212,9 +200,9 @@ export default function CounselorSettingsPage() {
       if (!response.ok) throw new Error(result.error || "Failed to change password");
       setShowChangePw(false);
       setPwCurrent(""); setPwNew(""); setPwConfirm("");
-      flash(setSuccess, "✅ Password changed!");
+      showToast("Password changed successfully.", "success");
     } catch (e: any) {
-      flash(setError, "❌ " + (e.message || "Failed to change password"));
+      showToast(e.message || "Failed to change password.", "error");
     } finally {
       setPwLoading(false);
     }
@@ -254,9 +242,9 @@ export default function CounselorSettingsPage() {
       a.download = `counselor-data-export-${new Date().toISOString().slice(0, 10)}.txt`;
       a.click();
       URL.revokeObjectURL(url);
-      flash(setSuccess, "✅ Data export downloaded!");
+      showToast("Data export downloaded.", "success");
     } catch (e: any) {
-      flash(setError, "❌ " + (e.message || "Export failed"));
+      showToast(e.message || "Export failed.", "error");
     } finally {
       setSaving(false);
     }
@@ -354,9 +342,9 @@ export default function CounselorSettingsPage() {
         content,
         format === "csv" ? "text/csv" : "application/json",
       );
-      flash(setSuccess, "Data export downloaded.");
+      showToast("Data export downloaded.", "success");
     } catch (e: any) {
-      flash(setError, "Export failed: " + (e.message || "unknown error"));
+      showToast(e.message || "Export failed.", "error");
     } finally {
       setSaving(false);
     }
@@ -365,7 +353,7 @@ export default function CounselorSettingsPage() {
   const handleDeleteAccount = async () => {
     if (!user) return;
     if (deleteConfirmText.trim().toLowerCase() !== "delete my account") {
-      flash(setError, 'Type "DELETE MY ACCOUNT" exactly to confirm');
+      showToast('Type "DELETE MY ACCOUNT" exactly to confirm.', "error");
       return;
     }
     try {
@@ -383,7 +371,7 @@ export default function CounselorSettingsPage() {
       try { await supabase.rpc("delete_auth_user", {}); } catch { /* ignore */ }
       router.push("/");
     } catch (e: any) {
-      flash(setError, "❌ " + (e.message || "Failed, contact an admin"));
+      showToast(e.message || "Failed, contact an admin.", "error");
       setDeleteLoading(false);
     }
   };
@@ -392,7 +380,6 @@ export default function CounselorSettingsPage() {
     if (!user?.email) return;
     try {
       setLoading(true);
-      setError("");
 
       let { data: profile } = await supabase
         .from("user_profiles")
@@ -418,7 +405,7 @@ export default function CounselorSettingsPage() {
       setQrCodeUrl(url);
       setShowSetup2FA(true);
     } catch (err) {
-      setError("Failed to setup 2FA");
+      showToast("Failed to setup 2FA.", "error");
     } finally {
       setLoading(false);
     }
@@ -428,7 +415,6 @@ export default function CounselorSettingsPage() {
     if (!user) return;
     try {
       setLoading(true);
-      setError("");
 
       const { data: profile } = await supabase
         .from("user_profiles")
@@ -437,7 +423,7 @@ export default function CounselorSettingsPage() {
         .single();
 
       if (!profile?.two_factor_secret) {
-        setError("Secret not found, please try again.");
+        showToast("Secret not found, please try again.", "error");
         return;
       }
 
@@ -458,13 +444,13 @@ export default function CounselorSettingsPage() {
           .eq("id", user.id);
         setTwoFactorEnabled(true);
         setShowSetup2FA(false);
-        setSuccess("Two-factor authentication enabled successfully!");
+        showToast("Two-factor authentication enabled successfully.", "success");
       } else {
         const expected = await generate({ secret: profile.two_factor_secret, guardrails: createGuardrails({ MIN_SECRET_BYTES: 10 }) });
-        setError(`Invalid verification code! Expected: ${expected}`);
+        showToast(`Invalid verification code! Expected: ${expected}`, "error");
       }
     } catch (err) {
-      setError("Failed to verify code");
+      showToast("Failed to verify code.", "error");
     } finally {
       setLoading(false);
     }
@@ -487,9 +473,9 @@ export default function CounselorSettingsPage() {
       setTwoFactorEnabled(false);
       setShowSetup2FA(false);
       setVerificationCode("");
-      setSuccess("Two-factor authentication disabled");
+      showToast("Two-factor authentication disabled.", "success");
     } catch (err) {
-      setError("Failed to disable 2FA");
+      showToast("Failed to disable 2FA.", "error");
     } finally {
       setLoading(false);
     }
@@ -548,8 +534,8 @@ export default function CounselorSettingsPage() {
                     type="button"
                     onClick={() => setShift("day")}
                     className={`p-3 rounded-xl border-2 text-center transition-all ${shift === "day"
-                        ? "border-primary-blue bg-primary-blue/10"
-                        : "border-light-gray hover:border-primary-blue/40"
+                      ? "border-primary-blue bg-primary-blue/10"
+                      : "border-light-gray hover:border-primary-blue/40"
                       }`}
                   >
                     <span className="text-xl">☀️</span>
@@ -560,8 +546,8 @@ export default function CounselorSettingsPage() {
                     type="button"
                     onClick={() => setShift("night")}
                     className={`p-3 rounded-xl border-2 text-center transition-all ${shift === "night"
-                        ? "border-lavender bg-lavender/10"
-                        : "border-light-gray hover:border-lavender/40"
+                      ? "border-lavender bg-lavender/10"
+                      : "border-light-gray hover:border-lavender/40"
                       }`}
                   >
                     <span className="text-xl">🌙</span>
@@ -744,16 +730,6 @@ export default function CounselorSettingsPage() {
                 Manage your password and login security.
               </p>
             </div>
-            {error && (
-              <div className="text-red-600 text-xs bg-red-50 p-3 rounded-lg font-poppins">
-                {error}
-              </div>
-            )}
-            {success && (
-              <div className="text-green-600 text-xs bg-green-50 p-3 rounded-lg font-poppins">
-                {success}
-              </div>
-            )}
             <div className="space-y-3">
               <Button variant="secondary" onClick={() => setShowChangePw(true)} className="bg-light-gray text-dark-text hover:bg-light-gray/80 border-light-gray">
                 Change Password
@@ -815,39 +791,20 @@ export default function CounselorSettingsPage() {
                 Download or delete your data.
               </p>
             </div>
-            {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-lg font-poppins">{error}</div>}
-            {success && <div className="text-green-600 text-xs bg-green-50 p-3 rounded-lg font-poppins">{success}</div>}
-            <div className="flex flex-col gap-3">
-              <Button variant="secondary" onClick={() => downloadCounselorData("json")} disabled={saving} className="bg-light-gray text-dark-text hover:bg-light-gray/80 border-light-gray">
+            <div className="flex flex-col gap-3 overflow-hidden">
+              <Button variant="secondary" onClick={() => downloadCounselorData("json")} disabled={saving} className="bg-light-gray text-dark-text hover:bg-light-gray/80 border-light-gray hover:scale-100">
                 {saving ? "Preparing..." : "📥 Download All My Data"}
               </Button>
-              <Button variant="secondary" onClick={() => downloadCounselorData("csv")} disabled={saving} className="bg-light-gray text-dark-text hover:bg-light-gray/80 border-light-gray">
+              <Button variant="secondary" onClick={() => downloadCounselorData("csv")} disabled={saving} className="bg-light-gray text-dark-text hover:bg-light-gray/80 border-light-gray hover:scale-100">
                 {saving ? "Preparing..." : "Download CSV"}
               </Button>
-              <Button variant="ghost" className="text-red-600 hover:text-red-500 hover:bg-red-50" onClick={() => setShowDeleteConfirm(true)}>
+              <Button variant="ghost" className="text-red-600 hover:text-red-500 hover:bg-red-50 hover:scale-100" onClick={() => setShowDeleteConfirm(true)}>
                 🗑️ Delete My Account
               </Button>
             </div>
             <p className="text-xs text-slate-600 font-inter mt-2">
               Export includes profile info, conversations, case notes, and assigned clients.
             </p>
-          </div>
-        );
-
-      case "account":
-        return (
-          <div className="space-y-4">
-            <div className="mb-6">
-              <h3 className="text-lg font-dm-serif text-dark-text">Account</h3>
-            </div>
-            <p className="text-sm text-slate-600 font-poppins">
-              Manage your account details here. Go to Profile to edit personal info.
-            </p>
-            <Link href="/counselor/profile">
-              <Button variant="ghost" className="text-primary-blue hover:text-primary-blue/80 hover:bg-primary-blue/10">
-                Go to Profile
-              </Button>
-            </Link>
           </div>
         );
 
@@ -858,17 +815,7 @@ export default function CounselorSettingsPage() {
 
   return (
     <div className="space-y-4">
-      {/* Global flash banners — visible regardless of active section */}
-      {error && (
-        <div role="alert" className="rounded-xl border border-red-800 bg-red-100 px-4 py-3 text-sm font-semibold text-red-950 shadow-sm animate-in fade-in duration-150">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div role="status" aria-live="polite" className="rounded-xl border border-emerald-800 bg-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-950 shadow-sm animate-in fade-in duration-150">
-          {success}
-        </div>
-      )}
+      <Toast {...toast} onClose={closeToast} />
       <div className="flex gap-6">
         {/* Sidebar */}
         <div className="w-64 flex-shrink-0 hidden md:block">
@@ -877,8 +824,8 @@ export default function CounselorSettingsPage() {
             <button
               onClick={() => setActiveSection("counselor")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "counselor"
-                  ? "bg-primary-blue/20 text-primary-blue"
-                  : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                ? "bg-primary-blue/20 text-primary-blue"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -888,8 +835,8 @@ export default function CounselorSettingsPage() {
             <button
               onClick={() => setActiveSection("notifications")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "notifications"
-                  ? "bg-primary-blue/20 text-primary-blue"
-                  : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                ? "bg-primary-blue/20 text-primary-blue"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -899,8 +846,8 @@ export default function CounselorSettingsPage() {
             <button
               onClick={() => setActiveSection("privacy")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "privacy"
-                  ? "bg-primary-blue/20 text-primary-blue"
-                  : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                ? "bg-primary-blue/20 text-primary-blue"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -910,8 +857,8 @@ export default function CounselorSettingsPage() {
             <button
               onClick={() => setActiveSection("language")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "language"
-                  ? "bg-primary-blue/20 text-primary-blue"
-                  : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                ? "bg-primary-blue/20 text-primary-blue"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -921,8 +868,8 @@ export default function CounselorSettingsPage() {
             <button
               onClick={() => setActiveSection("security")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "security"
-                  ? "bg-primary-blue/20 text-primary-blue"
-                  : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                ? "bg-primary-blue/20 text-primary-blue"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
                 }`}
             >
               <span className="flex items-center gap-2">
@@ -932,23 +879,12 @@ export default function CounselorSettingsPage() {
             <button
               onClick={() => setActiveSection("data")}
               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "data"
-                  ? "bg-primary-blue/20 text-primary-blue"
-                  : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                ? "bg-primary-blue/20 text-primary-blue"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
                 }`}
             >
               <span className="flex items-center gap-2">
                 <Image src="/icons/data-export.svg" alt="Data & Export" width={16} height={16} className="w-4 h-4 object-contain" /> Data & Export
-              </span>
-            </button>
-            <button
-              onClick={() => setActiveSection("account")}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "account"
-                  ? "bg-primary-blue/20 text-primary-blue"
-                  : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
-                }`}
-            >
-              <span className="flex items-center gap-2">
-                <Image src="/icons/account.svg" alt="Account" width={16} height={16} className="w-4 h-4 object-contain" /> Account
               </span>
             </button>
           </Card>
@@ -977,7 +913,6 @@ export default function CounselorSettingsPage() {
                   x
                 </button>
               </div>
-              {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-lg font-poppins mb-3">{error}</div>}
               <div className="space-y-3">
                 <div>
                   <label className="text-xs font-poppins text-slate-700 mb-1 block">Current Password</label>
@@ -1034,7 +969,6 @@ export default function CounselorSettingsPage() {
                   x
                 </button>
               </div>
-              {error && <div className="text-red-600 text-xs bg-red-50 p-3 rounded-lg font-poppins mb-3">{error}</div>}
               <div className="space-y-3">
                 <div className="p-3 bg-red-50 rounded-xl border border-red-100">
                   <p className="text-xs font-poppins text-dark-text font-semibold mb-1">

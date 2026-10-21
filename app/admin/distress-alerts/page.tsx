@@ -108,13 +108,12 @@ export default function AdminDistressAlertsPage() {
     const cfg = DISTRESS_RISK_CONFIG[lvl] ?? DISTRESS_RISK_CONFIG["Low Risk"];
     return (
       <span
-        className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-poppins font-semibold ${
-          lvl === "Critical Risk" || lvl === "High Risk"
+        className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-poppins font-semibold ${lvl === "Critical Risk" || lvl === "High Risk"
             ? "border-rose-200 bg-rose-100 text-rose-800"
             : lvl === "Moderate Risk"
               ? "border-amber-200 bg-amber-100 text-amber-900"
               : "border-emerald-200 bg-emerald-100 text-emerald-800"
-        }`}
+          }`}
         title={`${snap.total_points} point${snap.total_points !== 1 ? "s" : ""}`}
       >
         {cfg.emoji} {lvl}
@@ -162,7 +161,6 @@ export default function AdminDistressAlertsPage() {
           .from("user_profiles")
           .select("id,username,full_name")
           .eq("role", "counselor")
-          .eq("is_active", true)
           .order("full_name", { ascending: true });
 
         if (counselorsError) {
@@ -383,10 +381,10 @@ export default function AdminDistressAlertsPage() {
         setLogs((prev) =>
           prev.map((log) =>
             log.id === alertId
-                ? {
-                  ...log,
-                  notes: result.log.notes,
-                }
+              ? {
+                ...log,
+                notes: result.log.notes,
+              }
               : log
           )
         );
@@ -423,9 +421,8 @@ export default function AdminDistressAlertsPage() {
     return (
       <div className={compact ? "flex min-w-0 flex-wrap items-center gap-2" : "min-w-0 space-y-2"}>
         <select
-          className={`min-w-0 max-w-full border border-gray-200 bg-white text-xs font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/30 ${
-            compact ? "w-32 rounded-lg px-2 py-1.5" : "w-full rounded-xl px-3 py-2"
-          }`}
+          className={`min-w-0 max-w-full border border-gray-200 bg-white text-xs font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/30 ${compact ? "w-32 rounded-lg px-2 py-1.5" : "w-full rounded-xl px-3 py-2"
+            }`}
           value={selectedCounselorId}
           onChange={(event) =>
             setAssignmentSelections((prev) => ({

@@ -58,8 +58,8 @@ function WellnessBadge({
       <span className="text-xs font-inter text-slate-600 italic">No data</span>
     );
   }
-  const lvl  = (level as WellnessLevel) ?? classifyWellnessLevel(score);
-  const cfg  = WELLNESS_LEVEL_CONFIG[lvl];
+  const lvl = (level as WellnessLevel) ?? classifyWellnessLevel(score);
+  const cfg = WELLNESS_LEVEL_CONFIG[lvl];
   return (
     <span
       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-poppins font-medium"
@@ -79,13 +79,12 @@ function RiskBadge({ riskLevel }: { riskLevel: string | null }) {
   const cfg = DISTRESS_RISK_CONFIG[lvl] ?? DISTRESS_RISK_CONFIG["Low Risk"];
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-poppins font-semibold ${
-        lvl === "Critical Risk" || lvl === "High Risk"
-          ? "border-rose-200 bg-rose-100 text-rose-800"
-          : lvl === "Moderate Risk"
-            ? "border-amber-200 bg-amber-100 text-amber-900"
-            : "border-emerald-200 bg-emerald-100 text-emerald-800"
-      }`}
+      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-poppins font-semibold ${lvl === "Critical Risk" || lvl === "High Risk"
+        ? "border-rose-200 bg-rose-100 text-rose-800"
+        : lvl === "Moderate Risk"
+          ? "border-amber-200 bg-amber-100 text-amber-900"
+          : "border-emerald-200 bg-emerald-100 text-emerald-800"
+        }`}
     >
       {cfg.emoji} {lvl}
     </span>
@@ -95,10 +94,10 @@ function RiskBadge({ riskLevel }: { riskLevel: string | null }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function CounselorDashboardPage() {
   const [stats, setStats] = useState({
-    assignedUsers:   0,
-    activeCases:     0,
+    assignedUsers: 0,
+    activeCases: 0,
     pendingMessages: 0,
-    newUsersToday:   0,
+    newUsersToday: 0,
   });
   const [recentCases, setRecentCases] = useState<any[]>([]);
   const [recentMessages, setRecentMessages] = useState<any[]>([]);
@@ -106,9 +105,10 @@ export default function CounselorDashboardPage() {
   const [wellnessMap, setWellnessMap] = useState<Map<string, UserWellnessSnapshot>>(new Map());
   const [riskMap, setRiskMap] = useState<Map<string, UserRiskSnapshot>>(new Map());
   const [aggregateWellnessTrend, setAggregateWellnessTrend] = useState<AggregateWellnessPoint[]>([]);
+  const [wellnessTrendFilter, setWellnessTrendFilter] = useState<"recent" | "all">("recent");
   const [announcements, setAnnouncements] = useState<{ id: string; title: string; content: string; created_at: string }[]>([]);
   const [announcementsExpanded, setAnnouncementsExpanded] = useState(true);
-  const [wellnessLoading, setWellnessLoading]  = useState(true);
+  const [wellnessLoading, setWellnessLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const supabase = useMemo(() => createClient() as any, []);
@@ -179,10 +179,10 @@ export default function CounselorDashboardPage() {
 
         if (assignedUserIds.length === 0) {
           setStats({
-            assignedUsers:   0,
-            activeCases:     0,
+            assignedUsers: 0,
+            activeCases: 0,
             pendingMessages: 0,
-            newUsersToday:   newUsersCount || 0,
+            newUsersToday: newUsersCount || 0,
           });
           setRecentCases([]);
           setRecentMessages([]);
@@ -261,18 +261,18 @@ export default function CounselorDashboardPage() {
         ]);
 
         setStats({
-          assignedUsers:   assignedUserIds.length,
-          activeCases:     totalCasesCount ?? casesData?.length   ?? 0,
+          assignedUsers: assignedUserIds.length,
+          activeCases: totalCasesCount ?? casesData?.length ?? 0,
           pendingMessages: totalMessagesCount ?? messagesData?.length ?? 0,
-          newUsersToday:   newUsersCount || 0,
+          newUsersToday: newUsersCount || 0,
         });
-        setRecentCases(casesData    || []);
+        setRecentCases(casesData || []);
         setRecentMessages(messagesData || []);
-        setAssignedUsers(usersData  || []);
+        setAssignedUsers(usersData || []);
 
         // Deduplicate: keep most-recent wellness row per user
-        const seen  = new Set<string>();
-        const wMap  = new Map<string, UserWellnessSnapshot>();
+        const seen = new Set<string>();
+        const wMap = new Map<string, UserWellnessSnapshot>();
         for (const row of (wellnessRows ?? [])) {
           if (!seen.has(row.user_id)) {
             seen.add(row.user_id);
@@ -297,7 +297,6 @@ export default function CounselorDashboardPage() {
         setAggregateWellnessTrend(
           Array.from(grouped.entries())
             .sort(([a], [b]) => a.localeCompare(b))
-            .slice(-14)
             .map(([date, value]) => ({
               date,
               score: Number((value.sum / value.count).toFixed(1)),
@@ -306,7 +305,7 @@ export default function CounselorDashboardPage() {
         );
 
         const rSeen = new Set<string>();
-        const rMap  = new Map<string, UserRiskSnapshot>();
+        const rMap = new Map<string, UserRiskSnapshot>();
         for (const row of (riskRows ?? [])) {
           if (!rSeen.has(row.user_id)) {
             rSeen.add(row.user_id);
@@ -374,7 +373,7 @@ export default function CounselorDashboardPage() {
     const mins = Math.max(1, Math.round((Date.now() - d.getTime()) / 60000));
     if (mins < 60) return `${mins}m ago`;
     const hrs = Math.round(mins / 60);
-    if (hrs  < 24) return `${hrs}h ago`;
+    if (hrs < 24) return `${hrs}h ago`;
     return `${Math.round(hrs / 24)}d ago`;
   };
 
@@ -455,15 +454,15 @@ export default function CounselorDashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">        <Card variant="white" className="stat-card border-l-4 border-l-primary-blue">
-          <div className="flex items-start gap-3 mb-3">
-            <div className="stat-card-icon bg-primary-blue/20">👥</div>
-            <div className="text-right">
-              <p className="text-xs text-slate-600 font-poppins">ASSIGNED USERS</p>
-              <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.assignedUsers}</p>
-            </div>
+        <div className="flex items-start gap-3 mb-3">
+          <div className="stat-card-icon bg-primary-blue/20">👥</div>
+          <div className="text-right">
+            <p className="text-xs text-slate-600 font-poppins">ASSIGNED USERS</p>
+            <p className="text-2xl font-dm-serif text-dark-text">{loading ? "—" : stats.assignedUsers}</p>
           </div>
-          <div className="stat-card-pill bg-gradient-to-r from-primary-blue to-teal" />
-        </Card>
+        </div>
+        <div className="stat-card-pill bg-gradient-to-r from-primary-blue to-teal" />
+      </Card>
 
         <Card variant="white" className="stat-card border-l-4 border-l-error-red">
           <div className="flex items-start gap-3 mb-3">
@@ -499,11 +498,29 @@ export default function CounselorDashboardPage() {
               Assigned users only, averaged by assessment date
             </p>
           </div>
-          {!loading && !wellnessLoading && aggregateWellnessTrend.length > 0 && (
-            <span className="text-xs font-poppins text-slate-600">
-              {aggregateWellnessTrend.length} points
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {!loading && !wellnessLoading && aggregateWellnessTrend.length > 0 && (
+              <span className="text-xs font-poppins text-slate-600">
+                {(wellnessTrendFilter === "recent" ? aggregateWellnessTrend.slice(-14) : aggregateWellnessTrend).length} points
+              </span>
+            )}
+            <div className="flex gap-1">
+              <button
+                type="button"
+                onClick={() => setWellnessTrendFilter("recent")}
+                className={`px-2.5 py-1 rounded-full text-xs font-poppins transition-all ${wellnessTrendFilter === "recent" ? "bg-primary-blue text-white shadow-sm" : "bg-gray-100 text-slate-600 hover:bg-gray-200"}`}
+              >
+                Recent
+              </button>
+              <button
+                type="button"
+                onClick={() => setWellnessTrendFilter("all")}
+                className={`px-2.5 py-1 rounded-full text-xs font-poppins transition-all ${wellnessTrendFilter === "all" ? "bg-primary-blue text-white shadow-sm" : "bg-gray-100 text-slate-600 hover:bg-gray-200"}`}
+              >
+                All Months
+              </button>
+            </div>
+          </div>
         </div>
 
         {loading || wellnessLoading ? (
@@ -514,40 +531,46 @@ export default function CounselorDashboardPage() {
               No wellness trend data for assigned users yet.
             </p>
           </div>
-        ) : (
-          <div className="h-44">
-            <div className="flex h-36 items-end gap-2 border-b border-gray-100">
-              {aggregateWellnessTrend.map((point) => {
-                const height = Math.max(8, Math.round((point.score / aggregateTrendMax) * 100));
-                const lvl = classifyWellnessLevel(point.score);
-                const cfg = WELLNESS_LEVEL_CONFIG[lvl];
-                return (
-                  <div key={point.date} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1">
-                    <span className="text-[9px] font-poppins text-slate-600 leading-none">
-                      {point.score.toFixed(1)}
-                    </span>
-                    <div
-                      className="w-full rounded-t-md transition-all duration-300"
-                      style={{
-                        height: `${height}%`,
-                        minHeight: "8px",
-                        backgroundColor: cfg.bgColor,
-                        border: `1px solid ${cfg.color}30`,
-                      }}
-                      title={`${point.score}/10 avg from ${point.count} user${point.count === 1 ? "" : "s"} on ${point.date}`}
-                    />
-                  </div>
-                );
-              })}
+        ) : (() => {
+          const displayPoints = wellnessTrendFilter === "recent"
+            ? aggregateWellnessTrend.slice(-14)
+            : aggregateWellnessTrend;
+          const displayMax = Math.max(...displayPoints.map(p => p.score), 1);
+          return (
+            <div className="h-44">
+              <div className="flex h-36 items-end gap-2 border-b border-gray-100 overflow-x-auto">
+                {displayPoints.map((point) => {
+                  const height = Math.max(8, Math.round((point.score / displayMax) * 100));
+                  const lvl = classifyWellnessLevel(point.score);
+                  const cfg = WELLNESS_LEVEL_CONFIG[lvl];
+                  return (
+                    <div key={point.date} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1" style={{ minWidth: wellnessTrendFilter === "all" ? "20px" : undefined }}>
+                      <span className="text-[9px] font-poppins text-slate-600 leading-none">
+                        {point.score.toFixed(1)}
+                      </span>
+                      <div
+                        className="w-full rounded-t-md transition-all duration-300"
+                        style={{
+                          height: `${height}%`,
+                          minHeight: "8px",
+                          backgroundColor: cfg.bgColor,
+                          border: `1px solid ${cfg.color}30`,
+                        }}
+                        title={`${point.score}/10 avg from ${point.count} user${point.count === 1 ? "" : "s"} on ${point.date}`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-600 font-inter">
+                <span>{new Date(displayPoints[0]?.date).toLocaleDateString()}</span>
+                <span className="text-right">
+                  {new Date(displayPoints[displayPoints.length - 1]?.date).toLocaleDateString()}
+                </span>
+              </div>
             </div>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-600 font-inter">
-              <span>{new Date(aggregateWellnessTrend[0]?.date).toLocaleDateString()}</span>
-              <span className="text-right">
-                {new Date(aggregateWellnessTrend[aggregateWellnessTrend.length - 1]?.date).toLocaleDateString()}
-              </span>
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </Card>
 
       <Card variant="white" className="p-5 bg-white/80 border border-white/40 shadow-sm backdrop-blur-md">
@@ -592,8 +615,8 @@ export default function CounselorDashboardPage() {
               const lvl = snap?.wellness_level
                 ? (snap.wellness_level as WellnessLevel)
                 : snap?.wellness_score != null
-                ? classifyWellnessLevel(snap.wellness_score)
-                : null;
+                  ? classifyWellnessLevel(snap.wellness_score)
+                  : null;
               const riskLvl = (riskSnap?.risk_level as DistressRiskLevel) ?? null;
               const isAtRisk = lvl === "At Risk" || lvl === "High Risk";
               const isCritical = riskLvl === "Critical Risk" || riskLvl === "High Risk";
@@ -602,9 +625,8 @@ export default function CounselorDashboardPage() {
               return (
                 <div
                   key={u.id}
-                  className={`grid grid-cols-[1fr_auto_auto_auto] gap-3 py-2.5 items-center ${
-                    flagged ? "bg-error-red/5 -mx-1 px-1 rounded-lg" : ""
-                  }`}
+                  className={`grid grid-cols-[1fr_auto_auto_auto] gap-3 py-2.5 items-center ${flagged ? "bg-error-red/5 -mx-1 px-1 rounded-lg" : ""
+                    }`}
                 >
                   {/* User name — anonymized (first name + last initial) */}
                   <div className="flex items-center gap-2 min-w-0">
@@ -638,8 +660,8 @@ export default function CounselorDashboardPage() {
                   <span className="text-xs text-slate-600 font-inter text-right whitespace-nowrap">
                     {snap?.window_end_date
                       ? new Date(snap.window_end_date).toLocaleDateString("en-US", {
-                          month: "short", day: "numeric",
-                        })
+                        month: "short", day: "numeric",
+                      })
                       : "—"}
                   </span>
                 </div>
@@ -649,10 +671,10 @@ export default function CounselorDashboardPage() {
             {/* At-Risk summary footer */}
             {(() => {
               const flaggedCount = assignedUsers.filter((u) => {
-                const snap    = wellnessMap.get(u.id);
-                const rSnap   = riskMap.get(u.id);
-                const wLvl    = snap?.wellness_level as WellnessLevel | null;
-                const rLvl    = rSnap?.risk_level as DistressRiskLevel | null;
+                const snap = wellnessMap.get(u.id);
+                const rSnap = riskMap.get(u.id);
+                const wLvl = snap?.wellness_level as WellnessLevel | null;
+                const rLvl = rSnap?.risk_level as DistressRiskLevel | null;
                 return (
                   wLvl === "At Risk" || wLvl === "High Risk" ||
                   rLvl === "High Risk" || rLvl === "Critical Risk"
@@ -697,8 +719,8 @@ export default function CounselorDashboardPage() {
             ) : recentCases.length === 0 ? (
               <p className="text-sm text-slate-700 font-inter">No cases yet.</p>
             ) : recentCases.map((c, i) => {
-              const snap    = wellnessMap.get(c.user_id);
-              const rSnap   = riskMap.get(c.user_id);
+              const snap = wellnessMap.get(c.user_id);
+              const rSnap = riskMap.get(c.user_id);
               return (
                 <div
                   key={c.id || i}

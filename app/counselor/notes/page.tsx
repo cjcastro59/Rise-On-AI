@@ -3,9 +3,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Toast, useToast } from "@/components/ui/Toast";
+import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 
 type Note = {
   id: string;
@@ -24,6 +25,8 @@ export default function CounselorNotesPage() {
   const [loading, setLoading] = useState(false);
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
+  const { toast, showToast, closeToast } = useToast();
+  const { openConfirmation } = useConfirmation();
 
   // Load notes
   useEffect(() => {
@@ -63,7 +66,7 @@ export default function CounselorNotesPage() {
         .single();
 
       if (error) throw error;
-      
+
       setNotes([data, ...notes]);
       setNewNoteContent("");
     } catch (error) {
@@ -75,7 +78,14 @@ export default function CounselorNotesPage() {
 
   // Delete a note
   const handleDeleteNote = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this note?")) return;
+    const confirmed = await openConfirmation({
+      title: "Delete Note",
+      message: "Are you sure you want to delete this note?",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      isDangerous: true,
+    });
+    if (!confirmed) return;
 
     try {
       const { error } = await supabase
@@ -84,10 +94,12 @@ export default function CounselorNotesPage() {
         .eq("id", id);
 
       if (error) throw error;
-      
+
       setNotes(notes.filter(note => note.id !== id));
+      showToast("Note deleted.", "success");
     } catch (error) {
       console.error("Error deleting note:", error);
+      showToast("Failed to delete note.", "error");
     }
   };
 
@@ -115,7 +127,7 @@ export default function CounselorNotesPage() {
         .single();
 
       if (error) throw error;
-      
+
       setNotes(notes.map(note => note.id === editingNote.id ? data : note));
       setEditingNote(null);
       setEditContent("");
@@ -134,6 +146,7 @@ export default function CounselorNotesPage() {
 
   return (
     <div className="space-y-6">
+      <Toast {...toast} onClose={closeToast} />
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
@@ -190,8 +203,8 @@ export default function CounselorNotesPage() {
                       <Button type="submit" disabled={loading}>
                         Save
                       </Button>
-                      <Button 
-                        type="button" 
+                      <Button
+                        type="button"
                         variant="secondary"
                         onClick={() => {
                           setEditingNote(null);
@@ -208,17 +221,23 @@ export default function CounselorNotesPage() {
                     <div className="flex items-center justify-between text-xs text-slate-600">
                       <span className="rounded-full bg-indigo-50 px-2 py-1 text-indigo-700">Updated: {formatDate(note.updated_at)}</span>
                       <div className="flex gap-2">
-                        <button 
+                        <button
                           onClick={() => startEditing(note)}
-                          className="rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-slate-800"
+                          title="Edit note"
+                          className="rounded-lg bg-slate-100 p-2 text-slate-700 shadow-sm transition-all hover:bg-slate-200"
                         >
-                          Edit
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDeleteNote(note.id)}
-                          className="rounded-lg bg-rose-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-rose-700"
+                          title="Delete note"
+                          className="rounded-lg bg-rose-50 p-2 text-rose-600 shadow-sm transition-all hover:bg-rose-100"
                         >
-                          Delete
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" />
+                          </svg>
                         </button>
                       </div>
                     </div>

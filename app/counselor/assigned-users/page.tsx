@@ -76,11 +76,11 @@ export default function CounselorAssignedUsersPage() {
         const { data: usersData } = assignedUserIds.length === 0
           ? { data: [] }
           : await supabase
-          .from("user_profiles")
-          .select("*")
-          .eq("role", "user")
-          .in("id", assignedUserIds)
-          .order("created_at", { ascending: false });
+            .from("user_profiles")
+            .select("*")
+            .eq("role", "user")
+            .in("id", assignedUserIds)
+            .order("created_at", { ascending: false });
 
         if (usersError) {
           console.error("Error fetching users:", usersError);
@@ -131,8 +131,8 @@ export default function CounselorAssignedUsersPage() {
 
     // Calculate average mood score
     const moods = userEntries.map(e => e.mood).filter(Boolean);
-    const avgMoodScore = moods.length > 0 
-      ? Math.round(moods.reduce((sum, mood) => sum + (moodToScore[mood] || 5), 0) / moods.length) 
+    const avgMoodScore = moods.length > 0
+      ? Math.round(moods.reduce((sum, mood) => sum + (moodToScore[mood] || 5), 0) / moods.length)
       : null;
 
     // Derive overall sentiment from stored ML predictions.
@@ -151,16 +151,16 @@ export default function CounselorAssignedUsersPage() {
       else if (counts.positive > 0) sentiment = "Positive";
 
       // Determine activity status
-      const daysSinceLastActive = lastEntry 
-        ? Math.floor((new Date().getTime() - new Date(lastEntry.created_at).getTime()) / 86400000) 
+      const daysSinceLastActive = lastEntry
+        ? Math.floor((new Date().getTime() - new Date(lastEntry.created_at).getTime()) / 86400000)
         : 999;
-      
+
       if (daysSinceLastActive < 30) activityStatus = "Active";
       if (sentiment === "Negative" && avgMoodScore && avgMoodScore < 5) activityStatus = "At Risk";
     }
 
-    const fullName = (user.first_name && user.last_name) 
-      ? `${user.first_name} ${user.last_name}` 
+    const fullName = (user.first_name && user.last_name)
+      ? `${user.first_name} ${user.last_name}`
       : (user.full_name || user.username || "Unknown User");
 
     // User's account active status
@@ -184,10 +184,10 @@ export default function CounselorAssignedUsersPage() {
 
   // Filter users
   const filteredUsers = processedUsers.filter(user => {
-    const matchesSearch = 
+    const matchesSearch =
       user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (user.rawUser.username && user.rawUser.username.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+
     let matchesStatus = true;
     if (statusFilter === "All") {
       matchesStatus = true;
@@ -196,7 +196,7 @@ export default function CounselorAssignedUsersPage() {
     } else {
       matchesStatus = user.isAccountActive && user.activityStatus === statusFilter;
     }
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -290,7 +290,7 @@ export default function CounselorAssignedUsersPage() {
             />
           </div>
         </div>
-        <select 
+        <select
           className="px-4 py-3 border border-gray-300 rounded-xl text-sm font-poppins text-dark-text bg-white"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -307,20 +307,20 @@ export default function CounselorAssignedUsersPage() {
         <div className="overflow-x-auto">
           <table className="admin-table min-w-[1050px] table-fixed">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-4 px-3">NAME</th>
-                <th className="text-left py-4 px-3">AGE</th>
-                <th className="text-left py-4 px-3">ENTRIES</th>
-                <th className="text-left py-4 px-3">LAST ACTIVE</th>
-                <th className="text-left py-4 px-3">AVG MOOD</th>
-                <th className="text-left py-4 px-3">SENTIMENT</th>
-                <th className="text-left py-4 px-3">STATUS</th>
-                <th className="text-left py-4 px-3">ACTION</th>
+              <tr>
+                <th>NAME</th>
+                <th>AGE</th>
+                <th>ENTRIES</th>
+                <th>LAST ACTIVE</th>
+                <th>AVG MOOD</th>
+                <th>SENTIMENT</th>
+                <th>STATUS</th>
+                <th>ACTION</th>
               </tr>
             </thead>
             <tbody>
               {paginatedUsers.map((user) => (
-                <tr key={user.id} className="border-b border-gray-100 hover:bg-gray-50">
+                <tr key={user.id}>
                   <td className="py-4 px-3">
                     <p className="font-poppins text-sm font-semibold text-slate-900 hover:text-indigo-600">{user.fullName}</p>
                   </td>
@@ -353,7 +353,7 @@ export default function CounselorAssignedUsersPage() {
                     )}
                   </td>
                   <td className="py-4 px-3">
-                    <button 
+                    <button
                       onClick={() => {
                         setSelectedUserId(user.id);
                         setViewModalOpen(true);
@@ -408,11 +408,10 @@ export default function CounselorAssignedUsersPage() {
                     <button
                       key={item}
                       onClick={() => setCurrentPage(item as number)}
-                      className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-poppins transition-colors ${
-                        currentPage === item
+                      className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-poppins transition-colors ${currentPage === item
                           ? "bg-gradient-to-r from-primary-blue to-lavender text-white"
                           : "text-dark-text hover:bg-gray-100"
-                      }`}
+                        }`}
                     >
                       {item}
                     </button>
@@ -431,10 +430,10 @@ export default function CounselorAssignedUsersPage() {
       </Card>
 
       {/* View User Modal */}
-      <ViewUserModal 
-        isOpen={viewModalOpen} 
-        onClose={() => setViewModalOpen(false)} 
-        userId={selectedUserId} 
+      <ViewUserModal
+        isOpen={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        userId={selectedUserId}
       />
     </div>
   );

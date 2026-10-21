@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Toast, useToast } from "@/components/ui/Toast";
 
 interface Profile {
   first_name: string | null;
@@ -36,13 +37,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [flashSuccess, setFlashSuccess] = useState("");
-  const [flashError, setFlashError] = useState("");
-
-  const flash = (type: "success" | "error", msg: string, ms = 3500) => {
-    if (type === "success") { setFlashSuccess(msg); setTimeout(() => setFlashSuccess(""), ms); }
-    else { setFlashError(msg); setTimeout(() => setFlashError(""), ms); }
-  };
+  const { toast, showToast, closeToast } = useToast();
   const [profile, setProfile] = useState<Profile>({
     first_name: null,
     last_name: null,
@@ -165,7 +160,7 @@ export default function ProfilePage() {
   const saveProfile = async () => {
     if (!user) {
       console.error("No user found");
-      flash("error", "Please log in to save profile");
+      showToast("Please log in to save profile.", "error");
       return;
     }
 
@@ -209,7 +204,7 @@ export default function ProfilePage() {
 
       if (error) {
         console.error("Error saving profile:", error);
-        flash("error", `Failed to save profile: ${error.message}`);
+        showToast(`Failed to save profile: ${error.message}`, "error");
         return;
       }
 
@@ -217,10 +212,10 @@ export default function ProfilePage() {
       await fetchProfileAndStats();
 
       setIsEditing(false);
-      flash("success", "✅ Profile saved successfully!");
+      showToast("Profile saved successfully!", "success");
     } catch (error) {
       console.error("Error saving profile:", error);
-      flash("error", `Failed to save profile: ${(error as Error).message}`);
+      showToast(`Failed to save profile: ${(error as Error).message}`, "error");
     } finally {
       setSaving(false);
     }
@@ -290,9 +285,9 @@ export default function ProfilePage() {
         throw updateError;
       }
 
-      flash("success", "✅ Avatar uploaded successfully!");
+      showToast("Avatar uploaded successfully!", "success");
     } catch (error) {
-      flash("error", `Error uploading avatar: ${(error as Error).message}`);
+      showToast(`Error uploading avatar: ${(error as Error).message}`, "error");
       console.error(error);
     } finally {
       setUploading(false);
@@ -329,17 +324,7 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      {/* Flash messages */}
-      {flashSuccess && (
-        <div className="text-green-800 text-sm bg-green-100 px-4 py-3 rounded-xl font-poppins border border-green-400 shadow-md animate-in fade-in duration-150">
-          {flashSuccess}
-        </div>
-      )}
-      {flashError && (
-        <div className="text-red-800 text-sm bg-red-100 px-4 py-3 rounded-xl font-poppins border border-red-400 shadow-md animate-in fade-in duration-150">
-          {flashError}
-        </div>
-      )}
+      <Toast {...toast} onClose={closeToast} />
 
       {/* Profile Header */}
       <div className="bg-white rounded-2xl p-6 border border-light-gray shadow-sm">
@@ -830,3 +815,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
