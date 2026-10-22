@@ -370,7 +370,7 @@ export default function AdminSystemSettingsPage() {
       setQrCodeUrl(url);
       setShowSetup2FA(true);
     } catch (err) {
-      setError("Failed to setup 2FA");
+      showToast("Failed to setup 2FA", "error");
     } finally {
       setLoadingPersonal(false);
     }
@@ -389,7 +389,7 @@ export default function AdminSystemSettingsPage() {
         .single();
 
       if (!profile?.two_factor_secret) {
-        setError("Secret not found, please try again.");
+        showToast("Secret not found, please try again.", "error");
         return;
       }
 
@@ -410,13 +410,13 @@ export default function AdminSystemSettingsPage() {
           .eq("id", user.id);
         setTwoFactorEnabled(true);
         setShowSetup2FA(false);
-        setSuccess("Two-factor authentication enabled successfully!");
+        showToast("Two-factor authentication enabled successfully!", "success");
       } else {
         const expected = await generate({ secret: profile.two_factor_secret, guardrails: createGuardrails({ MIN_SECRET_BYTES: 10 }) });
-        setError(`Invalid verification code! Expected: ${expected}`);
+        showToast(`Invalid verification code! Expected: ${expected}`, "error");
       }
     } catch (err) {
-      setError("Failed to verify code");
+      showToast("Failed to verify code", "error");
     } finally {
       setLoadingPersonal(false);
     }
@@ -439,9 +439,9 @@ export default function AdminSystemSettingsPage() {
       setTwoFactorEnabled(false);
       setShowSetup2FA(false);
       setVerificationCode("");
-      setSuccess("Two-factor authentication disabled");
+      showToast("Two-factor authentication disabled", "info");
     } catch (err) {
-      setError("Failed to disable 2FA");
+      showToast("Failed to disable 2FA", "error");
     } finally {
       setLoadingPersonal(false);
     }
@@ -1179,9 +1179,9 @@ export default function AdminSystemSettingsPage() {
         return (
           <div className="space-y-4">
             <div className="mb-6">
-              <h3 className="text-lg font-dm-serif text-dark-text">Language & Region</h3>
+              <h3 className="text-lg font-dm-serif text-dark-text">Journaling Language</h3>
               <p className="text-sm text-slate-600 font-poppins">
-                Choose your preferred journaling language. This is used by the AI to better understand entries written in English or Filipino.
+                Choose the language you typically write your journal entries in. This helps the AI sentiment analysis model better understand your entries. This does not change the app interface language.
               </p>
             </div>
             <div className="p-4 bg-light-gray/50 rounded-xl space-y-3">
@@ -1217,16 +1217,6 @@ export default function AdminSystemSettingsPage() {
                 Manage your password and login security.
               </p>
             </div>
-            {error && (
-              <div className="text-red-500 text-xs bg-red-50 p-3 rounded-lg font-poppins">
-                {error}
-              </div>
-            )}
-            {success && (
-              <div className="text-green-500 text-xs bg-green-50 p-3 rounded-lg font-poppins">
-                {success}
-              </div>
-            )}
             <div className="space-y-3">
               <Button
                 variant="secondary"

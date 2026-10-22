@@ -51,7 +51,7 @@ const channelCopy: Record<SupportChannel, { title: string; subtitle: string; cta
 
 const getDisplayName = (profile?: Partial<SupportProfile> | null) => {
   if (!profile) return "Support";
-  return profile.full_name || profile.username || profile.email || "Support";
+  return profile.first_name || profile.full_name || profile.username || profile.email || "Support";
 };
 
 const getRoleLabel = (role?: string | null) => {
@@ -694,13 +694,16 @@ export default function SupportPage() {
                       <div className="space-y-4">
                         {messages.map((message) => {
                           const isMine = message.sender_id === currentUserId;
-                          const sender = senderProfiles[message.sender_id];
-                          const senderLabel =
-                            sender
-                              ? `${getRoleLabel(sender?.role)} ${getDisplayName(sender)}`
-                              : selectedChannel === "admin"
-                                ? "Admin Support"
-                                : "Counselor";
+                          // Look up sender profile — check senderProfiles first, then recipients map
+                          const sender =
+                            senderProfiles[message.sender_id] ||
+                            recipients[message.sender_id] ||
+                            null;
+                          const senderLabel = sender
+                            ? `${getRoleLabel(sender.role)} ${getDisplayName(sender)}`
+                            : selectedChannel === "admin"
+                              ? "Admin Support"
+                              : "Counselor";
                           return (
                             <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
                               <div className={`max-w-[82%] rounded-2xl px-4 py-2 shadow-sm ${isMine

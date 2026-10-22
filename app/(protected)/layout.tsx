@@ -4,6 +4,9 @@ import ProtectedContentWrapper from "@/components/layout/ProtectedContentWrapper
 import SessionTimeoutWrapper from "@/components/layout/SessionTimeoutWrapper";
 import StaffAnnouncementToast from "@/components/layout/StaffAnnouncementToast";
 import { createClient } from "@/lib/supabase/server";
+
+// Force dynamic rendering so maintenance mode check always runs (no CDN caching)
+export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import { isMaintenanceModeActive } from "@/lib/maintenance";
 
@@ -40,7 +43,7 @@ export default async function ProtectedLayout({
   // Role-based redirects — only redirect if profile actually loaded and role is confirmed
   // Use null-safe check: if profile is null (network issue), don't redirect, let member pages load
   if (role === "counselor") redirect("/counselor/dashboard");
-  if (role === "admin" || role === "owner" || role === "researcher") redirect("/admin/dashboard");
+  if (role === "admin" || role === "owner") redirect("/admin/dashboard");
 
   const userName =
     profile?.first_name ||

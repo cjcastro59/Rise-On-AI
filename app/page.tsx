@@ -24,7 +24,7 @@ export default async function LandingPage() {
 
     const role = profile?.role;
     if (role === "counselor") redirect("/counselor/dashboard");
-    if (role === "admin" || role === "owner" || role === "researcher") redirect("/admin/dashboard");
+    if (role === "admin" || role === "owner") redirect("/admin/dashboard");
     redirect("/dashboard");
   }
 

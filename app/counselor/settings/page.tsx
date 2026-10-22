@@ -692,9 +692,9 @@ export default function CounselorSettingsPage() {
         return (
           <div className="space-y-4">
             <div className="mb-6">
-              <h3 className="text-lg font-dm-serif text-dark-text">Language &amp; Region</h3>
+              <h3 className="text-lg font-dm-serif text-dark-text">Journaling Language</h3>
               <p className="text-sm text-slate-600 font-poppins">
-                Choose your preferred journaling language. This is used by the AI to better understand entries written in English or Filipino.
+                Choose the language you typically write your journal entries in. This helps the AI sentiment analysis model better understand your entries. This does not change the app interface language.
               </p>
             </div>
             <div className="p-4 bg-light-gray/30 rounded-xl space-y-3">
@@ -788,22 +788,19 @@ export default function CounselorSettingsPage() {
             <div className="mb-6">
               <h3 className="text-lg font-dm-serif text-dark-text">Data &amp; Export</h3>
               <p className="text-sm text-slate-600 font-poppins">
-                Download or delete your data.
+                Download your data.
               </p>
             </div>
-            <div className="flex flex-col gap-3 overflow-hidden">
+            <div className="flex flex-col gap-3">
               <Button variant="secondary" onClick={() => downloadCounselorData("json")} disabled={saving} className="bg-light-gray text-dark-text hover:bg-light-gray/80 border-light-gray hover:scale-100">
                 {saving ? "Preparing..." : "📥 Download All My Data"}
               </Button>
               <Button variant="secondary" onClick={() => downloadCounselorData("csv")} disabled={saving} className="bg-light-gray text-dark-text hover:bg-light-gray/80 border-light-gray hover:scale-100">
                 {saving ? "Preparing..." : "Download CSV"}
               </Button>
-              <Button variant="ghost" className="text-red-600 hover:text-red-500 hover:bg-red-50 hover:scale-100" onClick={() => setShowDeleteConfirm(true)}>
-                🗑️ Delete My Account
-              </Button>
             </div>
             <p className="text-xs text-slate-600 font-inter mt-2">
-              Export includes profile info, conversations, case notes, and assigned clients.
+              Export includes profile info, conversations, case notes, and assigned clients. Account deletion is available in the Profile page.
             </p>
           </div>
         );
@@ -945,60 +942,6 @@ export default function CounselorSettingsPage() {
                   className="flex-1 px-4 py-2.5 bg-primary-blue text-white rounded-lg text-sm font-poppins hover:bg-primary-blue/90 disabled:opacity-60"
                 >
                   {pwLoading ? "Updating..." : "Update Password"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark-text/40 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 border-l-4 border-l-red-500">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-dm-serif text-dark-text">Delete My Account</h3>
-                  <p className="text-xs text-slate-700 font-poppins mt-1 leading-relaxed">
-                    This deactivates your counselor profile and unassigns your clients.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
-                  className="text-slate-600 hover:text-dark-text text-2xl leading-none"
-                >
-                  x
-                </button>
-              </div>
-              <div className="space-y-3">
-                <div className="p-3 bg-red-50 rounded-xl border border-red-100">
-                  <p className="text-xs font-poppins text-dark-text font-semibold mb-1">
-                    Type exactly below to confirm:
-                  </p>
-                  <p className="text-sm font-mono text-red-600 font-bold tracking-wide">DELETE MY ACCOUNT</p>
-                </div>
-                <input
-                  type="text"
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder="Type confirmation phrase here"
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-500"
-                />
-              </div>
-              <div className="flex gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }}
-                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteAccount}
-                  disabled={deleteLoading}
-                  className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-lg text-sm font-poppins hover:bg-red-600 disabled:opacity-60"
-                >
-                  {deleteLoading ? "Deleting..." : "Delete Account"}
                 </button>
               </div>
             </div>

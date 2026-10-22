@@ -4,6 +4,9 @@ import SessionTimeoutWrapper from "@/components/layout/SessionTimeoutWrapper";
 import { isMaintenanceModeActive } from "@/lib/maintenance";
 import { redirect } from "next/navigation";
 
+// Force dynamic rendering so maintenance mode check always runs (no CDN caching)
+export const dynamic = "force-dynamic";
+
 export default async function CounselorLayout({
   children,
 }: {

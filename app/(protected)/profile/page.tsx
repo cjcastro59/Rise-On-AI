@@ -611,16 +611,24 @@ export default function ProfilePage() {
                   className="w-full px-3 py-2 rounded-lg border border-light-gray focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
                 >
                   <option value="">Select a baseline</option>
-                  <option value="Happy">Happy</option>
-                  <option value="Calm">Calm</option>
-                  <option value="Hopeful">Hopeful</option>
-                  <option value="Neutral">Neutral</option>
-                  <option value="Tired">Tired</option>
-                  <option value="Stressed">Stressed</option>
-                  <option value="Anxious">Anxious</option>
-                  <option value="Sad">Sad</option>
-                  <option value="Overwhelmed">Overwhelmed</option>
-                  <option value="Irritable">Irritable</option>
+                  <option value="Happy">😊 Happy</option>
+                  <option value="Calm">😌 Calm</option>
+                  <option value="Hopeful">🌟 Hopeful</option>
+                  <option value="Grateful">🙏 Grateful</option>
+                  <option value="Motivated">💪 Motivated</option>
+                  <option value="Content">☺️ Content</option>
+                  <option value="Neutral">😐 Neutral</option>
+                  <option value="Tired">😴 Tired</option>
+                  <option value="Bored">😑 Bored</option>
+                  <option value="Confused">😕 Confused</option>
+                  <option value="Lonely">🥺 Lonely</option>
+                  <option value="Stressed">😓 Stressed</option>
+                  <option value="Anxious">😰 Anxious</option>
+                  <option value="Sad">😢 Sad</option>
+                  <option value="Overwhelmed">😩 Overwhelmed</option>
+                  <option value="Irritable">😤 Irritable</option>
+                  <option value="Angry">😠 Angry</option>
+                  <option value="Hopeless">😞 Hopeless</option>
                 </select>
               ) : (
                 <div className="px-3 py-2 bg-light-gray/50 rounded-lg text-sm font-inter text-dark-text">

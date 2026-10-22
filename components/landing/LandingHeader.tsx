@@ -28,7 +28,7 @@ export default function LandingHeader() {
 
       const role = profile?.role;
       if (role === "counselor") router.replace("/counselor/dashboard");
-      else if (role === "admin" || role === "owner" || role === "researcher") router.replace("/admin/dashboard");
+      else if (role === "admin" || role === "owner") router.replace("/admin/dashboard");
       else router.replace("/dashboard");
     };
 

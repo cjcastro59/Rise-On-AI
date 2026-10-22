@@ -271,6 +271,23 @@ export default function MoodInsightsPage() {
     if (user) fetchEntries();
   }, [fetchEntries, user]);
 
+  // ── Auto-recalculate if data is stale (older than 1 day) ──────────────────
+  useEffect(() => {
+    if (wellnessLoading || driLoading) return;
+    const isStale = (dateStr: string | null | undefined) => {
+      if (!dateStr) return true; // no data at all — trigger
+      const diff = Date.now() - new Date(dateStr).getTime();
+      return diff > 24 * 60 * 60 * 1000; // older than 1 day
+    };
+    if (isStale(wellnessLatest?.window_end_date)) {
+      triggerRecalculate();
+    }
+    if (isStale(driLatest?.assessed_date)) {
+      triggerDRI();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wellnessLoading, driLoading]);
+
   // ── Helpers ────────────────────────────────────────────────────────────────
   const calculateStreak = (): number => {
     if (entries.length === 0) return 0;

@@ -666,9 +666,9 @@ export default function SettingsPage() {
         return (
           <div className="space-y-4">
             <div className="mb-6">
-              <h3 className="text-lg font-dm-serif text-dark-text mb-2">Language &amp; Region</h3>
+              <h3 className="text-lg font-dm-serif text-dark-text mb-2">Journaling Language</h3>
               <p className="text-sm text-slate-600 font-poppins">
-                Choose your preferred journaling language. This is used by the AI to better understand your entries written in English or Filipino.
+                Choose the language you typically write your journal entries in. This helps the AI sentiment analysis model better understand your entries written in English or Filipino. This does not change the app interface language.
               </p>
             </div>
             <div className="p-4 bg-light-gray/30 rounded-xl space-y-3">
@@ -684,7 +684,7 @@ export default function SettingsPage() {
                 </select>
               </div>
               <p className="text-xs text-slate-500 font-inter">
-                Note: This setting does not change the app interface language. It helps the AI sentiment analysis recognize which language your journal entries are written in.
+                This helps the AI recognize which language your journal entries are written in. The app interface remains in English.
               </p>
             </div>
             <div className="flex justify-end mt-6">
@@ -776,7 +776,7 @@ export default function SettingsPage() {
             {success && (
               <div className="text-success-green text-xs bg-success-green/10 p-3 rounded-lg font-poppins">{success}</div>
             )}
-            <div className="flex flex-col gap-3 overflow-hidden">
+            <div className="flex flex-col gap-3">
               <Button variant="secondary" onClick={() => downloadSettingsData("json")} disabled={saving} className="hover:scale-100">
                 {saving ? "Preparing..." : "📥 Download All My Data"}
               </Button>
@@ -821,7 +821,7 @@ export default function SettingsPage() {
         >
           <option value="notifications">🔔 Notifications</option>
           <option value="privacy">🔒 Privacy</option>
-          <option value="language">🌐 Language</option>
+          <option value="language">🌐 Journal Language</option>
           <option value="security">🛡️ Security</option>
           <option value="data">📦 Data &amp; Export</option>
         </select>
@@ -862,7 +862,7 @@ export default function SettingsPage() {
                 }`}
             >
               <span className="flex items-center gap-2">
-                <Image src="/icons/language.svg" alt="Language" width={16} height={16} className="w-4 h-4 object-contain" /> Language
+                <Image src="/icons/language.svg" alt="Journal Language" width={16} height={16} className="w-4 h-4 object-contain" /> Journal Language
               </span>
             </button>
             <button

@@ -67,11 +67,17 @@ export default function AdminAuditLogsPage() {
         console.error("Error fetching audit logs:", error);
         setLogs([]);
       } else if (data && data.length > 0) {
-        setLogs(data.map((log: any) => ({
-          ...log,
-          admin: log.user_profiles?.email || "System",
-          role: log.user_profiles?.role || "Automated"
-        })));
+        setLogs(data.map((log: any) => {
+          // Handle both object and array join results from Supabase
+          const profile = Array.isArray(log.user_profiles)
+            ? log.user_profiles[0]
+            : log.user_profiles;
+          return {
+            ...log,
+            admin: profile?.email || "System",
+            role: profile?.role || "Automated",
+          };
+        }));
       } else {
         setLogs([]);
       }
@@ -82,60 +88,6 @@ export default function AdminAuditLogsPage() {
       setLoading(false);
     }
   }, [actionFilter, dateFilter, supabase, user]);
-
-  // Mock data generator for testing
-  const getMockData = () => [
-    {
-      id: "L-01234",
-      created_at: new Date(Date.now() - 3600000).toISOString(),
-      admin: "admin@rise-on.edu",
-      role: "admin",
-      action: "Export Data",
-      details: "Mood Report — May 2026",
-      ip_address: "192.168.1.100",
-      status: "Success",
-    },
-    {
-      id: "L-01233",
-      created_at: new Date(Date.now() - 7200000).toISOString(),
-      admin: "counselor@rise-on.edu",
-      role: "counselor",
-      action: "Alert Review",
-      details: "RAI-0021 — Critical flag reviewed",
-      ip_address: "10.0.0.51",
-      status: "Success",
-    },
-    {
-      id: "L-01232",
-      created_at: new Date(Date.now() - 10800000).toISOString(),
-      admin: "admin@rise-on.edu",
-      role: "admin",
-      action: "Settings Change",
-      details: "Attempted to access user data (blocked)",
-      ip_address: "203.177.22.9",
-      status: "Blocked",
-    },
-    {
-      id: "L-01231",
-      created_at: new Date(Date.now() - 14400000).toISOString(),
-      admin: "owner@rise-on.edu",
-      role: "owner",
-      action: "Report View",
-      details: "Mood Analytics — April 2026",
-      ip_address: "192.168.1.100",
-      status: "Success",
-    },
-    {
-      id: "L-01230",
-      created_at: new Date(Date.now() - 18000000).toISOString(),
-      admin: "System",
-      role: "Automated",
-      action: "Database Backup",
-      details: "Full backup completed",
-      ip_address: "Internal",
-      status: "Success",
-    },
-  ];
 
   useEffect(() => {
     fetchLogs();

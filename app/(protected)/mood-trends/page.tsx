@@ -15,7 +15,7 @@
 // Sentiment classes: Positive | Negative | Distress (no Neutral)
 // =====================================================================
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
@@ -23,6 +23,8 @@ import PageHeader from "@/components/layout/PageHeader";
 import WeeklyMoodChart from "@/components/dashboard/WeeklyMoodChart";
 import { useMoodVisualization } from "@/hooks/useMoodVisualization";
 import { useMoodTrend, type MoodTrendRange } from "@/hooks/useMoodTrend";
+import { useWellnessAssessment } from "@/hooks/useWellnessAssessment";
+import { useDistressRisk } from "@/hooks/useDistressRisk";
 import { WELLNESS_LEVEL_CONFIG, type WellnessLevel } from "@/lib/wellness-assessment";
 import { DISTRESS_RISK_CONFIG, type DistressRiskLevel } from "@/lib/distress-risk";
 
@@ -154,6 +156,29 @@ export default function MoodTrendsPage() {
     avgScore: moodAvg,
     ticks: moodTicks,
   } = useMoodTrend(moodRange);
+
+  // ── Recalculate hooks (for stale data auto-refresh) ───────────────────────
+  const { latest: wellnessLatest, loading: wellnessRecalcLoading, triggerRecalculate: triggerWellnessRecalc } = useWellnessAssessment(30, 7);
+  const { latest: driLatest, loading: driRecalcLoading, triggerRecalculate: triggerDRIRecalc } = useDistressRisk(30, 7);
+
+  // Auto-recalculate if behavioral/DRI data is stale (older than 1 day)
+  useEffect(() => {
+    if (wellnessRecalcLoading || driRecalcLoading) return;
+    const isStale = (dateStr: string | null | undefined) => {
+      if (!dateStr) return true;
+      const diff = Date.now() - new Date(dateStr).getTime();
+      return diff > 24 * 60 * 60 * 1000;
+    };
+    if (isStale(wellnessLatest?.window_end_date)) {
+      triggerWellnessRecalc();
+    }
+    if (isStale(driLatest?.assessed_date)) {
+      triggerDRIRecalc();
+    }
+    // After recalculation, refetch visualization data
+    refetch();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wellnessRecalcLoading, driRecalcLoading]);
 
   // ── Derived summary values ─────────────────────────────────────────────────
   const latestWellness = wellnessTrend.length ? wellnessTrend[wellnessTrend.length - 1] : null;

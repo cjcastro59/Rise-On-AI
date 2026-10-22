@@ -230,7 +230,7 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Helper function to check if user is admin/owner/researcher/counselor (SAFE, avoids recursion!)
+-- Helper function to check if user is admin/owner/counselor (SAFE, avoids recursion!)
 DROP FUNCTION IF EXISTS public.is_current_user_admin_or_owner() CASCADE;
 CREATE OR REPLACE FUNCTION public.is_current_user_admin_or_owner() 
 RETURNS BOOLEAN AS $$
@@ -242,7 +242,7 @@ BEGIN
   WHERE id = auth.uid()
   LIMIT 1;
   
-  RETURN v_role IN ('admin', 'owner', 'researcher', 'counselor');
+  RETURN v_role IN ('admin', 'owner', 'counselor');
 EXCEPTION
   WHEN OTHERS THEN
     RETURN FALSE;
