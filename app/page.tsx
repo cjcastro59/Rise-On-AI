@@ -34,23 +34,23 @@ export default async function LandingPage() {
       <LandingHeader />
 
       {/* Hero Section */}
-      <section className="max-w-3xl mx-auto px-6 py-20 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="inline-flex items-center gap-2 bg-light-gray rounded-full px-4 py-2 mb-8">
+      <section className="max-w-3xl mx-auto px-6 py-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="inline-flex items-center gap-2 bg-light-gray rounded-full px-4 py-2 mb-6">
           <span className="text-sm font-poppins font-medium text-dark-text">
             For Students and Young Adults
           </span>
         </div>
-        <h1 className="text-4xl md:text-5xl font-dm-serif text-dark-text mb-6 leading-tight">
+        <h1 className="text-4xl md:text-5xl font-dm-serif text-dark-text mb-5 leading-tight">
           Your{" "}
           <span className="text-lavender italic">mind</span>{" "}
           deserves
           <br />
           a safe space to grow.
         </h1>
-        <p className="text-lg text-dark-text/80 max-w-xl mx-auto mb-10 font-inter">
+        <p className="text-lg text-dark-text/80 max-w-xl mx-auto mb-8 font-inter">
           Rise On AI listens to your journal entries, understands your emotions, and helps you stay aware of your mental wellness — in English and Taglish.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
           <Link href="/register">
             <Button size="lg">Start Journaling Free</Button>
           </Link>
@@ -61,20 +61,20 @@ export default async function LandingPage() {
           </Link>
         </div>
 
-        {/* 3 simple feature pills */}
-        <div className="flex flex-wrap justify-center gap-3 text-sm font-inter text-dark-text/70">
-          <span className="flex items-center gap-1.5 bg-light-gray rounded-full px-4 py-2">🇵🇭 Taglish & English</span>
-          <span className="flex items-center gap-1.5 bg-light-gray rounded-full px-4 py-2">💡 AI Sentiment Analysis</span>
-          <span className="flex items-center gap-1.5 bg-light-gray rounded-full px-4 py-2">🔒 Private & Secure</span>
-          <span className="flex items-center gap-1.5 bg-light-gray rounded-full px-4 py-2">📊 Mood Trend Tracking</span>
+        {/* 4 feature pills — 2×2 on mobile, single row on desktop */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm font-inter text-dark-text/70 max-w-xl mx-auto w-full">
+          <span className="flex items-center justify-center gap-1.5 bg-light-gray rounded-full px-4 py-2">🇵🇭 Taglish & English</span>
+          <span className="flex items-center justify-center gap-1.5 bg-light-gray rounded-full px-4 py-2">💡 AI Sentiment Analysis</span>
+          <span className="flex items-center justify-center gap-1.5 bg-light-gray rounded-full px-4 py-2">🔒 Private & Secure</span>
+          <span className="flex items-center justify-center gap-1.5 bg-light-gray rounded-full px-4 py-2">📊 Mood Trend Tracking</span>
         </div>
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="bg-light-gray py-16 scroll-mt-6">
+      <section id="how-it-works" className="bg-light-gray py-12 scroll-mt-6">
         <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-2xl font-dm-serif text-dark-text mb-10">How It Works</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <h2 className="text-2xl font-dm-serif text-dark-text mb-8">How It Works</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <div className="bg-white rounded-2xl p-6">
               <div className="w-10 h-10 bg-light-gray rounded-full flex items-center justify-center mx-auto mb-3 border border-teal">
                 <span className="text-sm font-poppins font-bold text-dark-text">1</span>

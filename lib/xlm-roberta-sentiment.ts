@@ -113,7 +113,6 @@ async function callModelAPI(text: string): Promise<XLMroBERTaPrediction | null> 
       const output = await res.json();
       const parsed = parseOutput(output);
       if (parsed) {
-        console.log(`[XLM-R] ✓ ${parsed.sentiment} pos=${parsed.positivePercentage}% neg=${parsed.negativePercentage}% dst=${parsed.distressPercentage}%`);
         return parsed;
       }
 

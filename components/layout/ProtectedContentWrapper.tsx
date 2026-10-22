@@ -12,10 +12,11 @@ export default function ProtectedContentWrapper({
 }) {
   const pathname = usePathname();
   const isSupportPage = pathname === "/support";
-  
+  const isAnalysisPage = pathname === "/analysis";
+
   return (
     <>
-      {!isSupportPage && <CrisisNotification />}
+      {!isSupportPage && !isAnalysisPage && <CrisisNotification />}
       {children}
     </>
   );

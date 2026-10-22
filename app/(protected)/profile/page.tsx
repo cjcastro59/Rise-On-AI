@@ -167,12 +167,6 @@ export default function ProfilePage() {
     try {
       setSaving(true);
 
-      console.log("Saving profile with data:", {
-        id: user.id,
-        ...profile,
-        updated_at: new Date().toISOString(),
-      });
-
       // Let's use update instead of upsert to be safe, and handle insert if needed
       let error;
 
@@ -189,7 +183,7 @@ export default function ProfilePage() {
 
       // If update failed because no row exists, try insert
       if (updateError && updateError.code === "PGRST116") {
-        console.log("No existing profile, inserting new one");
+        // No existing profile, inserting new one
         const { error: insertError } = await supabase
           .from("user_profiles")
           .insert({

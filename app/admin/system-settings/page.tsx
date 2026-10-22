@@ -180,8 +180,6 @@ export default function AdminSystemSettingsPage() {
           .eq("key", "session_timeout")
           .maybeSingle();
 
-        console.log("Loaded RBAC data:", rbacData);
-        console.log("Loaded Features data:", featuresData);
         if (rbacData && !rbacError) {
           // Handle cases where data might be stringified JSON
           const parsedRbac = typeof rbacData.value === 'string' ? JSON.parse(rbacData.value) : rbacData.value;
@@ -214,7 +212,6 @@ export default function AdminSystemSettingsPage() {
         }
       } catch (error) {
         console.error("Error loading settings:", error);
-        console.log("Using default settings");
       } finally {
         setLoading(false);
       }
@@ -255,9 +252,6 @@ export default function AdminSystemSettingsPage() {
     if (!isOwner) return;
 
     try {
-      console.log("Saving permissions:", permissions);
-      console.log("Saving features:", features);
-
       // Save RBAC permissions
       const { error: rbacError } = await supabase
         .from("system_settings")

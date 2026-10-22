@@ -54,10 +54,8 @@ export default function CounselorMessagesPage() {
 
     // Subscribe to all conversations for real-time updates
     const subscribeToConversations = (userId: string) => {
-      console.log("[Counselor Messages] Subscribing to conversations...");
-      if (conversationsChannelRef.current) {
-        console.log("[Counselor Messages] Removing previous conversations channel...");
-        supabase.removeChannel(conversationsChannelRef.current);
+            if (conversationsChannelRef.current) {
+                supabase.removeChannel(conversationsChannelRef.current);
       }
 
       const channel = supabase.channel(`counselor:conversations:${userId}`);
@@ -71,8 +69,7 @@ export default function CounselorMessagesPage() {
           table: "conversations"
         },
         async (payload: any) => {
-          console.log("[Counselor Messages] New conversation received:", payload);
-          if (payload.new.counselor_id !== userId) return;
+                    if (payload.new.counselor_id !== userId) return;
 
           // Fetch the user profile for the new conversation
           const { data: newConversationWithUser } = await supabase
@@ -85,8 +82,7 @@ export default function CounselorMessagesPage() {
             .single();
           
           if (newConversationWithUser) {
-            console.log("[Counselor Messages] Adding new conversation to state:", newConversationWithUser);
-            setConversations((prev) => [newConversationWithUser, ...prev]);
+                        setConversations((prev) => [newConversationWithUser, ...prev]);
           }
         }
       );
@@ -100,8 +96,7 @@ export default function CounselorMessagesPage() {
           table: "conversations"
         },
         async (payload: any) => {
-          console.log("[Counselor Messages] Conversation updated:", payload);
-          if (payload.new.counselor_id !== userId) {
+                    if (payload.new.counselor_id !== userId) {
             setConversations((prev) => prev.filter((c) => c.id !== payload.new.id));
             setSelectedConversation((prev) => (prev?.id === payload.new.id ? null : prev));
             return;
@@ -118,8 +113,7 @@ export default function CounselorMessagesPage() {
             .single();
           
           if (updatedConversationWithUser) {
-            console.log("[Counselor Messages] Updating conversation in state:", updatedConversationWithUser);
-            // Update conversations list
+                        // Update conversations list
             setConversations((prev) => 
               prev.map(c => c.id === updatedConversationWithUser.id ? updatedConversationWithUser : c)
             );
@@ -132,19 +126,16 @@ export default function CounselorMessagesPage() {
       );
 
       channel.subscribe((status: any, err: any) => {
-        console.log("[Counselor Messages] Conversations realtime status:", status);
-        if (err) {
+                if (err) {
           console.error("[Counselor Messages] Conversations realtime error:", err);
         }
       });
 
       conversationsChannelRef.current = channel;
-      console.log("[Counselor Messages] Conversations channel stored in ref:", conversationsChannelRef.current);
-    };
+          };
 
     return () => {
-      console.log("[Counselor Messages] Unsubscribing from channels...");
-      if (channelRef.current) {
+            if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
@@ -229,8 +220,7 @@ export default function CounselorMessagesPage() {
     );
 
     channel.subscribe((status: any, err: any) => {
-      console.log("[Counselor Messages] Scoped conversations realtime status:", status);
-      if (err) console.error("[Counselor Messages] Scoped conversations realtime error:", err);
+            if (err) console.error("[Counselor Messages] Scoped conversations realtime error:", err);
     });
 
     conversationsChannelRef.current = channel;
@@ -249,15 +239,13 @@ export default function CounselorMessagesPage() {
       const uniqueSenderIds = [...new Set(messages.map(msg => msg.sender_id))];
       if (uniqueSenderIds.length === 0) return;
 
-      console.log("Counselor: Fetching sender profiles for IDs:", uniqueSenderIds);
-
+      
       const { data: profiles, error } = await supabase
         .from("user_profiles")
         .select("*")
         .in("id", uniqueSenderIds);
 
-      console.log("Counselor: Fetched profiles:", profiles, "Error:", error);
-
+      
       if (profiles) {
         const profileMap: Record<string, UserProfile> = {};
         profiles.forEach((profile: UserProfile) => {
@@ -326,11 +314,9 @@ export default function CounselorMessagesPage() {
   };
 
   const subscribeToMessages = (conversationId: string) => {
-    console.log("[Counselor Messages] subscribeToMessages called for conversation:", conversationId);
-    // Cleanup previous channel
+        // Cleanup previous channel
     if (channelRef.current) {
-      console.log("[Counselor Messages] Removing previous messages channel...");
-      supabase.removeChannel(channelRef.current);
+            supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
@@ -347,8 +333,7 @@ export default function CounselorMessagesPage() {
         filter: `conversation_id=eq.${conversationId}`
       },
       async (payload: any) => {
-        console.log("[Counselor Messages] New real-time message received:", payload);
-        const newMessage = payload.new as Message;
+                const newMessage = payload.new as Message;
         if (selectedConversationRef.current?.id !== conversationId) {
           return;
         }
@@ -363,8 +348,7 @@ export default function CounselorMessagesPage() {
               .single();
             
             if (profile) {
-              console.log("[Counselor Messages] Fetched sender profile:", profile);
-              setSenderProfiles((prev) => ({
+                            setSenderProfiles((prev) => ({
                 ...prev,
                 [profile.id]: profile
               }));
@@ -376,11 +360,9 @@ export default function CounselorMessagesPage() {
         
         setMessages((prev) => {
           if (prev.some(msg => msg.id === newMessage.id)) {
-            console.log("[Counselor Messages] Message already exists, skipping...");
-            return prev;
+                        return prev;
           }
-          console.log("[Counselor Messages] Adding new message to state:", newMessage);
-          return [...prev, newMessage];
+                    return [...prev, newMessage];
         });
       }
     );
@@ -395,8 +377,7 @@ export default function CounselorMessagesPage() {
         filter: `id=eq.${conversationId}`
       },
       async (payload: any) => {
-        console.log("[Counselor Messages] Selected conversation updated:", payload);
-        // Fetch the updated conversation with user profile
+                // Fetch the updated conversation with user profile
         const { data: updatedConversationWithUser } = await supabase
           .from("conversations")
           .select(`
@@ -407,29 +388,25 @@ export default function CounselorMessagesPage() {
           .single();
         
         if (updatedConversationWithUser) {
-          console.log("[Counselor Messages] Updating selected conversation in state:", updatedConversationWithUser);
-          setSelectedConversation(updatedConversationWithUser);
+                    setSelectedConversation(updatedConversationWithUser);
         }
       }
     );
 
     // Subscribe
     channel.subscribe((status: any, err: any) => {
-      console.log("[Counselor Messages] Messages realtime subscription status:", status);
-      if (err) {
+            if (err) {
         console.error("[Counselor Messages] Messages realtime subscription error:", err);
       }
       if (status === 'SUBSCRIBED') {
-        console.log("[Counselor Messages] Successfully subscribed to real-time support channel!");
-      } else if (status === 'CHANNEL_ERROR') {
+              } else if (status === 'CHANNEL_ERROR') {
         console.error("[Counselor Messages] Error subscribing to real-time support channel!");
       }
     });
     
     // Store channel in ref
     channelRef.current = channel;
-    console.log("[Counselor Messages] Messages channel stored in ref:", channelRef.current);
-  };
+      };
 
   const selectConversation = (conversation: Conversation) => {
     if (!currentUserId || conversation.counselor_id !== currentUserId) return;
@@ -441,11 +418,7 @@ export default function CounselorMessagesPage() {
 
   const sendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    console.log("Counselor: Attempting to send message...");
-    console.log("Counselor: newMessage:", newMessage);
-    console.log("Counselor: selectedConversation:", selectedConversation);
-    console.log("Counselor: currentUserId:", currentUserId);
-    if (!newMessage.trim() || !selectedConversation || !currentUserId || selectedConversation.counselor_id !== currentUserId) return;
+                    if (!newMessage.trim() || !selectedConversation || !currentUserId || selectedConversation.counselor_id !== currentUserId) return;
 
     const messageContent = newMessage.trim();
     
@@ -459,14 +432,12 @@ export default function CounselorMessagesPage() {
       created_at: new Date().toISOString()
     };
 
-    console.log("Counselor: Adding optimistic message:", optimisticMessage);
-    setMessages((prev) => [...prev, optimisticMessage]);
+        setMessages((prev) => [...prev, optimisticMessage]);
     setNewMessage("");
 
     try {
       setLoading(true);
-      console.log("Counselor: Inserting message into Supabase...");
-      
+            
       const { data: insertedMessage, error } = await supabase
         .from("messages")
         .insert({
@@ -477,8 +448,7 @@ export default function CounselorMessagesPage() {
         .select()
         .single();
 
-      console.log("Counselor: Insert result:", { data: insertedMessage, error });
-      if (error) throw error;
+            if (error) throw error;
       
       // Update conversation's updated_at timestamp
       await supabase
@@ -487,8 +457,7 @@ export default function CounselorMessagesPage() {
         .eq("id", selectedConversation.id);
       
       // Replace optimistic message with real one
-      console.log("Counselor: Replacing optimistic message with real one:", insertedMessage);
-      setMessages((prev) => 
+            setMessages((prev) => 
         prev.map(msg => 
           msg.id === optimisticMessage.id ? insertedMessage : msg
         )
@@ -686,8 +655,7 @@ export default function CounselorMessagesPage() {
                         senderProfile?.role === "admin" || senderProfile?.role === "owner";
                       const showAvatar = !isCurrentUser && (index === 0 || messages[index - 1].sender_id !== msg.sender_id);
 
-                      console.log("Counselor: Message:", msg, "Sender profile:", senderProfile, "Sender name:", senderName);
-
+                      
                       return (
                         <div 
                           key={msg.id}

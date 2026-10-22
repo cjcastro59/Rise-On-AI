@@ -391,7 +391,7 @@ export default function AIAnalysisPage() {
   const igTopWords = explainResult?.integratedGradients?.topInfluential ?? [];
 
   return (
-    <div className="bg-white rounded-2xl -mx-4 -my-4 md:-mx-8 md:-my-8 p-4 md:p-8 min-h-[calc(100vh-64px)]">
+    <>
       {/* Page Header */}
       <PageHeader
         title="Emotional Analysis Complete"
@@ -904,6 +904,6 @@ export default function AIAnalysisPage() {
           <span className="font-semibold">Get immediate support</span>
         </button>
       </div>
-    </div>
+    </>
   );
 }

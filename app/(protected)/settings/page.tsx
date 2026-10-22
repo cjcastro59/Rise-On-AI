@@ -12,6 +12,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useRouter } from "next/navigation";
 import { buildCsvExport, buildJsonExport, downloadTextFile, type ExportSection } from "@/lib/export-data";
 import { validatePasswordStrength } from "@/lib/password";
+import { Toast, useToast } from "@/components/ui/Toast";
 
 type SettingSection = "notifications" | "privacy" | "language" | "security" | "data";
 
@@ -51,6 +52,7 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
+  const { toast, showToast, closeToast } = useToast();
   const signOut = async () => { await supabase.auth.signOut(); router.push("/login"); };
 
   // Change password modal
@@ -132,9 +134,9 @@ export default function SettingsPage() {
       if (error) throw error;
       if (!data) throw new Error("Settings were not saved. Please try again.");
       setError("");
-      flash(setSuccess, "✅ Notification settings saved!");
+      showToast("✅ Notification settings saved!", "success");
     } catch (e) {
-      flash(setError, "❌ Failed to save: " + (e instanceof Error ? e.message : "unknown error"));
+      showToast("❌ Failed to save: " + (e instanceof Error ? e.message : "unknown error"), "error");
     } finally {
       setSaving(false);
     }
@@ -151,9 +153,9 @@ export default function SettingsPage() {
       if (error) throw error;
       if (!data) throw new Error("Settings were not saved. Please try again.");
       setError("");
-      flash(setSuccess, "✅ Privacy settings saved!");
+      showToast("✅ Privacy settings saved!", "success");
     } catch (e) {
-      flash(setError, "❌ Failed to save: " + (e instanceof Error ? e.message : "unknown error"));
+      showToast("❌ Failed to save: " + (e instanceof Error ? e.message : "unknown error"), "error");
     } finally {
       setSaving(false);
     }
@@ -170,9 +172,9 @@ export default function SettingsPage() {
       if (error) throw error;
       if (!data) throw new Error("Settings were not saved. Please try again.");
       setError("");
-      flash(setSuccess, "✅ Language preference saved!");
+      showToast("✅ Language preference saved!", "success");
     } catch (e) {
-      flash(setError, "❌ Failed to save: " + (e instanceof Error ? e.message : "unknown error"));
+      showToast("❌ Failed to save: " + (e instanceof Error ? e.message : "unknown error"), "error");
     } finally {
       setSaving(false);
     }
@@ -181,16 +183,16 @@ export default function SettingsPage() {
   const handleChangePassword = async () => {
     if (!user) return;
     if (!pwCurrent || !pwNew || !pwConfirm) {
-      flash(setError, "Please fill in all password fields");
+      showToast("Please fill in all password fields", "error");
       return;
     }
     const passwordValidationError = validatePasswordStrength(pwNew);
     if (passwordValidationError) {
-      flash(setError, passwordValidationError);
+      showToast(passwordValidationError, "error");
       return;
     }
     if (pwNew !== pwConfirm) {
-      flash(setError, "New passwords don't match");
+      showToast("New passwords don't match", "error");
       return;
     }
     try {
@@ -209,9 +211,9 @@ export default function SettingsPage() {
       }
       setShowChangePw(false);
       setPwCurrent(""); setPwNew(""); setPwConfirm("");
-      flash(setSuccess, "✅ Password changed successfully!");
+      showToast("✅ Password changed successfully!", "success");
     } catch (e: any) {
-      flash(setError, "❌ " + (e.message || "Failed to change password (verify current password via email OTP if required)"));
+      showToast("❌ " + (e.message || "Failed to change password"), "error");
     } finally {
       setPwLoading(false);
     }
@@ -260,9 +262,9 @@ export default function SettingsPage() {
       a.download = `rise-on-ai-data-export-${new Date().toISOString().slice(0, 10)}.txt`;
       a.click();
       URL.revokeObjectURL(url);
-      flash(setSuccess, "✅ Data export downloaded!");
+      showToast("✅ Data export downloaded!", "success");
     } catch (e: any) {
-      flash(setError, "❌ Failed to export: " + (e.message || "unknown error"));
+      showToast("❌ Failed to export: " + (e.message || "unknown error"), "error");
     } finally {
       setSaving(false);
     }
@@ -333,9 +335,9 @@ export default function SettingsPage() {
         content,
         format === "csv" ? "text/csv" : "application/json",
       );
-      flash(setSuccess, "Data export downloaded.");
+      showToast("Data export downloaded.", "success");
     } catch (e: any) {
-      flash(setError, "Failed to export: " + (e.message || "unknown error"));
+      showToast("Failed to export: " + (e.message || "unknown error"), "error");
     } finally {
       setSaving(false);
     }
@@ -344,7 +346,7 @@ export default function SettingsPage() {
   const handleDeleteAccount = async () => {
     if (!user) return;
     if (deleteConfirmText.trim().toLowerCase() !== "delete my account") {
-      flash(setError, 'Type "DELETE MY ACCOUNT" exactly to confirm');
+      showToast('Type "DELETE MY ACCOUNT" exactly to confirm', "error");
       return;
     }
     try {
@@ -391,7 +393,7 @@ export default function SettingsPage() {
 
       router.push("/");
     } catch (e: any) {
-      flash(setError, "❌ " + (e.message || "Failed, contact an admin to delete your account"));
+      showToast("❌ " + (e.message || "Failed, contact an admin to delete your account"), "error");
       setDeleteLoading(false);
     }
   };
@@ -426,7 +428,7 @@ export default function SettingsPage() {
       setQrCodeUrl(url);
       setShowSetup2FA(true);
     } catch (err) {
-      setError("Failed to setup 2FA");
+      showToast("Failed to setup 2FA", "error");
     } finally {
       setLoading(false);
     }
@@ -445,7 +447,7 @@ export default function SettingsPage() {
         .single();
 
       if (!profile?.two_factor_secret) {
-        setError("Secret not found, please try again.");
+        showToast("Secret not found, please try again.", "error");
         return;
       }
 
@@ -466,13 +468,13 @@ export default function SettingsPage() {
           .eq('id', user.id);
         setTwoFactorEnabled(true);
         setShowSetup2FA(false);
-        setSuccess("Two-factor authentication enabled successfully!");
+        showToast("Two-factor authentication enabled successfully!", "success");
       } else {
         const expected = await generate({ secret: profile.two_factor_secret, guardrails: createGuardrails({ MIN_SECRET_BYTES: 10 }) });
-        setError(`Invalid verification code! Expected: ${expected}`);
+        showToast(`Invalid verification code! Expected: ${expected}`, "error");
       }
     } catch (err) {
-      setError("Failed to verify code");
+      showToast("Failed to verify code", "error");
     } finally {
       setLoading(false);
     }
@@ -495,9 +497,9 @@ export default function SettingsPage() {
       setTwoFactorEnabled(false);
       setShowSetup2FA(false);
       setVerificationCode("");
-      setSuccess("Two-factor authentication disabled");
+      showToast("Two-factor authentication disabled", "info");
     } catch (err) {
-      setError("Failed to disable 2FA");
+      showToast("Failed to disable 2FA", "error");
     } finally {
       setLoading(false);
     }
@@ -800,17 +802,7 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Global flash banners — visible regardless of active section */}
-      {error && (
-        <div role="alert" className="rounded-xl border border-red-800 bg-red-100 px-4 py-3 text-sm font-semibold text-red-950 shadow-sm animate-in fade-in duration-150">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div role="status" aria-live="polite" className="rounded-xl border border-emerald-800 bg-emerald-100 px-4 py-3 text-sm font-semibold text-emerald-950 shadow-sm animate-in fade-in duration-150">
-          {success}
-        </div>
-      )}
+      <Toast {...toast} onClose={closeToast} />
       {/* Mobile-only section selector */}
       <div className="md:hidden">
         <select

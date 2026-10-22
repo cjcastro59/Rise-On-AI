@@ -644,6 +644,14 @@ CREATE POLICY "Only owners can view system settings"
     FOR SELECT
     USING (public.is_current_user_owner());
 
+-- Allow anyone (including unauthenticated) to read the features key
+-- This is required for isMaintenanceModeActive() to work for all users
+DROP POLICY IF EXISTS "Public can read features key" ON public.system_settings;
+CREATE POLICY "Public can read features key"
+    ON public.system_settings
+    FOR SELECT
+    USING (key = 'features');
+
 CREATE POLICY "Only owners can update system settings"
     ON public.system_settings
     FOR UPDATE
@@ -1620,6 +1628,11 @@ ALTER TABLE public.user_profiles
 ALTER TABLE public.user_profiles
     ADD COLUMN IF NOT EXISTS shift TEXT
     CHECK (shift IS NULL OR shift IN ('day', 'night'));
+
+-- Emergency contact columns
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS emergency_contact_name TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS emergency_contact_phone TEXT;
+ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS emergency_contact_relation TEXT;
 
 -- Assigned counselor: links a member to their assigned counselor
 ALTER TABLE public.user_profiles

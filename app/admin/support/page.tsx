@@ -136,10 +136,8 @@ export default function AdminSupportPage() {
 
     // Subscribe to all conversations for real-time updates
     const subscribeToConversations = () => {
-      console.log("[ADMIN SUPPORT] Subscribing to conversations...");
-      if (conversationsChannelRef.current) {
-        console.log("[ADMIN SUPPORT] Removing previous conversations channel...");
-        supabase.removeChannel(conversationsChannelRef.current);
+            if (conversationsChannelRef.current) {
+                supabase.removeChannel(conversationsChannelRef.current);
       }
 
       const channel = supabase.channel("admin:conversations");
@@ -153,8 +151,7 @@ export default function AdminSupportPage() {
           table: "conversations"
         },
         async (payload: any) => {
-          console.log("[ADMIN SUPPORT] New conversation received:", payload);
-          const { data: { user } } = await supabase.auth.getUser();
+                    const { data: { user } } = await supabase.auth.getUser();
           if (!user) return;
 
           // Fetch the new conversation with user and counselor profiles
@@ -173,8 +170,7 @@ export default function AdminSupportPage() {
             isAdminManageableConversation(newConversationWithUser);
 
           if (isAdminChannel) {
-            console.log("[ADMIN SUPPORT] Adding new conversation to state:", newConversationWithUser);
-            setConversations((prev) => [newConversationWithUser, ...prev]);
+                        setConversations((prev) => [newConversationWithUser, ...prev]);
           }
         }
       );
@@ -188,8 +184,7 @@ export default function AdminSupportPage() {
           table: "conversations"
         },
         async (payload: any) => {
-          console.log("[ADMIN SUPPORT] Conversation updated:", payload);
-          const { data: { user } } = await supabase.auth.getUser();
+                    const { data: { user } } = await supabase.auth.getUser();
           if (!user) return;
 
           // Fetch the updated conversation with user and counselor profiles
@@ -208,8 +203,7 @@ export default function AdminSupportPage() {
             isAdminManageableConversation(updatedConversationWithUser);
 
           if (isAdminChannel) {
-            console.log("[ADMIN SUPPORT] Updating conversation in state:", updatedConversationWithUser);
-            // Update conversations list
+                        // Update conversations list
             setConversations((prev) =>
               prev.some((c) => c.id === updatedConversationWithUser.id)
                 ? prev.map((c) => (c.id === updatedConversationWithUser.id ? updatedConversationWithUser : c))
@@ -227,21 +221,18 @@ export default function AdminSupportPage() {
       );
 
       channel.subscribe((status: any, err: any) => {
-        console.log("[ADMIN SUPPORT] Conversations realtime status:", status);
-        if (err) {
+                if (err) {
           console.error("[ADMIN SUPPORT] Conversations realtime error:", err);
         }
       });
 
       conversationsChannelRef.current = channel;
-      console.log("[ADMIN SUPPORT] Conversations channel stored in ref:", conversationsChannelRef.current);
-    };
+          };
 
     subscribeToConversations();
 
     return () => {
-      console.log("[ADMIN SUPPORT] Unsubscribing from channels...");
-      if (channelRef.current) {
+            if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
@@ -258,15 +249,13 @@ export default function AdminSupportPage() {
       const uniqueSenderIds = [...new Set(messages.map(msg => msg.sender_id))];
       if (uniqueSenderIds.length === 0) return;
 
-      console.log("Admin: Fetching sender profiles for IDs:", uniqueSenderIds);
-
+      
       const { data: profiles, error } = await supabase
         .from("user_profiles")
         .select("*")
         .in("id", uniqueSenderIds);
 
-      console.log("Admin: Fetched profiles:", profiles, "Error:", error);
-
+      
       if (profiles) {
         const profileMap: Record<string, UserProfile> = {};
         profiles.forEach((profile: UserProfile) => {
@@ -304,11 +293,9 @@ export default function AdminSupportPage() {
   };
 
   const subscribeToMessages = (conversationId: string) => {
-    console.log("[ADMIN SUPPORT] subscribeToMessages called for conversation:", conversationId);
-    // Cleanup previous channel
+        // Cleanup previous channel
     if (channelRef.current) {
-      console.log("[ADMIN SUPPORT] Removing previous messages channel...");
-      supabase.removeChannel(channelRef.current);
+            supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
 
@@ -325,8 +312,7 @@ export default function AdminSupportPage() {
         filter: `conversation_id=eq.${conversationId}`
       },
       async (payload: any) => {
-        console.log("[ADMIN SUPPORT] New real-time message received:", payload);
-        const newMessage = payload.new as Message;
+                const newMessage = payload.new as Message;
         if (!selectedConversation) {
           return;
         }
@@ -341,8 +327,7 @@ export default function AdminSupportPage() {
               .single();
 
             if (profile) {
-              console.log("[ADMIN SUPPORT] Fetched sender profile:", profile);
-              setSenderProfiles((prev) => ({
+                            setSenderProfiles((prev) => ({
                 ...prev,
                 [profile.id]: profile
               }));
@@ -354,11 +339,9 @@ export default function AdminSupportPage() {
 
         setMessages((prev) => {
           if (prev.some(msg => msg.id === newMessage.id)) {
-            console.log("[ADMIN SUPPORT] Message already exists, skipping...");
-            return prev;
+                        return prev;
           }
-          console.log("[ADMIN SUPPORT] Adding new message to state:", newMessage);
-          return [...prev, newMessage];
+                    return [...prev, newMessage];
         });
         setConversationPreviews((prev) => ({
           ...prev,
@@ -380,8 +363,7 @@ export default function AdminSupportPage() {
         filter: `id=eq.${conversationId}`
       },
       async (payload: any) => {
-        console.log("[ADMIN SUPPORT] Selected conversation updated:", payload);
-        // Fetch the updated conversation with user and counselor profiles
+                // Fetch the updated conversation with user and counselor profiles
         const { data: updatedConversationWithUser } = await supabase
           .from("conversations")
           .select(`
@@ -393,29 +375,25 @@ export default function AdminSupportPage() {
           .single();
 
         if (updatedConversationWithUser) {
-          console.log("[ADMIN SUPPORT] Updating selected conversation in state:", updatedConversationWithUser);
-          setSelectedConversation(updatedConversationWithUser);
+                    setSelectedConversation(updatedConversationWithUser);
         }
       }
     );
 
     // Subscribe
     channel.subscribe((status: any, err: any) => {
-      console.log("[ADMIN SUPPORT] Messages realtime subscription status:", status);
-      if (err) {
+            if (err) {
         console.error("[ADMIN SUPPORT] Messages realtime subscription error:", err);
       }
       if (status === 'SUBSCRIBED') {
-        console.log("[ADMIN SUPPORT] Successfully subscribed to real-time support channel!");
-      } else if (status === 'CHANNEL_ERROR') {
+              } else if (status === 'CHANNEL_ERROR') {
         console.error("[ADMIN SUPPORT] Error subscribing to real-time support channel!");
       }
     });
 
     // Store channel in ref
     channelRef.current = channel;
-    console.log("[ADMIN SUPPORT] Messages channel stored in ref:", channelRef.current);
-  };
+      };
 
   const selectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation);
@@ -425,11 +403,7 @@ export default function AdminSupportPage() {
 
   const sendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    console.log("Admin: Attempting to send message...");
-    console.log("Admin: newMessage:", newMessage);
-    console.log("Admin: selectedConversation:", selectedConversation);
-    console.log("Admin: currentUserId:", currentUserId);
-    const canParticipate =
+                    const canParticipate =
       currentUserProfile &&
       ["owner", "admin"].includes(currentUserProfile.role || "");
     if (!newMessage.trim() || !selectedConversation || !currentUserId || !canParticipate) return;
@@ -446,14 +420,12 @@ export default function AdminSupportPage() {
       created_at: new Date().toISOString()
     };
 
-    console.log("Admin: Adding optimistic message:", optimisticMessage);
-    setMessages((prev) => [...prev, optimisticMessage]);
+        setMessages((prev) => [...prev, optimisticMessage]);
     setNewMessage("");
 
     try {
       setLoading(true);
-      console.log("Admin: Inserting message into Supabase...");
-
+      
       const { data: insertedMessage, error } = await supabase
         .from("messages")
         .insert({
@@ -464,8 +436,7 @@ export default function AdminSupportPage() {
         .select()
         .single();
 
-      console.log("Admin: Insert result:", { data: insertedMessage, error });
-      if (error) throw error;
+            if (error) throw error;
       setConversationPreviews((prev) => ({
         ...prev,
         [selectedConversation.id]: {
@@ -481,8 +452,7 @@ export default function AdminSupportPage() {
         .eq("id", selectedConversation.id);
 
       // Replace optimistic message with real one
-      console.log("Admin: Replacing optimistic message with real one:", insertedMessage);
-      setMessages((prev) =>
+            setMessages((prev) =>
         prev.map(msg =>
           msg.id === optimisticMessage.id ? insertedMessage : msg
         )
@@ -745,8 +715,7 @@ export default function AdminSupportPage() {
                       const shouldShowRoleLabel = role && ['owner', 'admin', 'counselor'].includes(role);
                       const showAvatar = !isCurrentUser && (index === 0 || messages[index - 1].sender_id !== msg.sender_id);
 
-                      console.log("Admin: Message:", msg, "Sender profile:", senderProfile, "Sender name:", senderName);
-
+                      
                       return (
                         <div
                           key={msg.id}
