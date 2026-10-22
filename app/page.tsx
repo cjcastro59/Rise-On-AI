@@ -61,12 +61,12 @@ export default async function LandingPage() {
           </Link>
         </div>
 
-        {/* 4 feature pills — 2×2 on mobile, single row on desktop */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm font-inter text-dark-text/70 max-w-xl mx-auto w-full">
-          <span className="flex items-center justify-center gap-1.5 bg-light-gray rounded-full px-4 py-2">🇵🇭 Taglish & English</span>
-          <span className="flex items-center justify-center gap-1.5 bg-light-gray rounded-full px-4 py-2">💡 AI Sentiment Analysis</span>
-          <span className="flex items-center justify-center gap-1.5 bg-light-gray rounded-full px-4 py-2">🔒 Private & Secure</span>
-          <span className="flex items-center justify-center gap-1.5 bg-light-gray rounded-full px-4 py-2">📊 Mood Trend Tracking</span>
+        {/* 4 feature pills — single row on desktop, wraps on mobile */}
+        <div className="flex flex-wrap justify-center gap-3 text-sm font-inter text-dark-text/70">
+          <span className="flex items-center gap-1.5 bg-light-gray rounded-full px-4 py-2">🇵🇭 Taglish & English</span>
+          <span className="flex items-center gap-1.5 bg-light-gray rounded-full px-4 py-2">💡 AI Sentiment Analysis</span>
+          <span className="flex items-center gap-1.5 bg-light-gray rounded-full px-4 py-2">🔒 Private & Secure</span>
+          <span className="flex items-center gap-1.5 bg-light-gray rounded-full px-4 py-2">📊 Mood Trend Tracking</span>
         </div>
       </section>
 
