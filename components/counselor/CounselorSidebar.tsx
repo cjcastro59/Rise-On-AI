@@ -43,15 +43,27 @@ export default function CounselorSidebar() {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
 
+                // Get counselor's assigned user IDs first
+                const { data: assignedIds } = await supabase
+                    .from("user_profiles")
+                    .select("id")
+                    .eq("assigned_counselor_id", user.id)
+                    .eq("role", "user");
+
+                const assignedUserIds = (assignedIds || []).map((u: any) => u.id);
+
                 const [profileResult, alertsResult] = await Promise.all([
                     supabase
                         .from("user_profiles")
                         .select("id, first_name, last_name, full_name, username, role, avatar_url")
                         .eq("id", user.id)
                         .single(),
-                    supabase
-                        .from("distress_logs")
-                        .select("id", { count: "exact", head: true }),
+                    assignedUserIds.length > 0
+                        ? supabase
+                            .from("distress_logs")
+                            .select("id", { count: "exact", head: true })
+                            .in("user_id", assignedUserIds)
+                        : Promise.resolve({ count: 0, error: null }),
                 ]);
 
                 if (!profileResult.error && profileResult.data) {

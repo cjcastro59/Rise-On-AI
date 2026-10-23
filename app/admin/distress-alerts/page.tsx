@@ -55,6 +55,14 @@ type UserRiskSnapshot = {
   total_points: number;
 };
 
+const formatTrigger = (trigger: string | null): string => {
+  if (!trigger) return "Detected distress trigger";
+  return trigger.replace(
+    /Journal entry [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:/gi,
+    "Entry:"
+  );
+};
+
 const getResponseStatus = (notes?: string | null) => {
   if (!notes || !notes.trim()) return "Pending";
   if (notes.toLowerCase().includes("resolved") || notes.toLowerCase().includes("acknowledged")) {
@@ -590,7 +598,7 @@ export default function AdminDistressAlertsPage() {
                       <span className="font-mono text-sm font-semibold text-slate-900">{formatAlertId(alert.id)}</span>
                       <span className="badge-error">Active</span>
                     </div>
-                    <p className="text-sm font-poppins font-semibold text-dark-text">{alert.trigger || "Detected distress trigger"}</p>
+                    <p className="text-sm font-poppins font-semibold text-dark-text">{formatTrigger(alert.trigger)}</p>
                   </div>
                 </div>
                 <div className="flex min-w-0 w-full max-w-[260px] flex-col gap-2">
@@ -675,7 +683,7 @@ export default function AdminDistressAlertsPage() {
                       <p title={alert.user_id} className="inline-block max-w-[200px] truncate text-sm font-semibold text-slate-900 hover:text-indigo-600">{getStudentName(alert.user_id, studentProfilesByUser)}</p>
                     </td>
                     <td className="w-48 overflow-hidden p-3">
-                      <p title={alert.trigger || "Pending review"} className="inline-block max-w-[200px] truncate align-bottom text-sm font-inter text-dark-text">{alert.trigger || "Pending review"}</p>
+                      <p title={alert.trigger || "Pending review"} className="inline-block max-w-[200px] truncate align-bottom text-sm font-inter text-dark-text">{formatTrigger(alert.trigger)}</p>
                     </td>
                     <td>
                       <p className="text-sm font-poppins text-dark-text">{entriesByUser[alert.user_id]?.[0]?.mood || "-"}</p>
@@ -742,7 +750,7 @@ export default function AdminDistressAlertsPage() {
                 <div>
                   <p className="font-mono text-sm font-semibold text-slate-900">{formatAlertId(selectedAlert.id)}</p>
                   <h3 className="mt-1 text-xl font-dm-serif text-dark-text">Distress Alert Details</h3>
-                  <p className="text-sm text-slate-600 font-poppins">{selectedAlert.trigger || "Detected distress trigger"}</p>
+                  <p className="text-sm text-slate-600 font-poppins">{formatTrigger(selectedAlert.trigger)}</p>
                 </div>
                 <button
                   type="button"

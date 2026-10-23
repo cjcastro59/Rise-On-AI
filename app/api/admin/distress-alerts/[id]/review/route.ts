@@ -42,9 +42,11 @@ export async function POST(
   }
 
   const reviewedAt = new Date().toISOString();
+  const staffName = profile.full_name || profile.username || user.id.slice(0, 8);
+  const staffRole = profile.role === "owner" ? "Owner" : profile.role === "admin" ? "Admin" : "Counselor";
   const notes = appendActionNote(
     existingLog.notes,
-    `Acknowledged by staff ${user.id.slice(0, 8)} at ${reviewedAt}`
+    `Acknowledged by ${staffRole} ${staffName} at ${reviewedAt}`
   );
 
   const { data: log, error: updateError } = await adminClient

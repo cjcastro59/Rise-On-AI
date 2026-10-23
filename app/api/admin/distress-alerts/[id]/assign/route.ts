@@ -124,9 +124,11 @@ export async function POST(
 
   const assignedAt = new Date().toISOString();
   const counselorName = counselor.full_name || counselor.username || counselor.id.slice(0, 8);
+  const staffName = profile.full_name || profile.username || user.id.slice(0, 8);
+  const staffRole = profile.role === "owner" ? "Owner" : profile.role === "admin" ? "Admin" : "Counselor";
   const notes = appendActionNote(
     alert.notes,
-    `Assigned counselor ${counselorName} by staff ${user.id.slice(0, 8)} at ${assignedAt}`
+    `Assigned counselor ${counselorName} by ${staffRole} ${staffName} at ${assignedAt}`
   );
 
   const { data: log, error: updateError } = await adminClient

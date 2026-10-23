@@ -43,6 +43,16 @@ const getUserDisplayName = (user?: UserProfile | null) => {
   return user.full_name || user.username || user.id.slice(0, 8);
 };
 
+// Format trigger text — replace raw UUID in "Journal entry {uuid}:" with a short ID
+const formatTrigger = (trigger: string | null): string => {
+  if (!trigger) return "Detected distress trigger";
+  // Replace "Journal entry {full-uuid}:" with "Entry:"
+  return trigger.replace(
+    /Journal entry [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:/gi,
+    "Entry:"
+  );
+};
+
 const getResponseStatus = (notes?: string | null) => {
   if (!notes || !notes.trim()) return "Pending";
   if (notes.toLowerCase().includes("resolved") || notes.toLowerCase().includes("acknowledged")) {
@@ -61,6 +71,7 @@ export default function CounselorCasesPage() {
   const [filterSearch, setFilterSearch] = useState("");
   const [riskFilter, setRiskFilter] = useState<ManagementRiskFilter>("all");
   const [statusFilter, setStatusFilter] = useState<ManagementStatusFilter>("all");
+  const [staffProfiles, setStaffProfiles] = useState<Record<string, string>>({});
   const { user: currentUser } = useAuth();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -223,6 +234,47 @@ export default function CounselorCasesPage() {
     );
   };
 
+  // ── Fetch staff profiles when a modal opens to resolve UUIDs in action notes ─
+  useEffect(() => {
+    if (!selectedAlert?.notes) return;
+    const UUID_RE = /\b[0-9a-f]{8}\b/gi;
+    const shortIds = [...new Set(selectedAlert.notes.match(UUID_RE) || [])];
+    if (shortIds.length === 0) return;
+
+    // Find full UUIDs in the notes that start with these 8-char prefixes
+    const fullUUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+    const fullIds = [...new Set(selectedAlert.notes.match(fullUUID_RE) || [])];
+    // Also try 8-char prefixes against already-fetched profiles
+    const missingIds = fullIds.filter((id) => !staffProfiles[id]);
+    if (missingIds.length === 0) return;
+
+    supabase
+      .from("user_profiles")
+      .select("id,full_name,username,role")
+      .in("id", missingIds)
+      .then(({ data }: { data: any[] | null }) => {
+        if (!data) return;
+        const map: Record<string, string> = {};
+        data.forEach((p: any) => {
+          const name = p.full_name || p.username || p.id.slice(0, 8);
+          const roleLabel = p.role === "owner" ? "Owner" : p.role === "admin" ? "Admin" : "Staff";
+          map[p.id] = `${roleLabel} ${name}`;
+          // Also map the 8-char prefix
+          map[p.id.slice(0, 8)] = `${roleLabel} ${name}`;
+        });
+        setStaffProfiles((prev) => ({ ...prev, ...map }));
+      });
+  }, [selectedAlert, supabase]);
+
+  // Replace UUIDs and 8-char ID prefixes in action notes with real names
+  const resolveNotesText = (notes: string): string => {
+    let resolved = notes;
+    Object.entries(staffProfiles).forEach(([id, name]) => {
+      resolved = resolved.split(id).join(name);
+    });
+    return resolved;
+  };
+
   const runAlertAction = async (alertId: string, action: "review" | "message") => {
     const actionKey = `${action}:${alertId}`;
     setActionLoading((prev) => ({ ...prev, [actionKey]: true }));
@@ -363,7 +415,7 @@ export default function CounselorCasesPage() {
                       <span title={alert.id} className="inline-block max-w-[200px] truncate font-mono text-sm font-semibold text-slate-900">{alert.id.slice(0, 8)}</span>
                       <span className="badge-error">Active</span>
                     </div>
-                    <p className="text-sm font-poppins font-semibold text-dark-text">{alert.trigger || "Detected distress trigger"}</p>
+                    <p className="text-sm font-poppins font-semibold text-dark-text">{formatTrigger(alert.trigger)}</p>
                     <p title={getUserDisplayName(alert.user_profiles)} className="max-w-[200px] truncate text-xs text-slate-600 font-inter">User: {getUserDisplayName(alert.user_profiles)}</p>
                   </div>
                 </div>
@@ -442,7 +494,7 @@ export default function CounselorCasesPage() {
                       <p title={getUserDisplayName(alert.user_profiles)} className="inline-block max-w-[200px] truncate text-sm font-semibold text-slate-900 hover:text-indigo-600">{getUserDisplayName(alert.user_profiles)}</p>
                     </td>
                     <td className="w-64 max-w-[260px] overflow-hidden px-4 py-3 pr-4">
-                      <p title={alert.trigger || "Pending review"} className="truncate text-xs font-medium text-slate-700">{alert.trigger || "Pending review"}</p>
+                      <p title={alert.trigger || "Pending review"} className="truncate text-xs font-medium text-slate-700">{formatTrigger(alert.trigger)}</p>
                     </td>
                     <td className="w-32 min-w-[120px] px-4 py-3 pl-2">
                       <p className="truncate text-xs font-semibold text-slate-800">{entriesByUser[alert.user_id]?.[0]?.mood || "—"}</p>
@@ -504,7 +556,7 @@ export default function CounselorCasesPage() {
                 <div>
                   <p className="font-mono text-sm font-semibold text-slate-900">{selectedAlert.id.slice(0, 8)}</p>
                   <h3 className="mt-1 text-xl font-dm-serif text-dark-text">Review Case Details</h3>
-                  <p className="text-sm text-slate-600 font-poppins">{selectedAlert.trigger || "Detected distress trigger"}</p>
+                  <p className="text-sm text-slate-600 font-poppins">{formatTrigger(selectedAlert.trigger)}</p>
                 </div>
                 <button
                   type="button"
@@ -537,7 +589,7 @@ export default function CounselorCasesPage() {
               <div className="mt-5">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Action notes</p>
                 <div className="min-h-[80px] whitespace-pre-wrap rounded-lg border border-slate-100 bg-slate-50/80 p-3 text-sm font-inter leading-relaxed text-slate-800">
-                  {selectedAlert.notes || "No action notes recorded yet."}
+                  {selectedAlert.notes ? resolveNotesText(selectedAlert.notes) : "No action notes recorded yet."}
                 </div>
               </div>
 

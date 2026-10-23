@@ -364,20 +364,6 @@ export default function CounselorAssignedUsersPage() {
                   </td>
                 </tr>
               ))}
-              {/* Add empty rows to maintain consistent table height */}
-              {Array.from({ length: PAGE_SIZE - paginatedUsers.length }).map((_, index) => (
-                <tr key={`empty-${index}`} className="border-b border-gray-100">
-                  <td className="py-4 px-3"></td>
-                  <td className="py-4 px-3"></td>
-                  <td className="py-4 px-3"></td>
-                  <td className="py-4 px-3"></td>
-                  <td className="py-4 px-3"></td>
-                  <td className="py-4 px-3"></td>
-                  <td className="py-4 px-3"></td>
-                  <td className="py-4 px-3"></td>
-                  <td className="py-4 px-3"></td>
-                </tr>
-              ))}
             </tbody>
           </table>
         </div>

@@ -729,7 +729,9 @@ export default function CounselorDashboardPage() {
                   <div className="flex justify-between items-start gap-2">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold font-poppins text-dark-text truncate">
-                        {c.trigger || "Case"}
+                        {c.trigger
+                          ? c.trigger.replace(/Journal entry [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:/gi, "Entry:")
+                          : "Case"}
                       </p>
                       <p className="text-xs text-slate-700 font-inter">
                         {c.severity || "Recent"} · {formatTime(c.created_at)}

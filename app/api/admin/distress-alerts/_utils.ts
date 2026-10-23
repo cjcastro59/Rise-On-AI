@@ -62,7 +62,7 @@ export async function getAuthorizedAdminClient() {
   // before this check completes on an anon client).
   const { data: profiles, error: profileError } = await adminClient
     .from("user_profiles")
-    .select("role")
+    .select("role,full_name,username")
     .eq("id", user.id)
     .limit(1);
   const profile = profiles?.[0] || null;
