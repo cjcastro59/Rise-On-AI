@@ -167,13 +167,13 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
                 </div>
                 <div>
                   <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
-                    Status
+                    Account Status
                   </p>
                   <p className="text-sm font-poppins">
                     {user.is_active !== false ? (
-                      <span className="text-green-600">Active</span>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-emerald-200 bg-emerald-100 text-emerald-800 text-xs font-semibold">Active</span>
                     ) : (
-                      <span className="text-slate-600">Deactivated</span>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-slate-200 bg-slate-100 text-slate-700 text-xs font-semibold">Deactivated</span>
                     )}
                   </p>
                 </div>

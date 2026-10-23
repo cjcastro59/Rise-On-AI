@@ -237,39 +237,69 @@ export default function CounselorCasesPage() {
   // ── Fetch staff profiles when a modal opens to resolve UUIDs in action notes ─
   useEffect(() => {
     if (!selectedAlert?.notes) return;
-    const UUID_RE = /\b[0-9a-f]{8}\b/gi;
-    const shortIds = [...new Set(selectedAlert.notes.match(UUID_RE) || [])];
-    if (shortIds.length === 0) return;
 
-    // Find full UUIDs in the notes that start with these 8-char prefixes
-    const fullUUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
-    const fullIds = [...new Set(selectedAlert.notes.match(fullUUID_RE) || [])];
-    // Also try 8-char prefixes against already-fetched profiles
-    const missingIds = fullIds.filter((id) => !staffProfiles[id]);
-    if (missingIds.length === 0) return;
+    // Match both full UUIDs and 8-char prefixes in notes like "by staff 7d98e41b"
+    const FULL_UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+    const SHORT_ID_RE = /\bstaff\s+([0-9a-f]{8})\b/gi;
 
-    supabase
-      .from("user_profiles")
-      .select("id,full_name,username,role")
-      .in("id", missingIds)
-      .then(({ data }: { data: any[] | null }) => {
-        if (!data) return;
-        const map: Record<string, string> = {};
-        data.forEach((p: any) => {
-          const name = p.full_name || p.username || p.id.slice(0, 8);
-          const roleLabel = p.role === "owner" ? "Owner" : p.role === "admin" ? "Admin" : "Staff";
-          map[p.id] = `${roleLabel} ${name}`;
-          // Also map the 8-char prefix
-          map[p.id.slice(0, 8)] = `${roleLabel} ${name}`;
-        });
-        setStaffProfiles((prev) => ({ ...prev, ...map }));
+    const fullIds = [...new Set(selectedAlert.notes.match(FULL_UUID_RE) || [])];
+    const shortMatches = [...selectedAlert.notes.matchAll(SHORT_ID_RE)].map(m => m[1]);
+    const shortIds = [...new Set(shortMatches)];
+
+    // Fetch by full UUIDs directly
+    const missingFullIds = fullIds.filter((id) => !staffProfiles[id]);
+
+    // For 8-char short IDs not yet resolved, query using ilike prefix match
+    const missingShortIds = shortIds.filter((id) => !staffProfiles[id]);
+
+    const promises: Promise<any>[] = [];
+
+    if (missingFullIds.length > 0) {
+      promises.push(
+        supabase
+          .from("user_profiles")
+          .select("id,full_name,username,role")
+          .in("id", missingFullIds)
+          .then(({ data }: { data: any[] | null }) => data || [])
+      );
+    }
+
+    if (missingShortIds.length > 0) {
+      // Fetch each short ID with ilike — short IDs are UUID prefixes
+      promises.push(
+        ...missingShortIds.map((shortId) =>
+          supabase
+            .from("user_profiles")
+            .select("id,full_name,username,role")
+            .ilike("id", `${shortId}%`)
+            .limit(1)
+            .then(({ data }: { data: any[] | null }) => data || [])
+        )
+      );
+    }
+
+    if (promises.length === 0) return;
+
+    Promise.all(promises).then((results) => {
+      const map: Record<string, string> = {};
+      results.flat().forEach((p: any) => {
+        if (!p?.id) return;
+        const name = p.full_name || p.username || p.id.slice(0, 8);
+        const roleLabel = p.role === "owner" ? "Owner" : p.role === "admin" ? "Admin" : "Counselor";
+        map[p.id] = `${roleLabel} ${name}`;
+        map[p.id.slice(0, 8)] = `${roleLabel} ${name}`;
       });
+      if (Object.keys(map).length > 0) {
+        setStaffProfiles((prev) => ({ ...prev, ...map }));
+      }
+    });
   }, [selectedAlert, supabase]);
 
   // Replace UUIDs and 8-char ID prefixes in action notes with real names
   const resolveNotesText = (notes: string): string => {
     let resolved = notes;
     Object.entries(staffProfiles).forEach(([id, name]) => {
+      resolved = resolved.split(`staff ${id}`).join(name);
       resolved = resolved.split(id).join(name);
     });
     return resolved;

@@ -112,6 +112,7 @@ export default function AdminDistressAlertsPage() {
   const [activeAlertCount, setActiveAlertCount] = useState(0);
   const [refreshToken, setRefreshToken] = useState(0);
   const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
+  const [staffProfiles, setStaffProfiles] = useState<Record<string, string>>({});
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
@@ -382,6 +383,69 @@ export default function AdminDistressAlertsPage() {
         ))}
       </div>
     );
+  };
+
+  // ── Resolve staff UUIDs in action notes to real names ────────────────────
+  useEffect(() => {
+    if (!selectedAlert?.notes) return;
+
+    const FULL_UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+    const SHORT_ID_RE = /\bstaff\s+([0-9a-f]{8})\b/gi;
+
+    const fullIds = [...new Set(selectedAlert.notes.match(FULL_UUID_RE) || [])];
+    const shortMatches = [...selectedAlert.notes.matchAll(SHORT_ID_RE)].map(m => m[1]);
+    const shortIds = [...new Set(shortMatches)];
+
+    const missingFullIds = fullIds.filter((id) => !staffProfiles[id]);
+    const missingShortIds = shortIds.filter((id) => !staffProfiles[id]);
+
+    const promises: Promise<any[]>[] = [];
+
+    if (missingFullIds.length > 0) {
+      promises.push(
+        supabase
+          .from("user_profiles")
+          .select("id,full_name,username,role")
+          .in("id", missingFullIds)
+          .then(({ data }: { data: any[] | null }) => data || [])
+      );
+    }
+
+    missingShortIds.forEach((shortId) => {
+      promises.push(
+        supabase
+          .from("user_profiles")
+          .select("id,full_name,username,role")
+          .ilike("id", `${shortId}%`)
+          .limit(1)
+          .then(({ data }: { data: any[] | null }) => data || [])
+      );
+    });
+
+    if (promises.length === 0) return;
+
+    Promise.all(promises).then((results) => {
+      const map: Record<string, string> = {};
+      results.flat().forEach((p: any) => {
+        if (!p?.id) return;
+        const name = p.full_name || p.username || p.id.slice(0, 8);
+        const roleLabel = p.role === "owner" ? "Owner" : p.role === "admin" ? "Admin" : "Counselor";
+        map[p.id] = `${roleLabel} ${name}`;
+        map[p.id.slice(0, 8)] = `${roleLabel} ${name}`;
+      });
+      if (Object.keys(map).length > 0) {
+        setStaffProfiles((prev) => ({ ...prev, ...map }));
+      }
+    });
+  }, [selectedAlert, supabase]);
+
+  const resolveNotesText = (notes: string): string => {
+    let resolved = notes;
+    Object.entries(staffProfiles).forEach(([id, name]) => {
+      resolved = resolved.split(`staff ${id}`).join(name);
+      resolved = resolved.split(id).join(name);
+    });
+    return resolved;
   };
 
   const runAlertAction = async (alertId: string, action: "review" | "assign") => {
@@ -798,7 +862,7 @@ export default function AdminDistressAlertsPage() {
               <div className="mt-5">
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-600">Action notes</p>
                 <div className="min-h-[80px] whitespace-pre-wrap rounded-lg border border-slate-100 bg-slate-50/80 p-3 text-sm font-inter leading-relaxed text-slate-800">
-                  {selectedAlert.notes || "No action notes recorded yet."}
+                  {selectedAlert.notes ? resolveNotesText(selectedAlert.notes) : "No action notes recorded yet."}
                 </div>
               </div>
 
