@@ -10,6 +10,7 @@ import { Database } from "@/types/database";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 import { Toast, useToast } from "@/components/ui/Toast";
+import { formatDisplayId } from "@/lib/display-ids";
 
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
   user?: Database["public"]["Tables"]["user_profiles"]["Row"];
@@ -59,10 +60,7 @@ export default function AdminSupportPage() {
   const { toast, showToast, closeToast } = useToast();
 
   const isAdminManageableConversation = (conversation: Conversation) => {
-    return (
-      !conversation.counselor_id ||
-      ["counselor", "admin", "owner"].includes(conversation.counselor?.role || "")
-    );
+    return ["admin_support", "feedback"].includes(conversation.type);
   };
 
   const getConversationCategory = useCallback((conversation: Conversation): AdminSupportCategory => {
@@ -84,6 +82,7 @@ export default function AdminSupportPage() {
           user:user_profiles!user_id(*),
           counselor:user_profiles!counselor_id(*)
         `)
+        .in("type", ["admin_support", "feedback"])
         .order("created_at", { ascending: false });
       const adminConversations = ((data || []) as Conversation[]).filter(
         isAdminManageableConversation
@@ -163,6 +162,7 @@ export default function AdminSupportPage() {
               counselor:user_profiles!counselor_id(*)
             `)
             .eq("id", payload.new.id)
+            .in("type", ["admin_support", "feedback"])
             .single();
 
           const isAdminChannel =
@@ -196,6 +196,7 @@ export default function AdminSupportPage() {
               counselor:user_profiles!counselor_id(*)
             `)
             .eq("id", payload.new.id)
+            .in("type", ["admin_support", "feedback"])
             .single();
 
           const isAdminChannel =
@@ -252,7 +253,7 @@ export default function AdminSupportPage() {
       
       const { data: profiles, error } = await supabase
         .from("user_profiles")
-        .select("*")
+        .select("id,role")
         .in("id", uniqueSenderIds);
 
       
@@ -283,7 +284,7 @@ export default function AdminSupportPage() {
     try {
       const { data } = await supabase
         .from("messages")
-        .select("*")
+        .select("id,role")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: true });
       setMessages(data || []);
@@ -372,10 +373,16 @@ export default function AdminSupportPage() {
             counselor:user_profiles!counselor_id(*)
           `)
           .eq("id", payload.new.id)
+          .in("type", ["admin_support", "feedback"])
           .single();
 
         if (updatedConversationWithUser) {
-                    setSelectedConversation(updatedConversationWithUser);
+          if (isAdminManageableConversation(updatedConversationWithUser)) {
+            setSelectedConversation(updatedConversationWithUser);
+          } else {
+            setSelectedConversation(null);
+            setMessages([]);
+          }
         }
       }
     );
@@ -623,13 +630,11 @@ export default function AdminSupportPage() {
                     >
                       <div className="flex items-center justify-between mb-1">
                         <p className="font-semibold text-sm text-dark-text">
-                          {(() => {
-                            const getFirstName = (name: string | undefined | null) => {
-                              if (!name) return "Unknown User";
-                              return name.split(' ')[0];
-                            };
-                            return getFirstName(convo.user?.full_name) || getFirstName(convo.user?.username) || "Unknown User";
-                          })()}
+                        {(() => {
+                          const getFirstName = (name: string | undefined | null) =>
+                            name ? name.split(" ")[0] : "Unknown User";
+                          return formatDisplayId(convo.user_id, "user", "anonymized");
+                        })()}
                         </p>
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${convo.status === "open"
                           ? "bg-gradient-to-r from-success-green/20 to-teal-200 text-success-green"
@@ -659,11 +664,9 @@ export default function AdminSupportPage() {
                     <div>
                       <h3 className="font-poppins font-semibold text-dark-text mb-1">
                         Chat with {(() => {
-                          const getFirstName = (name: string | undefined | null) => {
-                            if (!name) return "Unknown User";
-                            return name.split(' ')[0];
-                          };
-                          return getFirstName(selectedConversation.user?.full_name) || getFirstName(selectedConversation.user?.username) || "Unknown User";
+                          const getFirstName = (name: string | undefined | null) =>
+                            name ? name.split(" ")[0] : "Unknown User";
+                          return formatDisplayId(selectedConversation.user_id, "user", "anonymized");
                         })()}
                       </h3>
                       <p className="text-xs text-slate-600">
@@ -705,14 +708,12 @@ export default function AdminSupportPage() {
                       const role = senderProfile?.role;
                       const roleLabel = getRoleLabel(role);
                       // Get first name
-                      const getFirstName = (name: string | undefined | null) => {
-                        if (!name) return "Unknown";
-                        return name.split(' ')[0];
-                      };
-
-                      const senderName = getFirstName(senderProfile?.full_name) || getFirstName(senderProfile?.username) || "Unknown";
-                      const currentUserName = getFirstName(currentUserProfile?.full_name) || getFirstName(currentUserProfile?.username) || "Me";
-                      const shouldShowRoleLabel = role && ['owner', 'admin', 'counselor'].includes(role);
+                      const getFirstName = (name: string | undefined | null) =>
+                        name ? name.split(" ")[0] : "Unknown";
+                      const senderName = getFirstName(senderProfile?.full_name) ||
+                        getFirstName(senderProfile?.username) ||
+                        "Unknown";
+                      const shouldShowRoleLabel = role && ["owner", "admin", "counselor"].includes(role);
                       const showAvatar = !isCurrentUser && (index === 0 || messages[index - 1].sender_id !== msg.sender_id);
 
                       

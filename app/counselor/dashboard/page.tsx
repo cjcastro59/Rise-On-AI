@@ -14,6 +14,7 @@ import {
   classifyDistressRiskLevel,
   type DistressRiskLevel,
 } from "@/lib/distress-risk";
+import { formatDisplayId } from "@/lib/display-ids";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -33,10 +34,6 @@ interface UserRiskSnapshot {
 
 interface AssignedUserRow {
   id: string;
-  first_name: string | null;
-  last_name: string | null;
-  username: string | null;
-  email: string | null;
 }
 
 interface AggregateWellnessPoint {
@@ -203,7 +200,7 @@ export default function CounselorDashboardPage() {
         ] = await Promise.all([
           supabase
             .from("user_profiles")
-            .select("id, first_name, last_name, username, email")
+            .select("id")
             .eq("role", "user")
             .in("id", assignedUserIds)
             .order("created_at", { ascending: false })
@@ -377,16 +374,8 @@ export default function CounselorDashboardPage() {
     return `${Math.round(hrs / 24)}d ago`;
   };
 
-  // Privacy-safe display: show first name + last initial only.
-  // Full name is never exposed in the wellness overview table.
   const displayName = (u: AssignedUserRow) => {
-    if (u.first_name && u.last_name) {
-      return `${u.first_name} ${u.last_name.charAt(0)}.`;
-    }
-    if (u.first_name) return u.first_name;
-    if (u.username) return u.username;
-    // Final fallback: show only the first 8 chars of the UUID
-    return `User ${u.id.slice(0, 8)}`;
+    return formatDisplayId(u.id, "user", "anonymized");
   };
 
   const aggregateTrendMax = Math.max(
@@ -633,12 +622,7 @@ export default function CounselorDashboardPage() {
                     {flagged && (
                       <span className="text-error-red text-xs shrink-0" title="Flagged user">⚠</span>
                     )}
-                    <span
-                      className="text-sm font-poppins text-dark-text truncate"
-                      title={flagged
-                        ? `Full name: ${[u.first_name, u.last_name].filter(Boolean).join(" ") || u.username || "—"}`
-                        : undefined}
-                    >
+                    <span className="text-sm font-poppins text-dark-text truncate">
                       {displayName(u)}
                     </span>
                   </div>

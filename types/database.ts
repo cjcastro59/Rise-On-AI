@@ -121,6 +121,7 @@ export interface Database {
           id: string;
           user_id: string;
           counselor_id: string | null;
+          type: string;
           status: string;
           created_at: string;
           updated_at: string;
@@ -129,6 +130,7 @@ export interface Database {
           id?: string;
           user_id: string;
           counselor_id?: string | null;
+          type?: string;
           status?: string;
           created_at?: string;
           updated_at?: string;
@@ -137,6 +139,7 @@ export interface Database {
           id?: string;
           user_id?: string;
           counselor_id?: string | null;
+          type?: string;
           status?: string;
           created_at?: string;
           updated_at?: string;

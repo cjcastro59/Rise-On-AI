@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { ViewUserModal } from "@/components/admin/ViewUserModal";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { formatDisplayId } from "@/lib/display-ids";
 
 const PAGE_SIZE = 10;
 
@@ -77,7 +78,7 @@ export default function CounselorAssignedUsersPage() {
           ? { data: [] }
           : await supabase
             .from("user_profiles")
-            .select("*")
+            .select("id,age,sex,is_active,created_at,updated_at")
             .eq("role", "user")
             .in("id", assignedUserIds)
             .order("created_at", { ascending: false });
@@ -159,16 +160,14 @@ export default function CounselorAssignedUsersPage() {
       if (sentiment === "Negative" && avgMoodScore && avgMoodScore < 5) activityStatus = "At Risk";
     }
 
-    const fullName = (user.first_name && user.last_name)
-      ? `${user.first_name} ${user.last_name}`
-      : (user.full_name || user.username || "Unknown User");
+    const displayId = formatDisplayId(user.id, "user", "anonymized");
 
     // User's account active status
     const isAccountActive = user.is_active !== false;
 
     return {
       id: user.id,
-      fullName,
+      fullName: displayId,
       role: user.role || "user",
       age: user.age || "N/A",
       sex: user.sex || "N/A",
@@ -184,9 +183,7 @@ export default function CounselorAssignedUsersPage() {
 
   // Filter users
   const filteredUsers = processedUsers.filter(user => {
-    const matchesSearch =
-      user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.rawUser.username && user.rawUser.username.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = user.fullName.toLowerCase().includes(searchTerm.toLowerCase());
 
     let matchesStatus = true;
     if (statusFilter === "All") {
@@ -283,7 +280,7 @@ export default function CounselorAssignedUsersPage() {
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600">🔍</span>
             <input
               type="text"
-              placeholder="Search by Name, Username..."
+              placeholder="Search by User ID..."
               className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl text-sm font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/50"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -420,6 +417,7 @@ export default function CounselorAssignedUsersPage() {
         isOpen={viewModalOpen}
         onClose={() => setViewModalOpen(false)}
         userId={selectedUserId}
+        anonymizeIdentity
       />
     </div>
   );

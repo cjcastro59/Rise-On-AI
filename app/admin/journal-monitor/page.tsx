@@ -224,7 +224,9 @@ export default function AdminJournalMonitorPage() {
                 const wc = getWordCount(entry.content);
                 const cat = (entry.sentiment as string | null) ?? "unknown";
                 rows.push([
-                  entry.id, entry.user_id, new Date(entry.created_at).toISOString(),
+                  formatDisplayId(entry.id, "entry", displayIdFormat),
+                  formatDisplayId(entry.user_id, "user", "anonymized"),
+                  new Date(entry.created_at).toISOString(),
                   entry.mood || "", String(wc), lang,
                   (entry.emotions || []).join("|"), cat,
                 ]);

@@ -77,7 +77,7 @@ export default function AdminUsersPage() {
             .order("created_at", { ascending: false }),
           supabase
             .from("journal_entries")
-            .select("user_id, mood, sentiment, created_at")
+            .select("user_id, mood, created_at")
             .order("created_at", { ascending: false })
             .limit(500),
           supabase
@@ -325,29 +325,14 @@ export default function AdminUsersPage() {
       ? Math.round(moods.reduce((sum, mood) => sum + (moodToScore[mood] || 5), 0) / moods.length)
       : null;
 
-    // Derive overall sentiment from stored ML predictions.
-    // Count majority sentiment across entries; fall back to mood when absent.
-    let sentiment = "No Data";
     let activityStatus = "Inactive";
     if (userEntries.length > 0) {
-      const counts = { positive: 0, negative: 0, distress: 0 };
-      for (const e of userEntries) {
-        const s = (e.sentiment as string | null) ?? "";
-        if (s === "positive") counts.positive++;
-        else if (s === "distress") counts.distress++;
-        else if (s === "negative") counts.negative++;
-      }
-      if (counts.distress > 0) sentiment = "Distress";
-      else if (counts.negative >= counts.positive) sentiment = "Negative";
-      else if (counts.positive > 0) sentiment = "Positive";
-
       // Determine activity status
       const daysSinceLastActive = lastEntry
         ? Math.floor((new Date().getTime() - new Date(lastEntry.created_at).getTime()) / 86400000)
         : 999;
 
       if (daysSinceLastActive < 30) activityStatus = "Active";
-      if (sentiment === "Negative" && avgMoodScore && avgMoodScore < 5) activityStatus = "At Risk";
     }
 
     const fullName = (user.first_name && user.last_name)
@@ -366,7 +351,6 @@ export default function AdminUsersPage() {
       entries: entryCount,
       lastActive: getLastActive(lastEntry?.created_at || user.updated_at || user.created_at),
       avgMood: avgMoodScore ? `${avgMoodScore}/10` : "—",
-      sentiment,
       activityStatus,
       isAccountActive,
       rawUser: user
@@ -396,7 +380,6 @@ export default function AdminUsersPage() {
   // Calculate stats
   const totalUsers = users.length;
   const activeUsers = processedUsers.filter(u => u.isAccountActive && u.activityStatus === "Active").length;
-  const atRiskUsers = processedUsers.filter(u => u.isAccountActive && u.activityStatus === "At Risk").length;
   const inactiveUsers = processedUsers.filter(u => !u.isAccountActive || u.activityStatus === "Inactive").length;
 
   // Pagination
@@ -470,7 +453,7 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="p-5">
           <div className="flex items-start gap-3 mb-3">
             <div className="w-10 h-10 bg-primary-blue/20 rounded-lg flex items-center justify-center text-2xl">👥</div>
@@ -500,16 +483,6 @@ export default function AdminUsersPage() {
             </div>
           </div>
           <div className="h-1 bg-gradient-to-r from-purple-400 to-pink-300 rounded-full"></div>
-        </Card>
-        <Card className="p-5 border-l-4 border-l-error-red">
-          <div className="flex items-start gap-3 mb-3">
-            <div className="w-10 h-10 bg-[#F4A6A6]/20 rounded-lg flex items-center justify-center text-2xl">🚫</div>
-            <div className="text-right">
-              <p className="text-xs text-slate-600 font-poppins">AT RISK</p>
-              <p className="text-2xl font-dm-serif text-[#F4A6A6]">{atRiskUsers}</p>
-            </div>
-          </div>
-          <div className="h-1 bg-gradient-to-r from-red-400 to-pink-300 rounded-full"></div>
         </Card>
       </div>
 
@@ -546,7 +519,6 @@ export default function AdminUsersPage() {
           <option value="All">All Statuses</option>
           <option value="Active">Active</option>
           <option value="Inactive">Inactive</option>
-          <option value="At Risk">At Risk</option>
           <option value="Deactivated">Deactivated</option>
         </select>
       </div>
@@ -563,7 +535,6 @@ export default function AdminUsersPage() {
                 <th className="text-left py-4 px-3">ENTRIES</th>
                 <th className="text-left py-4 px-3">LAST ACTIVE</th>
                 <th className="text-left py-4 px-3">AVG MOOD</th>
-                <th className="text-left py-4 px-3">SENTIMENT</th>
                 <th className="text-left py-4 px-3">STATUS</th>
                 <th className="text-left py-4 px-3">ACTIONS</th>
               </tr>
@@ -627,17 +598,12 @@ export default function AdminUsersPage() {
                     <p className="text-sm font-poppins text-dark-text">{user.avgMood}</p>
                   </td>
                   <td className="py-4 px-3">
-                    <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${user.sentiment === "Positive" ? "border-emerald-200 bg-emerald-100 text-emerald-800" : user.sentiment === "Neutral" ? "border-indigo-200 bg-indigo-100 text-indigo-800" : user.sentiment === "Negative" || user.sentiment === "Distress" ? "border-rose-200 bg-rose-100 text-rose-800" : "border-slate-200 bg-slate-100 text-slate-800"}`}>
-                      {user.sentiment}
-                    </span>
-                  </td>
-                  <td className="py-4 px-3">
                     {!user.isAccountActive ? (
                       <span className="px-2.5 py-1 rounded-full border border-slate-300 bg-slate-100 text-xs font-semibold text-slate-800">
                         Deactivated
                       </span>
                     ) : (
-                      <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${user.activityStatus === "Active" ? "border-emerald-200 bg-emerald-100 text-emerald-800" : user.activityStatus === "At Risk" ? "border-amber-200 bg-amber-100 text-amber-900" : "border-slate-200 bg-slate-100 text-slate-800"}`}>
+                      <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${user.activityStatus === "Active" ? "border-emerald-200 bg-emerald-100 text-emerald-800" : "border-slate-200 bg-slate-100 text-slate-800"}`}>
                         {user.activityStatus}
                       </span>
                     )}
