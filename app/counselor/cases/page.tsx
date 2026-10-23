@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Toast, useToast } from "@/components/ui/Toast";
-import { formatDisplayId } from "@/lib/display-ids";
+import { formatDisplayId, loadDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-ids";
 
 type UserProfile = {
   id: string;
@@ -37,9 +37,9 @@ type DistressLog = {
   user_profiles?: UserProfile | null;
 };
 
-const getUserDisplayName = (user?: UserProfile | null) => {
+const getUserDisplayName = (user?: UserProfile | null, fmt: DisplayIdFormat = "anonymized") => {
   if (!user) return "Unknown user";
-  return formatDisplayId(user.id, "user", "anonymized");
+  return formatDisplayId(user.id, "user", fmt);
 };
 
 // Format trigger text — replace raw UUID in "Journal entry {uuid}:" with a short ID
@@ -71,6 +71,7 @@ export default function CounselorCasesPage() {
   const [riskFilter, setRiskFilter] = useState<ManagementRiskFilter>("all");
   const [statusFilter, setStatusFilter] = useState<ManagementStatusFilter>("all");
   const [staffProfiles, setStaffProfiles] = useState<Record<string, string>>({});
+  const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
   const { user: currentUser } = useAuth();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -169,6 +170,8 @@ export default function CounselorCasesPage() {
     }
 
     load();
+
+    loadDisplayIdFormat(supabase).then(setDisplayIdFormat);
     const interval = setInterval(load, 30_000);
     return () => {
       mounted = false;
@@ -184,7 +187,7 @@ export default function CounselorCasesPage() {
     const searchText = [
       alert.id,
       alert.user_id,
-      getUserDisplayName(alert.user_profiles),
+      getUserDisplayName(alert.user_profiles, displayIdFormat),
       alert.trigger,
       alert.notes,
     ].join(" ").toLowerCase();
@@ -284,15 +287,16 @@ export default function CounselorCasesPage() {
       results.flat().forEach((p: any) => {
         if (!p?.id) return;
         const roleLabel = p.role === "owner" ? "Owner" : p.role === "admin" ? "Admin" : "Counselor";
-        const displayId = formatDisplayId(p.id, "user", "anonymized");
-        map[p.id] = `${roleLabel} ${displayId}`;
-        map[p.id.slice(0, 8)] = `${roleLabel} ${displayId}`;
+        const name = p.full_name || p.username || null;
+        const displayId = formatDisplayId(p.id, "user", displayIdFormat);
+        map[p.id] = `${roleLabel} ${name || displayId}`;
+        map[p.id.slice(0, 8)] = `${roleLabel} ${name || displayId}`;
       });
       if (Object.keys(map).length > 0) {
         setStaffProfiles((prev) => ({ ...prev, ...map }));
       }
     });
-  }, [selectedAlert, supabase]);
+  }, [selectedAlert, supabase, displayIdFormat]);
 
   // Replace UUIDs and 8-char ID prefixes in action notes with real names
   const resolveNotesText = (notes: string): string => {
@@ -445,7 +449,7 @@ export default function CounselorCasesPage() {
                       <span className="badge-error">Active</span>
                     </div>
                     <p className="text-sm font-poppins font-semibold text-dark-text">{formatTrigger(alert.trigger)}</p>
-                    <p title={getUserDisplayName(alert.user_profiles)} className="max-w-[200px] truncate text-xs text-slate-600 font-inter">User: {getUserDisplayName(alert.user_profiles)}</p>
+                    <p title={getUserDisplayName(alert.user_profiles, displayIdFormat)} className="max-w-[200px] truncate text-xs text-slate-600 font-inter">User: {getUserDisplayName(alert.user_profiles, displayIdFormat)}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center justify-end gap-2">
@@ -520,7 +524,7 @@ export default function CounselorCasesPage() {
                 {filteredMediumAlerts.map((alert) => (
                   <tr key={alert.id}>
                     <td className="w-48 overflow-hidden px-4 py-3">
-                      <p title={getUserDisplayName(alert.user_profiles)} className="inline-block max-w-[200px] truncate text-sm font-semibold text-slate-900 hover:text-indigo-600">{getUserDisplayName(alert.user_profiles)}</p>
+                      <p title={getUserDisplayName(alert.user_profiles, displayIdFormat)} className="inline-block max-w-[200px] truncate text-sm font-semibold text-slate-900 hover:text-indigo-600">{getUserDisplayName(alert.user_profiles, displayIdFormat)}</p>
                     </td>
                     <td className="w-64 max-w-[260px] overflow-hidden px-4 py-3 pr-4">
                       <p title={alert.trigger || "Pending review"} className="truncate text-xs font-medium text-slate-700">{formatTrigger(alert.trigger)}</p>
@@ -599,7 +603,7 @@ export default function CounselorCasesPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">User</p>
-                  <p className="mt-1 text-sm font-poppins text-dark-text">{getUserDisplayName(selectedAlert.user_profiles)}</p>
+                  <p className="mt-1 text-sm font-poppins text-dark-text">{getUserDisplayName(selectedAlert.user_profiles, displayIdFormat)}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Severity</p>

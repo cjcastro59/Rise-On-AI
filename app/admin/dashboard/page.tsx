@@ -264,7 +264,8 @@ export default function AdminDashboardPage() {
         peakCount: peak.count,
       });
     } catch (error) {
-      console.error("Error loading analytics data:", error);
+        console.error("Error loading analytics data:", error);
+        showToast("Failed to load analytics data.", "error");
     }
   }, [dauPeriod, supabase]);
 
@@ -366,6 +367,7 @@ export default function AdminDashboardPage() {
         setRecentEntries((recentEntryData || []) as RecentJournalEntry[]);
       } catch (error) {
         console.error("Error loading admin dashboard data:", error);
+        showToast("Failed to load dashboard data.", "error");
       } finally {
         setLoading(false);
       }
@@ -374,8 +376,10 @@ export default function AdminDashboardPage() {
     loadData();
   }, [loadAnalyticsData, loadAnnouncements, supabase, currentUser]);
 
-  // Reload analytics when period changes
+  // Reload analytics only when period CHANGES (not on initial mount — main loadData handles it)
+  const isFirstRender = useRef(true);
   useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
     if (currentUser) loadAnalyticsData();
   }, [loadAnalyticsData, currentUser]);
 
@@ -396,7 +400,6 @@ export default function AdminDashboardPage() {
     if (!currentUser) return;
 
     void loadStaffConversationIds();
-    void loadAnnouncements();
 
     const channel = supabase.channel(`admin-dashboard-notifications:${currentUser.id}`);
 

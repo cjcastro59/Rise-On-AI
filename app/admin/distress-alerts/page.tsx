@@ -2,6 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Portal } from "@/components/ui/Portal";
+import { Toast, useToast } from "@/components/ui/Toast";
 import {
   ManagementFilterBar,
   type ManagementRiskFilter,
@@ -99,15 +100,14 @@ export default function AdminDistressAlertsPage() {
   const [selectedAlert, setSelectedAlert] = useState<DistressLog | null>(null);
   const [riskByUser, setRiskByUser] = useState<Map<string, UserRiskSnapshot>>(new Map());
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [activeAlertCount, setActiveAlertCount] = useState(0);
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [refreshToken, setRefreshToken] = useState(0);
   const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
   const [staffProfiles, setStaffProfiles] = useState<Record<string, string>>({});
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
+  const { toast, showToast, closeToast } = useToast();
 
   // â”€â”€ Risk badge (shared inline component) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const RiskBadge = ({ userId }: { userId: string }) => {
@@ -139,7 +139,6 @@ export default function AdminDistressAlertsPage() {
 
     async function load() {
       setLoading(true);
-      setError(null);
 
       try {
         const { data, error } = await supabase
@@ -270,7 +269,7 @@ export default function AdminDistressAlertsPage() {
           });
         }
       } catch (err: any) {
-        setError(err.message || "Failed to load distress logs");
+        showToast(err.message || "Failed to load distress logs", "error");
       } finally {
         if (mounted) setLoading(false);
       }
@@ -337,7 +336,7 @@ export default function AdminDistressAlertsPage() {
   const formatAlertId = (id: string) => formatDisplayId(id, "alert", displayIdFormat);
   const formatUserId = (id: string) => formatDisplayId(id, "user", displayIdFormat);
   const formatEntryId = (id: string) => formatDisplayId(id, "entry", displayIdFormat);
-  const getStudentName = (userId: string) => formatDisplayId(userId, "user", "anonymized");
+  const getStudentName = (userId: string) => formatDisplayId(userId, "user", displayIdFormat);
 
   const renderEntrySnippets = (userId: string) => {
     const entries = entriesByUser[userId] || [];
@@ -429,14 +428,11 @@ export default function AdminDistressAlertsPage() {
     const selectedCounselorId = assignmentSelections[alertId];
 
     if (action === "assign" && !selectedCounselorId) {
-      setError("Please choose a counselor before assigning this alert.");
-      setActionMessage(null);
+      showToast("Please choose a counselor before assigning this alert.", "error");
       return;
     }
 
     setActionLoading((prev) => ({ ...prev, [actionKey]: true }));
-    setError(null);
-    setActionMessage(null);
 
     try {
       const response = await fetch(`/api/admin/distress-alerts/${alertId}/${action}`, {
@@ -475,9 +471,9 @@ export default function AdminDistressAlertsPage() {
         }));
       }
 
-      setActionMessage(result.message || "Alert updated.");
+      showToast(result.message || "Alert updated.", "success");
     } catch (err: any) {
-      setError(err.message || "Alert action failed.");
+      showToast(err.message || "Alert action failed.", "error");
     } finally {
       setActionLoading((prev) => {
         const next = { ...prev };
@@ -531,6 +527,7 @@ export default function AdminDistressAlertsPage() {
 
   return (
     <div className="space-y-6">
+      <Toast {...toast} onClose={closeToast} />
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
@@ -551,12 +548,6 @@ export default function AdminDistressAlertsPage() {
           Ethical Protocol: Distress flags use anonymized IDs only. Guidance counselors must follow institutional protocols before any outreach. All actions are logged.
         </p>
       </div>
-
-      {actionMessage && (
-        <div className="rounded-xl border border-success-green/30 bg-success-green/10 px-4 py-3 text-sm font-poppins text-dark-text">
-          {actionMessage}
-        </div>
-      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -625,8 +616,7 @@ export default function AdminDistressAlertsPage() {
           <h2 className="text-xs font-poppins font-semibold text-dark-text uppercase tracking-wider">Critical - Immediate Attention Required</h2>
         </div>
         {loading && <p className="text-sm text-slate-600">Loading alerts...</p>}
-        {!loading && error && <p className="text-sm text-error-red">{error}</p>}
-        {!loading && filteredCriticalAlerts.length === 0 && !error && <p className="text-sm text-slate-600">No critical alerts match the current filters.</p>}
+        {!loading && filteredCriticalAlerts.length === 0 && <p className="text-sm text-slate-600">No critical alerts match the current filters.</p>}
         {filteredCriticalAlerts.map((alert) => (
           <Card key={alert.id} className="p-5 bg-rose-50 border-l-4 border-l-rose-500 border border-rose-200 text-rose-900 rounded-2xl">
             <div className="flex flex-col gap-4">

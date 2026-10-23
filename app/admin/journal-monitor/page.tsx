@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Toast, useToast } from "@/components/ui/Toast";
 import { getSentimentFromMood, type Sentiment } from "@/lib/sentiment";
 import { formatDisplayId, loadDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-ids";
 
@@ -117,12 +118,12 @@ function getHoursDistribution(entries: JournalEntryRow[]) {
 export default function AdminJournalMonitorPage() {
   const [entries, setEntries] = useState<JournalEntryRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
   const entriesPerPage = 10;
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
+  const { toast, showToast, closeToast } = useToast();
 
   useEffect(() => {
     if (!currentUser) return;
@@ -130,7 +131,6 @@ export default function AdminJournalMonitorPage() {
     const loadEntries = async () => {
       try {
         setLoading(true);
-        setError(null);
         const { data, error: fetchError } = await supabase
           .from("journal_entries")
           .select("id, user_id, created_at, mood, content, emotions, sentiment, positive_percentage, negative_percentage, distress_percentage, confidence, sentiment_model")
@@ -139,14 +139,14 @@ export default function AdminJournalMonitorPage() {
 
         if (fetchError) {
           console.error("Error fetching entries:", fetchError);
-          setError(fetchError.message);
+          showToast("Failed to load journal entries.", "error");
           setEntries([]);
         } else {
           setEntries((data as JournalEntryRow[]) || []);
         }
       } catch (err) {
         console.error("Error loading journal monitoring data:", err);
-        setError("An unexpected error occurred");
+        showToast("An unexpected error occurred.", "error");
       } finally {
         setLoading(false);
       }
@@ -210,6 +210,7 @@ export default function AdminJournalMonitorPage() {
 
   return (
     <div className="space-y-6">
+      <Toast {...toast} onClose={closeToast} />
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Journal Monitoring</h1>
@@ -246,15 +247,6 @@ export default function AdminJournalMonitorPage() {
           </button>
         </div>
       </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="p-4 bg-red-50 border-l-4 border-red-400 rounded-xl">
-          <p className="text-sm font-poppins text-red-700 flex items-center gap-2">
-            <span>⚠️</span> {error}
-          </p>
-        </div>
-      )}
 
       <div className="p-4 bg-white rounded-xl border-l-4 border-l-[#A8DADC] shadow-sm">
         <p className="text-sm font-poppins text-slate-700 flex items-center gap-2">

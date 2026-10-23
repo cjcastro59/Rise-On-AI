@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 import { createDistressAlertForJournalEntry } from "@/lib/distress-alerts";
 import { getMoodScore, MOOD_OPTIONS } from "@/lib/mood";
 import { MoodCard } from "@/components/dashboard/mood-card";
@@ -53,6 +54,7 @@ export default function JournalEntryPage() {
   const maxWords = 10000;
   const wordCount = content.trim().split(/\s+/).filter(word => word.length > 0).length;
   const { user } = useAuth();
+  const { openConfirmation } = useConfirmation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient() as any;
@@ -276,8 +278,15 @@ export default function JournalEntryPage() {
     }
   };
 
-  const discardDraft = () => {
-    if (confirm("Discard this draft?")) {
+  const discardDraft = async () => {
+    const confirmed = await openConfirmation({
+      title: "Discard Draft",
+      message: "Are you sure you want to discard this draft? This cannot be undone.",
+      confirmText: "Discard",
+      cancelText: "Keep",
+      isDangerous: true,
+    });
+    if (confirmed) {
       localStorage.removeItem("journal_draft");
       resetEntryForm();
     }

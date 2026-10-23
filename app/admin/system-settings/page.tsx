@@ -17,11 +17,6 @@ import { normalizeDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-id
 
 const supabase = createClient();
 
-const flash = (setter: (message: string) => void, message: string, ms = 3500) => {
-  setter(message);
-  setTimeout(() => setter(""), ms);
-};
-
 // Define permission types
 type PermissionValue = "full" | "limited" | "anonymous" | "aggregated" | "none";
 
@@ -113,8 +108,6 @@ export default function AdminSystemSettingsPage() {
   const [secret, setSecret] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [loadingPersonal, setLoadingPersonal] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [showChangePw, setShowChangePw] = useState(false);
   const [pwCurrent, setPwCurrent] = useState("");
   const [pwNew, setPwNew] = useState("");
@@ -212,6 +205,7 @@ export default function AdminSystemSettingsPage() {
         }
       } catch (error) {
         console.error("Error loading settings:", error);
+        showToast("Failed to load settings.", "error");
       } finally {
         setLoading(false);
       }
@@ -338,7 +332,6 @@ export default function AdminSystemSettingsPage() {
     if (!user?.email) return;
     try {
       setLoadingPersonal(true);
-      setError("");
 
       let { data: profile } = await supabase
         .from("user_profiles")
@@ -374,7 +367,6 @@ export default function AdminSystemSettingsPage() {
     if (!user) return;
     try {
       setLoadingPersonal(true);
-      setError("");
 
       const { data: profile } = await supabase
         .from("user_profiles")
@@ -407,7 +399,7 @@ export default function AdminSystemSettingsPage() {
         showToast("Two-factor authentication enabled successfully!", "success");
       } else {
         const expected = await generate({ secret: profile.two_factor_secret, guardrails: createGuardrails({ MIN_SECRET_BYTES: 10 }) });
-        showToast(`Invalid verification code! Expected: ${expected}`, "error");
+        showToast("Invalid verification code. Please try again.", "error");
       }
     } catch (err) {
       showToast("Failed to verify code", "error");
@@ -451,7 +443,6 @@ export default function AdminSystemSettingsPage() {
       }).eq("id", user.id).select("id").single();
       if (error) throw error;
       if (!data) throw new Error("Settings were not saved. Please try again.");
-      setError("");
       showToast("Notification settings saved.", "success");
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Failed to save notification settings.", "error");
@@ -470,7 +461,6 @@ export default function AdminSystemSettingsPage() {
       }).eq("id", user.id).select("id").single();
       if (error) throw error;
       if (!data) throw new Error("Settings were not saved. Please try again.");
-      setError("");
       showToast("Privacy settings saved.", "success");
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Failed to save privacy settings.", "error");
@@ -491,7 +481,6 @@ export default function AdminSystemSettingsPage() {
         .single();
       if (updateError) throw updateError;
       if (!data) throw new Error("Settings were not saved. Please try again.");
-      setError("");
       showToast("Language preference saved.", "success");
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Failed to save language preference.", "error");

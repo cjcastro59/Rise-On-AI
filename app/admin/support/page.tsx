@@ -10,7 +10,7 @@ import { Database } from "@/types/database";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 import { Toast, useToast } from "@/components/ui/Toast";
-import { formatDisplayId } from "@/lib/display-ids";
+import { formatDisplayId, loadDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-ids";
 
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
   user?: Database["public"]["Tables"]["user_profiles"]["Row"];
@@ -58,6 +58,11 @@ export default function AdminSupportPage() {
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient() as any, []);
   const { openConfirmation } = useConfirmation();
+  const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
+
+  useEffect(() => {
+    loadDisplayIdFormat(supabase).then(setDisplayIdFormat);
+  }, [supabase]);
   const { toast, showToast, closeToast } = useToast();
 
   const isAdminManageableConversation = (conversation: Conversation) => {
@@ -114,6 +119,7 @@ export default function AdminSupportPage() {
       setConversationPreviews(previews);
     } catch (error) {
       console.error("Error loading conversations:", error);
+      showToast("Failed to load conversations.", "error");
     }
   }, [supabase]);
 
@@ -478,8 +484,8 @@ export default function AdminSupportPage() {
 
     } catch (error) {
       console.error("Admin: Error sending message:", error);
-      // Remove optimistic message if there was an error
       setMessages((prev) => prev.filter(msg => msg.id !== optimisticMessage.id));
+      showToast("Failed to send message. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -515,6 +521,7 @@ export default function AdminSupportPage() {
 
     } catch (error) {
       console.error("Error closing conversation:", error);
+      showToast("Failed to close conversation. Please try again.", "error");
     } finally {
       setClosingConversation(false);
     }
@@ -644,7 +651,7 @@ export default function AdminSupportPage() {
                         {(() => {
                           const getFirstName = (name: string | undefined | null) =>
                             name ? name.split(" ")[0] : "Unknown User";
-                          return formatDisplayId(convo.user_id, "user", "anonymized");
+                          return formatDisplayId(convo.user_id, "user", displayIdFormat);
                         })()}
                         </p>
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold ${convo.status === "open"
@@ -677,7 +684,7 @@ export default function AdminSupportPage() {
                         Chat with {(() => {
                           const getFirstName = (name: string | undefined | null) =>
                             name ? name.split(" ")[0] : "Unknown User";
-                          return formatDisplayId(selectedConversation.user_id, "user", "anonymized");
+                          return formatDisplayId(selectedConversation.user_id, "user", displayIdFormat);
                         })()}
                       </h3>
                       <p className="text-xs text-slate-600">

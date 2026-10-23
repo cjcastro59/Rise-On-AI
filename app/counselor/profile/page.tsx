@@ -93,7 +93,6 @@ export default function CounselorProfilePage() {
 
   const saveProfile = async () => {
     if (!currentUser) {
-      console.error("No user found");
       showToast("Please log in to save your profile.", "error");
       return;
     }
@@ -102,14 +101,16 @@ export default function CounselorProfilePage() {
       setSaving(true);
       
       // Save profile
-      await supabase
+      const { error: updateError } = await supabase
         .from("user_profiles")
         .update({
           ...profile,
           updated_at: new Date().toISOString(),
         })
         .eq("id", currentUser.id);
-      
+
+      if (updateError) throw updateError;
+
       // Refetch profile
       await fetchProfileAndStats();
       
@@ -193,9 +194,9 @@ export default function CounselorProfilePage() {
     );
   }
 
-  const handleEditToggle = () => {
+  const handleEditToggle = async () => {
     if (isEditing) {
-      saveProfile();
+      await saveProfile();
     } else {
       setIsEditing(true);
     }

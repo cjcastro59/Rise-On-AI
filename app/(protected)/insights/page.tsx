@@ -275,7 +275,9 @@ export default function MoodInsightsPage() {
   useEffect(() => {
     if (wellnessLoading || driLoading) return;
     const isStale = (dateStr: string | null | undefined) => {
-      if (!dateStr) return true; // no data at all — trigger
+      // Only recalculate if data exists AND is older than 1 day
+      // Don't trigger for missing data — the analysis page handles new entries
+      if (!dateStr) return false;
       const diff = Date.now() - new Date(dateStr).getTime();
       return diff > 24 * 60 * 60 * 1000; // older than 1 day
     };
@@ -515,9 +517,11 @@ export default function MoodInsightsPage() {
         </p>
 
         {indicatorsLoading ? (
-          <p className="text-xs text-slate-600 py-4 text-center">
-            Loading behavioral data…
-          </p>
+          <div className="space-y-4 py-2">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="h-10 bg-light-gray/50 rounded-lg animate-pulse" />
+            ))}
+          </div>
         ) : !indicatorsHasData || !indicators ? (
           <div className="text-center py-6 space-y-2">
             <p className="text-sm text-slate-600">No behavioral data yet.</p>
@@ -671,7 +675,10 @@ export default function MoodInsightsPage() {
         </p>
 
         {wellnessLoading ? (
-          <p className="text-xs text-slate-600 py-4 text-center">Loading wellness data…</p>
+          <div className="flex flex-col items-center gap-4 py-8">
+            <div className="w-40 h-40 rounded-full bg-light-gray/50 animate-pulse" />
+            <div className="h-4 w-32 bg-light-gray/50 rounded animate-pulse" />
+          </div>
         ) : !wellnessLatest || wellnessLatest.wellness_score === null ? (
           <div className="text-center py-6 space-y-2">
             <p className="text-sm text-slate-600">Wellness score not yet computed.</p>
@@ -871,7 +878,11 @@ export default function MoodInsightsPage() {
         </p>
 
         {driLoading ? (
-          <p className="text-xs text-slate-600 py-4 text-center">Loading risk indicator…</p>
+          <div className="space-y-3 py-2">
+            <div className="h-16 bg-light-gray/50 rounded-xl animate-pulse" />
+            <div className="h-8 w-48 bg-light-gray/50 rounded animate-pulse mx-auto" />
+            <div className="h-24 bg-light-gray/50 rounded-xl animate-pulse" />
+          </div>
         ) : !driLatest ? (
           <div className="text-center py-6 space-y-2">
             <p className="text-sm text-slate-600">Risk assessment not yet computed.</p>

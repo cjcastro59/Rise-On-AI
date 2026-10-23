@@ -179,6 +179,7 @@ export default function AdminUsersPage() {
       }
     } catch (err) {
       console.error("Error updating role:", err);
+      showToast("Failed to update role. Please try again.", "error");
     }
   };
 
@@ -225,6 +226,7 @@ export default function AdminUsersPage() {
       }
     } catch (err) {
       console.error("Error transferring ownership:", err);
+      showToast("Failed to transfer ownership. Please try again.", "error");
     }
   };
 
@@ -265,6 +267,7 @@ export default function AdminUsersPage() {
       }
     } catch (err) {
       console.error("Error updating user status:", err);
+      showToast("Failed to update user status. Please try again.", "error");
     }
   };
 
@@ -305,6 +308,7 @@ export default function AdminUsersPage() {
       }
     } catch (err) {
       console.error("Error deleting user:", err);
+      showToast("Failed to delete user. Please try again.", "error");
     }
   };
 

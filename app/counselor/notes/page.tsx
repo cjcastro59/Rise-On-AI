@@ -69,8 +69,10 @@ export default function CounselorNotesPage() {
 
       setNotes([data, ...notes]);
       setNewNoteContent("");
+      showToast("Note added.", "success");
     } catch (error) {
       console.error("Error adding note:", error);
+      showToast("Failed to add note. Please try again.", "error");
     } finally {
       setLoading(false);
     }
@@ -131,8 +133,10 @@ export default function CounselorNotesPage() {
       setNotes(notes.map(note => note.id === editingNote.id ? data : note));
       setEditingNote(null);
       setEditContent("");
+      showToast("Note updated.", "success");
     } catch (error) {
       console.error("Error updating note:", error);
+      showToast("Failed to update note. Please try again.", "error");
     } finally {
       setLoading(false);
     }

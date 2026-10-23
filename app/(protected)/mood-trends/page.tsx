@@ -165,7 +165,8 @@ export default function MoodTrendsPage() {
   useEffect(() => {
     if (wellnessRecalcLoading || driRecalcLoading) return;
     const isStale = (dateStr: string | null | undefined) => {
-      if (!dateStr) return true;
+      // Only recalculate if data exists AND is older than 1 day
+      if (!dateStr) return false;
       const diff = Date.now() - new Date(dateStr).getTime();
       return diff > 24 * 60 * 60 * 1000;
     };

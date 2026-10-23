@@ -476,7 +476,7 @@ export default function SettingsPage() {
         showToast("Two-factor authentication enabled successfully!", "success");
       } else {
         const expected = await generate({ secret: profile.two_factor_secret, guardrails: createGuardrails({ MIN_SECRET_BYTES: 10 }) });
-        showToast(`Invalid verification code! Expected: ${expected}`, "error");
+        showToast("Invalid verification code. Please try again.", "error");
       }
     } catch (err) {
       showToast("Failed to verify code", "error");
@@ -709,16 +709,6 @@ export default function SettingsPage() {
                 Manage your password and login security.
               </p>
             </div>
-            {error && (
-              <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins">
-                {error}
-              </div>
-            )}
-            {success && (
-              <div className="text-success-green text-xs bg-success-green/10 p-3 rounded-lg font-poppins">
-                {success}
-              </div>
-            )}
             <div className="space-y-3">
               <Button variant="secondary" onClick={() => setShowChangePw(true)}>Change Password</Button>
               {!twoFactorEnabled ? (
@@ -777,12 +767,6 @@ export default function SettingsPage() {
                 Download or delete your data.
               </p>
             </div>
-            {error && (
-              <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins">{error}</div>
-            )}
-            {success && (
-              <div className="text-success-green text-xs bg-success-green/10 p-3 rounded-lg font-poppins">{success}</div>
-            )}
             <div className="flex flex-col gap-3">
               <Button variant="secondary" onClick={() => downloadSettingsData("json")} disabled={saving} className="hover:scale-100">
                 {saving ? "Preparing..." : "📥 Download All My Data"}
@@ -906,8 +890,6 @@ export default function SettingsPage() {
               </div>
               <button onClick={() => { setShowChangePw(false); setPwCurrent(""); setPwNew(""); setPwConfirm(""); }} className="text-slate-600 hover:text-dark-text text-2xl leading-none">×</button>
             </div>
-            {error && <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins mb-3">{error}</div>}
-            {success && <div className="text-success-green text-xs bg-success-green/10 p-3 rounded-lg font-poppins mb-3">{success}</div>}
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-poppins text-slate-700 mb-1 block">Current Password</label>
@@ -968,7 +950,6 @@ export default function SettingsPage() {
               </div>
               <button onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText(""); }} className="text-slate-600 hover:text-dark-text text-2xl leading-none">×</button>
             </div>
-            {error && <div className="text-error-red text-xs bg-error-red/10 p-3 rounded-lg font-poppins mb-3">{error}</div>}
             <div className="space-y-3">
               <div className="p-3 bg-error-red/10 rounded-xl border border-error-red/20">
                 <p className="text-xs font-poppins text-dark-text font-semibold mb-1">

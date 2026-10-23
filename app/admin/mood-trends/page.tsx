@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { Toast, useToast } from "@/components/ui/Toast";
 import { getSentimentFromMood } from "@/lib/sentiment";
 import {
   WELLNESS_LEVEL_CONFIG,
@@ -44,6 +45,7 @@ export default function AdminMoodTrendsPage() {
   }[]>([]);
   const [wellnessLoading, setWellnessLoading] = useState(true);
   const supabase = useMemo(() => createClient(), []);
+  const { toast, showToast, closeToast } = useToast();
 
   useEffect(() => {
     const loadEntries = async () => {
@@ -55,6 +57,7 @@ export default function AdminMoodTrendsPage() {
         }
       } catch (error) {
         console.error("Error loading mood trends data:", error);
+        showToast("Failed to load mood trends data.", "error");
       } finally {
         setLoading(false);
       }
@@ -107,6 +110,7 @@ export default function AdminMoodTrendsPage() {
         );
       } catch (err) {
         console.error("Error loading wellness distribution:", err);
+        showToast("Failed to load wellness distribution.", "error");
       } finally {
         setWellnessLoading(false);
       }
@@ -160,6 +164,7 @@ export default function AdminMoodTrendsPage() {
 
   return (
     <div className="space-y-6">
+      <Toast {...toast} onClose={closeToast} />
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Mood Trend Reports</h1>

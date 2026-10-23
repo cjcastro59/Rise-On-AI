@@ -159,7 +159,6 @@ export default function ProfilePage() {
 
   const saveProfile = async () => {
     if (!user) {
-      console.error("No user found");
       showToast("Please log in to save profile.", "error");
       return;
     }
@@ -303,9 +302,9 @@ export default function ProfilePage() {
     );
   }
 
-  const handleEditToggle = () => {
+  const handleEditToggle = async () => {
     if (isEditing) {
-      saveProfile();
+      await saveProfile();
     } else {
       setIsEditing(true);
     }
@@ -695,12 +694,12 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Wellness Goals */}
-        <Card variant="white" className="p-6">
+        <Card variant="white" className="p-6 overflow-hidden">
           <h3 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4 flex items-center gap-2">
             <span>🎯</span>
             Wellness Goals
           </h3>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {[
               "Reduce stress",
               "Improve mood",
@@ -711,13 +710,13 @@ export default function ProfilePage() {
             ].map((goal) => (
               <div
                 key={goal}
-                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer ${(profile.goals || []).includes(goal)
+                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${(profile.goals || []).includes(goal)
                   ? "bg-primary-blue/10 border border-primary-blue/30"
-                  : "bg-light-gray/50 opacity-60"
+                  : "bg-light-gray/50 hover:bg-light-gray/80"
                   }`}
                 onClick={() => isEditing && toggleGoal(goal)}
               >
-                <div className={`w-5 h-5 rounded flex items-center justify-center ${(profile.goals || []).includes(goal)
+                <div className={`w-5 h-5 shrink-0 rounded flex items-center justify-center ${(profile.goals || []).includes(goal)
                   ? "bg-primary-blue text-white"
                   : "bg-light-gray"
                   }`}>

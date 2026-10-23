@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { ViewUserModal } from "@/components/admin/ViewUserModal";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { formatDisplayId } from "@/lib/display-ids";
+import { formatDisplayId, loadDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-ids";
 
 const PAGE_SIZE = 10;
 
@@ -45,8 +45,14 @@ export default function CounselorAssignedUsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
+
+  // Load display ID format from system settings
+  useEffect(() => {
+    loadDisplayIdFormat(supabase).then(setDisplayIdFormat);
+  }, [supabase]);
 
   // Fetch data
   useEffect(() => {
@@ -160,7 +166,7 @@ export default function CounselorAssignedUsersPage() {
       if (sentiment === "Negative" && avgMoodScore && avgMoodScore < 5) activityStatus = "At Risk";
     }
 
-    const displayId = formatDisplayId(user.id, "user", "anonymized");
+    const displayId = formatDisplayId(user.id, "user", displayIdFormat);
 
     // User's account active status
     const isAccountActive = user.is_active !== false;

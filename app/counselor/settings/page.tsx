@@ -83,29 +83,15 @@ export default function CounselorSettingsPage() {
         setLanguage(data.language || "English");
       }
     } catch (err) {
-      console.error("Failed to load settings:", err);
+      showToast("Failed to load settings. Please refresh.", "error");
     }
-  }, [supabase, user]);
-
-  const checkSettings = useCallback(async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from("user_profiles")
-      .select("two_factor_enabled, is_online")
-      .eq("id", user.id)
-      .single();
-    if (data) {
-      setTwoFactorEnabled(data.two_factor_enabled);
-      setIsOnline(data.is_online || false);
-    }
-  }, [supabase, user]);
+  }, [supabase, user, showToast]);
 
   useEffect(() => {
     if (user) {
       loadSettings();
-      checkSettings();
     }
-  }, [loadSettings, checkSettings, user]);
+  }, [loadSettings, user]);
 
   const saveNotificationSettings = async () => {
     if (!user) return;
@@ -205,48 +191,6 @@ export default function CounselorSettingsPage() {
       showToast(e.message || "Failed to change password.", "error");
     } finally {
       setPwLoading(false);
-    }
-  };
-
-  const downloadAllData = async () => {
-    if (!user) return;
-    try {
-      setSaving(true);
-      const chunks: string[] = [];
-      const addSection = (title: string, rows: any[]) => {
-        chunks.push(`\n===== ${title} =====\n`);
-        chunks.push(rows.length ? JSON.stringify(rows, null, 2) + "\n" : "(no records)\n");
-      };
-      const [{ data: profile }, { data: convs }, { data: notes }] = await Promise.all([
-        supabase.from("user_profiles").select("*").eq("id", user.id).single(),
-        supabase.from("conversations").select("*").eq("counselor_id", user.id).limit(1000),
-        supabase.from("notes").select("*").eq("user_id", user.id).limit(2000),
-      ] as any);
-      chunks.push(`# Rise On AI - Counselor Data Export for ${(profile as any)?.email || user.email}\n`);
-      chunks.push(`Generated: ${new Date().toISOString()}\n`);
-      addSection("Counselor Profile", [profile].filter(Boolean));
-      addSection("Counselor Conversations", convs || []);
-      addSection("Counselor Case Notes", notes || []);
-      try {
-        const { data: assignedUsers } = await supabase
-          .from("user_profiles")
-          .select("id, first_name, last_name, created_at, is_active")
-          .eq("role", "user")
-          .eq("assigned_counselor_id", user.id).limit(5000);
-        addSection("Assigned Clients", assignedUsers || []);
-      } catch { /* ignore */ }
-      const blob = new Blob(chunks, { type: "text/plain;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `counselor-data-export-${new Date().toISOString().slice(0, 10)}.txt`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast("Data export downloaded.", "success");
-    } catch (e: any) {
-      showToast(e.message || "Export failed.", "error");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -447,7 +391,7 @@ export default function CounselorSettingsPage() {
         showToast("Two-factor authentication enabled successfully.", "success");
       } else {
         const expected = await generate({ secret: profile.two_factor_secret, guardrails: createGuardrails({ MIN_SECRET_BYTES: 10 }) });
-        showToast(`Invalid verification code! Expected: ${expected}`, "error");
+        showToast("Invalid verification code. Please try again.", "error");
       }
     } catch (err) {
       showToast("Failed to verify code.", "error");
@@ -491,7 +435,7 @@ export default function CounselorSettingsPage() {
         .eq("id", user.id);
     } catch (err) {
       setIsOnline(isOnline);
-      console.error("Failed to update online status", err);
+      showToast("Failed to update online status. Please try again.", "error");
     }
   };
 

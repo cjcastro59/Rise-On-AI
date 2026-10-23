@@ -14,7 +14,7 @@ import {
   classifyDistressRiskLevel,
   type DistressRiskLevel,
 } from "@/lib/distress-risk";
-import { formatDisplayId } from "@/lib/display-ids";
+import { formatDisplayId, loadDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-ids";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -103,6 +103,7 @@ export default function CounselorDashboardPage() {
   const [riskMap, setRiskMap] = useState<Map<string, UserRiskSnapshot>>(new Map());
   const [aggregateWellnessTrend, setAggregateWellnessTrend] = useState<AggregateWellnessPoint[]>([]);
   const [wellnessTrendFilter, setWellnessTrendFilter] = useState<"recent" | "all">("recent");
+  const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
   const [announcements, setAnnouncements] = useState<{ id: string; title: string; content: string; created_at: string }[]>([]);
   const [announcementsExpanded, setAnnouncementsExpanded] = useState(true);
   const [wellnessLoading, setWellnessLoading] = useState(true);
@@ -320,6 +321,9 @@ export default function CounselorDashboardPage() {
 
     loadData();
 
+    // Load display ID format from system settings
+    loadDisplayIdFormat(supabase).then(setDisplayIdFormat);
+
     // Fetch announcements separately so they always show,
     // even when the counselor has no assigned users yet.
     const loadAnnouncements = async () => {
@@ -375,7 +379,7 @@ export default function CounselorDashboardPage() {
   };
 
   const displayName = (u: AssignedUserRow) => {
-    return formatDisplayId(u.id, "user", "anonymized");
+    return formatDisplayId(u.id, "user", displayIdFormat);
   };
 
   const aggregateTrendMax = Math.max(
@@ -513,7 +517,12 @@ export default function CounselorDashboardPage() {
         </div>
 
         {loading || wellnessLoading ? (
-          <p className="py-8 text-sm text-slate-600 font-inter">Loading trend data...</p>
+          <div className="h-44 flex items-end gap-2 border-b border-gray-100 overflow-hidden">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex-1 rounded-t animate-pulse bg-light-gray/60"
+                style={{ height: `${40 + Math.random() * 60}%` }} />
+            ))}
+          </div>
         ) : aggregateWellnessTrend.length === 0 ? (
           <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
             <p className="text-sm text-slate-600 font-inter">
@@ -584,7 +593,16 @@ export default function CounselorDashboardPage() {
         </div>
 
         {loading || wellnessLoading ? (
-          <p className="text-sm text-slate-600 py-3 font-inter">Loading wellness data…</p>
+          <div className="space-y-3 py-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between gap-4">
+                <div className="h-4 w-28 bg-light-gray/60 rounded animate-pulse" />
+                <div className="h-6 w-24 bg-light-gray/60 rounded-full animate-pulse" />
+                <div className="h-6 w-20 bg-light-gray/60 rounded-full animate-pulse" />
+                <div className="h-4 w-12 bg-light-gray/60 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
         ) : assignedUsers.length === 0 ? (
           <p className="text-sm text-slate-700 font-inter">No users assigned to you yet.</p>
         ) : (
