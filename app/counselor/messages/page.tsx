@@ -10,15 +10,20 @@ import { Database } from "@/types/database";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 import { Toast, useToast } from "@/components/ui/Toast";
-import { formatDisplayId } from "@/lib/display-ids";
 
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"];
 type Message = Database["public"]["Tables"]["messages"]["Row"];
 type UserProfile = Database["public"]["Tables"]["user_profiles"]["Row"];
+type ConversationWithMember = Conversation & {
+  user: Pick<UserProfile, "username" | "full_name" | "first_name" | "last_name"> | null;
+};
+
+const CONVERSATION_WITH_MEMBER_SELECT =
+  "*, user:user_profiles!user_id(username,full_name,first_name,last_name)";
 
 export default function CounselorMessagesPage() {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [conversations, setConversations] = useState<ConversationWithMember[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<ConversationWithMember | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [senderProfiles, setSenderProfiles] = useState<Record<string, UserProfile>>({});
   const [newMessage, setNewMessage] = useState("");
@@ -28,13 +33,17 @@ export default function CounselorMessagesPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const selectedConversationRef = useRef<Conversation | null>(null);
+  const selectedConversationRef = useRef<ConversationWithMember | null>(null);
   const channelRef = useRef<any>(null);
   const conversationsChannelRef = useRef<any>(null);
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient() as any, []);
   const { openConfirmation } = useConfirmation();
   const { toast, showToast, closeToast } = useToast();
+
+  const getMemberUsername = (conversation: ConversationWithMember) => {
+    return conversation.user?.username || "Unknown User";
+  };
 
   useEffect(() => {
     const getCurrentUser = async () => {
@@ -77,7 +86,7 @@ export default function CounselorMessagesPage() {
           // Fetch the user profile for the new conversation
           const { data: newConversationWithUser } = await supabase
             .from("conversations")
-            .select("*")
+            .select(CONVERSATION_WITH_MEMBER_SELECT)
             .eq("id", payload.new.id)
             .eq("type", "counselor_support")
             .single();
@@ -109,7 +118,7 @@ export default function CounselorMessagesPage() {
           // Fetch the updated conversation with user profile
           const { data: updatedConversationWithUser } = await supabase
             .from("conversations")
-            .select("*")
+            .select(CONVERSATION_WITH_MEMBER_SELECT)
             .eq("id", payload.new.id)
             .eq("type", "counselor_support")
             .single();
@@ -165,7 +174,7 @@ export default function CounselorMessagesPage() {
       async (payload: any) => {
         const { data: newConversationWithUser } = await supabase
           .from("conversations")
-          .select("*")
+            .select(CONVERSATION_WITH_MEMBER_SELECT)
           .eq("id", payload.new.id)
           .eq("counselor_id", currentUserId)
           .eq("type", "counselor_support")
@@ -200,7 +209,7 @@ export default function CounselorMessagesPage() {
 
         const { data: updatedConversationWithUser } = await supabase
           .from("conversations")
-          .select("*")
+          .select(CONVERSATION_WITH_MEMBER_SELECT)
           .eq("id", payload.new.id)
           .eq("counselor_id", currentUserId)
           .eq("type", "counselor_support")
@@ -273,17 +282,17 @@ export default function CounselorMessagesPage() {
     try {
       const { data } = await supabase
         .from("conversations")
-        .select("*")
+        .select(CONVERSATION_WITH_MEMBER_SELECT)
         .eq("counselor_id", userId)
         .eq("type", "counselor_support")
         .order("created_at", { ascending: false });
-      const loadedConversations = data || [];
+      const loadedConversations = (data || []) as ConversationWithMember[];
       setConversations(loadedConversations);
 
       const requestedConversationId =
         typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("conversationId") : null;
       const requestedConversation = requestedConversationId
-        ? loadedConversations.find((conversation: Conversation) => conversation.id === requestedConversationId)
+      ? loadedConversations.find((conversation) => conversation.id === requestedConversationId)
         : null;
 
       if (requestedConversation && selectedConversation?.id !== requestedConversation.id) {
@@ -383,7 +392,7 @@ export default function CounselorMessagesPage() {
                 // Fetch the updated conversation with user profile
         const { data: updatedConversationWithUser } = await supabase
           .from("conversations")
-          .select("*")
+          .select(CONVERSATION_WITH_MEMBER_SELECT)
           .eq("id", payload.new.id)
           .eq("counselor_id", currentUserId)
           .eq("type", "counselor_support")
@@ -410,7 +419,7 @@ export default function CounselorMessagesPage() {
     channelRef.current = channel;
       };
 
-  const selectConversation = (conversation: Conversation) => {
+  const selectConversation = (conversation: ConversationWithMember) => {
     if (
       !currentUserId ||
       conversation.counselor_id !== currentUserId ||
@@ -584,7 +593,7 @@ export default function CounselorMessagesPage() {
                   >
                     <div className="flex items-center justify-between mb-1">
                       <p className="font-semibold text-sm text-dark-text">
-                        {formatDisplayId(convo.user_id, "user", "anonymized")}
+                        {getMemberUsername(convo)}
                       </p>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                         convo.status === "open" 
@@ -613,7 +622,7 @@ export default function CounselorMessagesPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-poppins font-semibold text-dark-text mb-1">
-                        Chat with {formatDisplayId(selectedConversation.user_id, "user", "anonymized")}
+                        Chat with {getMemberUsername(selectedConversation)}
                       </h3>
                       <p className="text-xs text-slate-600">
                         Status: <span className={`font-semibold ${selectedConversation.status === "open" ? "text-success-green" : "text-slate-600"}`}>

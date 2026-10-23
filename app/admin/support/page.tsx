@@ -52,6 +52,7 @@ export default function AdminSupportPage() {
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
   const [activeCategory, setActiveCategory] = useState<AdminSupportCategory>("questions");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const selectedConversationRef = useRef<Conversation | null>(null);
   const channelRef = useRef<any>(null);
   const conversationsChannelRef = useRef<any>(null);
   const { user: currentUser } = useAuth();
@@ -276,21 +277,30 @@ export default function AdminSupportPage() {
 
   const loadMessages = async (conversationId: string, conversation = selectedConversation) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !conversation) {
+    if (
+      !user ||
+      !conversation ||
+      conversation.id !== conversationId ||
+      !isAdminManageableConversation(conversation)
+    ) {
       setMessages([]);
       return;
     }
 
-    try {
-      const { data } = await supabase
-        .from("messages")
-        .select("id,role")
-        .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
-      setMessages(data || []);
-    } catch (error) {
-      console.error("Error loading messages:", error);
+    const { data, error } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("conversation_id", conversation.id)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("[ADMIN SUPPORT] Error loading messages:", error);
+      setMessages([]);
+      showToast(`Failed to load messages: ${error.message}`, "error");
+      return;
     }
+
+    setMessages((data || []) as Message[]);
   };
 
   const subscribeToMessages = (conversationId: string) => {
@@ -313,8 +323,8 @@ export default function AdminSupportPage() {
         filter: `conversation_id=eq.${conversationId}`
       },
       async (payload: any) => {
-                const newMessage = payload.new as Message;
-        if (!selectedConversation) {
+        const newMessage = payload.new as Message;
+        if (selectedConversationRef.current?.id !== conversationId) {
           return;
         }
 
@@ -403,6 +413,7 @@ export default function AdminSupportPage() {
       };
 
   const selectConversation = (conversation: Conversation) => {
+    selectedConversationRef.current = conversation;
     setSelectedConversation(conversation);
     loadMessages(conversation.id, conversation);
     subscribeToMessages(conversation.id);
