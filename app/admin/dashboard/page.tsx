@@ -78,7 +78,6 @@ export default function AdminDashboardPage() {
   const [recentEntries, setRecentEntries] = useState<RecentJournalEntry[]>([]);
   const [announcements, setAnnouncements] = useState<AnnouncementRow[]>([]);
   const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [firstUserDate, setFirstUserDate] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -693,55 +692,6 @@ export default function AdminDashboardPage() {
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-lg text-sm font-poppins text-dark-text font-medium transition-all duration-200 hover:shadow-md active:scale-95">
             <span>📢</span> New Announcement
           </button>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowNotifications((value) => !value)}
-              className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white hover:bg-gray-50"
-              aria-label="Open notifications"
-            >
-              <Image src="/icons/notifications.svg" alt="" width={18} height={18} className="object-contain" />
-              {notifications.length > 0 && (
-                <span className="absolute -right-1 -top-1 rounded-full bg-[#F4A6A6] px-1.5 py-0.5 text-xs font-bold text-[#1E293B]">
-                  {notifications.length}
-                </span>
-              )}
-            </button>
-            {showNotifications && (
-              <div className="absolute right-0 top-full z-40 mt-2 w-80 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-xl">
-                <div className="border-b border-gray-100 px-4 py-3">
-                  <p className="text-sm font-semibold font-poppins text-dark-text">Notifications</p>
-                </div>
-                <div className="max-h-80 overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <p className="px-4 py-6 text-center text-sm font-inter text-slate-600">
-                      No new notifications.
-                    </p>
-                  ) : (
-                    notifications.map((notification) => (
-                      <Link
-                        key={notification.id}
-                        href={notification.href || "#"}
-                        className="block border-b border-gray-50 px-4 py-3 last:border-b-0 hover:bg-gray-50"
-                        onClick={() => setShowNotifications(false)}
-                      >
-                        <div className="flex items-start gap-3">
-                          <span className={`mt-1 h-2.5 w-2.5 rounded-full ${
-                            notification.type === "message" ? "bg-success-green" : "bg-primary-blue"
-                          }`} />
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-semibold font-poppins text-dark-text">{notification.title}</p>
-                            <p className="mt-1 line-clamp-2 text-xs font-inter text-slate-700">{notification.message}</p>
-                            <p className="mt-1 text-xs font-inter text-slate-600">{formatTime(notification.created_at)}</p>
-                          </div>
-                        </div>
-                      </Link>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
@@ -1091,8 +1041,12 @@ export default function AdminDashboardPage() {
             ) : recentAlerts.map((alert, index) => (
               <div key={alert.id || index} className="p-3 bg-rose-50 border-l-4 border-l-rose-500 border border-rose-200 rounded-xl flex justify-between items-center">
                 <div>
-                  <p className="text-sm font-semibold font-poppins text-dark-text">{alert.trigger || "Distress alert"}</p>
-                  <p className="text-xs text-slate-700 font-inter">{alert.notes || alert.severity || "Recent alert"} • {formatTime(alert.created_at)}</p>
+                  <p className="text-sm font-semibold font-poppins text-dark-text">
+                    {alert.trigger
+                      ? alert.trigger.replace(/Journal entry [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:/gi, "Entry:")
+                      : "Distress alert"}
+                  </p>
+                  <p className="text-xs text-slate-700 font-inter">{alert.severity || "Recent alert"} • {formatTime(alert.created_at)}</p>
                 </div>
                 <Link href="/admin/distress-alerts" className="rounded-lg bg-amber-500 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-amber-600">Review</Link>
               </div>

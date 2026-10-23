@@ -207,6 +207,14 @@ export default function JournalEditorPage() {
         return;
       }
 
+      // Trigger behavioral/wellness/DRI recomputation after deletion
+      // so indicators reflect the updated entry count
+      fetch("/api/behavioral/compute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lookbackDays: 30 }),
+      }).catch(() => {});
+
       router.push("/journal/history");
     } catch (error) {
       console.error("Error deleting entry:", error);

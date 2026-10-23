@@ -98,6 +98,13 @@ export default function JournalHistoryPage() {
 
           // Update local state to remove the deleted entry
           setEntries(prev => prev.filter(entry => entry.id !== id));
+
+          // Trigger behavioral/wellness/DRI recomputation after deletion
+          fetch("/api/behavioral/compute", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lookbackDays: 30 }),
+          }).catch(() => {});
         } catch (error) {
           console.error("Error deleting entry:", error);
         } finally {
