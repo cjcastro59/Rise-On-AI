@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Portal } from "../ui/Portal";
 import { createClient } from "@/lib/supabase/client";
 import { XIcon } from "../ui/icons/XIcon";
+import { formatDisplayId } from "@/lib/display-ids";
 
 const supabase = createClient();
 
@@ -26,9 +27,15 @@ interface ViewUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
+  anonymizeIdentity?: boolean;
 }
 
-export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
+export function ViewUserModal({
+  isOpen,
+  onClose,
+  userId,
+  anonymizeIdentity = false,
+}: ViewUserModalProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -59,7 +66,11 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
 
         let query = supabase
           .from("user_profiles")
-          .select("*")
+          .select(
+            anonymizeIdentity
+              ? "id,role,age,sex,created_at,is_active"
+              : "*"
+          )
           .eq("id", userId);
 
         if ((viewerProfile as any)?.role === "counselor") {
@@ -81,7 +92,7 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
     };
 
     fetchUser();
-  }, [userId, isOpen]);
+  }, [userId, isOpen, anonymizeIdentity]);
 
   if (!isOpen) return null;
 
@@ -115,32 +126,45 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
           ) : user ? (
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
-                    Full Name
-                  </p>
-                  <p className="text-sm font-poppins text-dark-text">
-                    {user.first_name && user.last_name
-                      ? `${user.first_name} ${user.last_name}`
-                      : user.first_name || user.last_name || user.username || "Unknown"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
-                    Username
-                  </p>
-                  <p className="text-sm font-poppins text-dark-text">
-                    {user.username || "-"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
-                    Email
-                  </p>
-                  <p className="text-sm font-poppins text-dark-text">
-                    {user.email || "-"}
-                  </p>
-                </div>
+                {anonymizeIdentity ? (
+                  <div>
+                    <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
+                      User ID
+                    </p>
+                    <p className="text-sm font-poppins text-dark-text">
+                      {formatDisplayId(user.id, "user", "anonymized")}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
+                        Full Name
+                      </p>
+                      <p className="text-sm font-poppins text-dark-text">
+                        {user.first_name && user.last_name
+                          ? `${user.first_name} ${user.last_name}`
+                          : user.first_name || user.last_name || user.username || "Unknown"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
+                        Username
+                      </p>
+                      <p className="text-sm font-poppins text-dark-text">
+                        {user.username || "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
+                        Email
+                      </p>
+                      <p className="text-sm font-poppins text-dark-text">
+                        {user.email || "-"}
+                      </p>
+                    </div>
+                  </>
+                )}
                 <div>
                   <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
                     Role
@@ -179,7 +203,7 @@ export function ViewUserModal({ isOpen, onClose, userId }: ViewUserModalProps) {
                 </div>
               </div>
 
-              {user.bio && (
+              {!anonymizeIdentity && user.bio && (
                 <div>
                   <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">
                     Bio

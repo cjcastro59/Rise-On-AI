@@ -12,11 +12,10 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Toast, useToast } from "@/components/ui/Toast";
+import { formatDisplayId } from "@/lib/display-ids";
 
 type UserProfile = {
   id: string;
-  username: string | null;
-  full_name: string | null;
 };
 
 type JournalEntry = {
@@ -40,7 +39,7 @@ type DistressLog = {
 
 const getUserDisplayName = (user?: UserProfile | null) => {
   if (!user) return "Unknown user";
-  return user.full_name || user.username || user.id.slice(0, 8);
+  return formatDisplayId(user.id, "user", "anonymized");
 };
 
 // Format trigger text — replace raw UUID in "Journal entry {uuid}:" with a short ID
@@ -92,7 +91,7 @@ export default function CounselorCasesPage() {
         const counselorId = currentUser.id;
         const { data: assignedProfiles, error: assignedProfilesError } = await supabase
           .from("user_profiles")
-          .select("id,username,full_name")
+          .select("id")
           .eq("role", "user")
           .eq("assigned_counselor_id", counselorId);
 
@@ -258,7 +257,7 @@ export default function CounselorCasesPage() {
       promises.push(
         supabase
           .from("user_profiles")
-          .select("id,full_name,username,role")
+          .select("id,role")
           .in("id", missingFullIds)
           .then(({ data }: { data: any[] | null }) => data || [])
       );
@@ -270,7 +269,7 @@ export default function CounselorCasesPage() {
         ...missingShortIds.map((shortId) =>
           supabase
             .from("user_profiles")
-            .select("id,full_name,username,role")
+            .select("id,role")
             .ilike("id", `${shortId}%`)
             .limit(1)
             .then(({ data }: { data: any[] | null }) => data || [])
@@ -284,10 +283,10 @@ export default function CounselorCasesPage() {
       const map: Record<string, string> = {};
       results.flat().forEach((p: any) => {
         if (!p?.id) return;
-        const name = p.full_name || p.username || p.id.slice(0, 8);
         const roleLabel = p.role === "owner" ? "Owner" : p.role === "admin" ? "Admin" : "Counselor";
-        map[p.id] = `${roleLabel} ${name}`;
-        map[p.id.slice(0, 8)] = `${roleLabel} ${name}`;
+        const displayId = formatDisplayId(p.id, "user", "anonymized");
+        map[p.id] = `${roleLabel} ${displayId}`;
+        map[p.id.slice(0, 8)] = `${roleLabel} ${displayId}`;
       });
       if (Object.keys(map).length > 0) {
         setStaffProfiles((prev) => ({ ...prev, ...map }));

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,10 +10,9 @@ import { Database } from "@/types/database";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 import { Toast, useToast } from "@/components/ui/Toast";
+import { formatDisplayId } from "@/lib/display-ids";
 
-type Conversation = Database["public"]["Tables"]["conversations"]["Row"] & {
-  user?: Database["public"]["Tables"]["user_profiles"]["Row"];
-};
+type Conversation = Database["public"]["Tables"]["conversations"]["Row"];
 type Message = Database["public"]["Tables"]["messages"]["Row"];
 type UserProfile = Database["public"]["Tables"]["user_profiles"]["Row"];
 
@@ -69,16 +69,17 @@ export default function CounselorMessagesPage() {
           table: "conversations"
         },
         async (payload: any) => {
-                    if (payload.new.counselor_id !== userId) return;
+          if (
+            payload.new.counselor_id !== userId ||
+            payload.new.type !== "counselor_support"
+          ) return;
 
           // Fetch the user profile for the new conversation
           const { data: newConversationWithUser } = await supabase
             .from("conversations")
-            .select(`
-              *,
-              user:user_profiles!user_id(*)
-            `)
+            .select("*")
             .eq("id", payload.new.id)
+            .eq("type", "counselor_support")
             .single();
           
           if (newConversationWithUser) {
@@ -96,7 +97,10 @@ export default function CounselorMessagesPage() {
           table: "conversations"
         },
         async (payload: any) => {
-                    if (payload.new.counselor_id !== userId) {
+          if (
+            payload.new.counselor_id !== userId ||
+            payload.new.type !== "counselor_support"
+          ) {
             setConversations((prev) => prev.filter((c) => c.id !== payload.new.id));
             setSelectedConversation((prev) => (prev?.id === payload.new.id ? null : prev));
             return;
@@ -105,11 +109,9 @@ export default function CounselorMessagesPage() {
           // Fetch the updated conversation with user profile
           const { data: updatedConversationWithUser } = await supabase
             .from("conversations")
-            .select(`
-              *,
-              user:user_profiles!user_id(*)
-            `)
+            .select("*")
             .eq("id", payload.new.id)
+            .eq("type", "counselor_support")
             .single();
           
           if (updatedConversationWithUser) {
@@ -163,12 +165,10 @@ export default function CounselorMessagesPage() {
       async (payload: any) => {
         const { data: newConversationWithUser } = await supabase
           .from("conversations")
-          .select(`
-            *,
-            user:user_profiles!user_id(*)
-          `)
+          .select("*")
           .eq("id", payload.new.id)
           .eq("counselor_id", currentUserId)
+          .eq("type", "counselor_support")
           .single();
 
         if (newConversationWithUser) {
@@ -189,7 +189,10 @@ export default function CounselorMessagesPage() {
         table: "conversations"
       },
       async (payload: any) => {
-        if (payload.new.counselor_id !== currentUserId) {
+        if (
+          payload.new.counselor_id !== currentUserId ||
+          payload.new.type !== "counselor_support"
+        ) {
           setConversations((prev) => prev.filter((c) => c.id !== payload.new.id));
           setSelectedConversation((prev) => (prev?.id === payload.new.id ? null : prev));
           return;
@@ -197,12 +200,10 @@ export default function CounselorMessagesPage() {
 
         const { data: updatedConversationWithUser } = await supabase
           .from("conversations")
-          .select(`
-            *,
-            user:user_profiles!user_id(*)
-          `)
+          .select("*")
           .eq("id", payload.new.id)
           .eq("counselor_id", currentUserId)
+          .eq("type", "counselor_support")
           .single();
 
         if (updatedConversationWithUser) {
@@ -272,11 +273,9 @@ export default function CounselorMessagesPage() {
     try {
       const { data } = await supabase
         .from("conversations")
-        .select(`
-          *,
-          user:user_profiles!user_id(*)
-        `)
+        .select("*")
         .eq("counselor_id", userId)
+        .eq("type", "counselor_support")
         .order("created_at", { ascending: false });
       const loadedConversations = data || [];
       setConversations(loadedConversations);
@@ -296,7 +295,11 @@ export default function CounselorMessagesPage() {
   };
 
   const loadMessages = async (conversationId: string, conversation = selectedConversation) => {
-    if (!currentUserId || conversation?.counselor_id !== currentUserId) {
+    if (
+      !currentUserId ||
+      conversation?.counselor_id !== currentUserId ||
+      conversation.type !== "counselor_support"
+    ) {
       setMessages([]);
       return;
     }
@@ -380,11 +383,10 @@ export default function CounselorMessagesPage() {
                 // Fetch the updated conversation with user profile
         const { data: updatedConversationWithUser } = await supabase
           .from("conversations")
-          .select(`
-            *,
-            user:user_profiles!user_id(*)
-          `)
+          .select("*")
           .eq("id", payload.new.id)
+          .eq("counselor_id", currentUserId)
+          .eq("type", "counselor_support")
           .single();
         
         if (updatedConversationWithUser) {
@@ -409,7 +411,11 @@ export default function CounselorMessagesPage() {
       };
 
   const selectConversation = (conversation: Conversation) => {
-    if (!currentUserId || conversation.counselor_id !== currentUserId) return;
+    if (
+      !currentUserId ||
+      conversation.counselor_id !== currentUserId ||
+      conversation.type !== "counselor_support"
+    ) return;
     selectedConversationRef.current = conversation;
     setSelectedConversation(conversation);
     loadMessages(conversation.id, conversation);
@@ -418,7 +424,7 @@ export default function CounselorMessagesPage() {
 
   const sendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
-                    if (!newMessage.trim() || !selectedConversation || !currentUserId || selectedConversation.counselor_id !== currentUserId) return;
+                    if (!newMessage.trim() || !selectedConversation || !currentUserId || selectedConversation.counselor_id !== currentUserId || selectedConversation.type !== "counselor_support") return;
 
     const messageContent = newMessage.trim();
     
@@ -543,11 +549,6 @@ export default function CounselorMessagesPage() {
     }
   };
 
-  const getFirstName = (name: string | undefined | null) => {
-    if (!name) return "Unknown User";
-    return name.split(' ')[0];
-  };
-
   return (
     <div className="space-y-6">
       <Toast {...toast} onClose={closeToast} />
@@ -583,7 +584,7 @@ export default function CounselorMessagesPage() {
                   >
                     <div className="flex items-center justify-between mb-1">
                       <p className="font-semibold text-sm text-dark-text">
-                        {getFirstName(convo.user?.full_name) || getFirstName(convo.user?.username) || "Unknown User"}
+                        {formatDisplayId(convo.user_id, "user", "anonymized")}
                       </p>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                         convo.status === "open" 
@@ -612,7 +613,7 @@ export default function CounselorMessagesPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-poppins font-semibold text-dark-text mb-1">
-                        Chat with {getFirstName(selectedConversation.user?.full_name) || getFirstName(selectedConversation.user?.username) || "Unknown User"}
+                        Chat with {formatDisplayId(selectedConversation.user_id, "user", "anonymized")}
                       </h3>
                       <p className="text-xs text-slate-600">
                         Status: <span className={`font-semibold ${selectedConversation.status === "open" ? "text-success-green" : "text-slate-600"}`}>
@@ -650,7 +651,11 @@ export default function CounselorMessagesPage() {
                     messages.map((msg, index) => {
                       const isCurrentUser = currentUserId && msg.sender_id === currentUserId;
                       const senderProfile = senderProfiles[msg.sender_id];
-                      const senderName = getFirstName(senderProfile?.full_name) || getFirstName(senderProfile?.username) || "Unknown";
+                      const getFirstName = (name: string | undefined | null) =>
+                        name ? name.split(" ")[0] : "Unknown";
+                      const senderName = getFirstName(senderProfile?.full_name) ||
+                        getFirstName(senderProfile?.username) ||
+                        "Unknown";
                       const isAdminSender =
                         senderProfile?.role === "admin" || senderProfile?.role === "owner";
                       const showAvatar = !isCurrentUser && (index === 0 || messages[index - 1].sender_id !== msg.sender_id);
@@ -666,9 +671,11 @@ export default function CounselorMessagesPage() {
                               {showAvatar ? (
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-primary-blue/20 to-lavender/20 flex items-center justify-center flex-shrink-0 border border-primary-blue/10 mt-1">
                                   {senderProfile?.avatar_url ? (
-                                    <img 
-                                      src={senderProfile.avatar_url} 
-                                      alt={senderName} 
+                                    <Image
+                                      src={senderProfile.avatar_url}
+                                      alt={senderName}
+                                      width={32}
+                                      height={32}
                                       className="w-full h-full rounded-full object-cover"
                                     />
                                   ) : (

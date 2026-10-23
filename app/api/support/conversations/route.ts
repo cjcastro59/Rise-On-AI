@@ -83,20 +83,8 @@ async function getAuthenticatedClients() {
   return { adminClient, authClient, user, profile: profile as SupportProfile };
 }
 
-function getConversationChannel(
-  conversation: Conversation,
-  profile: SupportProfile,
-  recipients: Record<string, SupportProfile>
-): SupportChannel {
-  if (conversation.counselor_id === profile.assigned_counselor_id) {
-    return "counselor";
-  }
-
-  const recipientRole = conversation.counselor_id
-    ? recipients[conversation.counselor_id]?.role
-    : null;
-
-  return recipientRole === "counselor" ? "counselor" : "admin";
+function getConversationChannel(conversation: Conversation): SupportChannel {
+  return conversation.type === "counselor_support" ? "counselor" : "admin";
 }
 
 async function loadUserConversations(
@@ -106,7 +94,7 @@ async function loadUserConversations(
 ) {
   const { data: conversations, error: conversationsError } = await adminClient
     .from("conversations")
-    .select("id,user_id,counselor_id,status,created_at,updated_at")
+    .select("id,user_id,counselor_id,type,status,created_at,updated_at")
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });
 
@@ -160,7 +148,7 @@ async function loadUserConversations(
 
   const typedConversations = rows.map((conversation) => ({
     ...conversation,
-    channel: getConversationChannel(conversation, profile, recipients),
+    channel: getConversationChannel(conversation),
     unreadCount: unreadCounts[conversation.id] || 0,
   }));
 
@@ -325,7 +313,7 @@ export async function POST(request: NextRequest) {
       .eq("id", latestClosedConversation.id)
       .eq("user_id", auth.user.id)
       .eq("status", "closed")
-      .select("id,user_id,counselor_id,status,created_at,updated_at")
+      .select("id,user_id,counselor_id,type,status,created_at,updated_at")
       .maybeSingle();
 
     if (reopenError) {
@@ -398,9 +386,10 @@ export async function POST(request: NextRequest) {
     .insert({
       user_id: auth.user.id,
       counselor_id: recipient?.id ?? null,
+      type: channel === "counselor" ? "counselor_support" : "admin_support",
       status: "open",
     })
-    .select("id,user_id,counselor_id,status,created_at,updated_at")
+    .select("id,user_id,counselor_id,type,status,created_at,updated_at")
     .maybeSingle();
 
   if (insertError || !conversation) {
@@ -440,7 +429,7 @@ export async function PATCH(request: NextRequest) {
 
   const { data: conversation, error: conversationError } = await auth.adminClient
     .from("conversations")
-    .select("id,user_id,counselor_id,status,created_at,updated_at")
+    .select("id,user_id,counselor_id,type,status,created_at,updated_at")
     .eq("id", conversationId)
     .maybeSingle();
 
@@ -491,7 +480,7 @@ export async function DELETE(request: NextRequest) {
 
   const { data: conversation, error: conversationError } = await auth.adminClient
     .from("conversations")
-    .select("id,user_id,counselor_id")
+    .select("id,user_id,counselor_id,type")
     .eq("id", conversationId)
     .maybeSingle();
 
@@ -507,6 +496,13 @@ export async function DELETE(request: NextRequest) {
     conversation.counselor_id === auth.user.id;
   const isSupportAdministrator =
     auth.profile.role === "admin" || auth.profile.role === "owner";
+
+  if (
+    isSupportAdministrator &&
+    !["admin_support", "feedback"].includes(conversation.type)
+  ) {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+  }
 
   if (!isParticipant && !isSupportAdministrator) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });

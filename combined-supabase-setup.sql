@@ -132,10 +132,30 @@ CREATE TABLE IF NOT EXISTS public.conversations (
     id UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
     counselor_id UUID REFERENCES public.user_profiles(id) ON DELETE SET NULL,
+    type TEXT NOT NULL DEFAULT 'counselor_support'
+        CHECK (type IN ('counselor_support', 'admin_support', 'feedback')),
     status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE public.conversations
+    ADD COLUMN IF NOT EXISTS type TEXT NOT NULL DEFAULT 'counselor_support'
+    CHECK (type IN ('counselor_support', 'admin_support', 'feedback'));
+
+UPDATE public.conversations AS c
+SET type = CASE
+    WHEN recipient.role = 'counselor' THEN 'counselor_support'
+    ELSE 'admin_support'
+END
+FROM public.user_profiles AS recipient
+WHERE c.counselor_id = recipient.id
+  AND c.type = 'counselor_support';
+
+UPDATE public.conversations
+SET type = 'admin_support'
+WHERE counselor_id IS NULL
+  AND type = 'counselor_support';
 
 -- messages table
 CREATE TABLE IF NOT EXISTS public.messages (
@@ -748,12 +768,15 @@ CREATE POLICY "Users can view their own conversations"
 CREATE POLICY "Counselors/admins can view all conversations"
     ON public.conversations
     FOR SELECT
-    USING (public.is_current_user_admin_or_owner());
+    USING (
+        public.is_current_user_admin_or_owner()
+        AND type IN ('admin_support', 'feedback')
+    );
 
 CREATE POLICY "Counselors can view assigned conversations"
     ON public.conversations
     FOR SELECT
-    USING (auth.uid() = counselor_id);
+    USING (auth.uid() = counselor_id AND type = 'counselor_support');
 
 CREATE POLICY "Users can insert their own conversations"
     ON public.conversations
@@ -763,19 +786,28 @@ CREATE POLICY "Users can insert their own conversations"
 CREATE POLICY "Counselors/admins can insert conversations"
     ON public.conversations
     FOR INSERT
-    WITH CHECK (public.is_current_user_admin_or_owner());
+    WITH CHECK (
+        public.is_current_user_admin_or_owner()
+        AND type IN ('admin_support', 'feedback')
+    );
 
 CREATE POLICY "Counselors/admins can update conversations"
     ON public.conversations
     FOR UPDATE
-    USING (public.is_current_user_admin_or_owner())
-    WITH CHECK (public.is_current_user_admin_or_owner());
+    USING (
+        public.is_current_user_admin_or_owner()
+        AND type IN ('admin_support', 'feedback')
+    )
+    WITH CHECK (
+        public.is_current_user_admin_or_owner()
+        AND type IN ('admin_support', 'feedback')
+    );
 
 CREATE POLICY "Counselors can update assigned conversations"
     ON public.conversations
     FOR UPDATE
-    USING (auth.uid() = counselor_id)
-    WITH CHECK (auth.uid() = counselor_id);
+    USING (auth.uid() = counselor_id AND type = 'counselor_support')
+    WITH CHECK (auth.uid() = counselor_id AND type = 'counselor_support');
 
 -- ------------------------------
 -- RLS Policies for messages
@@ -807,7 +839,14 @@ CREATE POLICY "Users can view messages from their conversations"
 
 CREATE POLICY "Counselors/admins can view all messages"
     ON public.messages FOR SELECT
-    USING (public.is_current_user_admin_or_owner());
+    USING (
+        public.is_current_user_admin_or_owner()
+        AND EXISTS (
+            SELECT 1 FROM public.conversations
+            WHERE conversations.id = messages.conversation_id
+              AND conversations.type IN ('admin_support', 'feedback')
+        )
+    );
 
 CREATE POLICY "Counselors can view messages of assigned conversations"
     ON public.messages FOR SELECT
@@ -816,6 +855,7 @@ CREATE POLICY "Counselors can view messages of assigned conversations"
             SELECT 1 FROM public.conversations
             WHERE conversations.id = messages.conversation_id
               AND conversations.counselor_id = auth.uid()
+              AND conversations.type = 'counselor_support'
         )
     );
 
@@ -831,9 +871,16 @@ CREATE POLICY "Users can insert messages to their conversations"
         )
     );
 
-CREATE POLICY "Counselors/admins can insert messages"
+CREATE POLICY "Admins can insert messages to admin support conversations"
     ON public.messages FOR INSERT
-    WITH CHECK (public.is_current_user_admin_or_owner());
+    WITH CHECK (
+        public.is_current_user_admin_or_owner()
+        AND EXISTS (
+            SELECT 1 FROM public.conversations
+            WHERE conversations.id = messages.conversation_id
+              AND conversations.type IN ('admin_support', 'feedback')
+        )
+    );
 
 CREATE POLICY "Counselors can insert messages to assigned conversations"
     ON public.messages FOR INSERT
@@ -843,6 +890,7 @@ CREATE POLICY "Counselors can insert messages to assigned conversations"
             SELECT 1 FROM public.conversations
             WHERE conversations.id = messages.conversation_id
               AND conversations.counselor_id = auth.uid()
+              AND conversations.type = 'counselor_support'
         )
     );
 
@@ -864,10 +912,24 @@ CREATE POLICY "Users can mark their messages read"
         )
     );
 
-CREATE POLICY "Counselors/admins can mark messages read"
+CREATE POLICY "Admins can mark admin support messages read"
     ON public.messages FOR UPDATE
-    USING (public.is_current_user_admin_or_owner())
-    WITH CHECK (public.is_current_user_admin_or_owner());
+    USING (
+        public.is_current_user_admin_or_owner()
+        AND EXISTS (
+            SELECT 1 FROM public.conversations
+            WHERE conversations.id = messages.conversation_id
+              AND conversations.type IN ('admin_support', 'feedback')
+        )
+    )
+    WITH CHECK (
+        public.is_current_user_admin_or_owner()
+        AND EXISTS (
+            SELECT 1 FROM public.conversations
+            WHERE conversations.id = messages.conversation_id
+              AND conversations.type IN ('admin_support', 'feedback')
+        )
+    );
 
 CREATE POLICY "Counselors can mark messages read for assigned convos"
     ON public.messages FOR UPDATE
@@ -876,6 +938,7 @@ CREATE POLICY "Counselors can mark messages read for assigned convos"
             SELECT 1 FROM public.conversations
             WHERE conversations.id = messages.conversation_id
               AND conversations.counselor_id = auth.uid()
+              AND conversations.type = 'counselor_support'
         )
     )
     WITH CHECK (
@@ -883,6 +946,7 @@ CREATE POLICY "Counselors can mark messages read for assigned convos"
             SELECT 1 FROM public.conversations
             WHERE conversations.id = messages.conversation_id
               AND conversations.counselor_id = auth.uid()
+              AND conversations.type = 'counselor_support'
         )
     );
 

@@ -76,12 +76,6 @@ const getProfileName = (profile?: UserProfile | null) => {
   return profile.full_name || profile.username || profile.id.slice(0, 8);
 };
 
-const getStudentName = (userId: string, profiles: Record<string, UserProfile>) => {
-  const profile = profiles[userId];
-  if (!profile) return userId.slice(0, 8);
-  return profile.full_name || profile.username || userId.slice(0, 8);
-};
-
 const groupEntriesByUser = (entries: JournalEntry[]) => {
   return entries.reduce<Record<string, JournalEntry[]>>((acc, entry) => {
     const userId = entry.user_id;
@@ -95,7 +89,6 @@ export default function AdminDistressAlertsPage() {
   const [logs, setLogs] = useState<DistressLog[]>([]);
   const [entriesByUser, setEntriesByUser] = useState<Record<string, JournalEntry[]>>({});
   const [counselors, setCounselors] = useState<UserProfile[]>([]);
-  const [studentProfilesByUser, setStudentProfilesByUser] = useState<Record<string, UserProfile>>({});
   const [conversationsByUser, setConversationsByUser] = useState<Record<string, Conversation>>({});
   const [assignedCounselorByUser, setAssignedCounselorByUser] = useState<Record<string, string | null>>({});
   const [assignmentSelections, setAssignmentSelections] = useState<Record<string, string>>({});
@@ -183,24 +176,6 @@ export default function AdminDistressAlertsPage() {
           console.error("Error loading counselors:", counselorsError);
         } else {
           counselorProfiles = (counselorsData || []) as UserProfile[];
-        }
-
-        // Fetch student profiles for the distress log users
-        if (logUserIds.length > 0) {
-          const { data: studentProfilesData, error: studentProfilesError } = await supabase
-            .from("user_profiles")
-            .select("id,username,full_name")
-            .in("id", logUserIds);
-
-          if (studentProfilesError) {
-            console.error("Error loading student profiles:", studentProfilesError);
-          } else if (studentProfilesData) {
-            const profileMap: Record<string, UserProfile> = {};
-            (studentProfilesData as UserProfile[]).forEach((profile) => {
-              profileMap[profile.id] = profile;
-            });
-            if (mounted) setStudentProfilesByUser(profileMap);
-          }
         }
 
         if (logUserIds.length > 0) {
@@ -362,6 +337,7 @@ export default function AdminDistressAlertsPage() {
   const formatAlertId = (id: string) => formatDisplayId(id, "alert", displayIdFormat);
   const formatUserId = (id: string) => formatDisplayId(id, "user", displayIdFormat);
   const formatEntryId = (id: string) => formatDisplayId(id, "entry", displayIdFormat);
+  const getStudentName = (userId: string) => formatDisplayId(userId, "user", "anonymized");
 
   const renderEntrySnippets = (userId: string) => {
     const entries = entriesByUser[userId] || [];
@@ -437,7 +413,7 @@ export default function AdminDistressAlertsPage() {
         setStaffProfiles((prev) => ({ ...prev, ...map }));
       }
     });
-  }, [selectedAlert, supabase]);
+  }, [selectedAlert, staffProfiles, supabase]);
 
   const resolveNotesText = (notes: string): string => {
     let resolved = notes;
@@ -680,7 +656,7 @@ export default function AdminDistressAlertsPage() {
               <div className="grid gap-3 md:grid-cols-5">
                 <div>
                   <p className="text-xs text-slate-600 uppercase tracking-wide">Student</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">{getStudentName(alert.user_id, studentProfilesByUser)}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-900">{getStudentName(alert.user_id)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-600 uppercase tracking-wide">Last alert</p>
@@ -744,7 +720,7 @@ export default function AdminDistressAlertsPage() {
                       <p title={alert.id} className="inline-block max-w-[200px] truncate align-bottom font-mono text-sm font-semibold text-slate-900">{formatAlertId(alert.id)}</p>
                     </td>
                     <td className="w-32 overflow-hidden p-3">
-                      <p title={alert.user_id} className="inline-block max-w-[200px] truncate text-sm font-semibold text-slate-900 hover:text-indigo-600">{getStudentName(alert.user_id, studentProfilesByUser)}</p>
+                      <p title={getStudentName(alert.user_id)} className="inline-block max-w-[200px] truncate text-sm font-semibold text-slate-900 hover:text-indigo-600">{getStudentName(alert.user_id)}</p>
                     </td>
                     <td className="w-48 overflow-hidden p-3">
                       <p title={alert.trigger || "Pending review"} className="inline-block max-w-[200px] truncate align-bottom text-sm font-inter text-dark-text">{formatTrigger(alert.trigger)}</p>
@@ -838,7 +814,7 @@ export default function AdminDistressAlertsPage() {
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Student</p>
-                  <p title={selectedAlert.user_id} className="mt-1 text-sm font-poppins font-semibold text-slate-900">{getStudentName(selectedAlert.user_id, studentProfilesByUser)}</p>
+                  <p title={getStudentName(selectedAlert.user_id)} className="mt-1 text-sm font-poppins font-semibold text-slate-900">{getStudentName(selectedAlert.user_id)}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Created</p>
