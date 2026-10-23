@@ -13,6 +13,8 @@ import { useRouter } from "next/navigation";
 import { buildCsvExport, buildJsonExport, downloadTextFile, type ExportSection } from "@/lib/export-data";
 import { validatePasswordStrength } from "@/lib/password";
 import { Toast, useToast } from "@/components/ui/Toast";
+import { EyeIcon } from "@/components/ui/icons/EyeIcon";
+import { EyeOffIcon } from "@/components/ui/icons/EyeOffIcon";
 
 type SettingSection = "notifications" | "privacy" | "language" | "security" | "data";
 
@@ -60,6 +62,9 @@ export default function SettingsPage() {
   const [pwCurrent, setPwCurrent] = useState("");
   const [pwNew, setPwNew] = useState("");
   const [pwConfirm, setPwConfirm] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
 
   // Delete account confirmation
@@ -906,18 +911,33 @@ export default function SettingsPage() {
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-poppins text-slate-700 mb-1 block">Current Password</label>
-                <Input type="password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} placeholder="Enter current password" />
+                <div className="relative">
+                  <Input type={showCurrentPassword ? "text" : "password"} value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} placeholder="Enter current password" className="pr-10" />
+                  <button type="button" onClick={() => setShowCurrentPassword((visible) => !visible)} aria-label={showCurrentPassword ? "Hide current password" : "Show current password"} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
+                    {showCurrentPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="text-xs font-poppins text-slate-700 mb-1 block">New Password</label>
-                <Input type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} placeholder="Enter new password" />
+                <div className="relative">
+                  <Input type={showNewPassword ? "text" : "password"} value={pwNew} onChange={(e) => setPwNew(e.target.value)} placeholder="Enter new password" className="pr-10" />
+                  <button type="button" onClick={() => setShowNewPassword((visible) => !visible)} aria-label={showNewPassword ? "Hide new password" : "Show new password"} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
+                    {showNewPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                  </button>
+                </div>
                 <p className="mt-1 text-xs text-slate-600 font-inter">
                   Use at least 8 characters with uppercase, lowercase, number, and special character.
                 </p>
               </div>
               <div>
                 <label className="text-xs font-poppins text-slate-700 mb-1 block">Confirm New Password</label>
-                <Input type="password" value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)} placeholder="Repeat new password" />
+                <div className="relative">
+                  <Input type={showConfirmPassword ? "text" : "password"} value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)} placeholder="Repeat new password" className="pr-10" />
+                  <button type="button" onClick={() => setShowConfirmPassword((visible) => !visible)} aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
+                    {showConfirmPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+                  </button>
+                </div>
               </div>
             </div>
             <div className="flex gap-3 mt-6">

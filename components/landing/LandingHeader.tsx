@@ -55,7 +55,7 @@ export default function LandingHeader() {
         <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
           <Link
             href="#how-it-works"
-            className="text-dark-text hover:text-primary-blue text-sm font-poppins font-medium transition-colors"
+            className="text-slate-800 hover:text-primary-blue text-sm font-poppins font-semibold transition-colors"
           >
             How It Works
           </Link>
@@ -114,7 +114,7 @@ export default function LandingHeader() {
             <Link
               href="#how-it-works"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-dark-text font-poppins font-medium text-base py-2 border-b border-light-gray/60 hover:text-primary-blue transition-colors"
+              className="text-slate-800 font-poppins font-semibold text-base py-2 border-b border-light-gray/60 hover:text-primary-blue transition-colors"
             >
               How It Works
             </Link>

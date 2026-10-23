@@ -62,43 +62,43 @@ export default async function LandingPage() {
         </div>
 
         {/* 4 feature pills — single row on desktop, wraps on mobile */}
-        <div className="flex flex-wrap justify-center gap-3 text-sm font-inter text-dark-text/70">
-          <span className="flex items-center gap-1.5 bg-light-gray rounded-full px-4 py-2">🇵🇭 Taglish & English</span>
-          <span className="flex items-center gap-1.5 bg-light-gray rounded-full px-4 py-2">💡 AI Sentiment Analysis</span>
-          <span className="flex items-center gap-1.5 bg-light-gray rounded-full px-4 py-2">🔒 Private & Secure</span>
-          <span className="flex items-center gap-1.5 bg-light-gray rounded-full px-4 py-2">📊 Mood Trend Tracking</span>
+        <div className="flex flex-wrap justify-center gap-3 text-sm font-inter">
+          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-semibold shadow-2xs">🇵🇭 Taglish & English</span>
+          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-semibold shadow-2xs">💡 AI Sentiment Analysis</span>
+          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-semibold shadow-2xs">🔒 Private & Secure</span>
+          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200 text-slate-700 text-xs font-semibold shadow-2xs">📊 Mood Trend Tracking</span>
         </div>
       </section>
 
       {/* How It Works */}
       <section id="how-it-works" className="bg-light-gray py-12 scroll-mt-6">
         <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-2xl font-dm-serif text-dark-text mb-8">How It Works</h2>
+          <h2 className="text-2xl font-dm-serif text-slate-800 font-semibold mb-8">How It Works</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             <div className="bg-white rounded-2xl p-6">
-              <div className="w-10 h-10 bg-light-gray rounded-full flex items-center justify-center mx-auto mb-3 border border-teal">
-                <span className="text-sm font-poppins font-bold text-dark-text">1</span>
+              <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center mx-auto mb-3">
+                <span>1</span>
               </div>
-              <h3 className="font-poppins font-semibold text-dark-text mb-2 text-sm">Write Today</h3>
-              <p className="text-xs font-inter text-dark-text/70">
+              <h3 className="text-slate-800 font-bold text-sm mb-1">Write Today</h3>
+              <p className="text-slate-600 font-medium text-xs leading-relaxed max-w-[220px] mx-auto">
                 Express your thoughts freely in English, Filipino, or Taglish.
               </p>
             </div>
             <div className="bg-white rounded-2xl p-6">
-              <div className="w-10 h-10 bg-light-gray rounded-full flex items-center justify-center mx-auto mb-3 border border-primary-blue">
-                <span className="text-sm font-poppins font-bold text-dark-text">2</span>
+              <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center mx-auto mb-3">
+                <span>2</span>
               </div>
-              <h3 className="font-poppins font-semibold text-dark-text mb-2 text-sm">AI Analyzes</h3>
-              <p className="text-xs font-inter text-dark-text/70">
+              <h3 className="text-slate-800 font-bold text-sm mb-1">AI Analyzes</h3>
+              <p className="text-slate-600 font-medium text-xs leading-relaxed max-w-[220px] mx-auto">
                 Our AI reads your entry and detects your emotional tone.
               </p>
             </div>
             <div className="bg-white rounded-2xl p-6">
-              <div className="w-10 h-10 bg-light-gray rounded-full flex items-center justify-center mx-auto mb-3 border border-lavender">
-                <span className="text-sm font-poppins font-bold text-dark-text">3</span>
+              <div className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center mx-auto mb-3">
+                <span>3</span>
               </div>
-              <h3 className="font-poppins font-semibold text-dark-text mb-2 text-sm">Gain Insights</h3>
-              <p className="text-xs font-inter text-dark-text/70">
+              <h3 className="text-slate-800 font-bold text-sm mb-1">Gain Insights</h3>
+              <p className="text-slate-600 font-medium text-xs leading-relaxed max-w-[220px] mx-auto">
                 Receive supportive reflections and track your wellness over time.
               </p>
             </div>

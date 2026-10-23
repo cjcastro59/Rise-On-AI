@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { EyeIcon } from "@/components/ui/icons/EyeIcon";
+import { EyeOffIcon } from "@/components/ui/icons/EyeOffIcon";
 import ReCAPTCHA from "react-google-recaptcha";
 import { PrivacyPolicyModal } from "@/components/PrivacyPolicyModal";
 
@@ -52,6 +54,8 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   const router = useRouter();
@@ -311,13 +315,26 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       </div>
 
       <div className="space-y-2">
-        <Input
-          type="password"
-          value={formData.password}
-          onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
-          required
-          placeholder="Password"
-        />
+        <div className="relative">
+          <Input
+            type={showPassword ? "text" : "password"}
+            value={formData.password}
+            onChange={(e) => setFormData((prev) => ({ ...prev, password: e.target.value }))}
+            required
+            placeholder="Password"
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((visible) => !visible)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500"
+          >
+            {showPassword
+              ? <EyeOffIcon className="h-5 w-5" />
+              : <EyeIcon className="h-5 w-5" />}
+          </button>
+        </div>
         <div className="grid grid-cols-1 gap-1">
           {passwordRequirements.map((req, i) => (
             <PasswordRequirement key={i} label={req.label} satisfied={req.satisfied} />
@@ -326,13 +343,26 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       </div>
 
       <div className="space-y-1">
-        <Input
-          type="password"
-          value={formData.confirmPassword}
-          onChange={(e) => setFormData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
-          required
-          placeholder="Confirm Password"
-        />
+        <div className="relative">
+          <Input
+            type={showConfirmPassword ? "text" : "password"}
+            value={formData.confirmPassword}
+            onChange={(e) => setFormData((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+            required
+            placeholder="Confirm Password"
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword((visible) => !visible)}
+            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500"
+          >
+            {showConfirmPassword
+              ? <EyeOffIcon className="h-5 w-5" />
+              : <EyeIcon className="h-5 w-5" />}
+          </button>
+        </div>
         {formData.confirmPassword.length > 0 && (
           <div className="flex items-center gap-2 text-xs font-inter">
             <span
