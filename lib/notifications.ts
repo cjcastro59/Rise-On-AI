@@ -71,7 +71,17 @@ export function loadUserNotifications(userId: string): AppNotification[] {
   try {
     const raw = localStorage.getItem(getStorageKey(userId));
     if (!raw) return [];
-    return JSON.parse(raw) as AppNotification[];
+    const all = JSON.parse(raw) as AppNotification[];
+    // Only keep notifications from the last 7 days
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const recent = all.filter(
+      (n) => new Date(n.timestamp).getTime() > sevenDaysAgo
+    );
+    // If we filtered some out, save the cleaned list
+    if (recent.length !== all.length) {
+      saveUserNotifications(userId, recent);
+    }
+    return recent;
   } catch {
     return [];
   }
@@ -96,12 +106,16 @@ export function addNotification(
 ): AppNotification[] {
   const existing = loadUserNotifications(userId);
   
-  // Avoid duplicates within the last 6 hours for reminders/checkins
+  // Avoid duplicates — for daily reminders use 20hr window, others use 6hr
+  const dedupeWindow = notification.type === "daily_reminder"
+    ? 20 * 60 * 60 * 1000
+    : 6 * 60 * 60 * 1000;
+
   const isDuplicate = existing.some(
     (n) =>
       n.type === notification.type &&
       n.title === notification.title &&
-      Date.now() - new Date(n.timestamp).getTime() < 6 * 60 * 60 * 1000
+      Date.now() - new Date(n.timestamp).getTime() < dedupeWindow
   );
   if (isDuplicate) return existing;
 
