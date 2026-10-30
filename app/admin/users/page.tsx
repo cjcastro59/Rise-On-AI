@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useConfirmation } from "@/components/layout/ConfirmationModalProvider";
 import { ViewUserModal } from "@/components/admin/ViewUserModal";
+import AddStudentModal from "@/components/admin/AddStudentModal";
 import { EyeIcon } from "@/components/ui/icons/EyeIcon";
 import { PowerIcon } from "@/components/ui/icons/PowerIcon";
 import { TrashIcon } from "@/components/ui/icons/TrashIcon";
@@ -59,6 +60,8 @@ export default function AdminUsersPage() {
     isOpen: boolean;
     userId: string;
   }>({ isOpen: false, userId: "" });
+
+  const [addStudentOpen, setAddStudentOpen] = useState(false);
 
   // Check if current user can perform admin actions
   const canManageUsers = currentUserProfile?.role === "owner" || currentUserProfile?.role === "admin";
@@ -412,6 +415,18 @@ export default function AdminUsersPage() {
         userId={viewModal.userId}
       />
 
+      {/* Add Student Modal */}
+      <AddStudentModal
+        isOpen={addStudentOpen}
+        onClose={() => setAddStudentOpen(false)}
+        onSuccess={() => {
+          setAddStudentOpen(false);
+          showToast("Student account created successfully!", "success");
+          // Refresh the user list
+          window.location.reload();
+        }}
+      />
+
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
@@ -445,6 +460,12 @@ export default function AdminUsersPage() {
             className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50"
           >
             <span>📊</span> Export CSV
+          </button>
+          <button
+            onClick={() => setAddStudentOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] rounded-lg text-sm font-poppins text-dark-text font-medium hover:shadow-md transition-all"
+          >
+            <span>➕</span> Add Student
           </button>
         </div>
       </div>

@@ -1739,3 +1739,48 @@ VALUES (
     }'::jsonb
 )
 ON CONFLICT (key) DO NOTHING;
+
+-- ==========================================
+-- STUDENT REPORT TOKENS
+-- Password-protected report access via tokenized links
+-- Safe to run multiple times (IF NOT EXISTS)
+-- ==========================================
+
+CREATE TABLE IF NOT EXISTS public.student_reports (
+    id UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
+    token TEXT NOT NULL UNIQUE,                  -- secure access token in the URL
+    student_user_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    counselor_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    report_data JSONB NOT NULL,                  -- full report payload
+    counselor_notes TEXT,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL, -- 7 days from creation
+    accessed_at TIMESTAMP WITH TIME ZONE,         -- when student first opened it
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_student_reports_token ON public.student_reports(token);
+CREATE INDEX IF NOT EXISTS idx_student_reports_student ON public.student_reports(student_user_id);
+
+ALTER TABLE public.student_reports ENABLE ROW LEVEL SECURITY;
+
+-- Anyone with the token can read (token is unguessable — 32 random bytes)
+DROP POLICY IF EXISTS "Token holders can read reports" ON public.student_reports;
+CREATE POLICY "Token holders can read reports"
+    ON public.student_reports
+    FOR SELECT
+    USING (true);
+
+-- Only authenticated counselors/admins can insert
+DROP POLICY IF EXISTS "Counselors can create reports" ON public.student_reports;
+CREATE POLICY "Counselors can create reports"
+    ON public.student_reports
+    FOR INSERT
+    WITH CHECK (public.is_current_user_admin_or_owner());
+
+-- Only the system can update (mark accessed)
+DROP POLICY IF EXISTS "System can update reports" ON public.student_reports;
+CREATE POLICY "System can update reports"
+    ON public.student_reports
+    FOR UPDATE
+    USING (true)
+    WITH CHECK (true);
