@@ -1753,6 +1753,7 @@ CREATE TABLE IF NOT EXISTS public.student_reports (
     counselor_id UUID NOT NULL REFERENCES public.user_profiles(id) ON DELETE CASCADE,
     report_data JSONB NOT NULL,                  -- full report payload
     counselor_notes TEXT,
+    report_password_hash TEXT NOT NULL,          -- bcrypt hash of the 8-char report password
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL, -- 7 days from creation
     accessed_at TIMESTAMP WITH TIME ZONE,         -- when student first opened it
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
