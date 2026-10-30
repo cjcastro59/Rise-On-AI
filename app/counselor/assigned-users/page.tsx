@@ -6,7 +6,6 @@ import { ViewUserModal } from "@/components/admin/ViewUserModal";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDisplayId, loadDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-ids";
-import StudentReportModal, { type StudentReportData } from "@/components/counselor/StudentReportModal";
 
 const PAGE_SIZE = 10;
 
@@ -47,10 +46,6 @@ export default function CounselorAssignedUsersPage() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
-  const [reportModal, setReportModal] = useState<{ isOpen: boolean; data: StudentReportData | null }>({
-    isOpen: false,
-    data: null,
-  });
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
@@ -89,7 +84,7 @@ export default function CounselorAssignedUsersPage() {
           ? { data: [] }
           : await supabase
             .from("user_profiles")
-            .select("id,first_name,last_name,full_name,username,email,age,sex,is_active,created_at,updated_at")
+            .select("id,age,sex,is_active,created_at,updated_at")
             .eq("role", "user")
             .in("id", assignedUserIds)
             .order("created_at", { ascending: false });
@@ -218,84 +213,6 @@ export default function CounselorAssignedUsersPage() {
   const totalPages = Math.ceil(filteredUsers.length / PAGE_SIZE);
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const paginatedUsers = filteredUsers.slice(startIndex, startIndex + PAGE_SIZE);
-
-  // Generate report for a specific user
-  const handleGenerateReport = async (user: typeof processedUsers[0]) => {
-    const rawUser = user.rawUser as any;
-    const studentName =
-      rawUser.full_name ||
-      (rawUser.first_name && rawUser.last_name ? `${rawUser.first_name} ${rawUser.last_name}` : null) ||
-      rawUser.username ||
-      user.fullName;
-
-    const studentEmail = rawUser.email || null;
-
-    // Fetch wellness and risk data for this user
-    const [wellnessRes, riskRes, counselorRes] = await Promise.all([
-      supabase
-        .from("behavioral_indicators")
-        .select("wellness_score,wellness_level,behavioral_trend_score,journaling_frequency_score,mood_consistency_score,consecutive_negative_count")
-        .eq("user_id", user.id)
-        .eq("lookback_days", 30)
-        .not("wellness_score", "is", null)
-        .order("window_end_date", { ascending: false })
-        .limit(1),
-      supabase
-        .from("distress_risk_assessments")
-        .select("risk_level,total_points")
-        .eq("user_id", user.id)
-        .eq("lookback_days", 30)
-        .order("assessed_date", { ascending: false })
-        .limit(1),
-      supabase
-        .from("user_profiles")
-        .select("full_name,first_name,last_name,username")
-        .eq("id", currentUser!.id)
-        .single(),
-    ]);
-
-    const wellness = wellnessRes.data?.[0] as any;
-    const risk = riskRes.data?.[0] as any;
-    const counselorProfile = counselorRes.data as any;
-
-    const counselorName =
-      counselorProfile?.full_name ||
-      (counselorProfile?.first_name && counselorProfile?.last_name
-        ? `${counselorProfile.first_name} ${counselorProfile.last_name}`
-        : counselorProfile?.username || "Counselor");
-
-    // Compute sentiment breakdown from journal entries
-    const userEntries = journalEntries.filter(e => e.user_id === user.id);
-    const counts = { positive: 0, negative: 0, distress: 0 };
-    userEntries.forEach((e: any) => {
-      const s = (e.sentiment as string | null) ?? "";
-      if (s === "positive") counts.positive++;
-      else if (s === "distress") counts.distress++;
-      else if (s === "negative") counts.negative++;
-    });
-    const total = userEntries.length || 1;
-
-    const reportData: StudentReportData = {
-      studentId: user.id,
-      studentName,
-      studentEmail,
-      totalEntries: userEntries.length,
-      positivePercent: Math.round((counts.positive / total) * 100),
-      negativePercent: Math.round((counts.negative / total) * 100),
-      distressPercent: Math.round((counts.distress / total) * 100),
-      wellnessScore: wellness?.wellness_score ?? null,
-      wellnessLevel: wellness?.wellness_level ?? null,
-      distressRiskLevel: risk?.risk_level ?? null,
-      totalPoints: risk?.total_points ?? 0,
-      bts: wellness?.behavioral_trend_score ?? null,
-      jfs: wellness?.journaling_frequency_score ?? null,
-      mcs: wellness?.mood_consistency_score ?? null,
-      cnc: wellness?.consecutive_negative_count ?? 0,
-      counselorName,
-    };
-
-    setReportModal({ isOpen: true, data: reportData });
-  };
 
   if (loading) {
     return (
@@ -439,21 +356,14 @@ export default function CounselorAssignedUsersPage() {
                     )}
                   </td>
                   <td className="py-4 px-3">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedUserId(user.id);
-                          setViewModalOpen(true);
-                        }}
-                        className="rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-slate-800">
-                        View
-                      </button>
-                      <button
-                        onClick={() => handleGenerateReport(user)}
-                        className="rounded-lg bg-primary-blue px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-primary-blue/80">
-                        Report
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedUserId(user.id);
+                        setViewModalOpen(true);
+                      }}
+                      className="rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-slate-800">
+                      View
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -515,15 +425,6 @@ export default function CounselorAssignedUsersPage() {
         userId={selectedUserId}
         anonymizeIdentity
       />
-
-      {/* Student Report Modal */}
-      {reportModal.data && (
-        <StudentReportModal
-          isOpen={reportModal.isOpen}
-          onClose={() => setReportModal({ isOpen: false, data: null })}
-          data={reportModal.data}
-        />
-      )}
     </div>
   );
 }
