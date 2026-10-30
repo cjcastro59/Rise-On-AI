@@ -36,7 +36,6 @@ export default function StudentReportModal({ isOpen, onClose, data }: StudentRep
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [reportPassword, setReportPassword] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -92,7 +91,6 @@ export default function StudentReportModal({ isOpen, onClose, data }: StudentRep
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Failed to send report.");
       setSent(true);
-      if (result.reportPassword) setReportPassword(result.reportPassword);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -256,7 +254,7 @@ export default function StudentReportModal({ isOpen, onClose, data }: StudentRep
           <div className="no-print sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex flex-wrap gap-3 justify-between items-center">
             <div className="flex-1">
               {error && <p className="text-xs text-red-600 font-inter">{error}</p>}
-              {sent && !reportPassword && <p className="text-xs text-green-600 font-inter">✅ Report sent to {data.studentEmail}</p>}
+              {sent && <p className="text-xs text-green-600 font-inter">✅ Report sent to {data.studentEmail}</p>}
             </div>
             <div className="flex gap-3">
               <Button variant="secondary" onClick={handlePrint} className="flex items-center gap-2">
@@ -271,42 +269,6 @@ export default function StudentReportModal({ isOpen, onClose, data }: StudentRep
               </Button>
             </div>
           </div>
-
-          {/* Report Password Display — shown after sending */}
-          {sent && reportPassword && (
-            <div className="no-print bg-indigo-50 border-t-2 border-indigo-200 px-6 py-5">
-              <div className="flex items-start gap-3">
-                <span className="text-2xl">🔑</span>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold font-poppins text-indigo-900 mb-1">
-                    Report Password — Give this to the student separately
-                  </p>
-                  <p className="text-xs text-indigo-700 font-inter mb-3">
-                    The email was sent to <strong>{data.studentEmail}</strong> with the report link. 
-                    The student needs this password to open the report. 
-                    <strong> Do not include this in any email.</strong>
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <div className="bg-white border-2 border-indigo-300 rounded-xl px-6 py-3 flex-1 text-center">
-                      <p className="text-2xl font-mono font-bold tracking-[0.3em] text-indigo-900">
-                        {reportPassword}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => navigator.clipboard.writeText(reportPassword)}
-                      className="px-3 py-3 bg-indigo-100 hover:bg-indigo-200 rounded-xl text-indigo-700 text-sm font-poppins transition-colors"
-                      title="Copy password"
-                    >
-                      📋
-                    </button>
-                  </div>
-                  <p className="text-xs text-indigo-600 font-inter mt-2">
-                    This password is only shown once. Note it down or print this screen.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </Portal>

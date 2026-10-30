@@ -6,19 +6,6 @@ import crypto from "crypto";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Generate a readable 8-char alphanumeric report password (no ambiguous chars)
-function generateReportPassword(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 8 }, () =>
-    chars[Math.floor(Math.random() * chars.length)]
-  ).join("");
-}
-
-// Simple SHA-256 hash — good enough for a short-lived report password
-function hashPassword(password: string): string {
-  return crypto.createHash("sha256").update(password).digest("hex");
-}
-
 export async function POST(request: Request) {
   try {
     const supabase = createClient() as any;
@@ -38,7 +25,14 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { studentUserId, studentEmail, studentName, reportDate, counselorNotes, ...reportPayload } = body;
+    const {
+      studentUserId,
+      studentEmail,
+      studentName,
+      reportDate,
+      counselorNotes,
+      ...reportPayload
+    } = body;
 
     if (!studentEmail || !studentName || !studentUserId) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -50,12 +44,11 @@ export async function POST(request: Request) {
         ? `${counselorProfile.first_name} ${counselorProfile.last_name}`
         : counselorProfile?.username || "Your Counselor");
 
-    // Generate secure token (URL) and separate report password
+    // Generate a secure random token (32 bytes = 64 hex chars)
     const token = crypto.randomBytes(32).toString("hex");
-    const reportPassword = generateReportPassword();
-    const passwordHash = hashPassword(reportPassword);
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
+    // Use service role to insert (bypasses RLS insert policy issues)
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const adminClient = serviceKey
       ? createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceKey, {
@@ -67,9 +60,14 @@ export async function POST(request: Request) {
       token,
       student_user_id: studentUserId,
       counselor_id: user.id,
-      report_data: { studentName, studentEmail, reportDate, counselorName, ...reportPayload },
+      report_data: {
+        studentName,
+        studentEmail,
+        reportDate,
+        counselorName,
+        ...reportPayload,
+      },
       counselor_notes: counselorNotes || null,
-      report_password_hash: passwordHash,
       expires_at: expiresAt.toISOString(),
     });
 
@@ -94,34 +92,33 @@ export async function POST(request: Request) {
     <div style="background:#ffffff;padding:32px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 16px 16px;">
       <p style="font-size:15px;color:#1e293b;margin:0 0 16px 0;">Hello <strong>${studentName}</strong>,</p>
       <p style="font-size:14px;color:#475569;line-height:1.6;margin:0 0 24px 0;">
-        Your guidance counselor <strong>${counselorName}</strong> has prepared a confidential wellness progress 
-        report for you. Click the button below to access it.
+        Your guidance counselor <strong>${counselorName}</strong> has prepared a wellness progress report for you.
+        This report contains your emotional wellness assessment based on your journal activity.
       </p>
+
+      <!-- Lock Icon + Password Protection Notice -->
       <div style="background:#f0f9ff;border:2px solid #A8DADC;border-radius:12px;padding:24px;margin-bottom:24px;text-align:center;">
         <p style="font-size:32px;margin:0 0 8px 0;">🔒</p>
         <p style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 8px 0;">Password-Protected Report</p>
         <p style="font-size:13px;color:#475569;margin:0 0 16px 0;">
-          This report is confidential. You will need a <strong>report password</strong> provided separately 
-          by your counselor to open it.
+          This report is confidential. You will need to enter your <strong>Rise On AI login password</strong> to access it.
         </p>
         <a href="${reportUrl}"
            style="display:inline-block;background:linear-gradient(135deg,#A8DADC,#CDB4DB);color:#1e293b;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:12px;">
-          Open My Report →
+          View My Report →
         </a>
       </div>
-      <div style="background:#f8f9fa;border:1px solid #e2e8f0;border-radius:8px;padding:12px;margin-bottom:24px;">
-        <p style="font-size:12px;color:#64748b;margin:0;line-height:1.5;">
-          📌 <strong>Note:</strong> The password to open this report will be given to you by your counselor separately — 
-          it is <em>not</em> included in this email for security reasons.
-        </p>
-      </div>
+
       <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:12px;margin-bottom:24px;">
         <p style="font-size:12px;color:#92400e;margin:0;line-height:1.5;">
-          ⚠️ This link expires on <strong>${expiresAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}</strong>. 
-          Do not share this link or password with anyone.
+          ⚠️ <strong>Security Notice:</strong> This link expires in <strong>7 days</strong> on ${expiresAt.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}.
+          Do not share this link with anyone. Only you should access this report.
         </p>
       </div>
-      <div style="text-align:center;padding-top:24px;border-top:1px solid #e2e8f0;">
+
+      <p style="font-size:13px;color:#94a3b8;margin:0;">If you did not expect this email, please contact your guidance counselor.</p>
+
+      <div style="text-align:center;margin-top:32px;padding-top:24px;border-top:1px solid #e2e8f0;">
         <p style="font-size:12px;color:#94a3b8;margin:0;">Rise On AI — Pamantasan ng Lungsod ng Pasig</p>
         <p style="font-size:12px;color:#94a3b8;margin:4px 0 0 0;">College of Arts and Sciences Mental Wellness Support System</p>
       </div>
@@ -139,22 +136,16 @@ export async function POST(request: Request) {
 
     if (emailError) {
       console.error("Email send error:", emailError);
+      // Token was saved — return URL so counselor can share manually
       return NextResponse.json({
         success: true,
         emailSent: false,
-        reportPassword, // Return password so counselor sees it regardless
         reportUrl,
-        warning: "Email failed. Share the link and password with the student manually.",
+        warning: "Report link created but email failed. Share the link manually.",
       });
     }
 
-    // Always return the report password so counselor can give it to the student
-    return NextResponse.json({
-      success: true,
-      emailSent: true,
-      reportPassword, // Counselor must give this to the student separately
-    });
-
+    return NextResponse.json({ success: true, emailSent: true });
   } catch (err: any) {
     console.error("Send report error:", err);
     return NextResponse.json({ error: err.message || "Internal error" }, { status: 500 });

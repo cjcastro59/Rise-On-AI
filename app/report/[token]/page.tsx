@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,44 +33,42 @@ type ReportRecord = {
   student_user_id: string;
   report_data: ReportData;
   counselor_notes: string | null;
-  report_password_hash: string;
   expires_at: string;
   accessed_at: string | null;
 };
 
-// Client-side SHA-256 via Web Crypto API
-async function sha256(message: string): Promise<string> {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
 export default function ReportPage() {
   const params = useParams();
+  const router = useRouter();
   const token = params?.token as string;
   const supabase = createClient();
 
-  const [step, setStep] = useState<"loading" | "password" | "unlocked" | "expired" | "notfound">("loading");
+  const [step, setStep] = useState<"loading" | "password" | "unlocked" | "expired" | "notfound" | "error">("loading");
   const [report, setReport] = useState<ReportRecord | null>(null);
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
-  const [attempts, setAttempts] = useState(0);
 
   useEffect(() => {
     const fetchReport = async () => {
       if (!token) { setStep("notfound"); return; }
+
       const { data, error } = await supabase
         .from("student_reports")
         .select("*")
         .eq("token", token)
         .single();
+
       if (error || !data) { setStep("notfound"); return; }
-      if (new Date() > new Date(data.expires_at)) { setStep("expired"); return; }
+
+      const now = new Date();
+      const expiry = new Date(data.expires_at);
+      if (now > expiry) { setStep("expired"); return; }
+
       setReport(data as ReportRecord);
       setStep("password");
     };
+
     fetchReport();
   }, [token, supabase]);
 
@@ -78,30 +76,54 @@ export default function ReportPage() {
     e.preventDefault();
     if (!report || !password.trim()) return;
 
-    if (attempts >= 5) {
-      setAuthError("Too many incorrect attempts. Please contact your counselor.");
-      return;
-    }
-
     setVerifying(true);
     setAuthError(null);
 
     try {
-      const inputHash = await sha256(password.trim().toUpperCase());
-      const correct = inputHash === report.report_password_hash;
+      // Verify by signing in — if it succeeds and the user matches the student_user_id, unlock
+      const { data: { user }, error: signInError } = await supabase.auth.getUser();
 
-      if (!correct) {
-        const newAttempts = attempts + 1;
-        setAttempts(newAttempts);
-        const remaining = 5 - newAttempts;
-        setAuthError(
-          remaining > 0
-            ? `Incorrect password. ${remaining} attempt${remaining !== 1 ? "s" : ""} remaining.`
-            : "Too many incorrect attempts. Please contact your counselor."
-        );
-        setPassword("");
-        setVerifying(false);
-        return;
+      if (signInError || !user) {
+        // Not logged in — try signing in with the student's email + entered password
+        const reportData = report.report_data;
+        const { data: signInData, error: loginError } = await supabase.auth.signInWithPassword({
+          email: reportData.studentEmail,
+          password: password.trim(),
+        });
+
+        if (loginError || !signInData.user) {
+          setAuthError("Incorrect password. Please enter your Rise On AI login password.");
+          setVerifying(false);
+          return;
+        }
+
+        // Verify the logged-in user matches the report's student
+        if (signInData.user.id !== report.student_user_id) {
+          await supabase.auth.signOut();
+          setAuthError("This report does not belong to your account.");
+          setVerifying(false);
+          return;
+        }
+      } else {
+        // Already logged in — verify it's the right student
+        if (user.id !== report.student_user_id) {
+          setAuthError("This report belongs to a different account. Please log in as the correct student.");
+          setVerifying(false);
+          return;
+        }
+
+        // Verify password by trying to re-authenticate
+        const reportData = report.report_data;
+        const { error: verifyError } = await supabase.auth.signInWithPassword({
+          email: reportData.studentEmail,
+          password: password.trim(),
+        });
+
+        if (verifyError) {
+          setAuthError("Incorrect password.");
+          setVerifying(false);
+          return;
+        }
       }
 
       // Mark as accessed
@@ -147,7 +169,7 @@ export default function ReportPage() {
         <div className="text-center max-w-sm">
           <p className="text-5xl mb-4">⏰</p>
           <h1 className="text-2xl font-dm-serif text-dark-text mb-2">Report Link Expired</h1>
-          <p className="text-slate-600 font-inter text-sm">This report link has expired. Please ask your counselor to send a new one.</p>
+          <p className="text-slate-600 font-inter text-sm">This report link has expired. Please ask your counselor to send a new report.</p>
         </div>
       </div>
     );
@@ -160,27 +182,22 @@ export default function ReportPage() {
           <div className="text-center mb-8">
             <div className="text-5xl mb-4">🔒</div>
             <h1 className="text-2xl font-dm-serif text-dark-text mb-2">Confidential Report</h1>
-            <p className="text-sm text-slate-600 font-inter leading-relaxed">
-              Enter the <strong>report password</strong> provided by your counselor to access your wellness progress report.
+            <p className="text-sm text-slate-600 font-inter">
+              Enter your <strong>Rise On AI password</strong> to access your wellness progress report prepared by your counselor.
             </p>
           </div>
 
           <form onSubmit={handleUnlock} className="space-y-4">
             <div>
-              <label className="text-xs font-poppins text-slate-600 mb-1 block">Report Password</label>
+              <label className="text-xs font-poppins text-slate-600 mb-1 block">Your Rise On AI Password</label>
               <Input
-                type="text"
+                type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value.toUpperCase())}
-                placeholder="e.g. AB3K9PQR"
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
                 required
                 autoFocus
-                className="text-center text-xl font-mono tracking-widest uppercase"
-                maxLength={8}
               />
-              <p className="text-xs text-slate-500 font-inter mt-1 text-center">
-                8-character code — ask your counselor if you don&apos;t have it
-              </p>
             </div>
 
             {authError && (
@@ -189,7 +206,7 @@ export default function ReportPage() {
               </div>
             )}
 
-            <Button type="submit" disabled={verifying || attempts >= 5} className="w-full">
+            <Button type="submit" disabled={verifying} className="w-full">
               {verifying ? "Verifying..." : "Unlock Report →"}
             </Button>
           </form>
@@ -210,12 +227,18 @@ export default function ReportPage() {
   const rd = report?.report_data;
   if (!rd) return null;
 
-  const wellnessCfg = rd.wellnessLevel ? WELLNESS_LEVEL_CONFIG[rd.wellnessLevel as WellnessLevel] : null;
-  const riskCfg = rd.distressRiskLevel ? DISTRESS_RISK_CONFIG[rd.distressRiskLevel as DistressRiskLevel] : null;
+  const wellnessCfg = rd.wellnessLevel
+    ? WELLNESS_LEVEL_CONFIG[rd.wellnessLevel as WellnessLevel]
+    : null;
+  const riskCfg = rd.distressRiskLevel
+    ? DISTRESS_RISK_CONFIG[rd.distressRiskLevel as DistressRiskLevel]
+    : null;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
+
+        {/* Print button */}
         <div className="flex justify-end mb-4 print:hidden">
           <button
             onClick={() => window.print()}
@@ -225,7 +248,10 @@ export default function ReportPage() {
           </button>
         </div>
 
+        {/* Report */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+
+          {/* Header */}
           <div className="bg-gradient-to-r from-[#A8DADC] to-[#CDB4DB] p-8 text-center">
             <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Rise On AI</h1>
             <p className="text-sm text-slate-700 font-poppins">Student Wellness Progress Report</p>
@@ -263,7 +289,7 @@ export default function ReportPage() {
                 <p className="text-xl font-dm-serif font-bold mt-2" style={{ color: riskCfg?.color || "#6b7280" }}>
                   {rd.distressRiskLevel || "—"}
                 </p>
-                <p className="text-xs text-slate-500 font-inter mt-1">{rd.totalPoints} point{rd.totalPoints !== 1 ? "s" : ""}</p>
+                <p className="text-xs text-slate-500 font-inter mt-1">{rd.totalPoints} point{rd.totalPoints !== 1 ? "s" : ""} total</p>
               </div>
             </div>
 
