@@ -22,7 +22,6 @@ interface Profile {
   mood_baseline_details: string | null;
   family_background: string | null;
   living_situation: string | null;
-  goals: string[] | null;
   language: string | null;
   mood_reminder_enabled: boolean;
   mood_reminder_time: string | null;
@@ -48,7 +47,6 @@ export default function ProfilePage() {
     age: null,
     sex: null,
     mood_baseline: null,
-    goals: [],
     language: "English",
     mood_reminder_enabled: false,
     mood_reminder_time: null,
@@ -219,18 +217,6 @@ export default function ProfilePage() {
       setProfile(originalProfile);
     }
     setIsEditing(false);
-  };
-
-  const toggleGoal = (goal: string) => {
-    const currentGoals = profile.goals || [];
-    const newGoals = currentGoals.includes(goal)
-      ? currentGoals.filter(g => g !== goal)
-      : [...currentGoals, goal];
-
-    setProfile({
-      ...profile,
-      goals: newGoals,
-    });
   };
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -693,41 +679,6 @@ export default function ProfilePage() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Wellness Goals */}
-        <Card variant="white" className="p-6 overflow-hidden">
-          <h3 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4 flex items-center gap-2">
-            <span>🎯</span>
-            Wellness Goals
-          </h3>
-          <div className="space-y-2">
-            {[
-              "Reduce stress",
-              "Improve mood",
-              "Build gratitude",
-              "Track emotions",
-              "Better sleep",
-              "Self-reflection",
-            ].map((goal) => (
-              <div
-                key={goal}
-                className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${(profile.goals || []).includes(goal)
-                  ? "bg-primary-blue/10 border border-primary-blue/30"
-                  : "bg-light-gray/50 hover:bg-light-gray/80"
-                  }`}
-                onClick={() => isEditing && toggleGoal(goal)}
-              >
-                <div className={`w-5 h-5 shrink-0 rounded flex items-center justify-center ${(profile.goals || []).includes(goal)
-                  ? "bg-primary-blue text-white"
-                  : "bg-light-gray"
-                  }`}>
-                  {(profile.goals || []).includes(goal) && "✓"}
-                </div>
-                <span className="text-sm font-inter text-dark-text">{goal}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-
         {/* Recent Activity */}
         <Card variant="white" className="p-6">
           <h3 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4 flex items-center gap-2">

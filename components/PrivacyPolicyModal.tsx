@@ -31,7 +31,6 @@ a) Account Information
    • Full name, username, email address
    • Password (stored in hashed form only — we never store your plain-text password)
    • Sex, language preference
-   • Wellness goals selected during registration
 
 b) Sensitive Personal Information
    • Journal entries — your personal reflections and thoughts
@@ -177,10 +176,10 @@ export function PrivacyPolicyModal({ onClose }: PrivacyPolicyModalProps) {
   const { hasPermission } = useRBAC();
   const supabase = useMemo(() => createClient(), []);
   const { toast, showToast, closeToast } = useToast();
-  const [privacyPolicy,  setPrivacyPolicy]  = useState("");
-  const [isEditing,      setIsEditing]      = useState(false);
+  const [privacyPolicy, setPrivacyPolicy] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
   const [editablePolicy, setEditablePolicy] = useState("");
-  const [loading,        setLoading]        = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const getDefaultPrivacyPolicy = useCallback(() => RA_10173_POLICY, []);
 

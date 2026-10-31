@@ -31,7 +31,7 @@ const logLoginActivity = async (
   try {
     const { error } = await supabase.from("activity_logs").insert({
       user_id: userId,
-      action:  "login",
+      action: "login",
       details,
     });
     if (error) {
@@ -43,19 +43,19 @@ const logLoginActivity = async (
 };
 
 export function LoginForm() {
-  const [email,          setEmail]          = useState("");
-  const [password,       setPassword]       = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [totpCode,       setTotpCode]       = useState("");
-  const [loading,        setLoading]        = useState(false);
-  const [error,          setError]          = useState("");
-  const [step,           setStep]           = useState<LoginStep>("credentials");
-  const [userId,         setUserId]         = useState<string | null>(null);
+  const [totpCode, setTotpCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [step, setStep] = useState<LoginStep>("credentials");
+  const [userId, setUserId] = useState<string | null>(null);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   // S6: attempt counter — resets when step returns to "credentials"
-  const [totpAttempts,   setTotpAttempts]   = useState(0);
+  const [totpAttempts, setTotpAttempts] = useState(0);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
-  const router  = useRouter();
+  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const recaptchaKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
@@ -68,16 +68,15 @@ export function LoginForm() {
     try {
       const formData = JSON.parse(pendingDataStr);
       const profileData: Record<string, unknown> = {
-        username:           formData.username,
-        email:              formData.email,
-        role:               "user",
-        full_name:          `${formData.firstName} ${formData.lastName}`,
-        first_name:         formData.firstName,
-        last_name:          formData.lastName,
-        goals:              formData.goals,
-        language:           formData.language,
+        username: formData.username,
+        email: formData.email,
+        role: "user",
+        full_name: `${formData.firstName} ${formData.lastName}`,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        language: formData.language,
         two_factor_enabled: false,
-        two_factor_secret:  null,
+        two_factor_secret: null,
       };
       const { error: updateError } = await supabase
         .from("user_profiles")
@@ -236,7 +235,7 @@ export function LoginForm() {
         }
         verified = (await verifyTOTP({
           secret: normalizedSecret,
-          token:  normalizedTotpCode,
+          token: normalizedTotpCode,
           guardrails: createGuardrails({ MIN_SECRET_BYTES: 10 }),
         })).valid;
       } catch (verificationError) {

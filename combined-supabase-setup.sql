@@ -21,7 +21,6 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   bio TEXT,
   avatar_url TEXT,
   mood_baseline TEXT,
-  goals TEXT[],
   language TEXT,
   -- Mood preferences
   mood_reminder_enabled BOOLEAN DEFAULT false,
@@ -212,7 +211,6 @@ END $$;
 -- Update any existing researcher role to counselor or user
 UPDATE public.user_profiles SET role = 'counselor' WHERE role = 'researcher';
 UPDATE public.user_profiles SET role = 'user' WHERE role NOT IN ('user', 'counselor', 'admin', 'owner');
-ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS goals TEXT[];
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS language TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS privacy_settings JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS notification_settings JSONB DEFAULT '{}'::jsonb;

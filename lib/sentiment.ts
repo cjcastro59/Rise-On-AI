@@ -39,7 +39,7 @@ export interface AnalysisResult {
 
 export const getSentimentFromMood = (mood: string | null): Sentiment => {
   const positiveMoods = ["happy", "calm", "excited", "hopeful", "grateful", "proud", "peaceful"];
-  const negativeMoods = ["anxious", "sad", "frustrated", "overwhelmed", "tired", "stressed", "lonely", "bored", "confused"];
+  const negativeMoods = ["anxious", "sad", "frustrated", "overwhelmed", "tired", "stressed", "lonely", "bored"];
   if (!mood) return "positive";
   const normalized = mood.toLowerCase();
   if (positiveMoods.includes(normalized)) return "positive";
@@ -202,8 +202,8 @@ export function analyzeEntry(
     distressPercentage: percentages.distress,
     emotions:
       sentiment === "positive" ? ["Calm", "Hope"] :
-      sentiment === "negative" ? ["Sadness", "Stress"] :
-      ["Distress"],
+        sentiment === "negative" ? ["Sadness", "Stress"] :
+          ["Distress"],
     keyPhrases: [],
     feedback:
       sentiment === "positive"

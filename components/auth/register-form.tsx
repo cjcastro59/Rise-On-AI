@@ -28,7 +28,6 @@ interface FormData {
   email: string;
   password: string;
   confirmPassword: string;
-  goals: string[];
   language: string;
   sex: string;
 }
@@ -46,7 +45,6 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
     email: "",
     password: "",
     confirmPassword: "",
-    goals: [],
     language: "English",
     sex: "",
   });
@@ -132,10 +130,6 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
   };
 
   const validateStep2 = () => {
-    if (formData.goals.length === 0) {
-      setError("Please select at least one goal.");
-      return false;
-    }
     if (!formData.sex) {
       setError("Please select your sex.");
       return false;
@@ -227,7 +221,6 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
         full_name: `${formData.firstName} ${formData.lastName}`,
         first_name: formData.firstName,
         last_name: formData.lastName,
-        goals: formData.goals,
         language: formData.language,
         sex: formData.sex,
         two_factor_enabled: false,
@@ -257,16 +250,6 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const toggleGoal = (goal: string) => {
-    setFormData((prev) => {
-      if (prev.goals.includes(goal)) {
-        return { ...prev, goals: prev.goals.filter((g) => g !== goal) };
-      } else {
-        return { ...prev, goals: [...prev.goals, goal] };
-      }
-    });
   };
 
   // ── Step renderers ────────────────────────────────────────────────────────
@@ -402,32 +385,6 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
   const renderStep2 = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-poppins font-semibold text-dark-text mb-3">Select your goals</h3>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            "Reduce stress",
-            "Improve mood",
-            "Build gratitude",
-            "Track emotions",
-            "Better sleep",
-            "Self-reflection",
-          ].map((goal) => (
-            <div
-              key={goal}
-              onClick={() => toggleGoal(goal)}
-              className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                formData.goals.includes(goal)
-                  ? "border-primary-blue bg-primary-blue/10"
-                  : "border-light-gray hover:border-primary-blue/50"
-              }`}
-            >
-              <p className="text-sm font-poppins text-dark-text">{goal}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div>
         <h3 className="text-lg font-poppins font-semibold text-dark-text mb-3">
           Language Preference
         </h3>
@@ -436,11 +393,10 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
             <div
               key={lang}
               onClick={() => setFormData((prev) => ({ ...prev, language: lang }))}
-              className={`p-4 rounded-xl border-2 cursor-pointer transition-all text-center ${
-                formData.language === lang
+              className={`p-4 rounded-xl border-2 cursor-pointer transition-all text-center ${formData.language === lang
                   ? "border-primary-blue bg-primary-blue/10"
                   : "border-light-gray hover:border-primary-blue/50"
-              }`}
+                }`}
             >
               <p className="text-sm font-poppins text-dark-text">{lang}</p>
             </div>
@@ -574,8 +530,8 @@ export function RegisterForm({ setStep }: RegisterFormProps = {}) {
       ? "Verifying…"
       : "Sending…"
     : otpSent
-    ? "Verify & Continue"
-    : "Send Code";
+      ? "Verify & Continue"
+      : "Send Code";
 
   const handleStep3Action = () => {
     if (!otpSent) {

@@ -25,7 +25,6 @@ export interface Database {
           avatar_url: string | null;
           mood_baseline: string | null;
           mood_baseline_details: string | null;
-          goals: string[] | null;
           language: string | null;
           mood_reminder_enabled: boolean;
           mood_reminder_time: string | null;
@@ -60,7 +59,6 @@ export interface Database {
           avatar_url?: string | null;
           mood_baseline?: string | null;
           mood_baseline_details?: string | null;
-          goals?: string[] | null;
           language?: string | null;
           mood_reminder_enabled?: boolean;
           mood_reminder_time?: string | null;
@@ -95,7 +93,6 @@ export interface Database {
           avatar_url?: string | null;
           mood_baseline?: string | null;
           mood_baseline_details?: string | null;
-          goals?: string[] | null;
           language?: string | null;
           mood_reminder_enabled?: boolean;
           mood_reminder_time?: string | null;

@@ -24,7 +24,6 @@ interface Profile {
   mood_baseline_details: string | null;
   family_background: string | null;
   living_situation: string | null;
-  goals: string[] | null;
   language: string | null;
   mood_reminder_enabled: boolean;
   mood_reminder_time: string | null;
@@ -52,7 +51,6 @@ export default function AdminProfilePage() {
     sex: null,
     role: "admin",
     mood_baseline: null,
-    goals: [],
     language: "English",
     mood_reminder_enabled: false,
     mood_reminder_time: null,
@@ -71,7 +69,7 @@ export default function AdminProfilePage() {
 
   const fetchProfile = useCallback(async () => {
     if (!currentUser) return;
-    
+
     try {
       setLoading(true);
       // Load user profile
@@ -80,7 +78,7 @@ export default function AdminProfilePage() {
         .select("*")
         .eq("id", currentUser.id)
         .single();
-        
+
       if (profileData) {
         const newProfile = {
           ...profileData,
@@ -103,10 +101,10 @@ export default function AdminProfilePage() {
       showToast("Please log in to save your profile.", "error");
       return;
     }
-    
+
     try {
       setSaving(true);
-      
+
       // Save profile
       const { error } = await supabase
         .from("user_profiles")
@@ -115,12 +113,12 @@ export default function AdminProfilePage() {
           updated_at: new Date().toISOString(),
         })
         .eq("id", currentUser.id);
-      
+
       if (error) throw error;
-      
+
       // Refetch profile to get fresh data
       await fetchProfile();
-      
+
       setIsEditing(false);
       showToast("Profile saved successfully!", "success");
     } catch (error) {
@@ -138,22 +136,10 @@ export default function AdminProfilePage() {
     setIsEditing(false);
   };
 
-  const toggleGoal = (goal: string) => {
-    const currentGoals = profile.goals || [];
-    const newGoals = currentGoals.includes(goal)
-      ? currentGoals.filter(g => g !== goal)
-      : [...currentGoals, goal];
-    
-    setProfile({
-      ...profile,
-      goals: newGoals,
-    });
-  };
-
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true);
-      
+
       if (!event.target.files || event.target.files.length === 0) {
         throw new Error("You must select an image to upload.");
       }
@@ -179,18 +165,18 @@ export default function AdminProfilePage() {
         .getPublicUrl(filePath);
 
       const avatarUrl = data.publicUrl;
-      
+
       // Update the profile with the new avatar URL
       setProfile({ ...profile, avatar_url: avatarUrl });
-      
+
       // Save immediately to database
       const { error: updateError } = await supabase
         .from("user_profiles")
         .update({ avatar_url: avatarUrl, updated_at: new Date().toISOString() })
         .eq("id", currentUser?.id);
-      
+
       if (updateError) throw updateError;
-      
+
       showToast("Avatar uploaded successfully!", "success");
     } catch (error) {
       showToast("Error uploading avatar. Please try again.", "error");

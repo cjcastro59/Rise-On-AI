@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -32,6 +30,7 @@ body {
 }
 
 @layer components {
+
   /* Card Components */
   .stat-card {
     @apply p-5 bg-white rounded-2xl shadow-sm border border-gray-100 transition-all hover:shadow-md;
