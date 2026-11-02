@@ -1,153 +1,542 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Card } from "@/components/ui/card";
-import { ViewUserModal } from "@/components/admin/ViewUserModal";
+import { Portal } from "@/components/ui/Portal";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDisplayId, loadDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-ids";
+import {
+  WELLNESS_LEVEL_CONFIG,
+  classifyWellnessLevel,
+  type WellnessLevel,
+} from "@/lib/wellness-assessment";
+import {
+  DISTRESS_RISK_CONFIG,
+  type DistressRiskLevel,
+} from "@/lib/distress-risk";
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+interface RawUser {
+  id: string;
+  age: number | null;
+  sex: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface WellnessRow {
+  user_id: string;
+  wellness_score: number | null;
+  wellness_level: string | null;
+  consecutive_negative_count: number;
+  behavioral_trend_score: number;
+  journaling_frequency_score: number;
+  mood_consistency_score: number;
+  total_entries_window: number;
+  window_end_date: string;
+}
+
+interface RiskRow {
+  user_id: string;
+  risk_level: string;
+  total_points: number;
+  assessed_date: string;
+}
+
+interface DistressLogRow {
+  id: string;
+  user_id: string;
+  severity: string | null;
+  notes: string | null;
+}
+
+interface JournalRow {
+  user_id: string;
+  mood: string | null;
+  sentiment: string | null;
+  created_at: string;
+}
+
+type SortKey = "lastActive" | "wellness" | "streak" | "status";
+type SortDir = "asc" | "desc";
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10;
 
-// Mood to score mapping
 const moodToScore: Record<string, number> = {
-  "Happy": 8,
-  "Neutral": 5,
-  "Sad": 3,
-  "Frustrated": 4,
-  "Calm": 7,
-  "Excited": 9,
-  "Confused": 5,
-  "Overwhelmed": 2,
+  Happy: 8, Neutral: 5, Sad: 3, Frustrated: 4,
+  Calm: 7, Excited: 9, Confused: 5, Overwhelmed: 2,
 };
 
-const getLastActive = (dateStr: string | null) => {
+function getLastActive(dateStr: string | null): string {
   if (!dateStr) return "Never";
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
+  const d = new Date(dateStr);
+  const diff = Date.now() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(diff / 3600000);
+  if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(diff / 86400000);
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
   if (days < 7) return `${days}d ago`;
-  return date.toLocaleDateString();
-};
+  return d.toLocaleDateString();
+}
+
+function getLastActiveMs(dateStr: string | null): number {
+  if (!dateStr) return 0;
+  return new Date(dateStr).getTime();
+}
+
+function WellnessBadge({ score, level }: { score: number | null; level: string | null }) {
+  if (score == null) return <span className="text-xs text-slate-400 font-inter">—</span>;
+  const lvl = (level as WellnessLevel) ?? classifyWellnessLevel(score);
+  const cfg = WELLNESS_LEVEL_CONFIG[lvl] ?? WELLNESS_LEVEL_CONFIG["Stable"];
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-poppins font-medium whitespace-nowrap"
+      style={{ backgroundColor: cfg.bgColor, color: cfg.color }}
+    >
+      {cfg.emoji} {score.toFixed(1)}
+    </span>
+  );
+}
+
+function RiskBadge({ level }: { level: string | null }) {
+  if (!level) return <span className="text-xs text-slate-400 font-inter">—</span>;
+  const cfg = DISTRESS_RISK_CONFIG[level as DistressRiskLevel] ?? DISTRESS_RISK_CONFIG["Low Risk"];
+  const isBad = level === "Critical Risk" || level === "High Risk";
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-poppins font-semibold whitespace-nowrap ${isBad
+      ? "border-rose-200 bg-rose-100 text-rose-800"
+      : level === "Moderate Risk"
+        ? "border-amber-200 bg-amber-100 text-amber-900"
+        : "border-emerald-200 bg-emerald-100 text-emerald-800"
+      }`}>
+      {cfg.emoji} {level}
+    </span>
+  );
+}
+
+function SortableHeader({
+  label, sortKey, currentSort, dir, onSort,
+}: {
+  label: string;
+  sortKey: SortKey;
+  currentSort: SortKey;
+  dir: SortDir;
+  onSort: (k: SortKey) => void;
+}) {
+  const active = currentSort === sortKey;
+  return (
+    <th
+      className="cursor-pointer select-none whitespace-nowrap"
+      onClick={() => onSort(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        <span className={`text-[10px] ${active ? "opacity-100" : "opacity-30"}`}>
+          {active && dir === "asc" ? "↑" : "↓"}
+        </span>
+      </span>
+    </th>
+  );
+}
+
+// ── View + inline detail modal ────────────────────────────────────────────────
+
+interface ProcessedUser {
+  id: string;
+  displayId: string;
+  age: string;
+  sex: string;
+  entries: number;
+  lastActive: string;
+  lastActiveMs: number;
+  avgMood: string | null;
+  sentiment: string;
+  activityStatus: string;
+  isAccountActive: boolean;
+  wellness: WellnessRow | null;
+  risk: RiskRow | null;
+  openCases: DistressLogRow[];
+  worstSeverity: "critical" | "medium" | null;
+}
+
+interface DetailModalProps {
+  user: ProcessedUser;
+  onClose: () => void;
+  displayIdFormat: DisplayIdFormat;
+  casesBasePath: string;
+}
+
+function DetailModal({ user, onClose, displayIdFormat, casesBasePath }: DetailModalProps) {
+  const w = user.wellness;
+  const r = user.risk;
+  const wLvl = w?.wellness_level as WellnessLevel | null;
+  const rLvl = r?.risk_level as DistressRiskLevel | null;
+
+  const openCritical = user.openCases.filter(
+    (c) => (c.severity || "").toLowerCase() === "critical"
+  );
+  const openMedium = user.openCases.filter((c) =>
+    ["medium", "warning"].includes((c.severity || "").toLowerCase())
+  );
+
+  return (
+    <Portal>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+        <div className="relative bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl z-10 m-4 max-h-[90vh] overflow-y-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-dm-serif text-dark-text">User Details</h3>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-lg text-slate-500"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Basic info */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">User ID</p>
+              <p className="text-sm font-poppins text-dark-text font-semibold">{user.displayId}</p>
+            </div>
+            <div>
+              <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">Age</p>
+              <p className="text-sm font-poppins text-dark-text">{user.age}</p>
+            </div>
+            <div>
+              <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">Sex</p>
+              <p className="text-sm font-poppins text-dark-text">{user.sex}</p>
+            </div>
+            <div>
+              <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">Account Status</p>
+              <p className="text-sm font-poppins">
+                {user.isAccountActive ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-emerald-200 bg-emerald-100 text-emerald-800 text-xs font-semibold">Active</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-slate-200 bg-slate-100 text-slate-700 text-xs font-semibold">Deactivated</span>
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">Journal Entries</p>
+              <p className="text-sm font-poppins text-dark-text">{user.entries}</p>
+            </div>
+            <div>
+              <p className="text-xs font-poppins text-slate-600 uppercase tracking-wider mb-1">Avg Mood</p>
+              <p className="text-sm font-poppins text-dark-text">{user.avgMood ?? "—"}</p>
+            </div>
+          </div>
+
+          {/* Wellness */}
+          <div className="mt-5 rounded-xl bg-slate-50 p-4 space-y-3">
+            <p className="text-xs font-poppins font-semibold uppercase tracking-wider text-slate-600">Wellness (30-day)</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Score / Level</p>
+                {w ? (
+                  <WellnessBadge score={w.wellness_score} level={w.wellness_level} />
+                ) : (
+                  <span className="text-xs text-slate-400">No data</span>
+                )}
+                {wLvl && (
+                  <p className="text-xs text-slate-600 mt-1">{wLvl}</p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Negative Streak</p>
+                <p className="text-sm font-poppins font-semibold text-dark-text">
+                  {w != null ? w.consecutive_negative_count : "—"}
+                  {w && w.consecutive_negative_count > 0 && (
+                    <span className="ml-1 text-xs font-normal text-amber-600">consecutive</span>
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Behavioral Trend</p>
+                <p className="text-sm font-poppins text-dark-text">
+                  {w != null ? w.behavioral_trend_score.toFixed(1) : "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Journaling Freq.</p>
+                <p className="text-sm font-poppins text-dark-text">
+                  {w != null ? `${w.journaling_frequency_score.toFixed(0)}/100` : "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Mood Consistency</p>
+                <p className="text-sm font-poppins text-dark-text">
+                  {w != null ? `${w.mood_consistency_score.toFixed(0)}/100` : "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Entries Analyzed</p>
+                <p className="text-sm font-poppins text-dark-text">
+                  {w != null ? w.total_entries_window : "—"}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Distress risk */}
+          <div className="mt-4 rounded-xl bg-slate-50 p-4">
+            <p className="text-xs font-poppins font-semibold uppercase tracking-wider text-slate-600 mb-2">Distress Risk</p>
+            {r ? (
+              <div className="flex items-center gap-4 flex-wrap">
+                <RiskBadge level={r.risk_level} />
+                <span className="text-xs text-slate-500">{r.total_points} pts · {new Date(r.assessed_date).toLocaleDateString()}</span>
+              </div>
+            ) : (
+              <span className="text-xs text-slate-400">No assessment data</span>
+            )}
+          </div>
+
+          {/* Open cases */}
+          <div className="mt-4 rounded-xl bg-slate-50 p-4">
+            <p className="text-xs font-poppins font-semibold uppercase tracking-wider text-slate-600 mb-2">
+              Open Cases ({user.openCases.length})
+            </p>
+            {user.openCases.length === 0 ? (
+              <p className="text-xs text-slate-400">No open cases.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {openCritical.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-error-red shrink-0" />
+                    <Link
+                      href={`${casesBasePath}?search=${encodeURIComponent(user.displayId)}`}
+                      className="text-xs font-poppins text-error-red hover:underline"
+                      onClick={onClose}
+                    >
+                      {openCritical.length} Critical case{openCritical.length !== 1 ? "s" : ""} → View on Cases page
+                    </Link>
+                  </div>
+                )}
+                {openMedium.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
+                    <Link
+                      href={`${casesBasePath}?search=${encodeURIComponent(user.displayId)}`}
+                      className="text-xs font-poppins text-amber-700 hover:underline"
+                      onClick={onClose}
+                    >
+                      {openMedium.length} Medium case{openMedium.length !== 1 ? "s" : ""} → View on Cases page
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end mt-6">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-dark-text font-poppins text-sm rounded-lg"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
+// ── Row action menu (mobile ⋯) ────────────────────────────────────────────────
+
+function ActionMenu({
+  user,
+  onView,
+  onReview,
+  casesBasePath,
+}: {
+  user: ProcessedUser;
+  onView: () => void;
+  onReview: () => void;
+  casesBasePath: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative inline-block">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm text-slate-600 hover:bg-gray-50"
+        aria-label="More actions"
+      >
+        ⋯
+      </button>
+      {open && (
+        <div className="absolute right-0 z-50 mt-1 w-36 rounded-xl border border-gray-100 bg-white shadow-lg py-1">
+          <button
+            className="w-full text-left px-3 py-2 text-sm font-poppins text-dark-text hover:bg-gray-50"
+            onClick={() => { setOpen(false); onView(); }}
+          >
+            View
+          </button>
+          {user.openCases.length > 0 && (
+            <Link
+              href={`${casesBasePath}?search=${encodeURIComponent(user.displayId)}`}
+              className="block px-3 py-2 text-sm font-poppins text-dark-text hover:bg-gray-50"
+              onClick={() => setOpen(false)}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className={`w-2 h-2 rounded-full shrink-0 ${user.worstSeverity === "critical" ? "bg-error-red" : "bg-amber-500"
+                    }`}
+                />
+                Review
+              </span>
+            </Link>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function CounselorAssignedUsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [users, setUsers] = useState<any[]>([]);
-  const [journalEntries, setJournalEntries] = useState<any[]>([]);
+  const [streakFilter, setStreakFilter] = useState("All");
+  const [sortKey, setSortKey] = useState<SortKey>("lastActive");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [users, setUsers] = useState<RawUser[]>([]);
+  const [journalRows, setJournalRows] = useState<JournalRow[]>([]);
+  const [wellnessMap, setWellnessMap] = useState<Map<string, WellnessRow>>(new Map());
+  const [riskMap, setRiskMap] = useState<Map<string, RiskRow>>(new Map());
+  const [distressLogs, setDistressLogs] = useState<DistressLogRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [detailUser, setDetailUser] = useState<ProcessedUser | null>(null);
   const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
-  // Load display ID format from system settings
-  useEffect(() => {
-    loadDisplayIdFormat(supabase).then(setDisplayIdFormat);
-  }, [supabase]);
+  const CASES_PATH = "/counselor/cases";
 
-  // Fetch data
+  useEffect(() => { loadDisplayIdFormat(supabase).then(setDisplayIdFormat); }, [supabase]);
+
   useEffect(() => {
     if (!currentUser) return;
     const fetchData = async () => {
       setLoading(true);
       try {
         const counselorId = currentUser.id;
-        const [{ data: profileRows, error: profileError }, { data: conversationRows, error: conversationError }] = await Promise.all([
-          supabase
-            .from("user_profiles")
-            .select("id")
-            .eq("role", "user")
-            .eq("assigned_counselor_id", counselorId),
-          supabase
-            .from("conversations")
-            .select("user_id")
-            .eq("counselor_id", counselorId)
-            .eq("status", "open"),
+
+        // Get assigned user IDs (profile-based + open conversations)
+        const [{ data: profileRows }, { data: convRows }] = await Promise.all([
+          supabase.from("user_profiles").select("id").eq("role", "user").eq("assigned_counselor_id", counselorId),
+          supabase.from("conversations").select("user_id").eq("counselor_id", counselorId).eq("status", "open"),
         ]);
 
-        const usersError = profileError || conversationError;
-        const assignedUserIds = Array.from(new Set([
-          ...((profileRows || []) as { id: string }[]).map((row) => row.id),
-          ...((conversationRows || []) as { user_id: string }[]).map((row) => row.user_id),
+        const assignedIds = Array.from(new Set([
+          ...((profileRows || []) as { id: string }[]).map((r) => r.id),
+          ...((convRows || []) as { user_id: string }[]).map((r) => r.user_id),
         ].filter(Boolean)));
 
-        const { data: usersData } = assignedUserIds.length === 0
-          ? { data: [] }
-          : await supabase
-            .from("user_profiles")
-            .select("id,age,sex,is_active,created_at,updated_at")
-            .eq("role", "user")
-            .in("id", assignedUserIds)
-            .order("created_at", { ascending: false });
-
-        if (usersError) {
-          console.error("Error fetching users:", usersError);
-          setUsers([]);
-          setJournalEntries([]);
-        } else {
-          const userList = usersData || [];
-          setUsers(userList);
-
-          if (assignedUserIds.length === 0) {
-            setJournalEntries([]);
-            return;
-          }
-
-          const { data: entriesData, error: entriesError } = await supabase
-            .from("journal_entries")
-            .select("user_id, mood, sentiment, created_at")
-            .in("user_id", assignedUserIds)
-            .order("created_at", { ascending: false })
-            .limit(500);
-
-          if (entriesError) {
-            console.error("Error fetching assigned user entries:", entriesError);
-            setJournalEntries([]);
-          } else {
-            setJournalEntries(entriesData || []);
-          }
+        if (assignedIds.length === 0) {
+          setUsers([]); setJournalRows([]); setDistressLogs([]);
+          setWellnessMap(new Map()); setRiskMap(new Map());
+          return;
         }
+
+        const [
+          { data: usersData },
+          { data: journalData },
+          { data: wellnessData },
+          { data: riskData },
+          { data: distressData },
+        ] = await Promise.all([
+          supabase.from("user_profiles")
+            .select("id,age,sex,is_active,created_at,updated_at")
+            .eq("role", "user").in("id", assignedIds),
+          supabase.from("journal_entries")
+            .select("user_id,mood,sentiment,created_at")
+            .in("user_id", assignedIds)
+            .order("created_at", { ascending: false })
+            .limit(1000),
+          supabase.from("behavioral_indicators")
+            .select("user_id,wellness_score,wellness_level,consecutive_negative_count,behavioral_trend_score,journaling_frequency_score,mood_consistency_score,total_entries_window,window_end_date")
+            .in("user_id", assignedIds)
+            .eq("lookback_days", 30)
+            .order("window_end_date", { ascending: false }),
+          supabase.from("distress_risk_assessments")
+            .select("user_id,risk_level,total_points,assessed_date")
+            .in("user_id", assignedIds)
+            .eq("lookback_days", 30)
+            .order("assessed_date", { ascending: false }),
+          supabase.from("distress_logs")
+            .select("id,user_id,severity,notes")
+            .in("user_id", assignedIds),
+        ]);
+
+        setUsers((usersData || []) as RawUser[]);
+        setJournalRows((journalData || []) as JournalRow[]);
+        setDistressLogs((distressData || []) as DistressLogRow[]);
+
+        // Deduplicate wellness — keep most-recent per user
+        const wMap = new Map<string, WellnessRow>();
+        for (const row of (wellnessData || []) as WellnessRow[]) {
+          if (!wMap.has(row.user_id)) wMap.set(row.user_id, row);
+        }
+        setWellnessMap(wMap);
+
+        // Deduplicate risk — keep most-recent per user
+        const rMap = new Map<string, RiskRow>();
+        for (const row of (riskData || []) as RiskRow[]) {
+          if (!rMap.has(row.user_id)) rMap.set(row.user_id, row);
+        }
+        setRiskMap(rMap);
       } catch (err) {
-        console.error("Error fetching data:", err);
+        console.error("Error fetching assigned users data:", err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchData();
   }, [currentUser, supabase]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, statusFilter, streakFilter, sortKey, sortDir]);
 
-  // Process users to add computed data
-  const processedUsers = users.map(user => {
-    const userEntries = journalEntries.filter(entry => entry.user_id === user.id);
-    const entryCount = userEntries.length;
-    const lastEntry = userEntries[0];
+  // Build processed users
+  const processedUsers: ProcessedUser[] = useMemo(() => users.map((user) => {
+    const userJournal = journalRows.filter((e) => e.user_id === user.id);
+    const lastEntry = userJournal[0];
+    const entryCount = userJournal.length;
 
-    // Calculate average mood score
-    const moods = userEntries.map(e => e.mood).filter(Boolean);
+    const moods = userJournal.map((e) => e.mood).filter(Boolean) as string[];
     const avgMoodScore = moods.length > 0
-      ? Math.round(moods.reduce((sum, mood) => sum + (moodToScore[mood] || 5), 0) / moods.length)
+      ? Math.round(moods.reduce((s, m) => s + (moodToScore[m] || 5), 0) / moods.length)
       : null;
 
-    // Derive overall sentiment from stored ML predictions.
     let sentiment = "No Data";
     let activityStatus = "Inactive";
-    if (userEntries.length > 0) {
+    if (userJournal.length > 0) {
       const counts = { positive: 0, negative: 0, distress: 0 };
-      for (const e of userEntries) {
+      for (const e of userJournal) {
         const s = (e.sentiment as string | null) ?? "";
         if (s === "positive") counts.positive++;
         else if (s === "distress") counts.distress++;
@@ -157,68 +546,92 @@ export default function CounselorAssignedUsersPage() {
       else if (counts.negative >= counts.positive) sentiment = "Negative";
       else if (counts.positive > 0) sentiment = "Positive";
 
-      // Determine activity status
-      const daysSinceLastActive = lastEntry
-        ? Math.floor((new Date().getTime() - new Date(lastEntry.created_at).getTime()) / 86400000)
+      const daysSince = lastEntry
+        ? Math.floor((Date.now() - new Date(lastEntry.created_at).getTime()) / 86400000)
         : 999;
-
-      if (daysSinceLastActive < 30) activityStatus = "Active";
-      if (sentiment === "Negative" && avgMoodScore && avgMoodScore < 5) activityStatus = "At Risk";
+      if (daysSince < 30) activityStatus = "Active";
+      if (sentiment === "Negative" && avgMoodScore != null && avgMoodScore < 5) activityStatus = "At Risk";
     }
 
     const displayId = formatDisplayId(user.id, "user", displayIdFormat);
-
-    // User's account active status
-    const isAccountActive = user.is_active !== false;
+    const wellness = wellnessMap.get(user.id) ?? null;
+    const risk = riskMap.get(user.id) ?? null;
+    // "Open" = Complete Review has NOT been done.
+    // Complete Review writes "acknowledged" or "resolved" into notes (case-insensitive),
+    // matching getResponseStatus() on the Cases page.
+    const openCases = distressLogs.filter((l) => {
+      if (l.user_id !== user.id) return false;
+      const n = (l.notes ?? "").toLowerCase();
+      return !n.includes("acknowledged") && !n.includes("resolved");
+    });
+    const hasCritical = openCases.some((c) => (c.severity || "").toLowerCase() === "critical");
+    const hasMedium = openCases.some((c) => ["medium", "warning"].includes((c.severity || "").toLowerCase()));
 
     return {
       id: user.id,
-      fullName: displayId,
-      role: user.role || "user",
-      age: user.age || "N/A",
-      sex: user.sex || "N/A",
+      displayId,
+      age: user.age != null ? String(user.age) : "—",
+      sex: user.sex ?? "—",
       entries: entryCount,
       lastActive: getLastActive(lastEntry?.created_at || user.updated_at || user.created_at),
-      avgMood: avgMoodScore ? `${avgMoodScore}/10` : "—",
+      lastActiveMs: getLastActiveMs(lastEntry?.created_at || user.updated_at || user.created_at),
+      avgMood: avgMoodScore != null ? `${avgMoodScore}/10` : null,
       sentiment,
       activityStatus,
-      isAccountActive,
-      rawUser: user
+      isAccountActive: user.is_active !== false,
+      wellness,
+      risk,
+      openCases,
+      worstSeverity: hasCritical ? "critical" : hasMedium ? "medium" : null,
     };
-  });
+  }), [users, journalRows, wellnessMap, riskMap, distressLogs, displayIdFormat]);
 
-  // Filter users
-  const filteredUsers = processedUsers.filter(user => {
-    const matchesSearch = user.fullName.toLowerCase().includes(searchTerm.toLowerCase());
-
-    let matchesStatus = true;
-    if (statusFilter === "All") {
-      matchesStatus = true;
-    } else if (statusFilter === "Deactivated") {
-      matchesStatus = !user.isAccountActive;
-    } else {
-      matchesStatus = user.isAccountActive && user.activityStatus === statusFilter;
+  // Filter
+  const filteredUsers = useMemo(() => processedUsers.filter((u) => {
+    if (!u.displayId.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    if (statusFilter !== "All") {
+      if (statusFilter === "Deactivated" && u.isAccountActive) return false;
+      if (statusFilter !== "Deactivated" && (!u.isAccountActive || u.activityStatus !== statusFilter)) return false;
     }
+    if (streakFilter === "High" && (u.wellness?.consecutive_negative_count ?? 0) < 3) return false;
+    if (streakFilter === "Low") {
+      const cnt = u.wellness?.consecutive_negative_count ?? 0;
+      if (cnt < 1 || cnt > 2) return false;
+    }
+    return true;
+  }), [processedUsers, searchTerm, statusFilter, streakFilter]);
 
-    return matchesSearch && matchesStatus;
-  });
+  // Sort
+  const sortedUsers = useMemo(() => [...filteredUsers].sort((a, b) => {
+    let cmp = 0;
+    if (sortKey === "lastActive") cmp = a.lastActiveMs - b.lastActiveMs;
+    else if (sortKey === "wellness") cmp = (a.wellness?.wellness_score ?? -1) - (b.wellness?.wellness_score ?? -1);
+    else if (sortKey === "streak") cmp = (a.wellness?.consecutive_negative_count ?? 0) - (b.wellness?.consecutive_negative_count ?? 0);
+    else if (sortKey === "status") cmp = a.activityStatus.localeCompare(b.activityStatus);
+    return sortDir === "asc" ? cmp : -cmp;
+  }), [filteredUsers, sortKey, sortDir]);
 
-  // Calculate stats
+  const handleSort = (k: SortKey) => {
+    if (sortKey === k) setSortDir((d) => d === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir("desc"); }
+  };
+
+  // Stats
   const totalUsers = users.length;
-  const activeUsers = processedUsers.filter(u => u.isAccountActive && u.activityStatus === "Active").length;
-  const atRiskUsers = processedUsers.filter(u => u.isAccountActive && u.activityStatus === "At Risk").length;
-  const inactiveUsers = processedUsers.filter(u => !u.isAccountActive || u.activityStatus === "Inactive").length;
+  const activeUsers = processedUsers.filter((u) => u.isAccountActive && u.activityStatus === "Active").length;
+  const atRiskUsers = processedUsers.filter((u) => u.isAccountActive && u.activityStatus === "At Risk").length;
+  const inactiveUsers = processedUsers.filter((u) => !u.isAccountActive || u.activityStatus === "Inactive").length;
 
   // Pagination
-  const totalPages = Math.ceil(filteredUsers.length / PAGE_SIZE);
+  const totalPages = Math.ceil(sortedUsers.length / PAGE_SIZE);
   const startIndex = (currentPage - 1) * PAGE_SIZE;
-  const paginatedUsers = filteredUsers.slice(startIndex, startIndex + PAGE_SIZE);
+  const paginatedUsers = sortedUsers.slice(startIndex, startIndex + PAGE_SIZE);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue mx-auto mb-4" />
           <p className="text-slate-600 font-poppins">Loading users…</p>
         </div>
       </div>
@@ -227,6 +640,16 @@ export default function CounselorAssignedUsersPage() {
 
   return (
     <div className="space-y-6">
+      {/* Detail modal */}
+      {detailUser && (
+        <DetailModal
+          user={detailUser}
+          onClose={() => setDetailUser(null)}
+          displayIdFormat={displayIdFormat}
+          casesBasePath={CASES_PATH}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
@@ -280,8 +703,8 @@ export default function CounselorAssignedUsersPage() {
       </div>
 
       {/* Filters */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 backdrop-blur-md">
-        <div className="flex-1 min-w-[250px]">
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 backdrop-blur-md">
+        <div className="flex-1 min-w-[220px]">
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600">🔍</span>
             <input
@@ -302,129 +725,180 @@ export default function CounselorAssignedUsersPage() {
           <option value="Active">Active</option>
           <option value="Inactive">Inactive</option>
           <option value="At Risk">At Risk</option>
+          <option value="Deactivated">Deactivated</option>
+        </select>
+        <select
+          className="px-4 py-3 border border-gray-300 rounded-xl text-sm font-poppins text-dark-text bg-white"
+          value={streakFilter}
+          onChange={(e) => setStreakFilter(e.target.value)}
+        >
+          <option value="All">All Streaks</option>
+          <option value="High">Negative Streak High (3+)</option>
+          <option value="Low">Negative Streak Low (1–2)</option>
         </select>
       </div>
 
-      {/* Users Table */}
+      {/* Table */}
       <Card className="p-6">
         <div className="overflow-x-auto">
           <table className="admin-table min-w-[1050px] table-fixed">
             <thead>
               <tr>
-                <th>NAME</th>
-                <th>AGE</th>
+                <th>USER ID</th>
                 <th>ENTRIES</th>
-                <th>LAST ACTIVE</th>
-                <th>AVG MOOD</th>
+                <SortableHeader label="LAST ACTIVE" sortKey="lastActive" currentSort={sortKey} dir={sortDir} onSort={handleSort} />
+                <SortableHeader label="WELLNESS" sortKey="wellness" currentSort={sortKey} dir={sortDir} onSort={handleSort} />
+                <SortableHeader label="STREAK" sortKey="streak" currentSort={sortKey} dir={sortDir} onSort={handleSort} />
                 <th>SENTIMENT</th>
-                <th>STATUS</th>
+                <SortableHeader label="STATUS" sortKey="status" currentSort={sortKey} dir={sortDir} onSort={handleSort} />
                 <th>ACTION</th>
               </tr>
             </thead>
             <tbody>
-              {paginatedUsers.map((user) => (
-                <tr key={user.id}>
-                  <td className="py-4 px-3">
-                    <p className="font-poppins text-sm font-semibold text-slate-900 hover:text-indigo-600">{user.fullName}</p>
-                  </td>
-                  <td className="py-4 px-3">
-                    <p className="text-sm font-poppins text-dark-text">{user.age}</p>
-                  </td>
-                  <td className="py-4 px-3">
-                    <p className="text-sm font-poppins text-dark-text">{user.entries}</p>
-                  </td>
-                  <td className="py-4 px-3">
-                    <p className="text-sm font-inter text-slate-600">{user.lastActive}</p>
-                  </td>
-                  <td className="py-4 px-3">
-                    <p className="text-sm font-poppins text-dark-text">{user.avgMood}</p>
-                  </td>
-                  <td className="py-4 px-3">
-                    <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${user.sentiment === "Positive" ? "border-emerald-200 bg-emerald-100 text-emerald-800" : user.sentiment === "Neutral" ? "border-indigo-200 bg-indigo-100 text-indigo-800" : user.sentiment === "Negative" || user.sentiment === "Distress" ? "border-rose-200 bg-rose-100 text-rose-800" : "border-slate-200 bg-slate-100 text-slate-800"}`}>
-                      {user.sentiment}
-                    </span>
-                  </td>
-                  <td className="py-4 px-3">
-                    {!user.isAccountActive ? (
-                      <span className="px-2.5 py-1 rounded-full border border-slate-300 bg-slate-100 text-xs font-semibold text-slate-800">
-                        Deactivated
-                      </span>
-                    ) : (
-                      <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${user.activityStatus === "Active" ? "border-emerald-200 bg-emerald-100 text-emerald-800" : user.activityStatus === "At Risk" ? "border-amber-200 bg-amber-100 text-amber-900" : "border-slate-200 bg-slate-100 text-slate-800"}`}>
-                        {user.activityStatus}
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-4 px-3">
-                    <button
-                      onClick={() => {
-                        setSelectedUserId(user.id);
-                        setViewModalOpen(true);
-                      }}
-                      className="rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-slate-800">
-                      View
-                    </button>
-                  </td>
+              {paginatedUsers.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-sm text-slate-600">No users match the current filters.</td>
                 </tr>
-              ))}
+              )}
+              {paginatedUsers.map((user) => {
+                const streak = user.wellness?.consecutive_negative_count ?? null;
+                const streakHigh = streak != null && streak >= 3;
+                const streakLow = streak != null && streak >= 1 && streak <= 2;
+                return (
+                  <tr key={user.id}>
+                    {/* USER ID */}
+                    <td className="py-4 px-3">
+                      <p className="font-poppins text-sm font-semibold text-slate-900">{user.displayId}</p>
+                    </td>
+                    {/* ENTRIES */}
+                    <td className="py-4 px-3">
+                      <p className="text-sm font-poppins text-dark-text">{user.entries}</p>
+                    </td>
+                    {/* LAST ACTIVE */}
+                    <td className="py-4 px-3">
+                      <p className="text-sm font-inter text-slate-600">{user.lastActive}</p>
+                    </td>
+                    {/* WELLNESS */}
+                    <td className="py-4 px-3">
+                      <WellnessBadge score={user.wellness?.wellness_score ?? null} level={user.wellness?.wellness_level ?? null} />
+                    </td>
+                    {/* STREAK */}
+                    <td className="py-4 px-3">
+                      {streak == null ? (
+                        <span className="text-xs text-slate-400">—</span>
+                      ) : (
+                        <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${streakHigh
+                          ? "border-rose-200 bg-rose-100 text-rose-800"
+                          : streakLow
+                            ? "border-amber-200 bg-amber-100 text-amber-800"
+                            : "border-slate-200 bg-slate-100 text-slate-700"
+                          }`}>
+                          {streak}
+                        </span>
+                      )}
+                    </td>
+                    {/* SENTIMENT */}
+                    <td className="py-4 px-3">
+                      <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${user.sentiment === "Positive" ? "border-emerald-200 bg-emerald-100 text-emerald-800"
+                        : user.sentiment === "Neutral" ? "border-indigo-200 bg-indigo-100 text-indigo-800"
+                          : user.sentiment === "Negative" || user.sentiment === "Distress" ? "border-rose-200 bg-rose-100 text-rose-800"
+                            : "border-slate-200 bg-slate-100 text-slate-800"
+                        }`}>
+                        {user.sentiment}
+                      </span>
+                    </td>
+                    {/* STATUS */}
+                    <td className="py-4 px-3">
+                      {!user.isAccountActive ? (
+                        <span className="px-2.5 py-1 rounded-full border border-slate-300 bg-slate-100 text-xs font-semibold text-slate-800">Deactivated</span>
+                      ) : (
+                        <span className={`px-2.5 py-1 rounded-full border text-xs font-semibold ${user.activityStatus === "Active" ? "border-emerald-200 bg-emerald-100 text-emerald-800"
+                          : user.activityStatus === "At Risk" ? "border-amber-200 bg-amber-100 text-amber-900"
+                            : "border-slate-200 bg-slate-100 text-slate-800"
+                          }`}>
+                          {user.activityStatus}
+                        </span>
+                      )}
+                    </td>
+                    {/* ACTION */}
+                    <td className="py-4 px-3">
+                      {/* Desktop */}
+                      <div className="hidden sm:flex items-center gap-2">
+                        <button
+                          onClick={() => setDetailUser(user)}
+                          className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-slate-800"
+                        >
+                          View
+                        </button>
+                        {user.openCases.length > 0 && (
+                          <Link
+                            href={`${CASES_PATH}?search=${encodeURIComponent(user.displayId)}`}
+                            className="relative inline-flex items-center gap-1.5 rounded-lg bg-white border border-gray-200 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm hover:bg-gray-50"
+                          >
+                            <span
+                              className={`w-2 h-2 rounded-full shrink-0 ${user.worstSeverity === "critical" ? "bg-error-red" : "bg-amber-500"
+                                }`}
+                            />
+                            Review
+                          </Link>
+                        )}
+                      </div>
+                      {/* Mobile */}
+                      <div className="sm:hidden">
+                        <ActionMenu
+                          user={user}
+                          onView={() => setDetailUser(user)}
+                          onReview={() => { }}
+                          casesBasePath={CASES_PATH}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
 
         {/* Pagination */}
-        {filteredUsers.length > 0 && (
+        {sortedUsers.length > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 pt-4 border-t border-gray-200">
-            <p className="text-sm text-slate-600 font-poppins">Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length} users</p>
+            <p className="text-sm text-slate-600 font-poppins">
+              Showing {startIndex + 1}–{Math.min(startIndex + PAGE_SIZE, sortedUsers.length)} of {sortedUsers.length} users
+            </p>
             <div className="flex items-center gap-1 flex-wrap justify-center">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 disabled={currentPage === 1}
                 className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed text-dark-text text-sm"
-              >
-                ←
-              </button>
+              >←</button>
               {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
-                .reduce<(number | "...")[]>((acc, page, idx, arr) => {
-                  if (idx > 0 && (page as number) - (arr[idx - 1] as number) > 1) acc.push("...");
-                  acc.push(page);
-                  return acc;
+                .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                .reduce<(number | "…")[]>((acc, p, i, arr) => {
+                  if (i > 0 && (p as number) - (arr[i - 1] as number) > 1) acc.push("…");
+                  acc.push(p); return acc;
                 }, [])
                 .map((item, idx) =>
-                  item === "..." ? (
-                    <span key={`ellipsis-${idx}`} className="w-9 h-9 flex items-center justify-center text-slate-400 text-sm">…</span>
+                  item === "…" ? (
+                    <span key={`e${idx}`} className="w-9 h-9 flex items-center justify-center text-slate-400 text-sm">…</span>
                   ) : (
                     <button
                       key={item}
                       onClick={() => setCurrentPage(item as number)}
-                      className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-poppins transition-colors ${currentPage === item
-                          ? "bg-gradient-to-r from-primary-blue to-lavender text-white"
-                          : "text-dark-text hover:bg-gray-100"
+                      className={`w-9 h-9 flex items-center justify-center rounded-lg text-sm font-poppins transition-colors ${currentPage === item ? "bg-gradient-to-r from-primary-blue to-lavender text-white" : "text-dark-text hover:bg-gray-100"
                         }`}
-                    >
-                      {item}
-                    </button>
+                    >{item}</button>
                   )
                 )}
               <button
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 disabled={currentPage === totalPages || totalPages === 0}
                 className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed text-dark-text text-sm"
-              >
-                →
-              </button>
+              >→</button>
             </div>
           </div>
         )}
       </Card>
-
-      {/* View User Modal */}
-      <ViewUserModal
-        isOpen={viewModalOpen}
-        onClose={() => setViewModalOpen(false)}
-        userId={selectedUserId}
-        anonymizeIdentity
-      />
     </div>
   );
 }

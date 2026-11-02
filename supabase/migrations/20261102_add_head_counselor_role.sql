@@ -10,7 +10,7 @@ BEGIN
     ALTER TABLE public.user_profiles DROP CONSTRAINT user_profiles_role_check;
   END IF;
 
-  ALTER TABLE public.user_profiles
+  ALTER TABLE public.user_profiles 
     ADD CONSTRAINT user_profiles_role_check
     CHECK (role IN ('user', 'counselor', 'head_counselor', 'admin', 'owner'));
 EXCEPTION

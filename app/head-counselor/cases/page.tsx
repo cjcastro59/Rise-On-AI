@@ -8,7 +8,7 @@ import {
   type ManagementStatusFilter,
 } from "@/components/management/ManagementFilterBar";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Toast, useToast } from "@/components/ui/Toast";
@@ -67,7 +67,8 @@ export default function HeadCounselorCasesPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [selectedAlert, setSelectedAlert] = useState<DistressLog | null>(null);
-  const [filterSearch, setFilterSearch] = useState("");
+  const searchParams = useSearchParams();
+  const [filterSearch, setFilterSearch] = useState(() => searchParams.get("search") ?? "");
   const [riskFilter, setRiskFilter] = useState<ManagementRiskFilter>("all");
   const [statusFilter, setStatusFilter] = useState<ManagementStatusFilter>("all");
   const [staffProfiles, setStaffProfiles] = useState<Record<string, string>>({});
@@ -654,7 +655,7 @@ export default function HeadCounselorCasesPage() {
                     if (reviewed) setSelectedAlert(null);
                   }}
                 >
-                  {actionLoading[`review:${selectedAlert.id}`] ? "Saving..." : "Done reviewed"}
+                  {actionLoading[`review:${selectedAlert.id}`] ? "Saving..." : "Complete Review"}
                 </button>
               </div>
             </div>
