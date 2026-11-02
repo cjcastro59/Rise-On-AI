@@ -1,0 +1,30 @@
+import HeadCounselorSidebar from "@/components/head-counselor/HeadCounselorSidebar";
+import StaffAnnouncementToast from "@/components/layout/StaffAnnouncementToast";
+import SessionTimeoutWrapper from "@/components/layout/SessionTimeoutWrapper";
+import { isMaintenanceModeActive } from "@/lib/maintenance";
+import { redirect } from "next/navigation";
+
+// Force dynamic rendering so maintenance mode check always runs (no CDN caching)
+export const dynamic = "force-dynamic";
+
+export default async function HeadCounselorLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  if (await isMaintenanceModeActive()) {
+    redirect("/maintenance");
+  }
+  return (
+    <div className="h-screen bg-gradient-to-r from-primary-blue to-lavender flex overflow-hidden">
+      <StaffAnnouncementToast />
+      <SessionTimeoutWrapper />
+      <HeadCounselorSidebar />
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto pt-[calc(52px+1rem)] md:pt-8">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}

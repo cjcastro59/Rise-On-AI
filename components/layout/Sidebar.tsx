@@ -216,9 +216,11 @@ export default function Sidebar({ userName }: SidebarProps) {
             ? "Owner"
             : senderProfile?.role === "admin"
               ? "Admin"
-              : senderProfile?.role === "counselor"
-                ? "Counselor"
-                : "Support";
+              : senderProfile?.role === "head_counselor"
+                ? "Head Counselor"
+                : senderProfile?.role === "counselor"
+                  ? "Counselor"
+                  : "Support";
         const name = senderProfile?.full_name || senderProfile?.username || "Support";
         showSupportToast(`${role} ${name} sent you a message.`);
         addNotification(user.id, {
@@ -244,7 +246,11 @@ export default function Sidebar({ userName }: SidebarProps) {
   }, []);
 
   const roleLabel = userRole
-    ? (userRole.toLowerCase() === "user" ? "Member" : userRole.charAt(0).toUpperCase() + userRole.slice(1))
+    ? (userRole.toLowerCase() === "user"
+      ? "Member"
+      : userRole === "head_counselor"
+        ? "Head Counselor"
+        : userRole.charAt(0).toUpperCase() + userRole.slice(1))
     : "Member";
 
   const handleLogout = async () => {
@@ -273,11 +279,9 @@ export default function Sidebar({ userName }: SidebarProps) {
       href={href}
       prefetch={false}
       title={collapsed ? label : undefined}
-      className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${
-        collapsed ? "justify-center" : ""
-      } ${
-        active ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
-      }`}
+      className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${collapsed ? "justify-center" : ""
+        } ${active ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"
+        }`}
     >
       <Image src={icon} alt={label} width={18} height={18} className={`object-contain shrink-0 ${iconClass}`} />
       {!collapsed && <span className="flex-1">{label}</span>}
@@ -323,9 +327,8 @@ export default function Sidebar({ userName }: SidebarProps) {
         spans the full viewport width on mobile.
       */}
       <aside
-        className={`bg-[#1E293B] text-white hidden md:flex md:h-screen md:flex-col md:overflow-y-auto shrink-0 sticky top-0 transition-all duration-300 ${
-          isCollapsed ? "w-16 p-2" : "w-64 p-4"
-        }`}
+        className={`bg-[#1E293B] text-white hidden md:flex md:h-screen md:flex-col md:overflow-y-auto shrink-0 sticky top-0 transition-all duration-300 ${isCollapsed ? "w-16 p-2" : "w-64 p-4"
+          }`}
       >
         {/* Header: logo + collapse toggle */}
         <div className={`mb-6 flex items-center ${isCollapsed ? "justify-center" : "justify-between"}`}>
@@ -381,12 +384,12 @@ export default function Sidebar({ userName }: SidebarProps) {
         <div className="mb-6">
           {!isCollapsed && <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">Main</p>}
           <div className="space-y-1">
-            {desktopNavLink("/dashboard",       "Dashboard",    "/icons/dashboard.svg",    isActive("dashboard"),  undefined, "", isCollapsed)}
-            {desktopNavLink("/journal",         "New Entry",    "/icons/new-entry.svg",    isActive("journal"),    undefined, "", isCollapsed)}
-            {desktopNavLink("/journal/history", "My Journal",   "/icons/journal.svg",      isActive("history"),    undefined, "", isCollapsed)}
-            {desktopNavLink("/insights",        "Mood Insights","/icons/mood-insights.svg",isActive("insights"),   undefined, "", isCollapsed)}
-            {desktopNavLink("/mood-trends",     "Mood Trends",  "/icons/trends.svg",       isActive("mood-trends"),undefined, "", isCollapsed)}
-            {desktopNavLink("/analysis",        "AI Reports",   "/icons/ai-reports.svg",   isActive("analysis"),  undefined, "", isCollapsed)}
+            {desktopNavLink("/dashboard", "Dashboard", "/icons/dashboard.svg", isActive("dashboard"), undefined, "", isCollapsed)}
+            {desktopNavLink("/journal", "New Entry", "/icons/new-entry.svg", isActive("journal"), undefined, "", isCollapsed)}
+            {desktopNavLink("/journal/history", "My Journal", "/icons/journal.svg", isActive("history"), undefined, "", isCollapsed)}
+            {desktopNavLink("/insights", "Mood Insights", "/icons/mood-insights.svg", isActive("insights"), undefined, "", isCollapsed)}
+            {desktopNavLink("/mood-trends", "Mood Trends", "/icons/trends.svg", isActive("mood-trends"), undefined, "", isCollapsed)}
+            {desktopNavLink("/analysis", "AI Reports", "/icons/ai-reports.svg", isActive("analysis"), undefined, "", isCollapsed)}
           </div>
         </div>
 

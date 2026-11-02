@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   first_name TEXT,
   last_name TEXT,
   email TEXT,
-  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'counselor', 'admin', 'owner')),
+  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'counselor', 'head_counselor', 'admin', 'owner')),
   age INTEGER,
   sex TEXT,
   country TEXT,
@@ -202,7 +202,7 @@ BEGIN
   END IF;
   
   -- Add the constraint with all allowed roles
-  ALTER TABLE public.user_profiles ADD CONSTRAINT user_profiles_role_check CHECK (role IN ('user', 'counselor', 'admin', 'owner'));
+  ALTER TABLE public.user_profiles ADD CONSTRAINT user_profiles_role_check CHECK (role IN ('user', 'counselor', 'head_counselor', 'admin', 'owner'));
 EXCEPTION
   WHEN duplicate_object THEN
     NULL;
@@ -210,7 +210,7 @@ END $$;
 
 -- Update any existing researcher role to counselor or user
 UPDATE public.user_profiles SET role = 'counselor' WHERE role = 'researcher';
-UPDATE public.user_profiles SET role = 'user' WHERE role NOT IN ('user', 'counselor', 'admin', 'owner');
+UPDATE public.user_profiles SET role = 'user' WHERE role NOT IN ('user', 'counselor', 'head_counselor', 'admin', 'owner');
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS language TEXT;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS privacy_settings JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE public.user_profiles ADD COLUMN IF NOT EXISTS notification_settings JSONB DEFAULT '{}'::jsonb;
@@ -248,7 +248,7 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Helper function to check if user is admin/owner/counselor (SAFE, avoids recursion!)
+-- Helper function to check if user is admin/owner/counselor/head_counselor (SAFE, avoids recursion!)
 DROP FUNCTION IF EXISTS public.is_current_user_admin_or_owner() CASCADE;
 CREATE OR REPLACE FUNCTION public.is_current_user_admin_or_owner() 
 RETURNS BOOLEAN AS $$
@@ -260,7 +260,7 @@ BEGIN
   WHERE id = auth.uid()
   LIMIT 1;
   
-  RETURN v_role IN ('admin', 'owner', 'counselor');
+  RETURN v_role IN ('admin', 'owner', 'counselor', 'head_counselor');
 EXCEPTION
   WHEN OTHERS THEN
     RETURN FALSE;
@@ -1147,7 +1147,7 @@ BEGIN
   FROM public.user_profiles
   WHERE id = auth.uid();
 
-  RETURN v_role IN ('admin', 'owner', 'counselor');
+  RETURN v_role IN ('admin', 'owner', 'counselor', 'head_counselor');
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

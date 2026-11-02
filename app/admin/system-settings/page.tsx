@@ -766,7 +766,8 @@ export default function AdminSystemSettingsPage() {
                               <span className={`badge ${role === "owner" ? "badge-warning" :
                                 role === "admin" ? "badge-success" :
                                   role === "counselor" ? "badge-info" :
-                                    ""
+                                    role === "head_counselor" ? "badge-info" :
+                                      ""
                                 }`}>
                                 {role.charAt(0).toUpperCase() + role.slice(1)}
                               </span>
@@ -854,7 +855,8 @@ export default function AdminSystemSettingsPage() {
                             <span className={`badge ${role === "owner" ? "badge-warning" :
                               role === "admin" ? "badge-success" :
                                 role === "counselor" ? "badge-info" :
-                                  ""
+                                  role === "head_counselor" ? "badge-info" :
+                                    ""
                               }`}>
                               {role.charAt(0).toUpperCase() + role.slice(1)}
                             </span>

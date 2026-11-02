@@ -54,7 +54,7 @@ export async function middleware(request: NextRequest) {
   const protectedPrefixes = [
     "/dashboard", "/journal", "/insights", "/mood-trends",
     "/analysis", "/profile", "/settings", "/support",
-    "/admin", "/counselor", "/setup-2fa",
+    "/admin", "/counselor", "/head-counselor", "/setup-2fa",
   ];
   const isProtected = protectedPrefixes.some(p => pathname.startsWith(p));
 
@@ -90,6 +90,7 @@ export const config = {
     "/support/:path*",
     "/admin/:path*",
     "/counselor/:path*",
+    "/head-counselor/:path*",
     "/login",
     "/register",
     "/setup-2fa",

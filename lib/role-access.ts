@@ -29,7 +29,7 @@ export async function resolveScopedTargetUser(
     return { ok: true, userId: user.id, role, currentUserId: user.id };
   }
 
-  if (role === "admin" || role === "owner") {
+  if (role === "admin" || role === "owner" || role === "head_counselor") {
     return { ok: true, userId: targetUserId, role, currentUserId: user.id };
   }
 

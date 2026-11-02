@@ -21,7 +21,7 @@ export async function POST(
   if (profile.role === "counselor" && requestedCounselorId && requestedCounselorId !== user.id) {
     return NextResponse.json({ error: "Counselors can only open cases assigned to themselves." }, { status: 403 });
   }
-  const counselorId = requestedCounselorId || (profile.role === "counselor" ? user.id : "");
+  const counselorId = requestedCounselorId || (profile.role === "counselor" || profile.role === "head_counselor" ? user.id : "");
 
   if (!counselorId) {
     return NextResponse.json({ error: "Please choose a counselor to assign." }, { status: 400 });
@@ -31,7 +31,7 @@ export async function POST(
     .from("user_profiles")
     .select("id,full_name,username,role")
     .eq("id", counselorId)
-    .eq("role", "counselor")
+    .in("role", ["counselor", "head_counselor"])
     .limit(1);
   const counselor = counselors?.[0] || null;
 
@@ -95,24 +95,24 @@ export async function POST(
     .filter(Boolean);
   const conversationResult = openConversationIds.length
     ? await adminClient
-        .from("conversations")
-        .update({
-          counselor_id: counselorId,
-          status: "open",
-          updated_at: new Date().toISOString(),
-        })
-        .in("id", openConversationIds)
-        .select("id,user_id,counselor_id,status,created_at,updated_at")
-        .order("updated_at", { ascending: false })
+      .from("conversations")
+      .update({
+        counselor_id: counselorId,
+        status: "open",
+        updated_at: new Date().toISOString(),
+      })
+      .in("id", openConversationIds)
+      .select("id,user_id,counselor_id,status,created_at,updated_at")
+      .order("updated_at", { ascending: false })
     : await adminClient
-        .from("conversations")
-        .insert({
-          user_id: alert.user_id,
-          counselor_id: counselorId,
-          status: "open",
-        })
-        .select("id,user_id,counselor_id,status,created_at,updated_at")
-        .limit(1);
+      .from("conversations")
+      .insert({
+        user_id: alert.user_id,
+        counselor_id: counselorId,
+        status: "open",
+      })
+      .select("id,user_id,counselor_id,status,created_at,updated_at")
+      .limit(1);
   const conversation = conversationResult.data?.[0] || null;
 
   if (conversationResult.error || !conversation) {
@@ -125,7 +125,7 @@ export async function POST(
   const assignedAt = new Date().toISOString();
   const counselorName = counselor.full_name || counselor.username || counselor.id.slice(0, 8);
   const staffName = profile.full_name || profile.username || user.id.slice(0, 8);
-  const staffRole = profile.role === "owner" ? "Owner" : profile.role === "admin" ? "Admin" : "Counselor";
+  const staffRole = profile.role === "owner" ? "Owner" : profile.role === "admin" ? "Admin" : profile.role === "head_counselor" ? "Head Counselor" : "Counselor";
   const notes = appendActionNote(
     alert.notes,
     `Assigned counselor ${counselorName} by ${staffRole} ${staffName} at ${assignedAt}`

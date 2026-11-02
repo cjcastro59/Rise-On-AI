@@ -1,0 +1,897 @@
+"use client";
+
+import Image from "next/image";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { createClient } from "@/lib/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { generateSecret, generate, verify as verifyTOTP, generateURI, createGuardrails } from "otplib";
+import { QRCodeSVG } from "qrcode.react";
+import { useRouter } from "next/navigation";
+import { buildCsvExport, buildJsonExport, downloadTextFile, type ExportSection } from "@/lib/export-data";
+import { validatePasswordStrength } from "@/lib/password";
+import { Toast, useToast } from "@/components/ui/Toast";
+
+type SettingSection = "counselor" | "notifications" | "privacy" | "language" | "security" | "data";
+
+export default function HeadCounselorSettingsPage() {
+  const [activeSection, setActiveSection] = useState<SettingSection>("counselor");
+  const [notificationSettings, setNotificationSettings] = useState({
+    emailAlerts: true,
+    newCaseAlerts: true,
+    messageAlerts: true,
+  });
+  const [privacySettings, setPrivacySettings] = useState({
+    shareAnonymousData: true,
+    profileVisibility: "private",
+  });
+  const [language, setLanguage] = useState("English");
+  const [isOnline, setIsOnline] = useState(false);
+  const [shift, setShift] = useState<"day" | "night" | "">("day");
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [showSetup2FA, setShowSetup2FA] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState("");
+  const [secret, setSecret] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { user } = useAuth();
+  const supabase = useMemo(() => createClient(), []);
+  const { toast, showToast, closeToast } = useToast();
+  const router = useRouter();
+  const signOut = async () => { await supabase.auth.signOut(); router.push("/login"); };
+
+  // Change password modal
+  const [showChangePw, setShowChangePw] = useState(false);
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwLoading, setPwLoading] = useState(false);
+
+  // Delete account modal
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const loadSettings = useCallback(async () => {
+    if (!user) return;
+    try {
+      const { data, error: err } = await supabase
+        .from("user_profiles")
+        .select("two_factor_enabled, is_online, language, privacy_settings, notification_settings, shift")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (err) throw err;
+      if (data) {
+        setTwoFactorEnabled(Boolean(data.two_factor_enabled));
+        setIsOnline(Boolean(data.is_online));
+        if (data.shift === "night") setShift("night");
+        else setShift("day");
+        setNotificationSettings({
+          emailAlerts: true,
+          newCaseAlerts: true,
+          messageAlerts: true,
+          ...(data.notification_settings as Partial<typeof notificationSettings> | null),
+        });
+        setPrivacySettings({
+          shareAnonymousData: true,
+          profileVisibility: "private",
+          ...(data.privacy_settings as Partial<typeof privacySettings> | null),
+        });
+        setLanguage(data.language || "English");
+      }
+    } catch (err) {
+      showToast("Failed to load settings. Please refresh.", "error");
+    }
+  }, [supabase, user, showToast]);
+
+  useEffect(() => {
+    if (user) {
+      loadSettings();
+    }
+  }, [loadSettings, user]);
+
+  const saveNotificationSettings = async () => {
+    if (!user) return;
+    try {
+      setSaving(true);
+      const { data, error } = await supabase.from("user_profiles").update({
+        notification_settings: notificationSettings,
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id).select("id").single();
+      if (error) throw error;
+      if (!data) throw new Error("Settings were not saved. Please try again.");
+      showToast("Notification settings saved.", "success");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Failed to save notification settings.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveShift = async () => {
+    if (!user) return;
+    try {
+      setSaving(true);
+      const shiftValue = shift === "night" ? "night" : "day";
+      const { data, error } = await supabase.from("user_profiles").update({
+        shift: shiftValue,
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id).select("id").single();
+      if (error) throw error;
+      if (!data) throw new Error("Settings were not saved. Please try again.");
+      showToast("Shift preference saved.", "success");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Failed to save shift.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const savePrivacySettings = async () => {
+    if (!user) return;
+    try {
+      setSaving(true);
+      const { data, error } = await supabase.from("user_profiles").update({
+        privacy_settings: privacySettings,
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id).select("id").single();
+      if (error) throw error;
+      if (!data) throw new Error("Settings were not saved. Please try again.");
+      showToast("Privacy settings saved.", "success");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Failed to save privacy settings.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveLanguageSettings = async () => {
+    if (!user) return;
+    try {
+      setSaving(true);
+      const { data, error } = await supabase.from("user_profiles").update({
+        language,
+        updated_at: new Date().toISOString(),
+      }).eq("id", user.id).select("id").single();
+      if (error) throw error;
+      if (!data) throw new Error("Settings were not saved. Please try again.");
+      showToast("Language preference saved.", "success");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Failed to save language preference.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!user) return;
+    if (!pwCurrent || !pwNew || !pwConfirm) { showToast("Please fill in all password fields.", "error"); return; }
+    const passwordValidationError = validatePasswordStrength(pwNew);
+    if (passwordValidationError) { showToast(passwordValidationError, "error"); return; }
+    if (pwNew !== pwConfirm) { showToast("New passwords don't match.", "error"); return; }
+    try {
+      setPwLoading(true);
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: pwCurrent,
+          newPassword: pwNew,
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "Failed to change password");
+      setShowChangePw(false);
+      setPwCurrent(""); setPwNew(""); setPwConfirm("");
+      showToast("Password changed successfully.", "success");
+    } catch (e: any) {
+      showToast(e.message || "Failed to change password.", "error");
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
+  const downloadCounselorData = async (format: "json" | "csv") => {
+    if (!user) return;
+
+    const fetchRows = async (label: string, query: any) => {
+      try {
+        const { data, error } = await query;
+        if (error) {
+          console.warn(`[counselor settings export] ${label} skipped:`, error.message);
+          return [];
+        }
+        return Array.isArray(data) ? data : data ? [data] : [];
+      } catch (err) {
+        console.warn(`[counselor settings export] ${label} skipped:`, err);
+        return [];
+      }
+    };
+
+    try {
+      setSaving(true);
+      const [profile, conversations, notes, assignedUsers] = await Promise.all([
+        fetchRows("profile", supabase.from("user_profiles").select("*").eq("id", user.id).maybeSingle()),
+        fetchRows("conversations", supabase.from("conversations").select("*").eq("counselor_id", user.id).limit(1000)),
+        fetchRows("notes", supabase.from("notes").select("*").eq("user_id", user.id).limit(2000)),
+        fetchRows(
+          "assigned clients",
+          supabase
+            .from("user_profiles")
+            .select("id, first_name, last_name, username, email, created_at, updated_at, is_active")
+            .eq("role", "user")
+            .eq("assigned_counselor_id", user.id)
+            .limit(5000),
+        ),
+      ]);
+
+      const assignedClientIds = assignedUsers.map((client: any) => client.id).filter(Boolean);
+      const [assignedJournalEntries, assignedDistressLogs, assignedWellnessRows] = assignedClientIds.length
+        ? await Promise.all([
+          fetchRows(
+            "assigned client journal entries",
+            supabase
+              .from("journal_entries")
+              .select("id,user_id,mood,sentiment,sentiment_score,created_at")
+              .in("user_id", assignedClientIds)
+              .order("created_at", { ascending: false })
+              .limit(5000),
+          ),
+          fetchRows(
+            "assigned client distress logs",
+            supabase
+              .from("distress_logs")
+              .select("*")
+              .in("user_id", assignedClientIds)
+              .order("created_at", { ascending: false })
+              .limit(2000),
+          ),
+          fetchRows(
+            "assigned client wellness rows",
+            supabase
+              .from("behavioral_indicators")
+              .select("user_id, window_end_date, lookback_days, wellness_score, wellness_level, behavioral_trend_score")
+              .in("user_id", assignedClientIds)
+              .order("window_end_date", { ascending: false })
+              .limit(5000),
+          ),
+        ])
+        : [[], [], []];
+
+      const sections: ExportSection[] = [
+        { name: "counselorProfile", rows: profile },
+        { name: "conversations", rows: conversations },
+        { name: "notes", rows: notes },
+        { name: "assignedClients", rows: assignedUsers },
+        { name: "assignedClientJournalEntries", rows: assignedJournalEntries },
+        { name: "assignedClientDistressLogs", rows: assignedDistressLogs },
+        { name: "assignedClientWellnessRows", rows: assignedWellnessRows },
+        { name: "localNotificationPreferences", rows: [notificationSettings] },
+        { name: "localPrivacyPreferences", rows: [privacySettings] },
+      ];
+      const metadata = {
+        title: "Rise On AI - Head Counselor Data Export",
+        subject: (profile[0] as any)?.email || user.email || user.id,
+      };
+      const date = new Date().toISOString().slice(0, 10);
+      const content = format === "csv"
+        ? buildCsvExport(metadata, sections)
+        : buildJsonExport(metadata, sections);
+
+      downloadTextFile(
+        `rise-on-ai-head-counselor-data-export-${date}.${format}`,
+        content,
+        format === "csv" ? "text/csv" : "application/json",
+      );
+      showToast("Data export downloaded.", "success");
+    } catch (e: any) {
+      showToast(e.message || "Export failed.", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    if (deleteConfirmText.trim().toLowerCase() !== "delete my account") {
+      showToast('Type "DELETE MY ACCOUNT" exactly to confirm.', "error");
+      return;
+    }
+    try {
+      setDeleteLoading(true);
+      try {
+        await supabase.from("user_profiles").update({
+          is_active: false, first_name: "Deleted", last_name: "Head Counselor",
+          is_online: false, bio: null, avatar_url: null,
+          updated_at: new Date().toISOString(),
+        }).eq("id", user.id);
+        // Unassign all assigned users
+        await supabase.from("user_profiles").update({ assigned_counselor_id: null }).eq("assigned_counselor_id", user.id);
+      } catch { /* ignore */ }
+      try { await signOut(); } catch { /* ignore */ }
+      try { await supabase.rpc("delete_auth_user", {}); } catch { /* ignore */ }
+      router.push("/");
+    } catch (e: any) {
+      showToast(e.message || "Failed, contact an admin.", "error");
+      setDeleteLoading(false);
+    }
+  };
+
+  const startSetupAuthenticator = async () => {
+    if (!user?.email) return;
+    try {
+      setLoading(true);
+
+      let { data: profile } = await supabase
+        .from("user_profiles")
+        .select("two_factor_secret")
+        .eq("id", user.id)
+        .single();
+
+      let currentSecret = profile?.two_factor_secret;
+      if (!currentSecret) {
+        currentSecret = generateSecret();
+        await supabase
+          .from("user_profiles")
+          .update({ two_factor_secret: currentSecret })
+          .eq("id", user.id);
+      }
+
+      const url = generateURI({
+        issuer: "Rise On AI",
+        label: user.email,
+        secret: currentSecret,
+      });
+      setSecret(currentSecret);
+      setQrCodeUrl(url);
+      setShowSetup2FA(true);
+    } catch (err) {
+      showToast("Failed to setup 2FA.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifyAndEnable2FA = async () => {
+    if (!user) return;
+    try {
+      setLoading(true);
+
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("two_factor_secret")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile?.two_factor_secret) {
+        showToast("Secret not found, please try again.", "error");
+        return;
+      }
+
+      const result = await verifyTOTP({
+        secret: profile.two_factor_secret,
+        token: verificationCode,
+        guardrails: createGuardrails({ MIN_SECRET_BYTES: 10 }),
+      });
+
+      if (result.valid) {
+        await supabase
+          .from("user_profiles")
+          .update({
+            two_factor_enabled: true,
+            two_factor_method: "authenticator",
+            two_factor_skipped: false,
+          })
+          .eq("id", user.id);
+        setTwoFactorEnabled(true);
+        setShowSetup2FA(false);
+        showToast("Two-factor authentication enabled successfully.", "success");
+      } else {
+        const expected = await generate({ secret: profile.two_factor_secret, guardrails: createGuardrails({ MIN_SECRET_BYTES: 10 }) });
+        showToast("Invalid verification code. Please try again.", "error");
+      }
+    } catch (err) {
+      showToast("Failed to verify code.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const disable2FA = async () => {
+    if (!user) return;
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from("user_profiles")
+        .update({
+          two_factor_enabled: false,
+          two_factor_secret: null,
+          two_factor_method: null,
+          two_factor_skipped: true,
+        })
+        .eq("id", user.id);
+      if (error) throw error;
+      setTwoFactorEnabled(false);
+      setShowSetup2FA(false);
+      setVerificationCode("");
+      showToast("Two-factor authentication disabled.", "success");
+    } catch (err) {
+      showToast("Failed to disable 2FA.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleOnlineStatus = async () => {
+    if (!user) return;
+    try {
+      setIsOnline(!isOnline);
+      await supabase
+        .from("user_profiles")
+        .update({ is_online: !isOnline })
+        .eq("id", user.id);
+    } catch (err) {
+      setIsOnline(isOnline);
+      showToast("Failed to update online status. Please try again.", "error");
+    }
+  };
+
+  const renderSettingsContent = () => {
+    switch (activeSection) {
+      case "counselor":
+        return (
+          <div className="space-y-4">
+            <div className="mb-6">
+              <h3 className="text-lg font-dm-serif text-dark-text">Head Counselor Settings</h3>
+              <p className="text-sm text-slate-600 font-poppins">
+                Manage your availability and head counselor preferences.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-4 bg-light-gray/30 rounded-xl">
+                <div>
+                  <h4 className="text-sm font-semibold font-poppins text-dark-text">Set as Online</h4>
+                  <p className="text-xs text-slate-600 font-inter">Show users that you are available to chat</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isOnline}
+                    onChange={toggleOnlineStatus}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-light-gray peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-blue/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-blue"></div>
+                </label>
+              </div>
+
+              {/* Shift Preference */}
+              <div className="p-4 bg-light-gray/30 rounded-xl space-y-3">
+                <div>
+                  <h4 className="text-sm font-semibold font-poppins text-dark-text">Shift Schedule</h4>
+                  <p className="text-xs text-slate-600 font-inter">Set your working shift so admins can schedule you accordingly</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShift("day")}
+                    className={`p-3 rounded-xl border-2 text-center transition-all ${shift === "day"
+                      ? "border-primary-blue bg-primary-blue/10"
+                      : "border-light-gray hover:border-primary-blue/40"
+                      }`}
+                  >
+                    <span className="text-xl">☀️</span>
+                    <p className="text-sm font-poppins text-dark-text mt-1">Day Shift</p>
+                    <p className="text-xs text-slate-600 font-inter">6 AM – 6 PM</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShift("night")}
+                    className={`p-3 rounded-xl border-2 text-center transition-all ${shift === "night"
+                      ? "border-lavender bg-lavender/10"
+                      : "border-light-gray hover:border-lavender/40"
+                      }`}
+                  >
+                    <span className="text-xl">🌙</span>
+                    <p className="text-sm font-poppins text-dark-text mt-1">Night Shift</p>
+                    <p className="text-xs text-slate-600 font-inter">6 PM – 6 AM</p>
+                  </button>
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={saveShift} disabled={saving} className="bg-primary-blue text-white hover:bg-primary-blue/80 text-sm">
+                    {saving ? "Saving..." : "Save Shift"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case "notifications":
+        return (
+          <div className="space-y-4">
+            <div className="mb-6">
+              <h3 className="text-lg font-dm-serif text-dark-text">Notifications</h3>
+              <p className="text-sm text-slate-600 font-poppins">
+                Control when and how you receive notifications.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-4 bg-light-gray/30 rounded-xl">
+                <div>
+                  <h4 className="text-sm font-semibold font-poppins text-dark-text">Email Alerts</h4>
+                  <p className="text-xs text-slate-600 font-inter">Receive email notifications for important updates</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={notificationSettings.emailAlerts}
+                    onChange={(e) => setNotificationSettings({ ...notificationSettings, emailAlerts: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-light-gray peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-blue/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-blue"></div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-light-gray/30 rounded-xl">
+                <div>
+                  <h4 className="text-sm font-semibold font-poppins text-dark-text">New Case Alerts</h4>
+                  <p className="text-xs text-slate-600 font-inter">Get notified when new distress cases are reported</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={notificationSettings.newCaseAlerts}
+                    onChange={(e) => setNotificationSettings({ ...notificationSettings, newCaseAlerts: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-light-gray peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-blue/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-blue"></div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-light-gray/30 rounded-xl">
+                <div>
+                  <h4 className="text-sm font-semibold font-poppins text-dark-text">Message Alerts</h4>
+                  <p className="text-xs text-slate-600 font-inter">Get notified when receiving new messages</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={notificationSettings.messageAlerts}
+                    onChange={(e) => setNotificationSettings({ ...notificationSettings, messageAlerts: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-light-gray peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-blue/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-blue"></div>
+                </label>
+              </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <Button onClick={saveNotificationSettings} disabled={saving} className="bg-primary-blue text-white hover:bg-primary-blue/80">
+                {saving ? "Saving..." : "Save Notification Settings"}
+              </Button>
+            </div>
+          </div>
+        );
+
+      case "privacy":
+        return (
+          <div className="space-y-4">
+            <div className="mb-6">
+              <h3 className="text-lg font-dm-serif text-dark-text">Privacy &amp; Data</h3>
+              <p className="text-sm text-slate-600 font-poppins">
+                Control how your data is used and who can see it.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-4 bg-light-gray/30 rounded-xl">
+                <div>
+                  <h4 className="text-sm font-semibold font-poppins text-dark-text">Share Anonymous Data</h4>
+                  <p className="text-xs text-slate-600 font-inter">Help improve AI by sharing anonymized insights</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={privacySettings.shareAnonymousData}
+                    onChange={(e) => setPrivacySettings({ ...privacySettings, shareAnonymousData: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-light-gray peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-blue/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-blue"></div>
+                </label>
+              </div>
+
+              <div className="p-4 bg-light-gray/30 rounded-xl">
+                <h4 className="text-sm font-semibold font-poppins text-dark-text mb-2">Profile Visibility</h4>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm font-inter text-dark-text">
+                    <input
+                      type="radio"
+                      checked={privacySettings.profileVisibility === "private"}
+                      onChange={() => setPrivacySettings({ ...privacySettings, profileVisibility: "private" })}
+                      className="text-primary-blue focus:ring-primary-blue"
+                    />
+                    <span>Private (Only assigned users can see your profile)</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-inter text-dark-text">
+                    <input
+                      type="radio"
+                      checked={privacySettings.profileVisibility === "clients"}
+                      onChange={() => setPrivacySettings({ ...privacySettings, profileVisibility: "clients" })}
+                      className="text-primary-blue focus:ring-primary-blue"
+                    />
+                    <span>Clients &amp; Admins (visible to all users with accounts)</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end mt-6">
+              <Button onClick={savePrivacySettings} disabled={saving} className="bg-primary-blue text-white hover:bg-primary-blue/80">
+                {saving ? "Saving..." : "Save Privacy Settings"}
+              </Button>
+            </div>
+          </div>
+        );
+
+      case "language":
+        return (
+          <div className="space-y-4">
+            <div className="mb-6">
+              <h3 className="text-lg font-dm-serif text-dark-text">Journaling Language</h3>
+              <p className="text-sm text-slate-600 font-poppins">
+                Choose the language you typically write your journal entries in. This helps the AI sentiment analysis model better understand your entries. This does not change the app interface language.
+              </p>
+            </div>
+            <div className="p-4 bg-light-gray/30 rounded-xl space-y-3">
+              <div>
+                <label className="text-xs font-poppins text-slate-600">Journaling Language</label>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="mt-1 w-full px-3 py-2 rounded-lg border border-light-gray bg-white text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/30 text-sm font-inter"
+                >
+                  <option value="English">English</option>
+                  <option value="Filipino">Filipino</option>
+                </select>
+              </div>
+              <p className="text-xs text-slate-500 font-inter">
+                Note: This setting does not change the app interface language. It helps the AI sentiment analysis recognize which language journal entries are written in.
+              </p>
+            </div>
+            <div className="flex justify-end mt-6">
+              <Button onClick={saveLanguageSettings} disabled={saving} className="bg-primary-blue text-white hover:bg-primary-blue/80">
+                {saving ? "Saving..." : "Save Language Preference"}
+              </Button>
+            </div>
+          </div>
+        );
+
+      case "security":
+        return (
+          <div className="space-y-4">
+            <div className="mb-6">
+              <h3 className="text-lg font-dm-serif text-dark-text">Security &amp; Login</h3>
+              <p className="text-sm text-slate-600 font-poppins">
+                Manage your password and login security.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <Button variant="secondary" onClick={() => setShowChangePw(true)} className="bg-light-gray text-dark-text hover:bg-light-gray/80 border-light-gray">
+                Change Password
+              </Button>
+              {!twoFactorEnabled ? (
+                <div>
+                  {!showSetup2FA ? (
+                    <Button variant="ghost" onClick={startSetupAuthenticator} disabled={loading} className="text-dark-text/80 hover:text-dark-text hover:bg-light-gray">
+                      {loading ? "Setting up..." : "Enable Two-Factor Authentication"}
+                    </Button>
+                  ) : (
+                    <div className="p-4 bg-light-gray/30 rounded-xl space-y-4">
+                      <h4 className="text-sm font-semibold font-poppins text-dark-text">Scan QR Code</h4>
+                      <p className="text-xs text-slate-600 font-inter">
+                        Scan this QR code with Google Authenticator or Authy
+                      </p>
+                      {qrCodeUrl && (
+                        <div className="flex justify-center">
+                          <div className="p-4 bg-white border border-light-gray rounded-xl">
+                            <QRCodeSVG value={qrCodeUrl} size={192} level="H" includeMargin={true} />
+                          </div>
+                        </div>
+                      )}
+                      <div>
+                        <Input
+                          type="text"
+                          placeholder="Enter verification code"
+                          value={verificationCode}
+                          onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ""))}
+                          maxLength={6}
+                          inputMode="numeric"
+                          className="bg-white border-light-gray text-dark-text placeholder-dark-text/50"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" onClick={() => setShowSetup2FA(false)} className="text-dark-text/80 hover:text-dark-text hover:bg-light-gray">Cancel</Button>
+                        <Button onClick={verifyAndEnable2FA} disabled={loading} className="bg-primary-blue text-white hover:bg-primary-blue/80">
+                          {loading ? "Verifying..." : "Verify & Enable"}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Button variant="ghost" className="text-red-600 hover:text-red-500 hover:bg-red-50" onClick={disable2FA} disabled={loading}>
+                  {loading ? "Disabling..." : "Disable Two-Factor Authentication"}
+                </Button>
+              )}
+            </div>
+          </div>
+        );
+
+      case "data":
+        return (
+          <div className="space-y-4">
+            <div className="mb-6">
+              <h3 className="text-lg font-dm-serif text-dark-text">Data &amp; Export</h3>
+              <p className="text-sm text-slate-600 font-poppins">
+                Download your data.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <Button variant="secondary" onClick={() => downloadCounselorData("json")} disabled={saving} className="bg-light-gray text-dark-text hover:bg-light-gray/80 border-light-gray hover:scale-100">
+                {saving ? "Preparing..." : "📥 Download All My Data"}
+              </Button>
+              <Button variant="secondary" onClick={() => downloadCounselorData("csv")} disabled={saving} className="bg-light-gray text-dark-text hover:bg-light-gray/80 border-light-gray hover:scale-100">
+                {saving ? "Preparing..." : "Download CSV"}
+              </Button>
+            </div>
+            <p className="text-xs text-slate-600 font-inter mt-2">
+              Export includes profile info, conversations, case notes, and assigned clients. Account deletion is available in the Profile page.
+            </p>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <Toast {...toast} onClose={closeToast} />
+      <div className="flex gap-6">
+        {/* Sidebar */}
+        <div className="w-64 flex-shrink-0 hidden md:block">
+          <Card variant="white" className="p-4 space-y-2 overflow-hidden">
+            <h2 className="text-xs font-poppins uppercase tracking-wider text-slate-600 mb-4">Settings</h2>
+            <button
+              onClick={() => setActiveSection("counselor")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "counselor"
+                ? "bg-primary-blue/20 text-primary-blue"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/account.svg" alt="Head Counselor" width={16} height={16} className="w-4 h-4 object-contain" /> Head Counselor
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveSection("notifications")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "notifications"
+                ? "bg-primary-blue/20 text-primary-blue"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/notifications.svg" alt="Notifications" width={16} height={16} className="w-4 h-4 object-contain" /> Notifications
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveSection("privacy")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "privacy"
+                ? "bg-primary-blue/20 text-primary-blue"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/privacy.svg" alt="Privacy" width={16} height={16} className="w-4 h-4 object-contain" /> Privacy
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveSection("language")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "language"
+                ? "bg-primary-blue/20 text-primary-blue"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/language.svg" alt="Language" width={16} height={16} className="w-4 h-4 object-contain" /> Language
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveSection("security")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "security"
+                ? "bg-primary-blue/20 text-primary-blue"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/security.svg" alt="Security" width={16} height={16} className="w-4 h-4 object-contain" /> Security
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveSection("data")}
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm font-poppins transition-all ${activeSection === "data"
+                ? "bg-primary-blue/20 text-primary-blue"
+                : "text-slate-700 hover:text-dark-text hover:bg-light-gray"
+                }`}
+            >
+              <span className="flex items-center gap-2">
+                <Image src="/icons/data-export.svg" alt="Data & Export" width={16} height={16} className="w-4 h-4 object-contain" /> Data & Export
+              </span>
+            </button>
+          </Card>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1">
+          <Card variant="white" className="p-6">
+            {renderSettingsContent()}
+          </Card>
+        </div>
+
+        {showChangePw && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-dark-text/40 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+              <div className="flex items-start justify-between mb-5">
+                <div>
+                  <h3 className="text-xl font-dm-serif text-dark-text">Change Password</h3>
+                  <p className="text-xs text-slate-600 font-poppins mt-1">Update your login credentials</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setShowChangePw(false); setPwCurrent(""); setPwNew(""); setPwConfirm(""); }}
+                  className="text-slate-600 hover:text-dark-text text-2xl leading-none"
+                >
+                  x
+                </button>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-poppins text-slate-700 mb-1 block">Current Password</label>
+                  <Input type="password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} placeholder="Enter current password" />
+                </div>
+                <div>
+                  <label className="text-xs font-poppins text-slate-700 mb-1 block">New Password</label>
+                  <Input type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} placeholder="Enter new password" />
+                  <p className="mt-1 text-xs text-slate-600 font-inter">
+                    Use at least 8 characters with uppercase, lowercase, number, and special character.
+                  </p>
+                </div>
+                <div>
+                  <label className="text-xs font-poppins text-slate-700 mb-1 block">Confirm New Password</label>
+                  <Input type="password" value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)} placeholder="Repeat new password" />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => { setShowChangePw(false); setPwCurrent(""); setPwNew(""); setPwConfirm(""); }}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-poppins text-dark-text hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleChangePassword}
+                  disabled={pwLoading}
+                  className="flex-1 px-4 py-2.5 bg-primary-blue text-white rounded-lg text-sm font-poppins hover:bg-primary-blue/90 disabled:opacity-60"
+                >
+                  {pwLoading ? "Updating..." : "Update Password"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

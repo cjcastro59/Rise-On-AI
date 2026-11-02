@@ -60,6 +60,8 @@ const getRoleLabel = (role?: string | null) => {
       return "Owner";
     case "admin":
       return "Admin";
+    case "head_counselor":
+      return "Head Counselor";
     case "counselor":
       return "Counselor";
     default:
@@ -613,8 +615,8 @@ export default function SupportPage() {
                               type="button"
                               onClick={() => selectConversation(conversation)}
                               className={`w-full rounded-xl border p-3 text-left transition ${selectedConversation?.id === conversation.id
-                                  ? "border-primary-blue/40 bg-primary-blue/10"
-                                  : "border-gray-100 bg-gray-50 hover:border-primary-blue/20"
+                                ? "border-primary-blue/40 bg-primary-blue/10"
+                                : "border-gray-100 bg-gray-50 hover:border-primary-blue/20"
                                 }`}
                             >
                               <div className="flex items-center justify-between gap-2">
@@ -662,8 +664,8 @@ export default function SupportPage() {
                         </h2>
                       </div>
                       <span className={`rounded-full px-3 py-1 text-xs font-semibold font-poppins ${selectedConversation.status === "open"
-                          ? "bg-success-green/15 text-success-green"
-                          : "bg-gray-100 text-slate-600"
+                        ? "bg-success-green/15 text-success-green"
+                        : "bg-gray-100 text-slate-600"
                         }`}>
                         {selectedConversation.status === "open" ? "Open" : "Closed"}
                       </span>
@@ -707,8 +709,8 @@ export default function SupportPage() {
                           return (
                             <div key={message.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
                               <div className={`max-w-[82%] rounded-2xl px-4 py-2 shadow-sm ${isMine
-                                  ? "rounded-tr-none bg-gradient-to-r from-primary-blue to-lavender text-white"
-                                  : "rounded-tl-none bg-gray-100 text-dark-text"
+                                ? "rounded-tr-none bg-gradient-to-r from-primary-blue to-lavender text-white"
+                                : "rounded-tl-none bg-gray-100 text-dark-text"
                                 }`}>
                                 {!isMine && (
                                   <p className="mb-1 text-xs font-semibold font-poppins opacity-75">

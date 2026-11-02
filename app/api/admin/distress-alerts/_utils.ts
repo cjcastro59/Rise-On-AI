@@ -2,7 +2,7 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { Database } from "@/types/database";
 
-const allowedRoles = new Set(["admin", "owner", "counselor"]);
+const allowedRoles = new Set(["admin", "owner", "counselor", "head_counselor"]);
 
 // UID v4 format validation ─────────────────────────────────
 // All admin endpoints accept a `params.id` that must be a valid UUID to prevent
@@ -52,7 +52,7 @@ export async function getAuthorizedAdminClient() {
     {
       auth: {
         autoRefreshToken: false,
-        persistSession:   false,
+        persistSession: false,
       },
     }
   );
@@ -69,7 +69,7 @@ export async function getAuthorizedAdminClient() {
 
   if (profileError || !profile || !allowedRoles.has(profile.role)) {
     return {
-      error:  "You do not have permission to manage distress alerts.",
+      error: "You do not have permission to manage distress alerts.",
       status: 403 as const,
     };
   }

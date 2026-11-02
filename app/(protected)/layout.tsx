@@ -43,6 +43,7 @@ export default async function ProtectedLayout({
   // Role-based redirects — only redirect if profile actually loaded and role is confirmed
   // Use null-safe check: if profile is null (network issue), don't redirect, let member pages load
   if (role === "counselor") redirect("/counselor/dashboard");
+  if (role === "head_counselor") redirect("/head-counselor/dashboard");
   if (role === "admin" || role === "owner") redirect("/admin/dashboard");
 
   const userName =

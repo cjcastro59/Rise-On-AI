@@ -15,6 +15,7 @@ type LoginStep = "credentials" | "2fa";
 
 const getDashboardPath = (role?: string | null) => {
   if (role === "counselor") return "/counselor/dashboard";
+  if (role === "head_counselor") return "/head-counselor/dashboard";
   if (role === "admin" || role === "owner") return "/admin/dashboard";
   return "/dashboard";
 };
