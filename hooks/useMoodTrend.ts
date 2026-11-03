@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { getMoodScore, clampScore, getMoodEmoji, toDateKey, toMonthKey } from "@/lib/mood";
 
-export type MoodTrendRange = "Week" | "Month" | "3 Months" | "All Time";
+export type MoodTrendRange = "Week" | "Month" | "3 Months" | "All Time" | "Custom";
 
 export interface MoodTrendPoint {
   key: string;
@@ -114,7 +114,7 @@ function groupBy(records: ScoredRecord[], keyFn: (d: Date) => string) {
   return map;
 }
 
-export function useMoodTrend(range: MoodTrendRange) {
+export function useMoodTrend(range: MoodTrendRange, customFrom?: string, customTo?: string) {
   const { user } = useAuth();
   const supabase = useMemo(() => createClient() as any, []);
   const [data, setData] = useState<MoodTrendPoint[]>([]);
@@ -156,6 +156,41 @@ export function useMoodTrend(range: MoodTrendRange) {
     };
     try {
       const now = new Date();
+
+      // ── Custom date range ────────────────────────────────────────────────
+      if (range === "Custom" && customFrom && customTo) {
+        const start = new Date(customFrom + "T00:00:00");
+        const endExclusive = new Date(customTo + "T23:59:59.999");
+        const records = await fetchScoredRecords(supabase, user.id, start, endExclusive);
+        const byDay = groupBy(records, toDateKey);
+        const totalDays = Math.ceil((endExclusive.getTime() - start.getTime()) / DAY_MS);
+
+        const points: MoodTrendPoint[] = [];
+        for (let i = 0; i < totalDays; i++) {
+          const day = new Date(start.getTime() + i * DAY_MS);
+          const key = toDateKey(day);
+          const bucket = byDay.get(key) || [];
+          const { score, mood } = summarizeBucket(bucket);
+          const label = day.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+          points.push({
+            key,
+            date: label,
+            tooltipLabel: day.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+            score,
+            mood,
+            emoji: getMoodEmoji(mood),
+            count: bucket.length,
+          });
+        }
+        // Show tick every ~7 days to keep X-axis readable
+        const tickStep = Math.max(1, Math.floor(totalDays / 10));
+        const ticks = points.filter((_, i) => i % tickStep === 0 || i === points.length - 1).map(p => p.date);
+        setData(points);
+        setTicks(ticks.length > 1 ? ticks : undefined);
+        setSentimentCounts(await computeMiCounts(start, endExclusive));
+        setLoading(false);
+        return;
+      }
 
       if (range === "Week") {
         // Fixed Saturday -> Friday week. Always emits exactly 7 points, in
@@ -284,7 +319,7 @@ export function useMoodTrend(range: MoodTrendRange) {
     } finally {
       setLoading(false);
     }
-  }, [user, supabase, range]);
+  }, [user, supabase, range, customFrom, customTo]);
 
   useEffect(() => {
     fetchTrend();

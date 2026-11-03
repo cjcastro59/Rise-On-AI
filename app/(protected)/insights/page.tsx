@@ -8,7 +8,7 @@ import PageHeader from "@/components/layout/PageHeader";
 import WeeklyMoodChart from "@/components/dashboard/WeeklyMoodChart";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useMoodTrend, type MoodTrendRange } from "@/hooks/useMoodTrend";
+import { useMoodTrend } from "@/hooks/useMoodTrend";
 import { useBehavioralIndicators } from "@/hooks/useBehavioralIndicators";
 import { useWellnessAssessment } from "@/hooks/useWellnessAssessment";
 import { useDistressRisk } from "@/hooks/useDistressRisk";
@@ -35,7 +35,8 @@ type JournalEntry = {
   sentiment_score?: number | null;
 };
 
-const TIME_RANGES: MoodTrendRange[] = ["Week", "Month", "3 Months", "All Time"];
+const _todayStr = new Date().toISOString().slice(0, 10);
+const _thirtyAgoStr = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 // ── Indicator bar helper ──────────────────────────────────────────────────────
 function IndicatorBar({
@@ -198,7 +199,10 @@ function WellnessHistoryChart({
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function MoodInsightsPage() {
-  const [timeRange, setTimeRange] = useState<MoodTrendRange>("Week");
+  const [dateFrom, setDateFrom] = useState<string>(_thirtyAgoStr);
+  const [dateTo, setDateTo] = useState<string>(_todayStr);
+  const [appliedFrom, setAppliedFrom] = useState<string>(_thirtyAgoStr);
+  const [appliedTo, setAppliedTo] = useState<string>(_todayStr);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [showBreakdown, setShowBreakdown] = useState(false);
@@ -211,7 +215,7 @@ export default function MoodInsightsPage() {
     hasData: moodTrendHasData,
     avgScore: moodTrendAvg,
     ticks: moodTrendTicks,
-  } = useMoodTrend(timeRange);
+  } = useMoodTrend("Custom", appliedFrom, appliedTo);
 
   // ── Behavioral indicators from stored DB row ───────────────────────────────
   const {
@@ -311,15 +315,10 @@ export default function MoodInsightsPage() {
   };
 
   const getFilteredEntries = (): JournalEntry[] => {
-    const now    = new Date();
-    const cutoff = new Date();
-    switch (timeRange) {
-      case "Week": cutoff.setDate(now.getDate() - 7);      break;
-      case "Month": cutoff.setMonth(now.getMonth() - 1);    break;
-      case "3 Months": cutoff.setMonth(now.getMonth() - 3);    break;
-      default: return entries;
-    }
-    return entries.filter((e) => new Date(e.created_at) >= cutoff);
+    return entries.filter((e) => {
+      const d = e.created_at.slice(0, 10);
+      return d >= appliedFrom && d <= appliedTo;
+    });
   };
 
   // ── Per-entry sentiment helpers (ML column, no keyword scanning) ─────────
@@ -436,19 +435,42 @@ export default function MoodInsightsPage() {
       <PageHeader
         title="Mood Insights"
         subtitle="Your emotional journey over time"
-        actions={TIME_RANGES.map((range) => (
-          <button
-            key={range}
-            onClick={() => setTimeRange(range)}
-            className={`px-3 py-1.5 rounded-full text-xs font-poppins transition-all ${
-              timeRange === range
-                ? "bg-[#A8DADC] text-white shadow-md"
-                : "bg-gray-100 text-slate-600 hover:bg-[#F5F5F5]"
-            }`}
-          >
-            {range}
-          </button>
-        ))}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs font-poppins text-slate-600 shrink-0">From</label>
+              <input
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="text-xs font-inter border border-light-gray rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs font-poppins text-slate-600 shrink-0">To</label>
+              <input
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                max={_todayStr}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="text-xs font-inter border border-light-gray rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
+              />
+            </div>
+            <button
+              onClick={() => {
+                if (dateFrom && dateTo && dateFrom <= dateTo) {
+                  setAppliedFrom(dateFrom);
+                  setAppliedTo(dateTo);
+                }
+              }}
+              className="px-3 py-1.5 rounded-full text-xs font-poppins bg-[#A8DADC] text-white shadow-sm hover:bg-[#4EAAB3] transition-colors"
+            >
+              Apply
+            </button>
+          </div>
+        }
       />
 
       {/* Stats Row */}
@@ -1119,7 +1141,7 @@ export default function MoodInsightsPage() {
           <Card className="p-6 bg-white">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
               <h3 className="text-sm font-poppins uppercase tracking-wider text-slate-700">
-                Mood Trajectory — This {timeRange}
+                Mood Trajectory — {appliedFrom} to {appliedTo}
               </h3>
               {moodTrend.direction !== "none" && (
                 <span
@@ -1146,15 +1168,7 @@ export default function MoodInsightsPage() {
               hasData={moodTrendHasData}
               heightClassName="h-52"
               ticks={moodTrendTicks}
-              emptyMessage={
-                timeRange === "Week"
-                  ? "No mood entries recorded this week."
-                  : timeRange === "Month"
-                  ? "No mood entries recorded this month."
-                  : timeRange === "3 Months"
-                  ? "No mood entries recorded in the last 3 months."
-                  : "No mood entries recorded yet."
-              }
+              emptyMessage={`No mood entries recorded from ${appliedFrom} to ${appliedTo}.`}
             />
           </Card>
 

@@ -57,25 +57,49 @@ const DistressRiskChart = dynamic(
 );
 
 // ── Time range pill button ────────────────────────────────────────────────────
-function RangePill({
-  label,
-  active,
-  onClick,
+function DateRangeFilter({
+  dateFrom,
+  dateTo,
+  onFromChange,
+  onToChange,
+  onApply,
 }: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
+  dateFrom: string;
+  dateTo: string;
+  onFromChange: (v: string) => void;
+  onToChange: (v: string) => void;
+  onApply: () => void;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className={`px-3 py-1.5 rounded-full text-xs font-poppins transition-all ${active
-          ? "bg-[#A8DADC] text-white shadow-md"
-          : "bg-gray-100 text-slate-600 hover:bg-[#F5F5F5]"
-        }`}
-    >
-      {label}
-    </button>
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-1.5">
+        <label className="text-xs font-poppins text-slate-600 shrink-0">From</label>
+        <input
+          type="date"
+          value={dateFrom}
+          max={dateTo || undefined}
+          onChange={(e) => onFromChange(e.target.value)}
+          className="text-xs font-inter border border-light-gray rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
+        />
+      </div>
+      <div className="flex items-center gap-1.5">
+        <label className="text-xs font-poppins text-slate-600 shrink-0">To</label>
+        <input
+          type="date"
+          value={dateTo}
+          min={dateFrom || undefined}
+          max={new Date().toISOString().slice(0, 10)}
+          onChange={(e) => onToChange(e.target.value)}
+          className="text-xs font-inter border border-light-gray rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
+        />
+      </div>
+      <button
+        onClick={onApply}
+        className="px-3 py-1.5 rounded-full text-xs font-poppins bg-[#A8DADC] text-white shadow-sm hover:bg-[#4EAAB3] transition-colors"
+      >
+        Apply
+      </button>
+    </div>
   );
 }
 
@@ -129,13 +153,25 @@ function StatPill({
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-const MOOD_RANGES: MoodTrendRange[] = ["Week", "Month", "3 Months", "All Time"];
+const today = new Date().toISOString().slice(0, 10);
+const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 export default function MoodTrendsPage() {
-  // Mood trend range for charts 2 & 3 (shared range selector)
-  const [moodRange, setMoodRange] = useState<MoodTrendRange>("Month");
+  // Date range state — defaults to last 30 days
+  const [dateFrom, setDateFrom] = useState<string>(thirtyDaysAgo);
+  const [dateTo, setDateTo] = useState<string>(today);
+  // Applied range (only updates when user clicks Apply)
+  const [appliedFrom, setAppliedFrom] = useState<string>(thirtyDaysAgo);
+  const [appliedTo, setAppliedTo] = useState<string>(today);
 
-  // All 6 visualization datasets from the hook — pass moodRange so charts refresh with the filter
+  const handleApply = () => {
+    if (dateFrom && dateTo && dateFrom <= dateTo) {
+      setAppliedFrom(dateFrom);
+      setAppliedTo(dateTo);
+    }
+  };
+
+  // All 6 visualization datasets from the hook — pass custom date range
   const {
     distribution,
     distributionLoading,
@@ -146,16 +182,16 @@ export default function MoodTrendsPage() {
     distressRisk,
     distressRiskLoading,
     refetch,
-  } = useMoodVisualization(moodRange);
+  } = useMoodVisualization("Custom", appliedFrom, appliedTo);
 
-  // use useMoodTrend directly — range driven by moodRange state
+  // use useMoodTrend directly — driven by applied date range
   const {
     data: moodData,
     loading: moodLoading,
     hasData: moodHasData,
     avgScore: moodAvg,
     ticks: moodTicks,
-  } = useMoodTrend(moodRange);
+  } = useMoodTrend("Custom", appliedFrom, appliedTo);
 
   // ── Recalculate hooks (for stale data auto-refresh) ───────────────────────
   const { latest: wellnessLatest, loading: wellnessRecalcLoading, triggerRecalculate: triggerWellnessRecalc } = useWellnessAssessment(30, 7);
@@ -202,12 +238,21 @@ export default function MoodTrendsPage() {
         title="Mood Trend Visualization"
         subtitle="Historical emotional patterns from your journal data"
         actions={
-          <button
-            onClick={refetch}
-            className="text-xs font-poppins text-[#4EAAB3] hover:underline px-2 py-1"
-          >
-            ↻ Refresh all
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <DateRangeFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onFromChange={setDateFrom}
+              onToChange={setDateTo}
+              onApply={handleApply}
+            />
+            <button
+              onClick={refetch}
+              className="text-xs font-poppins text-[#4EAAB3] hover:underline px-2 py-1"
+            >
+              ↻ Refresh
+            </button>
+          </div>
         }
       />
 
@@ -269,7 +314,7 @@ export default function MoodTrendsPage() {
         <Card className="p-6 bg-white">
           <SectionHeader
             emoji="📈"
-            title={moodRange === "Week" ? "Weekly Mood Trend" : moodRange === "Month" ? "Monthly Mood Trend" : `Mood Trend — ${moodRange}`}
+            title={`Mood Trend — ${appliedFrom} to ${appliedTo}`}
             subtitle="Mood score over time (mood_logs + journal_entries)"
             action={
               moodAvg !== null && (
@@ -279,17 +324,6 @@ export default function MoodTrendsPage() {
               )
             }
           />
-          {/* Range selector */}
-          <div className="flex flex-wrap gap-1.5 mb-4 mt-2">
-            {MOOD_RANGES.map((r) => (
-              <RangePill
-                key={r}
-                label={r}
-                active={moodRange === r}
-                onClick={() => setMoodRange(r)}
-              />
-            ))}
-          </div>
           <WeeklyMoodChart
             data={moodData}
             loading={moodLoading}

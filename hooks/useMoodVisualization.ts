@@ -108,7 +108,7 @@ const asDateKey = (value: unknown) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function useMoodVisualization(range?: MoodTrendRange): UseMoodVisualizationResult {
+export function useMoodVisualization(range?: MoodTrendRange, customFrom?: string, customTo?: string): UseMoodVisualizationResult {
   const { user } = useAuth();
   const supabase = useMemo(() => createClient() as any, []);
 
@@ -121,10 +121,11 @@ export function useMoodVisualization(range?: MoodTrendRange): UseMoodVisualizati
     avgScore: moodTrendAvg,
     ticks: moodTrendTicks,
     refetch: refetchMoodTrend,
-  } = useMoodTrend(moodTrendRange);
+  } = useMoodTrend(moodTrendRange, customFrom, customTo);
 
   // ── Compute date cutoff from range ────────────────────────────────────────
   const dateCutoff = useMemo((): string | null => {
+    if (range === "Custom" && customFrom) return customFrom;
     if (!range || range === "All Time") return null;
     const now = new Date();
     const cutoff = new Date();
@@ -132,7 +133,7 @@ export function useMoodVisualization(range?: MoodTrendRange): UseMoodVisualizati
     else if (range === "Month") cutoff.setMonth(now.getMonth() - 1);
     else if (range === "3 Months") cutoff.setMonth(now.getMonth() - 3);
     return cutoff.toISOString().slice(0, 10); // "YYYY-MM-DD"
-  }, [range]);
+  }, [range, customFrom]);
 
   // ── Dataset state ─────────────────────────────────────────────────────────
   const [distribution, setDistribution] = useState<MoodDistributionData | null>(null);

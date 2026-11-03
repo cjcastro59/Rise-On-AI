@@ -37,6 +37,20 @@ function isSameDay(dateString: string, target: Date) {
 export default function AdminMoodTrendsPage() {
   const [entries, setEntries] = useState<JournalEntryRow[]>([]);
   const [loading, setLoading] = useState(true);
+  // Date range filter state
+  const today = new Date().toISOString().slice(0, 10);
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const [dateFrom, setDateFrom] = useState<string>(thirtyDaysAgo);
+  const [dateTo, setDateTo] = useState<string>(today);
+  const [appliedFrom, setAppliedFrom] = useState<string>(thirtyDaysAgo);
+  const [appliedTo, setAppliedTo] = useState<string>(today);
+
+  const handleApply = () => {
+    if (dateFrom && dateTo && dateFrom <= dateTo) {
+      setAppliedFrom(dateFrom);
+      setAppliedTo(dateTo);
+    }
+  };
   // Platform-wide wellness distribution fetched directly from behavioral_indicators
   const [wellnessStats, setWellnessStats] = useState<{
     level: WellnessLevel;
@@ -122,6 +136,8 @@ export default function AdminMoodTrendsPage() {
 
   const categories = entries.reduce(
     (acc, entry) => {
+      const entryDate = entry.created_at.slice(0, 10);
+      if (entryDate < appliedFrom || entryDate > appliedTo) return acc;
       const category = classifyEntry(entry);
       acc[category] = (acc[category] || 0) + 1;
       return acc;
@@ -129,30 +145,40 @@ export default function AdminMoodTrendsPage() {
     {} as Record<string, number>
   );
 
-  const totalEntries = entries.length || 1;
+  // Filtered entries for chart and emotion computations
+  const filteredEntries = entries.filter((e) => {
+    const d = e.created_at.slice(0, 10);
+    return d >= appliedFrom && d <= appliedTo;
+  });
+
+  const totalEntries = filteredEntries.length || 1;
   const positivePercent = Math.round(((categories.Positive || 0) / totalEntries) * 100);
   const negativePercent = Math.round(((categories.Negative || 0) / totalEntries) * 100);
   const distressPercent = Math.round(((categories.Distress || 0) / totalEntries) * 100);
 
-  const lastSevenDays = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - index));
-    return date;
+  // Build daily data points from appliedFrom to appliedTo
+  const fromDate = new Date(appliedFrom + "T00:00:00");
+  const toDate = new Date(appliedTo + "T23:59:59");
+  const totalRangeDays = Math.max(1, Math.ceil((toDate.getTime() - fromDate.getTime()) / (24 * 60 * 60 * 1000)));
+  const rangeDays = Array.from({ length: totalRangeDays }, (_, i) => {
+    const d = new Date(fromDate);
+    d.setDate(d.getDate() + i);
+    return d;
   });
-  const dailyScores = lastSevenDays.map((day) => {
-    const dayEntries = entries.filter((entry) => isSameDay(entry.created_at, day));
+  const dailyScores = rangeDays.map((day) => {
+    const dayEntries = filteredEntries.filter((entry) => isSameDay(entry.created_at, day));
     if (dayEntries.length === 0) return 0;
     const positives = dayEntries.filter((entry) => classifyEntry(entry) === "Positive").length;
     return Math.round((positives / dayEntries.length) * 100);
   });
-  const dailyDistressScores = lastSevenDays.map((day) => {
-    const dayEntries = entries.filter((entry) => isSameDay(entry.created_at, day));
+  const dailyDistressScores = rangeDays.map((day) => {
+    const dayEntries = filteredEntries.filter((entry) => isSameDay(entry.created_at, day));
     if (dayEntries.length === 0) return 0;
     const distressed = dayEntries.filter((entry) => classifyEntry(entry) === "Distress").length;
     return Math.round((distressed / dayEntries.length) * 100);
   });
 
-  const emotionCounts = entries.reduce((acc, entry) => {
+  const emotionCounts = filteredEntries.reduce((acc, entry) => {
     (entry.emotions || []).forEach((emotion) => {
       const normalized = emotion.toLowerCase();
       acc[normalized] = (acc[normalized] || 0) + 1;
@@ -170,7 +196,37 @@ export default function AdminMoodTrendsPage() {
           <h1 className="text-2xl font-dm-serif text-dark-text mb-1">Mood Trend Reports</h1>
           <p className="text-sm text-slate-700 font-poppins">Platform-wide emotional analytics; aggregated and anonymized</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Date range filter */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs font-poppins text-slate-600 shrink-0">From</label>
+              <input
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="text-xs font-inter border border-gray-200 rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs font-poppins text-slate-600 shrink-0">To</label>
+              <input
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="text-xs font-inter border border-gray-200 rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
+              />
+            </div>
+            <button
+              onClick={handleApply}
+              className="px-3 py-1.5 rounded-lg text-xs font-poppins bg-[#A8DADC] text-white hover:bg-[#4EAAB3] transition-colors"
+            >
+              Apply
+            </button>
+          </div>
           <button
             onClick={() => {
               const header = ["Date", "Entry ID", "Mood", "Sentiment Class", "Emotions"];
@@ -250,7 +306,7 @@ export default function AdminMoodTrendsPage() {
         <Card className="p-6 bg-[#eef3f8]">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📈</div>
-            <p className="text-xs font-poppins text-slate-700">PLATFORM MOOD SCORE TREND - LAST 7 DAYS</p>
+            <p className="text-xs font-poppins text-slate-700">PLATFORM MOOD SCORE TREND — {appliedFrom} to {appliedTo}</p>
           </div>
           <div className="h-56 flex items-end justify-between gap-2 px-2">
             {dailyScores.map((score, index) => (
@@ -269,7 +325,7 @@ export default function AdminMoodTrendsPage() {
                   />
                 </div>
                 <span className="text-xs text-slate-700 font-poppins">
-                  {lastSevenDays[index].toLocaleDateString("en", { weekday: "short" })}
+                  {rangeDays[index].toLocaleDateString("en", { month: "short", day: "numeric" })}
                 </span>
               </div>
             ))}

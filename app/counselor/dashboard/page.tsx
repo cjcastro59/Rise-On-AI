@@ -102,7 +102,10 @@ export default function CounselorDashboardPage() {
   const [wellnessMap, setWellnessMap] = useState<Map<string, UserWellnessSnapshot>>(new Map());
   const [riskMap, setRiskMap] = useState<Map<string, UserRiskSnapshot>>(new Map());
   const [aggregateWellnessTrend, setAggregateWellnessTrend] = useState<AggregateWellnessPoint[]>([]);
-  const [wellnessTrendFilter, setWellnessTrendFilter] = useState<"recent" | "all">("recent");
+  const [dauTrendDateFrom, setDauTrendDateFrom] = useState<string>(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+  const [dauTrendDateTo, setDauTrendDateTo] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [dauTrendAppliedFrom, setDauTrendAppliedFrom] = useState<string>(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+  const [dauTrendAppliedTo, setDauTrendAppliedTo] = useState<string>(new Date().toISOString().slice(0, 10));
   const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
   const [announcements, setAnnouncements] = useState<{ id: string; title: string; content: string; created_at: string }[]>([]);
   const [announcementsExpanded, setAnnouncementsExpanded] = useState(true);
@@ -491,28 +494,39 @@ export default function CounselorDashboardPage() {
               Assigned users only, averaged by assessment date
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {!loading && !wellnessLoading && aggregateWellnessTrend.length > 0 && (
-              <span className="text-xs font-poppins text-slate-600">
-                {(wellnessTrendFilter === "recent" ? aggregateWellnessTrend.slice(-14) : aggregateWellnessTrend).length} points
-              </span>
-            )}
-            <div className="flex gap-1">
-              <button
-                type="button"
-                onClick={() => setWellnessTrendFilter("recent")}
-                className={`px-2.5 py-1 rounded-full text-xs font-poppins transition-all ${wellnessTrendFilter === "recent" ? "bg-primary-blue text-white shadow-sm" : "bg-gray-100 text-slate-600 hover:bg-gray-200"}`}
-              >
-                Recent
-              </button>
-              <button
-                type="button"
-                onClick={() => setWellnessTrendFilter("all")}
-                className={`px-2.5 py-1 rounded-full text-xs font-poppins transition-all ${wellnessTrendFilter === "all" ? "bg-primary-blue text-white shadow-sm" : "bg-gray-100 text-slate-600 hover:bg-gray-200"}`}
-              >
-                All Months
-              </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs font-poppins text-slate-600 shrink-0">From</label>
+              <input
+                type="date"
+                value={dauTrendDateFrom}
+                max={dauTrendDateTo || undefined}
+                onChange={(e) => setDauTrendDateFrom(e.target.value)}
+                className="text-xs font-inter border border-gray-200 rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
+              />
             </div>
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs font-poppins text-slate-600 shrink-0">To</label>
+              <input
+                type="date"
+                value={dauTrendDateTo}
+                min={dauTrendDateFrom || undefined}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setDauTrendDateTo(e.target.value)}
+                className="text-xs font-inter border border-gray-200 rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
+              />
+            </div>
+            <button
+              onClick={() => {
+                if (dauTrendDateFrom && dauTrendDateTo && dauTrendDateFrom <= dauTrendDateTo) {
+                  setDauTrendAppliedFrom(dauTrendDateFrom);
+                  setDauTrendAppliedTo(dauTrendDateTo);
+                }
+              }}
+              className="px-3 py-1.5 rounded-lg text-xs font-poppins bg-primary-blue text-white hover:opacity-90 transition-colors"
+            >
+              Apply
+            </button>
           </div>
         </div>
 
@@ -530,19 +544,21 @@ export default function CounselorDashboardPage() {
             </p>
           </div>
         ) : (() => {
-          const displayPoints = wellnessTrendFilter === "recent"
-            ? aggregateWellnessTrend.slice(-14)
-            : aggregateWellnessTrend;
+          const displayPoints = aggregateWellnessTrend.filter(p => p.date >= dauTrendAppliedFrom && p.date <= dauTrendAppliedTo);
           const displayMax = Math.max(...displayPoints.map(p => p.score), 1);
           return (
             <div className="h-44">
               <div className="flex h-36 items-end gap-2 border-b border-gray-100 overflow-x-auto">
-                {displayPoints.map((point) => {
+                {displayPoints.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center h-full">
+                    <p className="text-sm text-slate-600 font-inter">No data for selected range.</p>
+                  </div>
+                ) : displayPoints.map((point) => {
                   const height = Math.max(8, Math.round((point.score / displayMax) * 100));
                   const lvl = classifyWellnessLevel(point.score);
                   const cfg = WELLNESS_LEVEL_CONFIG[lvl];
                   return (
-                    <div key={point.date} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1" style={{ minWidth: wellnessTrendFilter === "all" ? "20px" : undefined }}>
+                    <div key={point.date} className="flex min-w-0 flex-1 flex-col items-center justify-end gap-1" style={{ minWidth: "20px" }}>
                       <span className="text-[9px] font-poppins text-slate-600 leading-none">
                         {point.score.toFixed(1)}
                       </span>
@@ -560,12 +576,14 @@ export default function CounselorDashboardPage() {
                   );
                 })}
               </div>
-              <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-600 font-inter">
-                <span>{new Date(displayPoints[0]?.date).toLocaleDateString()}</span>
-                <span className="text-right">
-                  {new Date(displayPoints[displayPoints.length - 1]?.date).toLocaleDateString()}
-                </span>
-              </div>
+              {displayPoints.length > 0 && (
+                <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-600 font-inter">
+                  <span>{new Date(displayPoints[0]?.date).toLocaleDateString()}</span>
+                  <span className="text-right">
+                    {new Date(displayPoints[displayPoints.length - 1]?.date).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
             </div>
           );
         })()}

@@ -82,7 +82,10 @@ export default function AdminDashboardPage() {
   const [currentDate, setCurrentDate] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
-  const [dauPeriod, setDauPeriod] = useState<"week" | "month">("month");
+  const [dauDateFrom, setDauDateFrom] = useState<string>(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+  const [dauDateTo, setDauDateTo] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [dauAppliedFrom, setDauAppliedFrom] = useState<string>(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+  const [dauAppliedTo, setDauAppliedTo] = useState<string>(new Date().toISOString().slice(0, 10));
   const [dauData, setDauData] = useState<DauPoint[]>([]);
   const [dauSummary, setDauSummary] = useState({
     today: 0,
@@ -164,36 +167,20 @@ export default function AdminDashboardPage() {
   // Load DAU and mood distribution
   const loadAnalyticsData = useCallback(async () => {
     try {
-      const now = new Date();
-      const sevenDaysAgo = new Date(now);
-      sevenDaysAgo.setDate(now.getDate() - 6);
-      let startDate: Date;
-
-      if (dauPeriod === "week") {
-        startDate = sevenDaysAgo; // Last 7 days
-      } else {
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        // Extend back far enough to also cover the trailing 7 days, so the
-        // summary row's "Weekly Average" is accurate even in the first days
-        // of a new month, without issuing a second Supabase query for it.
-        startDate = startOfMonth < sevenDaysAgo ? startOfMonth : sevenDaysAgo;
-      }
+      const startDate = new Date(dauAppliedFrom + "T00:00:00");
+      const endDate = new Date(dauAppliedTo + "T23:59:59.999");
       startDate.setHours(0, 0, 0, 0);
 
-      // A user is "active" if they created a journal entry, logged a mood,
-      // logged distress, or have any activity_logs record. Combine all four
-      // real tables so the chart reflects actual usage rather than a single
-      // table that may have no rows yet.
       const [
         { data: activityLogRows, error: activityLogError },
         { data: journalRows, error: journalError },
         { data: moodLogRows, error: moodLogError },
         { data: distressRows, error: distressError },
       ] = await Promise.all([
-        supabase.from("activity_logs").select("user_id, created_at").gte("created_at", startDate.toISOString()),
-        supabase.from("journal_entries").select("user_id, created_at").gte("created_at", startDate.toISOString()),
-        supabase.from("mood_logs").select("user_id, created_at").gte("created_at", startDate.toISOString()),
-        supabase.from("distress_logs").select("user_id, created_at").gte("created_at", startDate.toISOString()),
+        supabase.from("activity_logs").select("user_id, created_at").gte("created_at", startDate.toISOString()).lte("created_at", endDate.toISOString()),
+        supabase.from("journal_entries").select("user_id, created_at").gte("created_at", startDate.toISOString()).lte("created_at", endDate.toISOString()),
+        supabase.from("mood_logs").select("user_id, created_at").gte("created_at", startDate.toISOString()).lte("created_at", endDate.toISOString()),
+        supabase.from("distress_logs").select("user_id, created_at").gte("created_at", startDate.toISOString()).lte("created_at", endDate.toISOString()),
       ]);
 
       if (activityLogError) console.error("activityLogError:", activityLogError);
@@ -217,30 +204,20 @@ export default function AdminDashboardPage() {
         dauMap.get(dateKey)!.add(record.user_id);
       });
 
-      // Build DAU array
+      // Build DAU array — one point per day in the selected range
       const dauArray: DauPoint[] = [];
       const fullDateLabel = (d: Date) => d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-
-      if (dauPeriod === "week") {
-        for (let i = 6; i >= 0; i--) {
-          const d = new Date(now);
-          d.setDate(now.getDate() - i);
-          const dateLabel = d.toLocaleDateString("en-US", { weekday: 'short' });
-          dauArray.push({ date: dateLabel, fullDate: fullDateLabel(d), count: dauMap.get(toDateKey(d))?.size || 0 });
-        }
-      } else {
-        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        for (let i = 1; i <= daysInMonth; i++) {
-          const d = new Date(now.getFullYear(), now.getMonth(), i);
-          dauArray.push({ date: String(i), fullDate: fullDateLabel(d), count: dauMap.get(toDateKey(d))?.size || 0 });
-        }
+      const totalDays = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)));
+      for (let i = 0; i < totalDays; i++) {
+        const d = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+        const label = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        dauArray.push({ date: label, fullDate: fullDateLabel(d), count: dauMap.get(toDateKey(d))?.size || 0 });
       }
 
       setDauData(dauArray);
 
-      // Summary row: derived entirely from dauMap already fetched above, no
-      // extra Supabase calls. "Today"/"Yesterday"/"Weekly Average" always
-      // look at the trailing 7 days regardless of the selected period.
+      // Summary row — always uses trailing 7 days from today for Today/Yesterday/WeeklyAvg
+      const now = new Date();
       const yesterday = new Date(now);
       yesterday.setDate(now.getDate() - 1);
 
@@ -267,7 +244,7 @@ export default function AdminDashboardPage() {
         console.error("Error loading analytics data:", error);
         showToast("Failed to load analytics data.", "error");
     }
-  }, [dauPeriod, supabase]);
+  }, [dauAppliedFrom, dauAppliedTo, supabase]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -376,12 +353,12 @@ export default function AdminDashboardPage() {
     loadData();
   }, [loadAnalyticsData, loadAnnouncements, supabase, currentUser]);
 
-  // Reload analytics only when period CHANGES (not on initial mount — main loadData handles it)
+  // Reload analytics when applied date range changes (not on initial mount)
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) { isFirstRender.current = false; return; }
     if (currentUser) loadAnalyticsData();
-  }, [loadAnalyticsData, currentUser]);
+  }, [loadAnalyticsData, currentUser, dauAppliedFrom, dauAppliedTo]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -664,11 +641,11 @@ export default function AdminDashboardPage() {
   const dauYAxisMax = useMemo(() => Math.max(5, Math.ceil(dauMaxCount / 5) * 5), [dauMaxCount]);
   const dauHasActivity = useMemo(() => dauData.some((d) => d.count > 0), [dauData]);
   const dauMonthTicks = useMemo(() => {
-    if (dauPeriod !== "month" || dauData.length === 0) return undefined;
+    if (dauData.length === 0) return undefined;
     const daysInMonth = dauData.length;
     const candidates = [1, 5, 10, 15, 20, 25, daysInMonth];
     return Array.from(new Set(candidates.filter((n) => n >= 1 && n <= daysInMonth))).map(String);
-  }, [dauPeriod, dauData]);
+  }, [dauData]);
 
   return (
     <div className="space-y-6">
@@ -827,20 +804,42 @@ export default function AdminDashboardPage() {
               <div className="w-8 h-8 bg-[#A8DADC]/20 rounded-lg flex items-center justify-center">📈</div>
               <div>
                 <p className="text-xs font-poppins text-slate-700">
-                DAILY ACTIVE USERS — {dauPeriod === "month" ? new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }) : "LAST 7 DAYS"}
-              </p>
+                  DAILY ACTIVE USERS — {dauAppliedFrom} to {dauAppliedTo}
+                </p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => setDauPeriod("week")}
-                className={`px-3 py-1 rounded-lg text-xs font-poppins ${dauPeriod === "week" ? "bg-[#A8DADC]/30 text-dark-text" : "bg-gray-100 text-slate-600"}`}>
-                Week
-              </button>
-              <button 
-                onClick={() => setDauPeriod("month")}
-                className={`px-3 py-1 rounded-lg text-xs font-poppins ${dauPeriod === "month" ? "bg-[#A8DADC]/30 text-dark-text" : "bg-gray-100 text-slate-600"}`}>
-                Month
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <label className="text-xs font-poppins text-slate-600 shrink-0">From</label>
+                <input
+                  type="date"
+                  value={dauDateFrom}
+                  max={dauDateTo || undefined}
+                  onChange={(e) => setDauDateFrom(e.target.value)}
+                  className="text-xs font-inter border border-gray-200 rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
+                />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <label className="text-xs font-poppins text-slate-600 shrink-0">To</label>
+                <input
+                  type="date"
+                  value={dauDateTo}
+                  min={dauDateFrom || undefined}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => setDauDateTo(e.target.value)}
+                  className="text-xs font-inter border border-gray-200 rounded-lg px-2 py-1 bg-white text-slate-700 focus:outline-none focus:ring-1 focus:ring-[#A8DADC]"
+                />
+              </div>
+              <button
+                onClick={() => {
+                  if (dauDateFrom && dauDateTo && dauDateFrom <= dauDateTo) {
+                    setDauAppliedFrom(dauDateFrom);
+                    setDauAppliedTo(dauDateTo);
+                  }
+                }}
+                className="px-3 py-1.5 rounded-lg text-xs font-poppins bg-[#A8DADC] text-white hover:bg-[#4EAAB3] transition-colors"
+              >
+                Apply
               </button>
             </div>
           </div>
@@ -883,7 +882,7 @@ export default function AdminDashboardPage() {
                       axisLine={false}
                       tickLine={false}
                       tick={{ fontSize: 11, fill: "rgba(30,41,59,0.6)" }}
-                      interval={dauPeriod === "month" ? "preserveStartEnd" : 0}
+                      interval={"preserveStartEnd"}
                       ticks={dauMonthTicks}
                     />
                     <YAxis
