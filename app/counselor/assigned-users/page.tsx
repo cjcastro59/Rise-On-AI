@@ -12,6 +12,7 @@ import {
   classifyWellnessLevel,
   type WellnessLevel,
 } from "@/lib/wellness-assessment";
+import StudentReportModal, { type StudentReportData } from "@/components/counselor/StudentReportModal";
 import {
   DISTRESS_RISK_CONFIG,
   type DistressRiskLevel,
@@ -358,11 +359,13 @@ function DetailModal({ user, onClose, displayIdFormat, casesBasePath }: DetailMo
 function ActionMenu({
   user,
   onView,
+  onReport,
   onReview,
   casesBasePath,
 }: {
   user: ProcessedUser;
   onView: () => void;
+  onReport: () => void;
   onReview: () => void;
   casesBasePath: string;
 }) {
@@ -393,6 +396,12 @@ function ActionMenu({
             onClick={() => { setOpen(false); onView(); }}
           >
             View
+          </button>
+          <button
+            className="w-full text-left px-3 py-2 text-sm font-poppins text-dark-text hover:bg-gray-50"
+            onClick={() => { setOpen(false); onReport(); }}
+          >
+            Report
           </button>
           {user.openCases.length > 0 && (
             <Link
@@ -431,6 +440,7 @@ export default function CounselorAssignedUsersPage() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [detailUser, setDetailUser] = useState<ProcessedUser | null>(null);
+  const [reportUser, setReportUser] = useState<ProcessedUser | null>(null);
   const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
@@ -650,6 +660,24 @@ export default function CounselorAssignedUsersPage() {
         />
       )}
 
+      {/* Report modal */}
+      {reportUser && (
+        <StudentReportModal
+          student={{
+            displayId: reportUser.displayId,
+            age: reportUser.age,
+            sex: reportUser.sex,
+            entries: reportUser.entries,
+            lastActive: reportUser.lastActive,
+            sentiment: reportUser.sentiment,
+            activityStatus: reportUser.activityStatus,
+            wellness: reportUser.wellness,
+            risk: reportUser.risk,
+          }}
+          onClose={() => setReportUser(null)}
+        />
+      )}
+
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white px-6 py-5 shadow-sm border border-gray-100">
         <div>
@@ -830,6 +858,12 @@ export default function CounselorAssignedUsersPage() {
                         >
                           View
                         </button>
+                        <button
+                          onClick={() => setReportUser(user)}
+                          className="rounded-lg bg-[#A8DADC] px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-[#4EAAB3]"
+                        >
+                          Report
+                        </button>
                         {user.openCases.length > 0 && (
                           <Link
                             href={`${CASES_PATH}?search=${encodeURIComponent(user.displayId)}`}
@@ -848,6 +882,7 @@ export default function CounselorAssignedUsersPage() {
                         <ActionMenu
                           user={user}
                           onView={() => setDetailUser(user)}
+                          onReport={() => setReportUser(user)}
                           onReview={() => { }}
                           casesBasePath={CASES_PATH}
                         />
