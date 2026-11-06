@@ -27,6 +27,7 @@ interface RawUser {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  avatar_url: string | null;
 }
 
 interface WellnessRow {
@@ -166,6 +167,7 @@ interface ProcessedUser {
   risk: RiskRow | null;
   openCases: DistressLogRow[];
   worstSeverity: "critical" | "medium" | null;
+  avatarUrl: string | null;
 }
 
 interface DetailModalProps {
@@ -481,7 +483,7 @@ export default function CounselorAssignedUsersPage() {
           { data: distressData },
         ] = await Promise.all([
           supabase.from("user_profiles")
-            .select("id,age,sex,is_active,created_at,updated_at")
+            .select("id,age,sex,is_active,created_at,updated_at,avatar_url")
             .eq("role", "user").in("id", assignedIds),
           supabase.from("journal_entries")
             .select("user_id,mood,sentiment,created_at")
@@ -593,6 +595,7 @@ export default function CounselorAssignedUsersPage() {
       risk,
       openCases,
       worstSeverity: hasCritical ? "critical" : hasMedium ? "medium" : null,
+      avatarUrl: user.avatar_url ?? null,
     };
   }), [users, journalRows, wellnessMap, riskMap, distressLogs, displayIdFormat]);
 
@@ -673,6 +676,7 @@ export default function CounselorAssignedUsersPage() {
             activityStatus: reportUser.activityStatus,
             wellness: reportUser.wellness,
             risk: reportUser.risk,
+            avatarUrl: reportUser.avatarUrl,
           }}
           onClose={() => setReportUser(null)}
         />
