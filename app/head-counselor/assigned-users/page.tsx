@@ -7,6 +7,7 @@ import { Portal } from "@/components/ui/Portal";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDisplayId, loadDisplayIdFormat, type DisplayIdFormat } from "@/lib/display-ids";
+import { Toast, useToast } from "@/components/ui/Toast";
 import {
   WELLNESS_LEVEL_CONFIG,
   classifyWellnessLevel,
@@ -413,9 +414,31 @@ export default function HeadCounselorAssignedUsersPage() {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [detailUser, setDetailUser] = useState<ProcessedUser | null>(null);
+  const [assignSelections, setAssignSelections] = useState<Record<string, string>>({});
+  const [assignLoading, setAssignLoading] = useState<Record<string, boolean>>({});
   const [displayIdFormat, setDisplayIdFormat] = useState<DisplayIdFormat>("anonymized");
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
+  const { toast, showToast, closeToast } = useToast();
+
+  const handleAssignCounselor = async (userId: string, counselorId: string) => {
+    if (!counselorId) { showToast("Please select a counselor.", "error"); return; }
+    setAssignLoading(prev => ({ ...prev, [userId]: true }));
+    try {
+      const { error } = await supabase
+        .from("user_profiles")
+        .update({ assigned_counselor_id: counselorId })
+        .eq("id", userId)
+        .eq("role", "user");
+      if (error) throw error;
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, assigned_counselor_id: counselorId } : u));
+      showToast("Counselor assigned successfully.", "success");
+    } catch (err: any) {
+      showToast(err.message || "Failed to assign counselor.", "error");
+    } finally {
+      setAssignLoading(prev => { const next = { ...prev }; delete next[userId]; return next; });
+    }
+  };
 
   const CASES_PATH = "/head-counselor/cases";
 
@@ -656,6 +679,7 @@ export default function HeadCounselorAssignedUsersPage() {
 
   return (
     <div className="space-y-6">
+      <Toast {...toast} onClose={closeToast} />
       {detailUser && (
         <DetailModal
           user={detailUser}
@@ -852,12 +876,32 @@ export default function HeadCounselorAssignedUsersPage() {
                     </td>
                     <td className="py-4 px-3">
                       {/* Desktop */}
-                      <div className="hidden sm:flex items-center gap-2">
+                      <div className="hidden sm:flex flex-wrap items-center gap-2">
                         <button
                           onClick={() => setDetailUser(user)}
                           className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-slate-800"
                         >
                           View
+                        </button>
+                        {/* Assign Counselor inline */}
+                        <select
+                          className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs font-poppins text-dark-text focus:outline-none focus:ring-1 focus:ring-primary-blue/30 max-w-[140px]"
+                          value={assignSelections[user.id] ?? user.counselorId ?? ""}
+                          onChange={e => setAssignSelections(prev => ({ ...prev, [user.id]: e.target.value }))}
+                        >
+                          <option value="">Unassigned</option>
+                          {counselors.map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.full_name || c.username || c.id.slice(0, 8)}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => handleAssignCounselor(user.id, assignSelections[user.id] ?? user.counselorId ?? "")}
+                          disabled={!!assignLoading[user.id]}
+                          className="rounded-lg bg-[#A8DADC] px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-all hover:bg-[#4EAAB3] disabled:opacity-50"
+                        >
+                          {assignLoading[user.id] ? "..." : user.counselorId ? "Reassign" : "Assign"}
                         </button>
                         {user.openCases.length > 0 && (
                           <Link

@@ -485,41 +485,14 @@ export default function AdminDistressAlertsPage() {
 
   const renderAssignmentControls = (alert: DistressLog, compact = false) => {
     const assignedCounselor = getAssignedCounselor(alert);
-    const selectedCounselorId = assignmentSelections[alert.id] || assignedCounselorByUser[alert.user_id] || conversationsByUser[alert.user_id]?.counselor_id || "";
-
+    // Admin/Owner — read-only view of assignment (head counselor manages assignments)
     return (
-      <div className={compact ? "flex min-w-0 flex-wrap items-center gap-2" : "min-w-0 space-y-2"}>
-        <select
-          className={`min-w-0 max-w-full border border-gray-200 bg-white text-xs font-poppins text-dark-text focus:outline-none focus:ring-2 focus:ring-primary-blue/30 ${compact ? "w-32 rounded-lg px-2 py-1.5" : "w-full rounded-xl px-3 py-2"
-            }`}
-          value={selectedCounselorId}
-          onChange={(event) =>
-            setAssignmentSelections((prev) => ({
-              ...prev,
-              [alert.id]: event.target.value,
-            }))
-          }
-          disabled={counselors.length === 0}
-        >
-          <option value="">{counselors.length ? "Choose counselor" : "No counselors"}</option>
-          {counselors.map((counselor) => (
-            <option key={counselor.id} value={counselor.id}>
-              {getProfileName(counselor)}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          className="btn-sm bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-60"
-          disabled={!!actionLoading[`assign:${alert.id}`] || counselors.length === 0}
-          onClick={() => runAlertAction(alert.id, "assign")}
-        >
-          {actionLoading[`assign:${alert.id}`] ? "Assigning..." : assignedCounselor ? "Reassign" : "Assign"}
-        </button>
+      <div className={compact ? "flex min-w-0 flex-wrap items-center gap-1" : "min-w-0 space-y-1"}>
+        <p className="text-xs text-slate-600 font-inter">
+          Counselor: <span className="font-semibold text-dark-text">{getProfileName(assignedCounselor)}</span>
+        </p>
         {!compact && (
-          <p className="text-xs text-slate-600 font-inter">
-            Assigned: <span className="font-semibold text-dark-text">{getProfileName(assignedCounselor)}</span>
-          </p>
+          <p className="text-[10px] text-slate-400 font-inter">Assignment managed by Head Counselor</p>
         )}
       </div>
     );

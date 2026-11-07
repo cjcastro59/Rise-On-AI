@@ -144,18 +144,50 @@ export default function AdminUsersPage() {
 
   // Function to update user role
   const handleRoleChange = async (userId: string, newRole: string, userName: string) => {
+    // If assigning head_counselor, warn that existing head_counselor will be downgraded
+    let message = `Are you sure you want to change ${userName}'s role to ${newRole}?`;
+    if (newRole === "head_counselor") {
+      const existingHC = users.find(u => u.id !== userId && (u as any).role === "head_counselor");
+      if (existingHC) {
+        const existingName = (existingHC as any).full_name || (existingHC as any).username || existingHC.id.slice(0, 8);
+        message = `Assigning ${userName} as Head Counselor will downgrade the current Head Counselor (${existingName}) to Counselor. Continue?`;
+      }
+    }
+
     const confirmed = await openConfirmation({
-      title: "Change User Role",
-      message: `Are you sure you want to change ${userName}'s role to ${newRole}?`,
-      confirmText: "Yes, Change Role",
+      title: newRole === "head_counselor" ? "Transfer Head Counselor Role" : "Change User Role",
+      message,
+      confirmText: newRole === "head_counselor" ? "Yes, Transfer Role" : "Yes, Change Role",
       cancelText: "Cancel",
-      isDangerous: false,
+      isDangerous: newRole === "head_counselor",
       icon: <PowerIcon className="w-6 h-6 text-primary-blue" />
     });
 
     if (!confirmed) return;
 
     try {
+      // If promoting to head_counselor, demote existing one first
+      if (newRole === "head_counselor") {
+        const { data: existingHCs } = await supabase
+          .from("user_profiles")
+          .select("id")
+          .eq("role", "head_counselor")
+          .neq("id", userId);
+
+        if (existingHCs && existingHCs.length > 0) {
+          await supabase
+            .from("user_profiles")
+            .update({ role: "counselor" })
+            .in("id", existingHCs.map((u: any) => u.id));
+
+          setUsers(prev => prev.map(u =>
+            (u as any).role === "head_counselor" && u.id !== userId
+              ? { ...u, role: "counselor" }
+              : u
+          ));
+        }
+      }
+
       const { error } = await supabase
         .from("user_profiles")
         .update({ role: newRole })
@@ -165,10 +197,7 @@ export default function AdminUsersPage() {
         console.error("Error updating role:", error);
         showToast(`Failed to update role: ${error.message}`, "error");
       } else {
-        // Refresh user list
         setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
-
-        // Log audit
         await supabase.from("audit_logs").insert({
           admin_id: currentUser?.id,
           action: "Role Change",
@@ -176,6 +205,7 @@ export default function AdminUsersPage() {
           target_type: "user",
           details: `Changed ${userName}'s role to ${newRole}`
         });
+        showToast(`Role updated to ${newRole}.`, "success");
       }
     } catch (err) {
       console.error("Error updating role:", err);

@@ -139,7 +139,8 @@ export default function HeadCounselorSidebar() {
                 items: [
                   { href: "/head-counselor/dashboard",        label: "Dashboard",       icon: "/icons/dashboard.svg",     iconAlt: "Dashboard" },
                   { href: "/head-counselor/access-requests",   label: "Access Requests", icon: "/icons/notifications.svg",  iconAlt: "Access Requests", badge: pendingAccessRequests },
-                  { href: "/head-counselor/cases",            label: "Cases",           icon: "/icons/crisis-report.svg",  iconAlt: "Cases", badge: distressAlertCount },
+                  { href: "/head-counselor/distress-alerts",   label: "Distress Alerts", icon: "/icons/crisis-report.svg",  iconAlt: "Distress Alerts", badge: distressAlertCount },
+                  { href: "/head-counselor/cases",            label: "Cases",           icon: "/icons/crisis-report.svg",  iconAlt: "Cases" },
                   { href: "/head-counselor/counselors",        label: "Counselors",      icon: "/icons/profile-icon.svg",   iconAlt: "Counselors" },
                   { href: "/head-counselor/assigned-users",    label: "Assigned Users",  icon: "/icons/account.svg",        iconAlt: "Assigned Users" },
                 ],
@@ -218,11 +219,12 @@ export default function HeadCounselorSidebar() {
                 {!isCollapsed && <p className="text-xs font-poppins text-white/50 uppercase tracking-wider mb-3">Main</p>}
                 <div className="space-y-1">
                     {[
-                      { href: "/head-counselor/dashboard",       label: "Dashboard",       icon: "/icons/dashboard.svg",      badge: 0 },
-                      { href: "/head-counselor/access-requests",   label: "Access Requests", icon: "/icons/notifications.svg",   badge: pendingAccessRequests },
-                      { href: "/head-counselor/cases",            label: "Cases",           icon: "/icons/crisis-report.svg",   badge: distressAlertCount },
-                      { href: "/head-counselor/counselors",        label: "Counselors",      icon: "/icons/profile-icon.svg",    badge: 0 },
-                      { href: "/head-counselor/assigned-users",    label: "Assigned Users",  icon: "/icons/account.svg",        badge: 0 },
+                      { href: "/head-counselor/dashboard",       label: "Dashboard",         icon: "/icons/dashboard.svg",      badge: 0 },
+                      { href: "/head-counselor/access-requests",   label: "Access Requests",   icon: "/icons/notifications.svg",   badge: pendingAccessRequests },
+                      { href: "/head-counselor/distress-alerts",   label: "Distress Alerts",   icon: "/icons/crisis-report.svg",   badge: distressAlertCount },
+                      { href: "/head-counselor/cases",            label: "Cases",             icon: "/icons/crisis-report.svg",   badge: 0 },
+                      { href: "/head-counselor/counselors",        label: "Counselors",        icon: "/icons/profile-icon.svg",    badge: 0 },
+                      { href: "/head-counselor/assigned-users",    label: "Assigned Users",    icon: "/icons/account.svg",        badge: 0 },
                     ].map(({ href, label, icon, badge }) => (
                       <Link key={href} href={href} title={isCollapsed ? label : undefined}
                         className={`flex items-center gap-3 px-2 py-1 rounded-lg text-sm font-poppins transition-all ${isCollapsed ? "justify-center" : ""} ${pathname === href ? "bg-[#A8DADC]/20 text-[#A8DADC]" : "text-white/70 hover:text-white hover:bg-white/5"}`}>
