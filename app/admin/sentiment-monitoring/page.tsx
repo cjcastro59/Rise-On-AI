@@ -6,30 +6,21 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 const TAGALOG_KEYWORDS = [
+  // Pronouns
   "ako", "ikaw", "siya", "kami", "tayo", "kayo", "sila",
-  "ng", "sa", "mga", "ang", "ay", "na", "din", "rin", "pa",
-  "oo", "hindi", "wala", "mayroon", "niyo", "natin", "atin",
+  // Particles — only multi-char or less ambiguous ones
+  "mga", "nang", "kung", "pero", "kasi", "dahil", "habang",
+  // Common words unlikely to appear in English
   "gusto", "ayaw", "sana", "dapat", "kailangan", "pwede",
-  "sakit", "lungkot", "takot", "galit", "saya", "pogi", "ganda",
-  "mahal", "salamat", "po", "opo", "nang", "kung", "pero", "kasi",
-  "dahil", "habang", "noon", "ngayon", "bukas", "kahapon",
-  "yung", "yung", 'yan', 'to', 'ko', 'mo', 'niya', 'naman',
-  'talaga', 'siguro', 'baka', 'nga', 'eh', 'ha', 'ho', 'muna',
-  "nanay", "tatay", "kapatid", "kaibigan", "pamilya", "eskwelahan",
+  "sakit", "lungkot", "takot", "galit", "saya", "mahal",
+  "salamat", "naman", "talaga", "siguro", "baka", "muna",
+  "nanay", "tatay", "kapatid", "kaibigan", "pamilya",
   "trabaho", "pagkain", "tubig", "bahay", "araw", "gabi",
-  "tulog", "lakad", "kain", "inom", "laro", " basa ", " sulat ",
-  " mahirap ", " madali ", " maganda ", " pangit ", " malaki ",
-  " maliit ", " mabigat ", " magaan ", " mainit ", " malamig ",
-  " gutom ", " uhaw ", " pagod ", " sakit ", " lagnat ", " sipon ",
-  " ubo ", " hirap ", " saya ", " lungkot ", " galit ", " takot ",
-  " tuwa ", " inis ", " badtrip ", " swerte ", " malas ",
-  " pinoy ", " pinay ", " filipino ", " tagalog ", " bisaya ",
-  " pogi ", " gwapo ", " ganda ", " sexy ", " cute ",
-  " idol ", " bro ", " mare ", " pare ", " teh ",
-  " thank you ", " salamat ", " pasensya na ", " paumanhin ",
-  " sorry ", " please ", " pwede ba ", " sige na ",
-  " tara ", " kape ", " kanto ", " baryo ", " probinsya ",
-  " manila ", " cebu ", " davao ", " jeep ", " tricycle ",
+  "tulog", "gutom", "uhaw", "pagod", "lagnat", "sipon",
+  "hirap", "badtrip", "swerte", "malas", "pinoy", "pinay",
+  "tagalog", "bisaya", "gwapo", "tara ", "kape",
+  "baryo", "probinsya", "jeep", "tricycle",
+  "pasensya", "paumanhin", "pwede ba", "sige na",
 ];
 
 const detectLanguage = (text: string): string => {
@@ -363,9 +354,11 @@ export default function AdminSentimentMonitoringPage() {
             <div className="w-10 h-10 bg-[#52B788]/20 rounded-lg flex items-center justify-center text-2xl">✅</div>
             <div className="text-right flex-1">
               <p className="text-xs text-slate-700 font-poppins">AI ACCURACY</p>
-              <p className="text-2xl font-dm-serif text-dark-text">82.6%</p>
+              <p className="text-2xl font-dm-serif text-dark-text">
+                {agreement != null ? fmtPct(agreement) : "82.6%"}
+              </p>
               <p className="text-xs text-slate-600 font-poppins">
-                F1 macro · {activeModel}
+                {agreement != null ? "Confidence-weighted · live" : "F1 macro · held-out test"} · {activeModel}
               </p>
             </div>
           </div>
